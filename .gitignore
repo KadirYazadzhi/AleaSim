@@ -1,0 +1,6 @@
+docs/*
+.idea/*
+goals.md
+instruction.md
+AleaSim.Domain/bin/
+AleaSim.Domain/obj/
