@@ -63,11 +63,9 @@ public class GameController : ControllerBase {
             var game = _gameResolver(gameType);
              game.ProcessAction(sessionId, request.Action, request.ActionData);
              
-             // We need a way to get the updated state. 
-             // In a real scenario, ProcessAction might return a result or we fetch it.
-             // For now, we assume success.
+             var newState = game.GetCurrentState(sessionId);
              
-             return Ok(new GameActionResponse(true, "Action processed", null));
+             return Ok(new GameActionResponse(true, "Action processed", newState));
         }
         catch (Exception ex)
         {
