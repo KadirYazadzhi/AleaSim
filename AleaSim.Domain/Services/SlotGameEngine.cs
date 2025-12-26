@@ -1,7 +1,6 @@
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
 using System.Text.Json;
-using System.Collections.Concurrent;
 
 namespace AleaSim.Domain.Services;
 
@@ -19,26 +18,19 @@ public class SlotGameEngine : BaseGameEngine {
         { 4, 1m },  // 3 of symbol 4 pays 1x
         { 5, 0.5m } // 3 of symbol 5 pays 0.5x
     };
-
-    private readonly ConcurrentDictionary<Guid, decimal> _currentBets = new();
-    private readonly ConcurrentDictionary<Guid, int> _roundCounters = new();
-
-    public SlotGameEngine(IRngService rngService, IRtpEngine rtpEngine, IJackpotService jackpotService) : base(rngService, rtpEngine, jackpotService) {
-    }
-
-    public override void PlaceBet(Guid sessionId, decimal amount, string betData) {
-        base.PlaceBet(sessionId, amount, betData);
-        _currentBets[sessionId] = amount;
+    
+    public SlotGameEngine(IRngService rngService, IRtpEngine rtpEngine, IJackpotService jackpotService, IGameRepository repository) 
+        : base(rngService, rtpEngine, jackpotService, repository) {
     }
 
     public override GameRound ResolveRound(Guid sessionId) {
-        if (!ActiveSessions.TryGetValue(sessionId, out var session))
-            throw new InvalidOperationException("Session not found.");
+        var session = Repository.GetSession(sessionId);
+        if (session == null) throw new InvalidOperationException("Session not found.");
 
-        if (!_currentBets.TryRemove(sessionId, out decimal betAmount))
-            throw new InvalidOperationException("No bet placed for this round.");
+        var lastBet = Repository.GetLastBet(sessionId);
+        if (lastBet == null) throw new InvalidOperationException("No bet found.");
 
-        int roundNumber = _roundCounters.AddOrUpdate(sessionId, 1, (k, v) => v + 1);
+        int roundNumber = Repository.GetRoundCount(sessionId) + 1;
 
         // Calculate stop positions for 3 reels
         int[] stops = new int[3];
@@ -51,7 +43,7 @@ public class SlotGameEngine : BaseGameEngine {
             resultSymbols[i] = _reelStrips[i][stops[i]];
         }
 
-        decimal winAmount = CalculateWin(resultSymbols, betAmount);
+        decimal winAmount = CalculateWin(resultSymbols, lastBet.Amount);
 
         // Jackpot check
         if (JackpotService.CheckJackpotTrigger(session.GameId, session.Seed, roundNumber, out decimal jackpotWin)) {
@@ -59,14 +51,12 @@ public class SlotGameEngine : BaseGameEngine {
         }
 
         // Check RTP Engine
-        if (winAmount > 0 && !RtpEngine.IsOutcomeAllowed(session.GameId, session.UserId, winAmount, betAmount)) {
-            // If not allowed, we "force" a loss for this simulation
-            // In a real system, we might retry or pick a different outcome
+        if (winAmount > 0 && !RtpEngine.IsOutcomeAllowed(session.GameId, session.UserId, winAmount, lastBet.Amount)) {
             winAmount = 0;
         }
 
         if (winAmount > 0) {
-            UpdateBalance(session.UserId, winAmount);
+            Repository.UpdateUserBalance(session.UserId, winAmount);
             RtpEngine.RecordWin(session.GameId, session.UserId, winAmount);
         }
 
@@ -76,27 +66,30 @@ public class SlotGameEngine : BaseGameEngine {
             RoundNumber = roundNumber,
             InputData = JsonSerializer.Serialize(new { Stops = stops }),
             RandomResult = JsonSerializer.Serialize(new { Symbols = resultSymbols }),
-            TotalBetAmount = betAmount,
+            TotalBetAmount = lastBet.Amount,
             TotalWinAmount = winAmount,
             ExecutedAt = DateTime.UtcNow
         };
 
+        Repository.SaveRound(round);
+        
+        var outcome = new Outcome {
+            Id = Guid.NewGuid(),
+            GameRoundId = round.Id,
+            ResultJson = JsonSerializer.Serialize(new { Symbols = resultSymbols, Win = winAmount }),
+            WinAmount = winAmount
+        };
+        Repository.SaveOutcome(outcome);
+        
         return round;
     }
 
     public override Outcome GetOutcome(Guid roundId) {
-        // This would typically fetch from a repository. 
-        // For now, we return a mock or expect the caller to have the round.
-        return new Outcome {
-            Id = Guid.NewGuid(),
-            GameRoundId = roundId,
-            ResultJson = "{}", // To be filled by caller or stored
-            WinAmount = 0
-        };
+        return Repository.GetOutcome(roundId) 
+               ?? new Outcome { Id = Guid.NewGuid(), GameRoundId = roundId, ResultJson = "{}" };
     }
 
     private decimal CalculateWin(int[] symbols, decimal betAmount) {
-        // Simple 3-reel match logic
         if (symbols[0] == symbols[1] && symbols[1] == symbols[2]) {
             if (_paytable.TryGetValue(symbols[0], out decimal multiplier)) {
                 return betAmount * multiplier;
