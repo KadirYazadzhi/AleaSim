@@ -1,0 +1,6 @@
+@AleaSim.Api_HostAddress = http://localhost:5286
+
+GET {{AleaSim.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
