@@ -43,6 +43,7 @@ builder.Services.AddSingleton<IGameRepository, EfGameRepository>();
 
 // Domain Services (Singleton for simulation state)
 builder.Services.AddSingleton<IRngService, DeterministicRngService>();
+builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>(); // Added PasswordHasher
 builder.Services.AddSingleton<IRtpEngine, RtpEngine>();
 builder.Services.AddSingleton<IJackpotService, JackpotService>();
 builder.Services.AddSingleton<IAuditService, AuditService>();
@@ -93,5 +94,37 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Initialize Database & Seed Data
+using (var scope = app.Services.CreateScope()) {
+    var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
+    db.Database.EnsureCreated(); // Auto-create tables if missing
+
+    // Seed Games if missing
+    if (!db.Games.Any()) {
+        db.Games.AddRange(
+            new AleaSim.Domain.Entities.Game { Id = Guid.NewGuid(), Name = "Slot Machine", Type = "Slot", MinBet = 1, MaxBet = 100, TargetRTP = 0.95, IsActive = true },
+            new AleaSim.Domain.Entities.Game { Id = Guid.NewGuid(), Name = "European Roulette", Type = "Roulette", MinBet = 1, MaxBet = 500, TargetRTP = 0.97, IsActive = true },
+            new AleaSim.Domain.Entities.Game { Id = Guid.NewGuid(), Name = "Blackjack", Type = "Blackjack", MinBet = 5, MaxBet = 200, TargetRTP = 0.99, IsActive = true }
+        );
+        db.SaveChanges();
+    }
+
+    // Seed Admin if missing
+    if (!db.Users.Any(u => u.Username == "admin")) {
+        var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+        db.Users.Add(new AleaSim.Domain.Entities.User {
+            Id = Guid.NewGuid(),
+            Username = "admin",
+            PasswordHash = hasher.HashPassword("admin"), // Hashed password
+            Email = "admin@aleasim.com",
+            Role = AleaSim.Domain.Enums.Role.Admin,
+            Balance = 1000000m,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        db.SaveChanges();
+    }
+}
 
 app.Run();
