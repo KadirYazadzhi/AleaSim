@@ -4,3 +4,5 @@ goals.md
 instruction.md
 AleaSim.Domain/bin/
 AleaSim.Domain/obj/
+AleaSim.Persistence/obj/
+AleaSim.Persistence/bin/
