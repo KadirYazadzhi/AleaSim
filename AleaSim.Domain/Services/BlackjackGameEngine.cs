@@ -1,15 +1,13 @@
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
 using System.Text.Json;
-using System.Collections.Concurrent;
 
 namespace AleaSim.Domain.Services;
 
 public class BlackjackGameEngine : BaseGameEngine {
-    private readonly ConcurrentDictionary<Guid, BlackjackState> _states = new();
-    private readonly ConcurrentDictionary<Guid, int> _roundCounters = new();
-
-    public BlackjackGameEngine(IRngService rngService, IRtpEngine rtpEngine, IJackpotService jackpotService) : base(rngService, rtpEngine, jackpotService) {
+    
+    public BlackjackGameEngine(IRngService rngService, IRtpEngine rtpEngine, IJackpotService jackpotService, IGameRepository repository) 
+        : base(rngService, rtpEngine, jackpotService, repository) {
     }
 
     public class BlackjackState {
@@ -22,70 +20,144 @@ public class BlackjackGameEngine : BaseGameEngine {
 
     public override void PlaceBet(Guid sessionId, decimal amount, string betData) {
         base.PlaceBet(sessionId, amount, betData);
-        _states[sessionId] = new BlackjackState { BetAmount = amount, Sequence = 0 };
+        // We don't create state here yet, ResolveRound will initialize the deal.
     }
 
     public override GameRound ResolveRound(Guid sessionId) {
-        if (!_states.TryGetValue(sessionId, out var state)) throw new InvalidOperationException("No bet placed.");
+        var session = Repository.GetSession(sessionId);
+        if (session == null) throw new InvalidOperationException("Session not found.");
+        
+        var lastBet = Repository.GetLastBet(sessionId);
+        if (lastBet == null) throw new InvalidOperationException("No bet found.");
+        
+        int roundNumber = Repository.GetRoundCount(sessionId) + 1;
 
-        if (state.PlayerHand.Count == 0) {
-            // Initial Deal
-            state.PlayerHand.Add(DrawCard(sessionId));
-            state.DealerHand.Add(DrawCard(sessionId));
-            state.PlayerHand.Add(DrawCard(sessionId));
-            state.DealerHand.Add(DrawCard(sessionId));
-            
-            if (CalculateHandValue(state.PlayerHand) == 21) state.IsRoundOver = true;
+        var state = new BlackjackState { BetAmount = lastBet.Amount, Sequence = 0 };
+        
+        // Initial Deal
+        int seq = state.Sequence;
+        state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
+        state.DealerHand.Add(DrawCard(session.Seed, ref seq));
+        state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
+        state.DealerHand.Add(DrawCard(session.Seed, ref seq));
+        state.Sequence = seq;
+        
+        if (CalculateHandValue(state.PlayerHand) == 21) {
+             state.IsRoundOver = true;
+             // Natural Blackjack logic check could go here
         }
 
-        return CreateRoundResult(sessionId, state);
+        var round = new GameRound {
+            Id = Guid.NewGuid(),
+            GameSessionId = sessionId,
+            RoundNumber = roundNumber,
+            InputData = JsonSerializer.Serialize(state), // Saving initial state here
+            RandomResult = JsonSerializer.Serialize(state), // And current state here
+            TotalBetAmount = lastBet.Amount,
+            TotalWinAmount = 0, // Pending
+            ExecutedAt = DateTime.UtcNow
+        };
+
+        Repository.SaveRound(round);
+
+        if (state.IsRoundOver) {
+            FinishRound(session, round, state);
+        }
+
+        return round;
     }
 
     public override void ProcessAction(Guid sessionId, string action, string actionData) {
-        if (!_states.TryGetValue(sessionId, out var state) || state.IsRoundOver) return;
+        var session = Repository.GetSession(sessionId);
+        if (session == null) return;
+
+        // Load the latest active round
+        var round = Repository.GetLastRound(sessionId);
+        if (round == null) return;
+        
+        // We check if Outcome exists, if so, round is over.
+        var outcome = Repository.GetOutcome(round.Id);
+        if (outcome != null) return; // Round already over
+
+        var state = JsonSerializer.Deserialize<BlackjackState>(round.RandomResult);
+        if (state == null || state.IsRoundOver) return;
 
         if (action.ToLower() == "hit") {
-            state.PlayerHand.Add(DrawCard(sessionId));
+            int seq = state.Sequence;
+            state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
+            state.Sequence = seq;
             
-            if (CalculateHandValue(state.PlayerHand) >= 21) FinishRound(sessionId, state);
+            if (CalculateHandValue(state.PlayerHand) >= 21) {
+                 // Bust or 21, auto-stand basically
+                 FinishRound(session, round, state);
+            } else {
+                // Just update state
+                round.RandomResult = JsonSerializer.Serialize(state);
+                Repository.SaveRound(round);
+            }
         }
         else if (action.ToLower() == "stand") {
-            FinishRound(sessionId, state);
+            FinishRound(session, round, state);
         }
     }
 
     public override Outcome GetOutcome(Guid roundId) {
-        return new Outcome { Id = Guid.NewGuid(), GameRoundId = roundId };
+        return Repository.GetOutcome(roundId) 
+               ?? new Outcome { Id = Guid.NewGuid(), GameRoundId = roundId };
     }
 
-    private void FinishRound(Guid sessionId, BlackjackState state) {
+    private void FinishRound(GameSession session, GameRound round, BlackjackState state) {
         state.IsRoundOver = true;
         
         int playerValue = CalculateHandValue(state.PlayerHand);
-        if (playerValue <= 21){
-            // Dealer's turn
+        
+        // Dealer logic if player hasn't busted
+        if (playerValue <= 21) {
+            int seq = state.Sequence;
             while (CalculateHandValue(state.DealerHand) < 17) {
-                state.DealerHand.Add(DrawCard(sessionId));
+                state.DealerHand.Add(DrawCard(session.Seed, ref seq));
             }
+            state.Sequence = seq;
         }
 
         int dealerValue = CalculateHandValue(state.DealerHand);
         decimal winAmount = 0;
 
-        if (playerValue > 21) winAmount = 0; // Bust
-        else if (dealerValue > 21 || playerValue > dealerValue) winAmount = state.BetAmount * 2;
-        else if (playerValue == dealerValue) winAmount = state.BetAmount; // Push
+        if (playerValue > 21) {
+            winAmount = 0; // Bust
+        }
+        else if (dealerValue > 21) {
+            winAmount = state.BetAmount * 2; // Dealer Bust
+        }
+        else if (playerValue > dealerValue) {
+            winAmount = state.BetAmount * 2; // Win
+        }
+        else if (playerValue == dealerValue) {
+            winAmount = state.BetAmount; // Push (Return bet)
+        }
 
         if (winAmount > 0) {
-            UpdateBalance(ActiveSessions[sessionId].UserId, winAmount);
-            RtpEngine.RecordWin(ActiveSessions[sessionId].GameId, ActiveSessions[sessionId].UserId, winAmount);
+             Repository.UpdateUserBalance(session.UserId, winAmount);
+             RtpEngine.RecordWin(session.GameId, session.UserId, winAmount);
         }
+
+        round.RandomResult = JsonSerializer.Serialize(state);
+        round.TotalWinAmount = winAmount;
+
+        var outcome = new Outcome {
+            Id = Guid.NewGuid(),
+            GameRoundId = round.Id,
+            ResultJson = JsonSerializer.Serialize(state),
+            WinAmount = winAmount
+        };
+        Repository.SaveOutcome(outcome);
+        Repository.SaveRound(round);
     }
 
-    private string DrawCard(Guid sessionId) {
-        var state = _states[sessionId];
-        state.Sequence++;
-        int cardIndex = RngService.GetNextInt(ActiveSessions[sessionId].Seed, state.Sequence, 0, 52);
+    private string DrawCard(int seed, ref int sequence) {
+        sequence++;
+        // We use ref sequence to ensure state progresses correctly
+        int cardIndex = RngService.GetNextInt(seed, sequence, 0, 52);
         string[] suits = { "H", "D", "C", "S" };
         string[] ranks = { "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K" };
         return ranks[cardIndex % 13] + suits[cardIndex / 13];
@@ -106,18 +178,5 @@ public class BlackjackGameEngine : BaseGameEngine {
         }
         
         return value;
-    }
-
-    private GameRound CreateRoundResult(Guid sessionId, BlackjackState state) {
-        int roundNumber = _roundCounters.AddOrUpdate(sessionId, 1, (k, v) => v + 1);
-        return new GameRound {
-            Id = Guid.NewGuid(),
-            GameSessionId = sessionId,
-            RoundNumber = roundNumber,
-            RandomResult = JsonSerializer.Serialize(state),
-            TotalBetAmount = state.BetAmount,
-            TotalWinAmount = state.IsRoundOver ? 0 : 0, // Placeholder
-            ExecutedAt = DateTime.UtcNow
-        };
     }
 }
