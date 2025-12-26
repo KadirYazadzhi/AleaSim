@@ -69,6 +69,10 @@ public abstract class BaseGameEngine : IGame {
         // Default implementation does nothing
     }
 
+    public virtual object? GetCurrentState(Guid sessionId) {
+        return null;
+    }
+
     protected void EndSession(Guid sessionId) {
         Repository.EndSession(sessionId);
     }

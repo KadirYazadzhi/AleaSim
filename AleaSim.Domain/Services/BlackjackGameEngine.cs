@@ -60,6 +60,10 @@ public class BlackjackGameEngine : BaseGameEngine {
 
         Repository.SaveRound(round);
 
+        // Link bet to round
+        lastBet.GameRoundId = round.Id;
+        Repository.UpdateBet(lastBet);
+
         if (state.IsRoundOver) {
             FinishRound(session, round, state);
         }
@@ -101,6 +105,12 @@ public class BlackjackGameEngine : BaseGameEngine {
         }
     }
 
+    public override object? GetCurrentState(Guid sessionId) {
+        var round = Repository.GetLastRound(sessionId);
+        if (round == null) return null;
+        return JsonSerializer.Deserialize<BlackjackState>(round.RandomResult);
+    }
+
     public override Outcome GetOutcome(Guid roundId) {
         return Repository.GetOutcome(roundId) 
                ?? new Outcome { Id = Guid.NewGuid(), GameRoundId = roundId };
@@ -127,10 +137,21 @@ public class BlackjackGameEngine : BaseGameEngine {
             winAmount = 0; // Bust
         }
         else if (dealerValue > 21) {
-            winAmount = state.BetAmount * 2; // Dealer Bust
+            winAmount = state.BetAmount * 2; // Dealer Bust - Pay 1:1 (Return stake + equal amount)
         }
         else if (playerValue > dealerValue) {
-            winAmount = state.BetAmount * 2; // Win
+            // Check for Blackjack (21 with 2 cards) - Pays 3:2
+            // Note: Simplistic check. True BJ is usually A+10/J/Q/K on first 2 cards.
+            // Here we assume if player has 21 and wins, it's a strong win. 
+            // Proper BJ logic requires checking if it was initial 2 cards.
+            // But state doesn't explicitly track "IsNaturalBlackjack" easily without checking card count.
+            bool isBlackjack = playerValue == 21 && state.PlayerHand.Count == 2;
+            
+            if (isBlackjack) {
+                winAmount = state.BetAmount * 2.5m; // 3:2 Payout (Stake + 1.5x)
+            } else {
+                winAmount = state.BetAmount * 2; // 1:1 Payout
+            }
         }
         else if (playerValue == dealerValue) {
             winAmount = state.BetAmount; // Push (Return bet)

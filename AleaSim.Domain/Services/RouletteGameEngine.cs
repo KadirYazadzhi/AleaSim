@@ -67,6 +67,10 @@ public class RouletteGameEngine : BaseGameEngine {
         };
         Repository.SaveRound(round);
 
+        // Link bet to round
+        lastBet.GameRoundId = round.Id;
+        Repository.UpdateBet(lastBet);
+
         var outcome = new Outcome {
             Id = Guid.NewGuid(),
             GameRoundId = round.Id,

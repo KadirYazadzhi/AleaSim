@@ -72,6 +72,10 @@ public class SlotGameEngine : BaseGameEngine {
         };
 
         Repository.SaveRound(round);
+
+        // Link bet to round
+        lastBet.GameRoundId = round.Id;
+        Repository.UpdateBet(lastBet);
         
         var outcome = new Outcome {
             Id = Guid.NewGuid(),
