@@ -34,8 +34,12 @@ builder.Services.AddSwaggerGen(c => {
 });
 
 // Database
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AleaSimDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+
+// Persistence Service (Repository)
+builder.Services.AddSingleton<IGameRepository, EfGameRepository>();
 
 // Domain Services (Singleton for simulation state)
 builder.Services.AddSingleton<IRngService, DeterministicRngService>();
@@ -59,7 +63,8 @@ builder.Services.AddSingleton<Func<string, IGame>>(serviceProvider => key => {
 });
 
 // Authentication
-var key = Encoding.ASCII.GetBytes("ThisIsASecretKeyForAleaSimSimulationProject2025!");
+var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is missing in configuration.");
+var key = Encoding.ASCII.GetBytes(jwtKey);
 builder.Services.AddAuthentication(x => {
     x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
