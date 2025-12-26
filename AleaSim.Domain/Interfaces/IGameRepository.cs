@@ -8,10 +8,13 @@ public interface IGameRepository {
     GameSession? GetSession(Guid sessionId);
     void EndSession(Guid sessionId);
     User? GetUser(Guid userId);
+    User? GetUserByUsername(string username);
+    void CreateUser(User user);
     void UpdateUserBalance(Guid userId, decimal amountToAdd); // Positive to add, negative to subtract
 
     // Bets
     void SaveBet(Bet bet);
+    void UpdateBet(Bet bet); // Added to update Round ID
     Bet? GetLastBet(Guid sessionId);
 
     // Rounds

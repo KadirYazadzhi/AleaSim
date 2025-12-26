@@ -8,4 +8,5 @@ public interface IGame {
     GameRound ResolveRound(Guid sessionId);
     Outcome GetOutcome(Guid roundId);
     void ProcessAction(Guid sessionId, string action, string actionData);
+    object? GetCurrentState(Guid sessionId); // New method for retrieving game state (e.g. Blackjack hands)
 }
