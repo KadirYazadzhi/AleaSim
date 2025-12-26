@@ -6,3 +6,5 @@ AleaSim.Domain/bin/
 AleaSim.Domain/obj/
 AleaSim.Persistence/obj/
 AleaSim.Persistence/bin/
+AleaSim.Api/bin/
+AleaSim.Api/obj/
