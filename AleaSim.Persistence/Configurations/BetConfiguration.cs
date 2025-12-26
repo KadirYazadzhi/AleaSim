@@ -8,6 +8,8 @@ public class BetConfiguration : IEntityTypeConfiguration<Bet> {
     public void Configure(EntityTypeBuilder<Bet> builder) {
         builder.HasKey(b => b.Id);
         builder.HasIndex(b => b.GameRoundId);
+        builder.HasIndex(b => b.GameSessionId);
+        builder.HasIndex(b => b.UserId);
         builder.Property(b => b.Amount).HasPrecision(18, 2);
     }
 }

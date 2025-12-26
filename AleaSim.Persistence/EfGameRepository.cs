@@ -53,6 +53,19 @@ public class EfGameRepository : IGameRepository {
         return db.Users.FirstOrDefault(u => u.Id == userId);
     }
 
+    public User? GetUserByUsername(string username) {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
+        return db.Users.FirstOrDefault(u => u.Username == username);
+    }
+
+    public void CreateUser(User user) {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
+        db.Users.Add(user);
+        db.SaveChanges();
+    }
+
     public void UpdateUserBalance(Guid userId, decimal amountToAdd) {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
@@ -67,6 +80,13 @@ public class EfGameRepository : IGameRepository {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
         db.Bets.Add(bet);
+        db.SaveChanges();
+    }
+
+    public void UpdateBet(Bet bet) {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
+        db.Bets.Update(bet);
         db.SaveChanges();
     }
 

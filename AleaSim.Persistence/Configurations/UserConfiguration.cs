@@ -9,6 +9,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User> {
         builder.HasKey(u => u.Id);
         builder.HasIndex(u => u.Username).IsUnique();
         
+        builder.Property(u => u.Username).IsRequired().HasMaxLength(50);
+        builder.Property(u => u.Email).HasMaxLength(100);
+        builder.Property(u => u.PasswordHash).HasMaxLength(255);
+        
         builder.Property(u => u.Balance).HasPrecision(18, 2);
     }
 }
