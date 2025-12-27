@@ -3,6 +3,10 @@ using AleaSim.Domain.Entities;
 namespace AleaSim.Domain.Interfaces;
 
 public interface IGameRepository {
+    // Transaction Support
+    ITransaction BeginTransaction();
+    void SaveChanges();
+
     // Sessions & Users
     GameSession CreateSession(GameSession session);
     GameSession? GetSession(Guid sessionId);
