@@ -16,10 +16,8 @@ public class SignalRRealTimeService : IRealTimeService {
     }
 
     public async Task NotifyGameUpdate(Guid userId, object gameState) {
-        // In a real app, we'd use Group(userId.ToString()) or similar
+        // Securely send only to the specific user
         await _hubContext.Clients.User(userId.ToString()).SendAsync("ReceiveGameUpdate", gameState);
-        // Fallback for demo: send to all if user mapping not fully setup
-        await _hubContext.Clients.All.SendAsync("ReceiveGameUpdate", gameState);
     }
 
     public async Task NotifyRtpUpdate(Guid gameId, double currentRtp) {
