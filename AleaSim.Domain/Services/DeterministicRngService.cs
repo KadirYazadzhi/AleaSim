@@ -14,8 +14,9 @@ public class DeterministicRngService : IRngService {
     }
 
     private Random CreateRandom(int seed, int sequence) {
-        // Using HashCode.Combine to mix seed and sequence for a deterministic starting point
-        int combinedSeed = HashCode.Combine(seed, sequence);
+        // Use a stable bitwise combination instead of HashCode.Combine for cross-platform determinism
+        // unchecked allows overflow which is fine/desired for mixing
+        int combinedSeed = unchecked((seed * 397) ^ sequence); 
         return new Random(combinedSeed);
     }
 }

@@ -36,12 +36,15 @@ public class AuditService : IAuditService {
                 PreviousHash = _lastHash
             };
 
-            auditEvent.Hash = CalculateHash(auditEvent);
-            _lastHash = auditEvent.Hash;
+            var hash = CalculateHash(auditEvent);
+            auditEvent.Hash = hash;
 
             using var scope = _scopeFactory.CreateScope();
             var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
             repo.LogAudit(auditEvent);
+            
+            // Only update memory after successful persistence
+            _lastHash = hash;
         }
     }
 

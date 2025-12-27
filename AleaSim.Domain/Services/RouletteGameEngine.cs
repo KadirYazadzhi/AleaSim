@@ -50,13 +50,12 @@ public class RouletteGameEngine : BaseGameEngine {
                 }
 
                 // RTP Control
-                if (totalWinAmount > 0 && !RtpEngine.IsOutcomeAllowed(session.GameId, session.UserId, totalWinAmount, totalBetAmount, repo)) {
-                    totalWinAmount = 0; // Force loss if RTP is exceeded
-                }
-
                 if (totalWinAmount > 0) {
-                    repo.UpdateUserBalance(session.UserId, totalWinAmount);
-                    RtpEngine.RecordWin(session.GameId, session.UserId, totalWinAmount, repo);
+                     if (!RtpEngine.ProcessWin(session.GameId, session.UserId, totalWinAmount, totalBetAmount, repo)) {
+                        totalWinAmount = 0; // Force loss if RTP is exceeded
+                     } else {
+                        repo.UpdateUserBalance(session.UserId, totalWinAmount);
+                     }
                 }
 
                 var round = new GameRound {

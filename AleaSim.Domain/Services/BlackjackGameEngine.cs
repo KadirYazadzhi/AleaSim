@@ -184,8 +184,11 @@ public class BlackjackGameEngine : BaseGameEngine {
         }
 
         if (winAmount > 0) {
-             repo.UpdateUserBalance(session.UserId, winAmount);
-             RtpEngine.RecordWin(session.GameId, session.UserId, winAmount, repo);
+             if (!RtpEngine.ProcessWin(session.GameId, session.UserId, winAmount, state.BetAmount, repo)) {
+                 winAmount = 0; // RTP Violation enforced
+             } else {
+                 repo.UpdateUserBalance(session.UserId, winAmount);
+             }
         }
 
         round.RandomResult = JsonSerializer.Serialize(state);

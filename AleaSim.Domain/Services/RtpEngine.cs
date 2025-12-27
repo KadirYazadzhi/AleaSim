@@ -12,22 +12,31 @@ public class RtpEngine : IRtpEngine {
         _realTimeService = realTimeService;
     }
 
-    public bool IsOutcomeAllowed(Guid gameId, Guid userId, decimal potentialWinAmount, decimal betAmount, IGameRepository repo) {
+    public bool ProcessWin(Guid gameId, Guid userId, decimal winAmount, decimal betAmount, IGameRepository repo) {
         lock (_lock) {
             var stats = repo.GetOrCreateGameStats(gameId);
             
             double targetRtp = 0.95; 
 
-            decimal projectedTotalPaid = stats.TotalPaid + potentialWinAmount;
-            decimal projectedTotalWagered = stats.TotalWagered + betAmount;
+            decimal projectedTotalPaid = stats.TotalPaid + winAmount;
+            decimal projectedTotalWagered = stats.TotalWagered + betAmount; // Note: Wagered usually added in RecordBet, but we check projection
             
-            if (projectedTotalWagered == 0) return true;
+            // Re-calculate based on actual stored totals (Wagered was likely already added by RecordBet)
+            projectedTotalWagered = stats.TotalWagered; 
+            if (projectedTotalWagered == 0) projectedTotalWagered = betAmount; // Safety net
 
             double projectedRtp = (double)(projectedTotalPaid / projectedTotalWagered);
 
             if (stats.TotalRounds > 1000 && projectedRtp > targetRtp + MaxAllowedRtpDeviation) {
                 return false;
             }
+
+            // If allowed, record it immediately to prevent race conditions
+            repo.UpdateRtpStats(gameId, userId, 0, winAmount);
+            
+            // Notify
+             if (stats.TotalWagered > 0)
+                _realTimeService.NotifyRtpUpdate(gameId, (double)((stats.TotalPaid + winAmount) / stats.TotalWagered));
 
             return true;
         }
@@ -36,15 +45,6 @@ public class RtpEngine : IRtpEngine {
     public void RecordBet(Guid gameId, Guid userId, decimal amount, IGameRepository repo) {
         lock (_lock) {
             repo.UpdateRtpStats(gameId, userId, amount, 0);
-            var stats = repo.GetOrCreateGameStats(gameId);
-            if (stats.TotalWagered > 0)
-                _realTimeService.NotifyRtpUpdate(gameId, (double)(stats.TotalPaid / stats.TotalWagered));
-        }
-    }
-
-    public void RecordWin(Guid gameId, Guid userId, decimal amount, IGameRepository repo) {
-        lock (_lock) {
-            repo.UpdateRtpStats(gameId, userId, 0, amount);
             var stats = repo.GetOrCreateGameStats(gameId);
             if (stats.TotalWagered > 0)
                 _realTimeService.NotifyRtpUpdate(gameId, (double)(stats.TotalPaid / stats.TotalWagered));

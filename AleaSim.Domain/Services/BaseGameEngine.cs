@@ -34,10 +34,11 @@ public abstract class BaseGameEngine : IGame {
 
     public virtual GameSession StartSession(Guid userId, int? seed = null) {
         return ExecuteScoped(repo => {
+            int newSeed = seed ?? System.Security.Cryptography.RandomNumberGenerator.GetInt32(int.MinValue, int.MaxValue);
             var session = new GameSession {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                Seed = seed ?? Guid.NewGuid().GetHashCode(),
+                Seed = newSeed,
                 StartedAt = DateTime.UtcNow,
                 IsActive = true,
                 GameId = GetGameId(repo)
@@ -77,19 +78,8 @@ public abstract class BaseGameEngine : IGame {
                 };
                 repo.SaveBet(bet);
 
-                // Note: RtpEngine and JackpotService usually take Repo as dependency.
-                // BUT they are Singletons and expect to be Scoped-aware or take Repo as param?
-                // Currently they take IGameRepository in constructor.
-                // THIS IS A PROBLEM. RtpEngine is Singleton but IGameRepository is Scoped.
-                // We must change RtpEngine/JackpotService to be Scoped OR to take Repo as method param.
-                // Ideally, we pass the current 'repo' instance to them manually or change them to helper classes.
-                // OR: RtpEngine/JackpotService should also use ScopeFactory internally?
-                // NO, if we are in a transaction, they MUST use the SAME repo instance.
-                
-                // FIX: RtpEngine and JackpotService methods should accept IGameRepository.
-                // OR: We move the logic here.
-                
-                // Temporary HACK: We will assume RtpEngine/JackpotService are refactored to take Repo.
+                // RtpEngine and JackpotService now correctly accept IGameRepository as a parameter,
+                // ensuring they participate in the same transaction scope.
                 RtpEngine.RecordBet(session.GameId, session.UserId, amount, repo);
                 JackpotService.Contribute(session.GameId, amount, repo);
                 
