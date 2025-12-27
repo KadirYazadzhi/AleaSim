@@ -11,6 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add Services
 builder.Services.AddControllers();
+builder.Services.AddSignalR(); // Added SignalR
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c => {
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme {
@@ -39,11 +40,12 @@ builder.Services.AddDbContext<AleaSimDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
 // Persistence Service (Repository)
-builder.Services.AddSingleton<IGameRepository, EfGameRepository>();
+builder.Services.AddScoped<IGameRepository, EfGameRepository>();
 
 // Domain Services (Singleton for simulation state)
 builder.Services.AddSingleton<IRngService, DeterministicRngService>();
-builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>(); // Added PasswordHasher
+builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+builder.Services.AddSingleton<IRealTimeService, AleaSim.Api.Services.SignalRRealTimeService>(); // Added
 builder.Services.AddSingleton<IRtpEngine, RtpEngine>();
 builder.Services.AddSingleton<IJackpotService, JackpotService>();
 builder.Services.AddSingleton<IAuditService, AuditService>();
@@ -94,6 +96,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<AleaSim.Api.Hubs.GameHub>("/gamehub"); // Added
 
 // Initialize Database & Seed Data
 using (var scope = app.Services.CreateScope()) {
