@@ -1,24 +1,16 @@
-# IJackpotService - Jackpot Manager Contract
+# IJackpotService Interface Explanation
 
-The `IJackpotService` defines how the system handles progressive prize pools.
-
-## 🎯 Purpose
-To decouple the complex logic of "Who contributes what?" and "Did they win the big prize?" from the core game engines.
+The `IJackpotService` interface manages the complex logic of progressive pools.
 
 ## 🛠️ Method Contracts
 
-### `void Contribute(Guid gameId, decimal betAmount)`
-- **Goal**: Accumulation.
-- **Logic**: Called on *every* bet. Takes a percentage (defined in `Jackpot` entity) and adds it to the pot.
-- **Concurrency**: Must be thread-safe (atomic increments) as thousands of users bet simultaneously.
+### `Contribute`
+- **Logic**: Takes a slice of the bet (e.g., 1%) and adds it to the pool.
+- **Persistence**: Updates the database record via `IGameRepository`.
 
-### `bool CheckJackpotTrigger(Guid gameId, int seed, int sequence, out decimal winAmount)`
-- **Goal**: Evaluation.
-- **Logic**:
-    1. Performs a separate RNG roll (distinct from the game outcome).
-    2. Usually has very low odds (e.g., 1 in 1,000,000).
-    3. If triggered, returns `true` and the current pot value (`winAmount`).
-    4. **Reset**: The implementation must verify resetting the pot to its base value immediately to prevent double payouts.
+### `CheckJackpotTrigger`
+- **Logic**: Performs a separate RNG roll to see if the user wins the pot.
+- **Safety**: Should be thread-safe to prevent multiple users winning the same pot simultaneously.
 
-### `Jackpot GetGlobalJackpot()` / `Jackpot GetLocalJackpot(Guid gameId)`
-- **Goal**: State retrieval. Used to display "Current Jackpot: $1,234,567" on the UI.
+### `GetGlobalJackpot` / `GetLocalJackpot`
+- **Purpose**: Retrieval for display in the game lobby or UI.

@@ -1,18 +1,20 @@
-# Game - Configuration Entity
+# Game Entity Explanation
 
-The `Game` class serves as the catalog definition for a specific game type available in the casino platform.
+The `Game` class defines the configuration, rules, and limits for a specific game type available in the catalog.
 
-## 🎯 Purpose
-To store static configuration and rules that apply to *all* sessions of this game. It allows administrators to enable/disable games or change limits without altering the code.
+## 📦 Properties
 
-## 🏗️ Property Breakdown
+### Descriptive
+- **`Id`** (`Guid`): Unique identifier for the game definition.
+- **`Name`** (`string`): Display name (e.g., "Mega Fortune Slots").
+- **`Type`** (`string`): **Discriminator**. Categorizes the game (e.g., "Slot", "Roulette", "Blackjack"). This string is often used by the frontend to decide which assets to load and by the backend factory to instantiate the correct `IGame` engine.
+- **`Description`** (`string`): Marketing or instructional text.
 
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| **`Id`** | `Guid` | Unique ID (e.g., one ID for "European Roulette", another for "Classic Slots"). |
-| **`Name`** | `string` | The display name shown in the lobby. |
-| **`Description`** | `string` | Rules or marketing text explaining the game. |
-| **`MinBet`** | `decimal` | **Risk Management**. Prevents users from betting negligible amounts (e.g., 0.00001) that might spam the system. |
-| **`MaxBet`** | `decimal` | **Risk Management**. Limits the maximum liability the casino faces in a single round. |
-| **`TargetRTP`** | `double` | **Theoretical Return to Player**. Represented as a fraction (e.g., `0.96` for 96%). This is the mathematical "goal" the game engine tries to achieve over millions of rounds. |
-| **`IsActive`** | `bool` | A "Kill Switch". Allows admins to instantly hide a game if a bug is found or during maintenance. |
+### Risk & Math Configuration
+- **`MinBet`** & **`MaxBet`** (`decimal`): Operational boundaries.
+    - `MinBet`: Prevents spamming insignificant transactions.
+    - `MaxBet`: Limits the casino's exposure to volatility per round.
+- **`TargetRTP`** (`double`): The theoretical Return to Player percentage (e.g., 0.96 for 96%). The `RtpEngine` uses this value to monitor actual performance against expected math.
+
+### State
+- **`IsActive`** (`bool`): Master switch to enable/disable the game in the lobby.

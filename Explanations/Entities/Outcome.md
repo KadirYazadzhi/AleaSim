@@ -1,16 +1,16 @@
-# Outcome - Result Transfer Entity
+# Outcome Entity Explanation
 
-The `Outcome` class serves as a Data Transfer Object (DTO) wrapper for the result of a round, optimized for the client/UI.
+The `Outcome` class is a specialized projection of the game result, optimized for client consumption and reporting.
 
-## 🎯 Purpose
-While `GameRound` stores the raw data for the database/audit, `Outcome` formats that data for the player. It answers the immediate question: "Did I win, and how much?"
+## 📦 Properties
 
-## 🏗️ Property Breakdown
+### Core
+- **`Id`** (`Guid`): Unique ID.
+- **`GameRoundId`** (`Guid`): Links to the authoritative round record.
 
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| **`Id`** | `Guid` | Unique ID for the outcome report. |
-| **`GameRoundId`** | `Guid` | Reference to the authoritative `GameRound` record. |
-| **`ResultJson`** | `string` | **UI-Ready Data**. Contains exactly what the frontend needs to render the result. <br>• *Slots Example*: `{"Reels": [1, 1, 1], "LineMatches": [1]}`. <br>• *Blackjack Example*: `{"PlayerHand": ["Ah", "Kh"], "DealerHand": ["2c", "5d"], "Status": "Blackjack"}`. |
-| **`WinAmount`** | `decimal` | The final payout value. |
-| **`IsJackpotWin`** | `bool` | Special flag. Triggers specific UI animations (bells, whistles, confetti) if true. |
+### Results
+- **`ResultJson`** (`string`): A client-friendly JSON payload.
+    - Contains detailed win info (e.g., "Line 5 matched", "Dealer busted").
+    - Used by the frontend to render animations and messages.
+- **`WinAmount`** (`decimal`): The final payout amount.
+- **`IsJackpotWin`** (`bool`): Flag indicating if a special jackpot event occurred, triggering specific UI celebrations.

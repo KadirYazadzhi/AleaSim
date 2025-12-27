@@ -1,27 +1,15 @@
-# RtpEngine - Financial Controller
+# RtpEngine Implementation Explanation
 
-`RtpEngine.cs` contains the logic to ensure the casino remains solvent and fair.
+`RtpEngine.cs` serves as the financial "Governor" of the system.
 
-## 🧮 The Logic
+## 🛡️ Logic
 
-### 1. Statistics Aggregation
-It keeps three levels of stats in thread-safe dictionaries (`ConcurrentDictionary`):
-- **Global**: How is the entire casino doing?
-- **Game-Specific**: Is "Slots" paying out too much?
-- **User-Specific**: Is "User123" winning impossibly often?
-
-### 2. The Decision (`IsOutcomeAllowed`)
-This method simulates a "Look Ahead" check.
-- **Target**: `0.95` (95% RTP).
-- **Threshold**: `0.05` (5% allowed deviation).
+### `ProcessWin`
+- **Goal**: Decide if a win is allowed *before* paying it.
 - **Calculation**:
-    ```csharp
-    projectedRtp = (TotalPaid + potentialWin) / (TotalWagered + currentBet);
-    ```
-- **Constraint**: `if (projectedRtp > 1.00)` (System is losing money) AND `TotalRounds > 1000` (Sample size is large enough to matter).
-    - If both are true, it returns `false`, effectively blocking the win.
+    `Projected RTP = (TotalPaid + Win) / TotalWagered`
+- **Threshold**: Checks if `Projected RTP > Target (0.95) + Deviation (0.05)`.
+- **Constraint**: Only enforces this if `TotalRounds > 1000`. This prevents the engine from blocking wins in the early stages when variance is naturally high.
 
-## 📉 Statistical Significance
-The code includes a check `TotalRounds > 1000`.
-- **Why?** In the first 5 rounds, RTP will swing wildly (0% or 500%). We cannot enforce RTP limits on small samples. We only restrict wins once the law of large numbers should have stabilized the math.
-
+### Real-Time Monitoring
+- Calls `_realTimeService.NotifyRtpUpdate` whenever stats change. This allows the Admin Dashboard to show live graphs of game performance.

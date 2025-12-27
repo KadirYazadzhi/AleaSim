@@ -1,26 +1,23 @@
-# RouletteGameEngine - European Roulette Implementation
+# RouletteGameEngine Implementation Explanation
 
-`RouletteGameEngine.cs` simulates a standard single-zero European Roulette wheel.
+`RouletteGameEngine.cs` handles the logic for European Roulette.
 
-## ⚙️ Configuration
-- **Wheel**: Integers 0-36.
-- **Red Numbers**: Hardcoded array of standard red numbers (1, 3, 5, etc.).
-- **House Edge**: The presence of `0` (Green) provides the house edge, as it is neither Red/Black nor Even/Odd.
+## 🔄 Workflow
 
-## 🎲 Betting Logic
-The engine supports complex "Multi-Bets". A user can place 10 different chips in one request.
-- **Input Format**: JSON `[{"Type":"Color","Value":"Red","Amount":10}, ...]`.
-- **Validation**: Ensures the sum of all chips equals the `totalBetAmount` deducted from the wallet.
+### 1. Betting (`PlaceBet`)
+- Accepts a generic `betData` JSON string.
+- Deserializes it into a list of `RouletteBet` (e.g., Red, Odd, Number 17).
+- Validates the total amount matches the deducted balance.
 
-## 🏆 Win Calculation (`CalculateBetWin`)
-Iterates through every chip placed:
-1.  **"Number"**: Straight up bet. Pays 35:1 (Logic says `* 36` which includes the returned bet).
-2.  **"Color"**: Checks if the winning number is in `_redNumbers`. Pays 1:1 (`* 2`).
-    - **Rule**: If result is `0`, color bets lose.
-3.  **"EvenOdd"**: Checks `num % 2`. Pays 1:1.
-    - **Rule**: If result is `0`, even/odd bets lose.
+### 2. Execution (`ResolveRound`)
+- **Transaction**: Wraps the entire spin in a database transaction.
+- **Spin**: Generates a random number 0-36.
+- **Calculation**: Loops through every chip placed:
+    - Straight Up: 35:1
+    - Color/EvenOdd: 1:1
+- **RTP**: Checks `RtpEngine.ProcessWin`.
+- **Persistence**: Saves `GameRound` and `Outcome`.
+- **Notification**: Pushes the result (Winning Number) to the client via SignalR.
 
-## ⚖️ RTP Enforcement
-Roulette is high variance. A user can win 35x their bet.
-- **Check**: If the total win is huge, `RtpEngine.IsOutcomeAllowed` is called.
-- **Intervention**: If denied, the engine forces the win to `0`. *Note: In a real casino, this is illegal. The engine would instead re-roll the result to a losing number rather than simply confiscating the win.*
+## ⚖️ Math
+- **House Edge**: The presence of `0` ensures the house wins on Red/Black/Even/Odd bets when 0 lands, providing the mathematical edge.

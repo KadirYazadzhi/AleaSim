@@ -1,18 +1,20 @@
-# Jackpot - Accumulator Entity
+# Jackpot Entity Explanation
 
-The `Jackpot` class represents a progressive prize pool that grows with every bet placed.
+The `Jackpot` class represents a progressive prize pool that accumulates value over time based on user activity.
 
-## 🎯 Purpose
-To manage the state of high-value prizes. Jackpots are "Progressive", meaning a small percentage of every bet is "taxed" and added to this pot.
+## 📦 Properties
 
-## 🏗️ Property Breakdown
+### Identity
+- **`Id`** (`Guid`): Unique ID.
+- **`Name`** (`string`): Display name (e.g., "Grand Jackpot").
 
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| **`Id`** | `Guid` | Unique ID. |
-| **`Name`** | `string` | Display name (e.g., "Mega Moolah", "Mini Jackpot"). |
-| **`CurrentValue`** | `decimal` | The actual amount of money currently in the pot. This changes in real-time as bets are placed. |
-| **`ContributionRate`** | `decimal` | The configuration for growth. <br>• E.g., `0.01` (1%). <br>• If a user bets $100, $1 is added to `CurrentValue`. |
-| **`IsGlobal`** | `bool` | **Scope Definition**. <br>• `true`: Shared across ALL games. Everyone contributes, anyone can win. <br>• `false`: Specific to one game type (e.g., only Slot players contribute). |
-| **`GameId`** | `Guid?` | Nullable. If `IsGlobal` is false, this links to the specific `Game` that owns this jackpot. |
-| **`LastUpdated`** | `DateTime` | Concurrency tracking. Helps identifying when the value last changed. |
+### Economics
+- **`CurrentValue`** (`decimal`): The specific amount currently available to be won. Updated in real-time.
+- **`ContributionRate`** (`decimal`): The fractional percentage of every bet that feeds this pool (e.g., 0.01 for 1%).
+
+### Scope
+- **`IsGlobal`** (`bool`):
+    - `true`: Fed by all games across the platform.
+    - `false`: Tied to a specific game.
+- **`GameId`** (`Guid?`): If not global, links to the specific `Game` entity.
+- **`LastUpdated`** (`DateTime`): Used for concurrency control and freshness checks.

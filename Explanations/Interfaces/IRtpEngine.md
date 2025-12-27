@@ -1,21 +1,19 @@
-# IRtpEngine - Math Assurance Contract
+# IRtpEngine Interface Explanation
 
-The `IRtpEngine` defines the regulatory brakes for the system.
-
-## 🎯 Purpose
-Pure randomness can sometimes lead to statistical anomalies (e.g., a player winning the jackpot 3 times in a row). While theoretically possible, it bankrupts casinos. The RTP Engine monitors this and can flag or block outcomes that are statistically impossible or indicate a system flaw.
+The `IRtpEngine` interface defines the math guardrails for the casino. It ensures the system adheres to the configured Return to Player (RTP) percentages.
 
 ## 🛠️ Method Contracts
 
-### `bool IsOutcomeAllowed(Guid gameId, Guid userId, decimal potentialWinAmount, decimal betAmount)`
-- **Goal**: Gatekeeping.
-- **Logic**: Calculates the *hypothetical* new RTP if this win were to be paid.
-- **Return**:
-    - `true`: The win is within statistical tolerance.
-    - `false`: The win deviates too far from the `TargetRTP`. The Game Engine should reroll or force a loss.
+### `bool ProcessWin(...)`
+- **Parameters**: `gameId`, `userId`, `winAmount`, `betAmount`, `IGameRepository`.
+- **Logic**:
+    1.  Calculates the projected RTP if this win is allowed.
+    2.  If within tolerance, it records the stats and returns `true`.
+    3.  If it violates the safety margin (e.g., RTP > 105%), it returns `false`, signaling the game engine to re-roll or force a loss.
+- **Note**: Now accepts `IGameRepository` to fetch and update stats transactionally.
 
-### `void RecordBet(...)` / `void RecordWin(...)`
-- **Goal**: Data ingestion. Updates the `RTPStatistics` counters.
+### `void RecordBet(...)`
+- **Purpose**: Updates the "Money In" counter (`TotalWagered`).
 
-### `RTPStatistics GetGameStats(Guid gameId)`
-- **Goal**: Monitoring. Returns the aggregate performance of a game.
+### `RTPStatistics GetGameStats(...)`
+- **Purpose**: Retrieval for monitoring dashboards.

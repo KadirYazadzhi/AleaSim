@@ -1,40 +1,30 @@
-# BlackjackGameEngine - Card Game Implementation
+# BlackjackGameEngine Implementation Explanation
 
-`BlackjackGameEngine.cs` simulates a simplified version of Blackjack (21). It is a **Stateful** game, meaning the result isn't instant; it spans multiple requests (Deal -> Hit -> Hit -> Stand).
+`BlackjackGameEngine.cs` simulates a standard Blackjack game, handling complex state management across multiple user requests.
 
-## 🧠 State Management (`BlackjackState`)
-Since HTTP is stateless, the engine stores the current "Table" in memory:
-- **`PlayerHand`**: List of cards currently held by user.
-- **`DealerHand`**: List of cards held by dealer.
-- **`IsRoundOver`**: Flag to prevent "Hitting" after the game ends.
-- **`Sequence`**: Counts how many cards have been drawn to ensure the RNG produces a fresh card next time.
+## 🧠 State Persistence
+Unlike Slots (instant result), Blackjack requires the server to "remember" the cards between the initial Deal and the player's Hit/Stand decision.
+- **Storage**: The state (Player Hand, Dealer Hand) is serialized to JSON and stored in the `GameRound.RandomResult` (or `InputData`) column in the database.
+- **Retrieval**: On `Hit`, it loads the last round, deserializes the JSON back into a `BlackjackState` object, modifies it, and saves it back.
 
-## 🃏 Game Logic Breakdown
+## 🃏 Logic Flow
 
-### 1. `ResolveRound` (The Deal)
-- Triggered when the user places a bet.
-- Deals 4 cards in alternating order: Player, Dealer, Player, Dealer.
-- **Instant Win Check**: If Player has 21 (Ace + 10/Face), it ends the round immediately (Blackjack).
+### `ResolveRound` (The Deal)
+1.  Draws 4 cards (Player, Dealer, Player, Dealer).
+2.  Checks for instant Blackjack.
+3.  Saves the initial state.
+4.  Notifies the frontend via `RealTimeService`.
 
-### 2. `ProcessAction` (Player Turn)
-- **"Hit"**: Draws one card. Checks for Bust (>21).
-- **"Stand"**: Ends player turn, triggers Dealer Logic.
+### `ProcessAction` (Hit/Stand)
+1.  Loads the state from DB.
+2.  **Hit**: Draws a card. If total > 21, triggers `FinishRound` (Bust).
+3.  **Stand**: Triggers `FinishRound` (Dealer's Turn).
 
-### 3. Dealer Logic (`FinishRound`)
-- The dealer **must** draw cards until their total is 17 or higher.
-- This is a standard casino rule ("Dealer stands on 17").
-
-### 4. Win Evaluation
-- **Bust**: Player > 21 (Loss).
-- **Dealer Bust**: Dealer > 21 (Win).
-- **Comparison**: Player Total vs Dealer Total. Higher wins.
-- **Push**: Totals are equal (Bet returned).
-
-## 🔢 Card Encoding & Math
-- **Card Drawing**: `RngService.GetNextInt(..., 0, 52)`.
-- **Mapping**:
-    - Index `0-12` = Hearts (A, 2...K).
-    - Index `13-25` = Diamonds, etc.
-- **Value Calculation**:
-    - Face cards (J, Q, K) = 10.
-    - Ace = 11, unless total > 21, then Ace = 1. (Dynamic calculation implemented in `CalculateHandValue`).
+### `FinishRound` (Dealer Logic)
+1.  Dealer hits until >= 17.
+2.  Compares totals.
+3.  Calculates Win:
+    - Blackjack: 2.5x
+    - Win: 2x
+    - Push: 1x
+4.  **RTP Check**: Calls `ProcessWin`. If denied, the win is zeroed (harsh but safe simulation).

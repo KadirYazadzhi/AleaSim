@@ -1,24 +1,13 @@
-# DeterministicRngService - Audit-Ready Randomness
+# DeterministicRngService Implementation Explanation
 
-`DeterministicRngService.cs` is a specialized implementation of `IRngService` designed for **Reproducibility**.
+`DeterministicRngService.cs` implements the RNG contract with a focus on auditability.
 
-## ❓ The Problem
-Standard `new Random()` in C# uses the current system time as a seed. This means if you run the code now and 5 seconds later, you get different results.
-- **Issue**: If an auditor asks, "Why did this user get a Royal Flush?", you cannot prove it was fair. You can't "replay" the moment.
+## 🧮 Algorithm
+It does not use the system clock. It uses a mathematical combination of:
+1.  **Session Seed**: Generated once when the user opens the game.
+2.  **Sequence**: Incremented for every single card/spin.
 
-## ✅ The Solution: Deterministic Seeding
-This service does **not** use time. It uses inputs provided by the game engine.
-
-```csharp
-int combinedSeed = HashCode.Combine(seed, sequence);
-return new Random(combinedSeed);
-```
-
-### How it works
-1.  **Input 1 (`seed`)**: Generated once when the Game Session starts. Stored in the database.
-2.  **Input 2 (`sequence`)**: Increments with every card drawn or spin made (1, 2, 3...).
-3.  **Result**: `HashCode.Combine(12345, 1)` will *always* produce the same hash. Therefore, `new Random(hash)` will *always* produce the same "random" number.
-
-## 🛡️ Benefits
-1.  **Replayability**: We can re-run the entire game session from the logs and get the exact same cards.
-2.  **Fairness Proof**: We can prove the server didn't "change" the card to make the player lose, because the seed was committed *before* the bet was placed.
+### `unchecked((seed * 397) ^ sequence)`
+- **Goal**: To mix the bits of the seed and sequence sufficiently so that `Sequence 1` and `Sequence 2` produce vastly different numbers.
+- **Unchecked**: Allows integer overflow. This is desirable in hashing/RNG as it wraps around values instead of crashing.
+- **Result**: `new Random(mixedSeed)` produces a predictable stream of numbers for that specific inputs.

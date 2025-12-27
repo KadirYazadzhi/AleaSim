@@ -1,32 +1,19 @@
-# AuditService - Implementation of Secure Logging
+# AuditService Implementation Explanation
 
-`AuditService.cs` is the in-memory implementation of the secure audit trail.
+`AuditService.cs` implements the secure logging requirements defined in `IAuditService`.
 
 ## ⚙️ Key Implementation Details
 
-### Thread Safety (`lock`)
-```csharp
-lock (_logs) { ... }
-```
-- **Why?** In a web server, multiple users perform actions simultaneously. Without locking, two logs could try to write to the list at the exact same nanosecond, causing data corruption or Race Conditions. The `lock` ensures logs are written strictly one after another.
+### Database Interaction
+- **Dependency**: Uses `IServiceScopeFactory` to create a fresh scope and resolve `IGameRepository`. This is necessary because `AuditService` might be a Singleton, while the repository is Scoped (per-request).
+- **Persistence**: Unlike the previous in-memory list, logs are now saved directly to the database via `repo.LogAudit()`.
 
-### The Blockchain Logic (`CalculateHash`)
-The service implements a simplified blockchain:
-1.  **Genesis**: Starts with a hardcoded `_lastHash = "GENESIS"`.
-2.  **Chaining**: When a new log arrives:
-    - It reads `_lastHash` from the *previous* log.
-    - It calculates its own `Hash`.
-    - It updates `_lastHash` to its own new hash.
+### The Blockchain Logic
+- **State**: Maintains a `_lastHash` variable in memory.
+- **Initialization**: On startup, it queries `repo.GetLastAuditHash()` to find the end of the current chain.
+- **Locking**: Uses `lock (this)` to ensure that if multiple threads try to log an event, they happen sequentially. This is crucial so that the `PreviousHash` of event B is exactly the `Hash` of event A.
 
-#### Hash Formula
-```csharp
-string data = $"{ev.Timestamp:O}|{ev.EventType}|{ev.UserId}|{ev.MetadataJson}|{ev.PreviousHash}";
-byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(data));
-```
-- **Implication**: Every single character in the log affects the hash. Changing the timestamp by 1 millisecond changes the hash completely.
-
-### Integrity Check (`VerifyIntegrity`)
-This method proves the database hasn't been hacked.
-1.  It recalculates the hash for *every* log in history.
-2.  If `CalculatedHash != StoredHash`, data was edited.
-3.  If `Log[B].PreviousHash != Log[A].Hash`, a record was deleted.
+### Hashing Strategy
+- **Algorithm**: SHA-256.
+- **Input**: `Timestamp` + `EventType` + `UserId` + `Metadata` + `PreviousHash`.
+- **Result**: A change in *any* of these fields completely changes the output hash.

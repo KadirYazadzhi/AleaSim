@@ -1,38 +1,21 @@
-# IGame - Game Engine Contract
+# IGame Interface Explanation
 
-The `IGame` interface is the backbone of the **Strategy Pattern** used in AleaSim. It allows the system to treat all games (Slots, Poker, Roulette) uniformly.
-
-## 🎯 Purpose
-The main API controller doesn't need to know *how* Blackjack works. It just calls `ResolveRound`. This interface creates a standard "Plug-and-Play" socket for any new game type.
+The `IGame` interface is the core contract for the Strategy Pattern implementation of different game types. It standardizes how the system interacts with any game logic, whether it's Slots, Blackjack, or Roulette.
 
 ## 🛠️ Method Contracts
 
-### `GameSession StartSession(Guid userId, int? seed = null)`
-- **Goal**: Handshake. Prepares the server for a new game interaction.
-- **Details**: Generates the RNG seed. If a `seed` is provided (for testing/replay), it must use it.
+### Session Lifecycle
+- **`StartSession`**: Initializes a new session, setting up the RNG seed and returning the session object.
 
-### `void PlaceBet(Guid sessionId, decimal amount, string betData)`
-- **Goal**: Commitment.
-- **Validation**: Must check:
-    1. Is session active?
-    2. Does user have balance?
-    3. Is `betData` valid for this game type? (e.g., "Is 'Red' a valid Roulette bet?")
-- **Effect**: Deducts balance *immediately*.
+### Interaction
+- **`PlaceBet`**: Validates parameters and records the player's wager.
+- **`ProcessAction`**: Handles intermediate steps in stateful games (e.g., "Hit" or "Stand" in Blackjack).
 
-### `GameRound ResolveRound(Guid sessionId)`
-- **Goal**: Execution.
-- **Logic**:
-    1. Uses `IRngService` to generate the result.
-    2. Calculates Winnings.
-    3. Checks `IRtpEngine` to see if the win is allowed.
-    4. Awards Balance.
-    5. Returns the closed `GameRound` record.
+### Execution
+- **`ResolveRound`**: The "Spin" button. It calculates the random result, applies game rules, determines winnings, and returns the closed round.
+- **`GetOutcome`**: Formats the final round data into a client-friendly `Outcome` object.
 
-### `Outcome GetOutcome(Guid roundId)`
-- **Goal**: Reporting.
-- **Usage**: Transforms the internal `GameRound` into the client-facing `Outcome` object.
-
-### `void ProcessAction(Guid sessionId, string action, string actionData)`
-- **Goal**: Interactivity.
-- **Usage**: Only for multi-step games (e.g., Blackjack, Poker).
-- **Example**: `action="Hit"`, `action="Fold"`. Single-step games (Slots) usually leave this empty.
+### State Inspection
+- **`GetCurrentState`**: *New Method*.
+    - **Purpose**: Returns the current in-memory state of an active round (e.g., showing the dealer's face-up card *before* the round is over).
+    - **Return Type**: `object?` (Weakly typed to allow any game state structure, usually serialized to JSON by the controller).

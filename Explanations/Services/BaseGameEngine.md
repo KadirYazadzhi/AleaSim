@@ -1,33 +1,22 @@
-# BaseGameEngine - Abstract Core
+# BaseGameEngine Implementation Explanation
 
-`BaseGameEngine.cs` provides the foundational plumbing for all specific game types. It implements the **Template Method Pattern**, defining the skeleton of the workflow while letting subclasses fill in the specifics.
+`BaseGameEngine.cs` is the abstract foundation for all specific game logic (Slots, Roulette, etc.). It manages the common lifecycle of betting, session management, and database transaction scopes.
 
-## 🏗️ Architecture & Dependencies
+## 🏗️ Architecture
 
-It injects the three core pillars via Constructor Injection:
-1.  **`IRngService`**: Source of truth for randomness.
-2.  **`IRtpEngine`**: Financial guardrails.
-3.  **`IJackpotService`**: Bonus system.
+### Scope Management (`ExecuteScoped`)
+Since game engines might be long-lived or accessed via SignalR (outside a standard HTTP request context), they cannot simply inject a `DbContext`.
+- **Pattern**: It injects `IServiceScopeFactory`.
+- **Logic**: Every time it needs to touch the database, it creates a *new* scope (`using var scope = ...`), resolves the `IGameRepository`, does the work, and disposes of the scope. This prevents "DbContext has been disposed" errors.
 
-## 🔑 Shared Logic Implementation
+### Transactional Betting (`PlaceBet`)
+1.  **Validation**: Checks active session and user balance.
+2.  **Atomic Transaction**:
+    - Deducts Balance (`UpdateUserBalance`).
+    - Creates `Bet` record (`SaveBet`).
+    - Updates RTP Stats (`RtpEngine.RecordBet`).
+    - Updates Jackpot (`JackpotService.Contribute`).
+    - **Commit**: If any step fails, *everything* rolls back. The user doesn't lose money if the bet fails to save.
 
-### Session Management (`ActiveSessions`)
-- Uses a `ConcurrentDictionary` to store active games in memory.
-- **Why Concurrent?** Thread-safe access allows multiple HTTP requests to read/write session data without crashing.
-
-### Balance Simulation (`UserBalances`)
-- **Note**: In a real production app, this would be a Database Call (SQL `UPDATE Users SET Balance...`).
-- **Here**: It uses an in-memory dictionary to simulate a wallet.
-- **Default Balance**: If a user is new, it gives them `1000m` automatically so the simulation is playable immediately.
-
-### Betting Flow (`PlaceBet`)
-This method handles the universal rules before the game logic even starts:
-1.  **Validation**: Is the session real? Is amount > 0?
-2.  **Funds Check**: Do they have money?
-3.  **Deduction**: `Balance -= Amount`.
-4.  **Recording**: Calls `RtpEngine.RecordBet` and `JackpotService.Contribute`.
-
-## 🧩 Abstract Methods
-Subclasses *must* implement:
-- `ResolveRound`: The actual game rules (Cards, Slots, etc.).
-- `GetOutcome`: Formatting the result.
+### Automatic Game Registration
+- **`GetGameId`**: Automatically checks if the game type (e.g., "Slot") exists in the DB. If not, it creates it. This allows "Code-First" game deployment.
