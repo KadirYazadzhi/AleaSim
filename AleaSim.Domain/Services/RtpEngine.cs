@@ -4,21 +4,18 @@ using AleaSim.Domain.Interfaces;
 namespace AleaSim.Domain.Services;
 
 public class RtpEngine : IRtpEngine {
-    private readonly IGameRepository _repository;
-    private const double MaxAllowedRtpDeviation = 0.05; // Allow 5% deviation from target
+    private const double MaxAllowedRtpDeviation = 0.05; 
     private readonly object _lock = new();
+    private readonly IRealTimeService _realTimeService; // Added
 
-    public RtpEngine(IGameRepository repository) {
-        _repository = repository;
+    public RtpEngine(IRealTimeService realTimeService) {
+        _realTimeService = realTimeService;
     }
 
-    public bool IsOutcomeAllowed(Guid gameId, Guid userId, decimal potentialWinAmount, decimal betAmount) {
-        // We lock here to ensure we are making decision on latest data, although strictly reading doesn't always need lock 
-        // if we accept slight staleness. But for consistency, let's lock.
+    public bool IsOutcomeAllowed(Guid gameId, Guid userId, decimal potentialWinAmount, decimal betAmount, IGameRepository repo) {
         lock (_lock) {
-            var stats = _repository.GetOrCreateGameStats(gameId);
+            var stats = repo.GetOrCreateGameStats(gameId);
             
-            // Target RTP logic (mocked target)
             double targetRtp = 0.95; 
 
             decimal projectedTotalPaid = stats.TotalPaid + potentialWinAmount;
@@ -36,23 +33,29 @@ public class RtpEngine : IRtpEngine {
         }
     }
 
-    public void RecordBet(Guid gameId, Guid userId, decimal amount) {
+    public void RecordBet(Guid gameId, Guid userId, decimal amount, IGameRepository repo) {
         lock (_lock) {
-            _repository.UpdateRtpStats(gameId, userId, amount, 0);
+            repo.UpdateRtpStats(gameId, userId, amount, 0);
+            var stats = repo.GetOrCreateGameStats(gameId);
+            if (stats.TotalWagered > 0)
+                _realTimeService.NotifyRtpUpdate(gameId, (double)(stats.TotalPaid / stats.TotalWagered));
         }
     }
 
-    public void RecordWin(Guid gameId, Guid userId, decimal amount) {
+    public void RecordWin(Guid gameId, Guid userId, decimal amount, IGameRepository repo) {
         lock (_lock) {
-            _repository.UpdateRtpStats(gameId, userId, 0, amount);
+            repo.UpdateRtpStats(gameId, userId, 0, amount);
+            var stats = repo.GetOrCreateGameStats(gameId);
+            if (stats.TotalWagered > 0)
+                _realTimeService.NotifyRtpUpdate(gameId, (double)(stats.TotalPaid / stats.TotalWagered));
         }
     }
 
-    public RTPStatistics GetGameStats(Guid gameId) {
-        return _repository.GetOrCreateGameStats(gameId);
+    public RTPStatistics GetGameStats(Guid gameId, IGameRepository repo) {
+        return repo.GetOrCreateGameStats(gameId);
     }
 
-    public RTPStatistics GetUserStats(Guid userId) {
-        return _repository.GetOrCreateUserStats(userId);
+    public RTPStatistics GetUserStats(Guid userId, IGameRepository repo) {
+        return repo.GetOrCreateUserStats(userId);
     }
 }

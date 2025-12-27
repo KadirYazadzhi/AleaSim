@@ -4,47 +4,51 @@ using AleaSim.Domain.Interfaces;
 namespace AleaSim.Domain.Services;
 
 public class JackpotService : IJackpotService {
-    private readonly IGameRepository _repository;
     private readonly IRngService _rngService;
+    private readonly IRealTimeService _realTimeService; // Added
     private readonly object _lock = new();
     
-    public JackpotService(IRngService rngService, IGameRepository repository) {
+    public JackpotService(IRngService rngService, IRealTimeService realTimeService) {
         _rngService = rngService;
-        _repository = repository;
+        _realTimeService = realTimeService;
     }
 
-    public void Contribute(Guid gameId, decimal betAmount) {
+    public void Contribute(Guid gameId, decimal betAmount, IGameRepository repo) {
         lock (_lock) {
-            var global = _repository.GetGlobalJackpot();
+            var global = repo.GetGlobalJackpot();
             global.CurrentValue += betAmount * global.ContributionRate;
             global.LastUpdated = DateTime.UtcNow;
-            _repository.UpdateJackpot(global);
+            repo.UpdateJackpot(global);
+            _realTimeService.NotifyJackpotUpdate(global.Name, global.CurrentValue); // Notify
 
-            var local = _repository.GetOrCreateLocalJackpot(gameId);
+            var local = repo.GetOrCreateLocalJackpot(gameId);
             local.CurrentValue += betAmount * local.ContributionRate;
             local.LastUpdated = DateTime.UtcNow;
-            _repository.UpdateJackpot(local);
+            repo.UpdateJackpot(local);
+            _realTimeService.NotifyJackpotUpdate(local.Name, local.CurrentValue); // Notify
         }
     }
 
-    public bool CheckJackpotTrigger(Guid gameId, int seed, int sequence, out decimal winAmount) {
+    public bool CheckJackpotTrigger(Guid gameId, int seed, int sequence, out decimal winAmount, IGameRepository repo) {
         winAmount = 0;
         double roll = _rngService.GetNextDouble(seed, HashCode.Combine(sequence, "jackpot"));
         
         lock (_lock) {
             if (roll < 0.0001) { // Local Jackpot
-                var local = _repository.GetOrCreateLocalJackpot(gameId);
+                var local = repo.GetOrCreateLocalJackpot(gameId);
                 winAmount = local.CurrentValue;
                 local.CurrentValue = 500m; // Reset
-                _repository.UpdateJackpot(local);
+                repo.UpdateJackpot(local);
+                _realTimeService.NotifyJackpotUpdate(local.Name, local.CurrentValue); // Notify reset
                 return true;
             }
 
             if (roll < 0.00001) { // Global Jackpot
-                var global = _repository.GetGlobalJackpot();
+                var global = repo.GetGlobalJackpot();
                 winAmount = global.CurrentValue;
                 global.CurrentValue = 10000m; // Reset
-                _repository.UpdateJackpot(global);
+                repo.UpdateJackpot(global);
+                _realTimeService.NotifyJackpotUpdate(global.Name, global.CurrentValue); // Notify reset
                 return true;
             }
         }
@@ -52,11 +56,11 @@ public class JackpotService : IJackpotService {
         return false;
     }
 
-    public Jackpot GetGlobalJackpot() {
-        return _repository.GetGlobalJackpot();
+    public Jackpot GetGlobalJackpot(IGameRepository repo) {
+        return repo.GetGlobalJackpot();
     }
 
-    public Jackpot GetLocalJackpot(Guid gameId) {
-        return _repository.GetOrCreateLocalJackpot(gameId);
+    public Jackpot GetLocalJackpot(Guid gameId, IGameRepository repo) {
+        return repo.GetOrCreateLocalJackpot(gameId);
     }
 }

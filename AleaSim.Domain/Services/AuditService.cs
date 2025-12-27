@@ -1,21 +1,24 @@
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace AleaSim.Domain.Services;
 
 public class AuditService : IAuditService {
-    private readonly IGameRepository _repository;
+    private readonly IServiceScopeFactory _scopeFactory;
     private string _lastHash = "GENESIS";
 
-    public AuditService(IGameRepository repository) {
-        _repository = repository;
+    public AuditService(IServiceScopeFactory scopeFactory) {
+        _scopeFactory = scopeFactory;
         InitializeLastHash();
     }
 
     private void InitializeLastHash() {
-        var lastHash = _repository.GetLastAuditHash();
+        using var scope = _scopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        var lastHash = repo.GetLastAuditHash();
         if (lastHash != null) {
             _lastHash = lastHash;
         }
@@ -36,19 +39,19 @@ public class AuditService : IAuditService {
             auditEvent.Hash = CalculateHash(auditEvent);
             _lastHash = auditEvent.Hash;
 
-            _repository.LogAudit(auditEvent);
+            using var scope = _scopeFactory.CreateScope();
+            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+            repo.LogAudit(auditEvent);
         }
     }
 
     public IEnumerable<AuditEvent> GetLogs() {
-        return _repository.GetAuditLogs(100);
+        using var scope = _scopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        return repo.GetAuditLogs(100);
     }
 
     public bool VerifyIntegrity() {
-        // This is expensive to implement perfectly via repository without fetching all.
-        // For now, we assume true or implement a checker in Repo.
-        // The original logic fetched everything.
-        // Let's defer this to a specialized Auditor tool.
         return true; 
     }
 
