@@ -181,5 +181,3 @@ To satisfy "Regulatory" requirements (simulated), the system employs an append-o
 2.  **The "Rogue Admin" Problem:** Even with DB access, an admin cannot alter a past game result without invalidating the cryptographic hash chain of all subsequent logs.
 3.  **The "Platform" Problem:** RNG logic often behaves differently on Linux vs Windows. We replaced `HashCode.Combine` with stable bitwise math to guarantee that `Seed: 123` always produces the same game sequence on any OS.
 
----
-*Created by Anonymous User for Portfolio Purposes.*
