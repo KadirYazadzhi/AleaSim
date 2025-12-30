@@ -1,5 +1,6 @@
 using AleaSim.Api.Models;
 using AleaSim.Domain.Interfaces;
+using AleaSim.Domain.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -11,24 +12,19 @@ namespace AleaSim.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class GameController : ControllerBase {
-    private readonly Func<string, IGame> _gameResolver;
-    private readonly IAuditService _auditService;
+    private readonly IGameDirector _gameDirector;
 
-    public GameController(Func<string, IGame> gameResolver, IAuditService auditService) {
-        _gameResolver = gameResolver;
-        _auditService = auditService;
+    public GameController(IGameDirector gameDirector) {
+        _gameDirector = gameDirector;
     }
 
     [HttpPost("{gameType}/session")]
-    public IActionResult StartSession(string gameType, [FromBody] StartSessionRequest request) {
+    public async Task<IActionResult> StartSession(string gameType, [FromBody] StartSessionRequest request) {
         try {
-            var game = _gameResolver(gameType);
             var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
             
-            var session = game.StartSession(userId);
+            var session = await _gameDirector.StartSession(gameType, userId);
             
-            _auditService.LogEvent("SESSION_START", $"Started {gameType} session", userId.ToString(), JsonSerializer.Serialize(new { session.Id }));
-
             return Ok(new StartSessionResponse(session.Id, session.GameId, session.StartedAt));
         }
         catch (Exception ex) {
@@ -37,20 +33,11 @@ public class GameController : ControllerBase {
     }
 
     [HttpPost("{gameType}/bet/{sessionId}")]
-    public IActionResult PlaceBet(string gameType, Guid sessionId, [FromBody] PlaceBetRequest request) {
+    public async Task<IActionResult> PlaceBet(string gameType, Guid sessionId, [FromBody] PlaceBetRequest request) {
         try {
-            var game = _gameResolver(gameType);
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Anonymous";
+            var round = await _gameDirector.PlayRound(gameType, sessionId, request.Amount, request.BetData);
 
-            string betDataString = JsonSerializer.Serialize(request.BetData);
-            
-            game.PlaceBet(sessionId, request.Amount, betDataString);
-            var round = game.ResolveRound(sessionId);
-            
-            _auditService.LogEvent("BET_PLACED", $"Bet {request.Amount} on {gameType}", userId, 
-                JsonSerializer.Serialize(new { RoundId = round.Id, Win = round.TotalWinAmount }));
-
-            return Ok(new PlaceBetResponse(round.Id, round.TotalWinAmount, round.RandomResult, false)); // Jackpot flag mocked
+            return Ok(new PlaceBetResponse(round.Id, round.TotalWinAmount, round.RandomResult, false)); 
         }
         catch (Exception ex) {
             return BadRequest(ex.Message);
@@ -58,12 +45,9 @@ public class GameController : ControllerBase {
     }
 
     [HttpPost("{gameType}/action/{sessionId}")]
-    public IActionResult PerformAction(string gameType, Guid sessionId, [FromBody] GameActionRequest request) {
+    public async Task<IActionResult> PerformAction(string gameType, Guid sessionId, [FromBody] GameActionRequest request) {
         try {
-            var game = _gameResolver(gameType);
-             game.ProcessAction(sessionId, request.Action, request.ActionData);
-             
-             var newState = game.GetCurrentState(sessionId);
+             var newState = await _gameDirector.ProcessAction(gameType, sessionId, request.Action, request.ActionData);
              
              return Ok(new GameActionResponse(true, "Action processed", newState));
         }

@@ -47,8 +47,16 @@ builder.Services.AddSingleton<IRngService, DeterministicRngService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddSingleton<IRealTimeService, AleaSim.Api.Services.SignalRRealTimeService>(); // Added
 builder.Services.AddSingleton<IRtpEngine, RtpEngine>();
+builder.Services.AddSingleton<IVaultService, VaultService>(); // New Financial Core
+builder.Services.AddSingleton<IBrainService, BrainService>(); // New Intelligence Core
+builder.Services.AddSingleton<IPromotionService, PromotionService>(); // New Promotions
 builder.Services.AddSingleton<IJackpotService, JackpotService>();
 builder.Services.AddSingleton<IAuditService, AuditService>();
+builder.Services.AddScoped<IGameDirector, GameDirector>(); // Added Director (Scoped because it uses Repo)
+
+// Background Workers
+builder.Services.AddHostedService<AleaSim.Api.Workers.RaffleBackgroundService>();
+builder.Services.AddHostedService<AleaSim.Api.Workers.DailyBonusBackgroundService>();
 
 // Game Engines
 builder.Services.AddSingleton<SlotGameEngine>();
