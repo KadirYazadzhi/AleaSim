@@ -12,9 +12,22 @@ public interface IGameRepository {
     GameSession? GetSession(Guid sessionId);
     void EndSession(Guid sessionId);
     User? GetUser(Guid userId);
+    User? GetUserBySessionId(Guid sessionId);
     User? GetUserByUsername(string username);
     void CreateUser(User user);
+    void UpdateUser(User user); // Added generic update
     void UpdateUserBalance(Guid userId, decimal amountToAdd); // Positive to add, negative to subtract
+
+    // Player Profile
+    PlayerProfile? GetPlayerProfile(Guid userId);
+    IEnumerable<PlayerProfile> GetActiveProfiles(TimeSpan activityWindow);
+    void CreatePlayerProfile(PlayerProfile profile);
+    void UpdatePlayerProfile(PlayerProfile profile);
+
+    // Tournament
+    TournamentEntry GetOrCreateTournamentEntry(Guid userId, DateTime date);
+    void UpdateTournamentEntry(TournamentEntry entry);
+    IEnumerable<TournamentEntry> GetTopTournamentEntries(DateTime date, int topCount);
 
     // Bets
     void SaveBet(Bet bet);
@@ -48,6 +61,8 @@ public interface IGameRepository {
     string? GetLastAuditHash();
     
     // Game Lookups
+    Game? GetGame(Guid gameId); // Added for RtpEngine
+    void UpdateGame(Game game); // Added for RtpEngine
     Game? GetGameByType(string type);
     Game CreateGame(Game game);
 }
