@@ -1,5 +1,6 @@
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
+using AleaSim.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 
@@ -10,24 +11,24 @@ public class RouletteGameEngine : BaseGameEngine {
     
     private readonly int[] _redNumbers = { 1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36 };
 
-    public RouletteGameEngine(IRngService rngService, IRtpEngine rtpEngine, IJackpotService jackpotService, IRealTimeService realTimeService, IServiceScopeFactory scopeFactory) 
-        : base(rngService, rtpEngine, jackpotService, realTimeService, scopeFactory) {
+    public RouletteGameEngine(IRngService rngService, IVaultService vaultService, IBrainService brainService, IPromotionService promotionService, IJackpotService jackpotService, IRealTimeService realTimeService, IServiceScopeFactory scopeFactory) 
+        : base(rngService, vaultService, brainService, promotionService, jackpotService, realTimeService, scopeFactory) {
     }
 
     public record RouletteBet(string Type, string Value, decimal Amount);
 
-    public override void PlaceBet(Guid sessionId, decimal amount, string betData) {
+    public override async Task PlaceBet(Guid sessionId, decimal amount, string betData) {
         var bets = JsonSerializer.Deserialize<List<RouletteBet>>(betData) ?? new();
         decimal totalAmount = bets.Sum(b => b.Amount);
         
         if (totalAmount != amount)
             throw new ArgumentException("Sum of bets does not match the total bet amount.");
 
-        base.PlaceBet(sessionId, amount, betData);
+        await base.PlaceBet(sessionId, amount, betData);
     }
 
-    public override GameRound ResolveRound(Guid sessionId) {
-        return ExecuteScoped(repo => {
+    public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
+        return await ExecuteScopedAsync(async repo => {
             using var transaction = repo.BeginTransaction();
             try {
                 var session = repo.GetSession(sessionId);
@@ -41,22 +42,68 @@ public class RouletteGameEngine : BaseGameEngine {
                 int roundNumber = repo.GetRoundCount(sessionId) + 1;
                 decimal totalBetAmount = lastBet.Amount;
 
-                // Spin the wheel
-                int winningNumber = RngService.GetNextInt(session.Seed, roundNumber, 0, 37);
-
+                int winningNumber = -1;
                 decimal totalWinAmount = 0;
-                foreach (var bet in bets) {
-                    totalWinAmount += CalculateBetWin(bet, winningNumber);
+                bool rtpAccepted = false;
+                int attempts = 0;
+                
+                int maxAttempts = profile switch {
+                    SpinProfile.HighVolatility => 1,
+                    SpinProfile.LowVolatility => 10,
+                    _ => 5
+                };
+
+                // Attempt to find a random result that satisfies Vault (Solvency)
+                do {
+                    attempts++;
+                    winningNumber = RngService.GetNextInt(session.Seed, HashCode.Combine(roundNumber, attempts), 0, 37);
+                    
+                    totalWinAmount = 0;
+                    foreach (var bet in bets) {
+                        totalWinAmount += CalculateBetWin(bet, winningNumber);
+                    }
+
+                    if (totalWinAmount > 0) {
+                        // Use VaultService to check solvency
+                        if (VaultService.CanAffordWin(session.UserId, session.GameId, totalWinAmount, repo)) {
+                            rtpAccepted = true;
+                        }
+                    } else {
+                        rtpAccepted = true;
+                    }
+                } while (!rtpAccepted && attempts < maxAttempts);
+
+                // Fallback: Find the result with the LOWEST payout if random attempts failed
+                if (!rtpAccepted) {
+                    decimal lowestWin = decimal.MaxValue;
+                    int bestHouseNumber = 0;
+
+                    for (int n = 0; n <= 36; n++) {
+                        decimal currentWin = 0;
+                        foreach (var bet in bets) {
+                            currentWin += CalculateBetWin(bet, n);
+                        }
+                        
+                        if (currentWin < lowestWin) {
+                            lowestWin = currentWin;
+                            bestHouseNumber = n;
+                        }
+                    }
+
+                    winningNumber = bestHouseNumber;
+                    totalWinAmount = lowestWin;
                 }
 
-                // RTP Control
                 if (totalWinAmount > 0) {
-                     if (!RtpEngine.ProcessWin(session.GameId, session.UserId, totalWinAmount, totalBetAmount, repo)) {
-                        totalWinAmount = 0; // Force loss if RTP is exceeded
-                     } else {
-                        repo.UpdateUserBalance(session.UserId, totalWinAmount);
-                     }
+                    // Credit win via Vault
+                    VaultService.ProcessWin(session.UserId, totalWinAmount, repo);
                 }
+                
+                // Update Brain Profile
+                BrainService.UpdateProfile(session.UserId, totalBetAmount, totalWinAmount);
+                
+                // Track Tournament Win
+                PromotionService.ProcessWinActivity(session.UserId, totalWinAmount, repo);
 
                 var round = new GameRound {
                     Id = Guid.NewGuid(),
@@ -85,7 +132,7 @@ public class RouletteGameEngine : BaseGameEngine {
                 transaction.Commit();
 
                 // Notify UI
-                RealTimeService.NotifyGameUpdate(session.UserId, new {
+                await RealTimeService.NotifyGameUpdate(session.UserId, new {
                     SessionId = sessionId,
                     Game = "Roulette",
                     WinningNumber = winningNumber,
@@ -101,9 +148,9 @@ public class RouletteGameEngine : BaseGameEngine {
         });
     }
 
-    public override Outcome GetOutcome(Guid roundId) {
-        return ExecuteScoped(repo => repo.GetOutcome(roundId)
-               ?? new Outcome { Id = Guid.NewGuid(), GameRoundId = roundId });
+    public override async Task<Outcome> GetOutcome(Guid roundId) {
+        return await Task.Run(() => ExecuteScoped(repo => repo.GetOutcome(roundId)
+               ?? new Outcome { Id = Guid.NewGuid(), GameRoundId = roundId }));
     }
 
     private decimal CalculateBetWin(RouletteBet bet, int winningNumber) {

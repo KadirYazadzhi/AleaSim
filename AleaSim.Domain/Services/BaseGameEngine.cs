@@ -1,25 +1,43 @@
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
+using AleaSim.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AleaSim.Domain.Services;
 
 public abstract class BaseGameEngine : IGame {
     protected readonly IRngService RngService;
-    protected readonly IRtpEngine RtpEngine;
+    protected readonly IVaultService VaultService; // Replaces RtpEngine for money
+    protected readonly IBrainService BrainService; // New Brain
+    protected readonly IPromotionService PromotionService; // New Promotions
     protected readonly IJackpotService JackpotService;
-    protected readonly IRealTimeService RealTimeService; // Added
+    protected readonly IRealTimeService RealTimeService;
     protected readonly IServiceScopeFactory ScopeFactory;
 
-    protected BaseGameEngine(IRngService rngService, IRtpEngine rtpEngine, IJackpotService jackpotService, IRealTimeService realTimeService, IServiceScopeFactory scopeFactory) {
+    protected BaseGameEngine(IRngService rngService, IVaultService vaultService, IBrainService brainService, IPromotionService promotionService, IJackpotService jackpotService, IRealTimeService realTimeService, IServiceScopeFactory scopeFactory) {
         RngService = rngService;
-        RtpEngine = rtpEngine;
+        VaultService = vaultService;
+        BrainService = brainService;
+        PromotionService = promotionService;
         JackpotService = jackpotService;
         RealTimeService = realTimeService;
         ScopeFactory = scopeFactory;
     }
 
     // Helper to execute logic in a scope with repository
+    protected async Task<T> ExecuteScopedAsync<T>(Func<IGameRepository, Task<T>> action) {
+        using var scope = ScopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        return await action(repo);
+    }
+
+    protected async Task ExecuteScopedAsync(Func<IGameRepository, Task> action) {
+        using var scope = ScopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        await action(repo);
+    }
+
+    // Synchronous versions for internal logic if needed
     protected T ExecuteScoped<T>(Func<IGameRepository, T> action) {
         using var scope = ScopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
@@ -32,8 +50,8 @@ public abstract class BaseGameEngine : IGame {
         action(repo);
     }
 
-    public virtual GameSession StartSession(Guid userId, int? seed = null) {
-        return ExecuteScoped(repo => {
+    public virtual async Task<GameSession> StartSession(Guid userId, int? seed = null) {
+        return await ExecuteScopedAsync(async repo => {
             int newSeed = seed ?? System.Security.Cryptography.RandomNumberGenerator.GetInt32(int.MinValue, int.MaxValue);
             var session = new GameSession {
                 Id = Guid.NewGuid(),
@@ -44,14 +62,14 @@ public abstract class BaseGameEngine : IGame {
                 GameId = GetGameId(repo)
             };
             repo.CreateSession(session);
-            return session;
+            return await Task.FromResult(session);
         });
     }
 
-    public virtual void PlaceBet(Guid sessionId, decimal amount, string betData) {
+    public virtual async Task PlaceBet(Guid sessionId, decimal amount, string betData) {
         if (amount <= 0) throw new ArgumentException("Bet amount must be positive.");
 
-        ExecuteScoped(repo => {
+        await ExecuteScopedAsync(async repo => {
             using var transaction = repo.BeginTransaction();
             try {
                 var session = repo.GetSession(sessionId);
@@ -59,15 +77,12 @@ public abstract class BaseGameEngine : IGame {
                     throw new InvalidOperationException("Session not found or inactive.");
                 }
 
-                var user = repo.GetUser(session.UserId);
-                if (user == null) throw new InvalidOperationException("User not found.");
-
-                if (user.Balance < amount) {
-                    throw new InvalidOperationException("Insufficient balance.");
+                // Use VaultService to process the bet (Handles Bonus vs Real balance)
+                bool fundsDeducted = VaultService.ProcessBet(session.UserId, amount, repo);
+                if (!fundsDeducted) {
+                    throw new InvalidOperationException("Insufficient balance (Real or Bonus).");
                 }
 
-                repo.UpdateUserBalance(session.UserId, -amount);
-                
                 var bet = new Bet {
                     Id = Guid.NewGuid(),
                     GameSessionId = sessionId,
@@ -78,11 +93,15 @@ public abstract class BaseGameEngine : IGame {
                 };
                 repo.SaveBet(bet);
 
-                // RtpEngine and JackpotService now correctly accept IGameRepository as a parameter,
-                // ensuring they participate in the same transaction scope.
-                RtpEngine.RecordBet(session.GameId, session.UserId, amount, repo);
-                JackpotService.Contribute(session.GameId, amount, repo);
+                // Promotions Tracking (Tickets & Activity)
+                PromotionService.ProcessBetActivity(session.UserId, amount, repo);
+
+                // Stats & Jackpot Contribution
+                await JackpotService.Contribute(session.GameId, amount, repo);
                 
+                // Update Brain Profile about the bet
+                BrainService.UpdateProfile(session.UserId, amount, 0);
+
                 transaction.Commit();
             }
             catch {
@@ -92,19 +111,18 @@ public abstract class BaseGameEngine : IGame {
         });
     }
 
-    public abstract GameRound ResolveRound(Guid sessionId);
+    public abstract Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard);
 
-    public abstract Outcome GetOutcome(Guid roundId);
+    public abstract Task<Outcome> GetOutcome(Guid roundId);
 
-    public virtual void ProcessAction(Guid sessionId, string action, string actionData) {
-        // Default implementation does nothing
+    public virtual async Task ProcessAction(Guid sessionId, string action, string actionData) {
+        await Task.CompletedTask;
     }
 
-    public virtual object? GetCurrentState(Guid sessionId) {
-        return ExecuteScoped<object?>(repo => {
-             // Basic implementation, overriden by Blackjack
+    public virtual async Task<object?> GetCurrentState(Guid sessionId) {
+        return await Task.Run(() => ExecuteScoped<object?>(repo => {
              return null; 
-        });
+        }));
     }
 
     protected void EndSession(Guid sessionId) {

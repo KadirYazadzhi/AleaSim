@@ -1,5 +1,6 @@
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
+using AleaSim.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 
@@ -20,12 +21,12 @@ public class SlotGameEngine : BaseGameEngine {
         { 5, 0.5m } // 3 of symbol 5 pays 0.5x
     };
     
-    public SlotGameEngine(IRngService rngService, IRtpEngine rtpEngine, IJackpotService jackpotService, IRealTimeService realTimeService, IServiceScopeFactory scopeFactory) 
-        : base(rngService, rtpEngine, jackpotService, realTimeService, scopeFactory) {
+    public SlotGameEngine(IRngService rngService, IVaultService vaultService, IBrainService brainService, IPromotionService promotionService, IJackpotService jackpotService, IRealTimeService realTimeService, IServiceScopeFactory scopeFactory) 
+        : base(rngService, vaultService, brainService, promotionService, jackpotService, realTimeService, scopeFactory) {
     }
 
-    public override GameRound ResolveRound(Guid sessionId) {
-        return ExecuteScoped(repo => {
+    public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
+        return await ExecuteScopedAsync(async repo => {
             using var transaction = repo.BeginTransaction();
             try {
                 var session = repo.GetSession(sessionId);
@@ -36,48 +37,64 @@ public class SlotGameEngine : BaseGameEngine {
 
                 int roundNumber = repo.GetRoundCount(sessionId) + 1;
 
-                // Calculate stop positions for 3 reels
-                int[] stops = new int[3];
-                for (int i = 0; i < 3; i++) {
-                    stops[i] = RngService.GetNextInt(session.Seed, HashCode.Combine(roundNumber, i), 0, _reelStrips[i].Length);
+                // 1. ASK THE BRAIN (The new Logic)
+                var decision = BrainService.DecideOutcome(session.UserId, session.GameId, lastBet.Amount);
+                
+                int[] resultSymbols;
+                decimal winAmount;
+
+                // 2. REVERSE ENGINEERING (The CMS Logic)
+                if (decision.TargetWinAmount > 0) {
+                    // Find symbols matching target win
+                    decimal targetMultiplier = decision.TargetWinAmount / lastBet.Amount;
+                    resultSymbols = GeneratePatternForWin(targetMultiplier);
+                    winAmount = CalculateWin(resultSymbols, lastBet.Amount);
+                }
+                else if (decision.IsNearMiss) {
+                    // Generate Teaser
+                    resultSymbols = new int[] { 1, 1, 2 }; // Hardcoded Near Miss for MVP
+                    winAmount = 0;
+                }
+                else {
+                    // Brain said "Loss" or "Random Loss"
+                    // Generate a losing combination
+                    resultSymbols = GenerateLosingPattern(session.Seed, roundNumber);
+                    winAmount = 0;
                 }
 
-                int[] resultSymbols = new int[3];
-                for (int i = 0; i < 3; i++) {
-                    resultSymbols[i] = _reelStrips[i][stops[i]];
-                }
-
-                decimal winAmount = CalculateWin(resultSymbols, lastBet.Amount);
-
-                // Jackpot check
-                if (JackpotService.CheckJackpotTrigger(session.GameId, session.Seed, roundNumber, out decimal jackpotWin, repo)) {
-                    winAmount += jackpotWin;
-                }
-
-                // Check and Record RTP atomically
+                // 3. VAULT EXECUTION (Credit Win)
                 if (winAmount > 0) {
-                     if (!RtpEngine.ProcessWin(session.GameId, session.UserId, winAmount, lastBet.Amount, repo)) {
-                        // RTP Violation: Force a loss
-                        // In a real slot, we would re-roll or choose a losing symbol set.
-                        // Here, we simply zero the win to enforce the cap.
-                        winAmount = 0;
-                        // Ideally, we should also update resultSymbols to show a losing combination,
-                        // otherwise the UI will show a win but balance won't update.
-                        // For this step, we keep it simple as per instructions.
-                     } else {
-                        repo.UpdateUserBalance(session.UserId, winAmount);
-                     }
+                    // We assume VaultService.ProcessWin just credits it. 
+                    // Solvency check was done in BrainService.DecideOutcome.
+                    VaultService.ProcessWin(session.UserId, winAmount, repo);
+                    
+                    // Update Brain Statistics
+                    BrainService.UpdateProfile(session.UserId, lastBet.Amount, winAmount);
+                } else {
+                     BrainService.UpdateProfile(session.UserId, lastBet.Amount, 0);
+                }
+                
+                // Track Tournament Win
+                PromotionService.ProcessWinActivity(session.UserId, winAmount, repo);
+
+                // Apply Jackpot (Independent of Brain? Or controlled? Let's keep it random for now)
+                var jackpotResult = await JackpotService.CheckJackpotTrigger(session.GameId, session.Seed, roundNumber, repo);
+                if (jackpotResult.Triggered) {
+                    winAmount += jackpotResult.WinAmount;
+                    VaultService.ProcessWin(session.UserId, jackpotResult.WinAmount, repo);
                 }
 
                 var round = new GameRound {
                     Id = Guid.NewGuid(),
                     GameSessionId = sessionId,
                     RoundNumber = roundNumber,
-                    InputData = JsonSerializer.Serialize(new { Stops = stops }),
+                    InputData = JsonSerializer.Serialize(new { Decision = decision.DecisionType }),
                     RandomResult = JsonSerializer.Serialize(new { Symbols = resultSymbols }),
                     TotalBetAmount = lastBet.Amount,
                     TotalWinAmount = winAmount,
-                    ExecutedAt = DateTime.UtcNow
+                    ExecutedAt = DateTime.UtcNow,
+                    DecisionType = decision.DecisionType,
+                    TargetWinAmount = decision.TargetWinAmount
                 };
 
                 repo.SaveRound(round);
@@ -96,8 +113,8 @@ public class SlotGameEngine : BaseGameEngine {
                 
                 transaction.Commit();
 
-                // Notify UI about the result
-                RealTimeService.NotifyGameUpdate(session.UserId, new { 
+                // Notify UI
+                await RealTimeService.NotifyGameUpdate(session.UserId, new { 
                     SessionId = sessionId, 
                     Game = "Slot", 
                     Result = resultSymbols, 
@@ -114,9 +131,26 @@ public class SlotGameEngine : BaseGameEngine {
         });
     }
 
-    public override Outcome GetOutcome(Guid roundId) {
-        return ExecuteScoped(repo => repo.GetOutcome(roundId) 
-               ?? new Outcome { Id = Guid.NewGuid(), GameRoundId = roundId, ResultJson = "{}" });
+    public override async Task<Outcome> GetOutcome(Guid roundId) {
+        return await Task.Run(() => ExecuteScoped(repo => repo.GetOutcome(roundId) 
+               ?? new Outcome { Id = Guid.NewGuid(), GameRoundId = roundId, ResultJson = "{}" }));
+    }
+
+    private int[] GeneratePatternForWin(decimal targetMultiplier) {
+        // Find best match in Paytable
+        foreach (var entry in _paytable) {
+            if (entry.Value == targetMultiplier) {
+                return new int[] { entry.Key, entry.Key, entry.Key };
+            }
+        }
+        
+        // If no exact match, fallback to lowest win (Symbol 5 = 0.5x) or close match
+        return new int[] { 5, 5, 5 };
+    }
+
+    private int[] GenerateLosingPattern(int seed, int round) {
+        // Just return mismatch
+        return new int[] { 1, 2, 3 };
     }
 
     private decimal CalculateWin(int[] symbols, decimal betAmount) {
