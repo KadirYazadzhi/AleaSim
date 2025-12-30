@@ -44,6 +44,12 @@ public class EfGameRepository : IGameRepository {
         return _context.Users.FirstOrDefault(u => u.Id == userId);
     }
 
+    public User? GetUserBySessionId(Guid sessionId) {
+        var session = _context.GameSessions.FirstOrDefault(s => s.Id == sessionId);
+        if (session == null) return null;
+        return _context.Users.FirstOrDefault(u => u.Id == session.UserId);
+    }
+
     public User? GetUserByUsername(string username) {
         return _context.Users.FirstOrDefault(u => u.Username == username);
     }
@@ -62,6 +68,68 @@ public class EfGameRepository : IGameRepository {
             // For safety in this hybrid approach, we Save. Transaction will rollback if needed.
             _context.SaveChanges();
         }
+    }
+
+    public void UpdateUser(User user) {
+        _context.Users.Update(user);
+        _context.SaveChanges();
+    }
+
+    public PlayerProfile? GetPlayerProfile(Guid userId) {
+        return _context.PlayerProfiles.FirstOrDefault(p => p.UserId == userId);
+    }
+
+    public IEnumerable<PlayerProfile> GetActiveProfiles(TimeSpan activityWindow) {
+        var threshold = DateTime.UtcNow - activityWindow;
+        return _context.PlayerProfiles
+            .Include(p => p.User)
+            .Where(p => p.User.LastBetTimestamp >= threshold)
+            .ToList();
+    }
+
+    public void CreatePlayerProfile(PlayerProfile profile) {
+        _context.PlayerProfiles.Add(profile);
+        _context.SaveChanges();
+    }
+
+    public void UpdatePlayerProfile(PlayerProfile profile) {
+        _context.PlayerProfiles.Update(profile);
+        _context.SaveChanges();
+    }
+
+    public TournamentEntry GetOrCreateTournamentEntry(Guid userId, DateTime date) {
+        var entry = _context.TournamentEntries
+            .FirstOrDefault(t => t.UserId == userId && t.TournamentDate.Date == date.Date);
+            
+        if (entry == null) {
+            entry = new TournamentEntry { 
+                Id = Guid.NewGuid(), 
+                UserId = userId, 
+                TournamentDate = date.Date,
+                TotalWagered = 0,
+                TotalPayout = 0
+            };
+            _context.TournamentEntries.Add(entry);
+            _context.SaveChanges();
+        }
+        return entry;
+    }
+
+    public void UpdateTournamentEntry(TournamentEntry entry) {
+        _context.TournamentEntries.Update(entry);
+        _context.SaveChanges();
+    }
+
+    public IEnumerable<TournamentEntry> GetTopTournamentEntries(DateTime date, int topCount) {
+        // Fetch into memory to calculate ROI property if needed, but better to order in DB if computed column.
+        // ROI is computed property, so EF might not translate it directly unless configured.
+        // For MVP, fetch all for the day and sort in memory (assuming not millions of players).
+        return _context.TournamentEntries
+            .Where(t => t.TournamentDate.Date == date.Date)
+            .AsEnumerable() // Client-side evaluation for the computed property
+            .OrderByDescending(t => t.RoiPercentage)
+            .Take(topCount)
+            .ToList();
     }
 
     public void SaveBet(Bet bet) {
@@ -210,6 +278,15 @@ public class EfGameRepository : IGameRepository {
 
     public Game? GetGameByType(string type) {
         return _context.Games.FirstOrDefault(g => g.Type == type);
+    }
+
+    public Game? GetGame(Guid gameId) {
+        return _context.Games.FirstOrDefault(g => g.Id == gameId);
+    }
+
+    public void UpdateGame(Game game) {
+        _context.Games.Update(game);
+        _context.SaveChanges();
     }
 
     public Game CreateGame(Game game) {
