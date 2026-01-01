@@ -7,18 +7,43 @@ using System.Text.Json;
 namespace AleaSim.Domain.Services;
 
 public class SlotGameEngine : BaseGameEngine {
-    private static readonly int[][] _reelStrips = new[] {
-        new[] { 1, 2, 3, 4, 5, 1, 2, 3 }, // Reel 1
-        new[] { 1, 2, 3, 4, 5, 1, 2, 3 }, // Reel 2
-        new[] { 1, 2, 3, 4, 5, 1, 2, 3 }  // Reel 3
+    // 5 Reels x 4 Rows
+    private const int Rows = 4;
+    private const int Cols = 5;
+
+    // Symbol IDs
+    // 1-4: Low Pay, 5-7: High Pay, 8: Wild, 9: Scatter/Bonus
+    private readonly int[] _symbols = { 1, 2, 3, 4, 5, 6, 7 };
+
+    // 15 Paylines (Standard definitions)
+    // Format: [Row_Col0, Row_Col1, Row_Col2, Row_Col3, Row_Col4]
+    private static readonly int[][] _paylines = new[] {
+        new[] { 1, 1, 1, 1, 1 }, // Line 1: Center Row
+        new[] { 0, 0, 0, 0, 0 }, // Line 2: Top Row
+        new[] { 2, 2, 2, 2, 2 }, // Line 3: Bottom Row
+        new[] { 3, 3, 3, 3, 3 }, // Line 4: Row 4
+        new[] { 0, 1, 2, 1, 0 }, // Line 5: V shape
+        new[] { 2, 1, 0, 1, 2 }, // Line 6: Inverted V
+        new[] { 1, 0, 0, 0, 1 }, // Line 7
+        new[] { 1, 2, 2, 2, 1 }, // Line 8
+        new[] { 0, 0, 1, 2, 2 }, // Line 9
+        new[] { 2, 2, 1, 0, 0 }, // Line 10
+        new[] { 0, 1, 1, 1, 0 }, // Line 11
+        new[] { 2, 1, 1, 1, 2 }, // Line 12
+        new[] { 0, 1, 0, 1, 0 }, // Line 13
+        new[] { 2, 1, 2, 1, 2 }, // Line 14
+        new[] { 1, 1, 0, 1, 1 }  // Line 15
     };
 
-    private static readonly Dictionary<int, decimal> _paytable = new() {
-        { 1, 10m }, // 3 of symbol 1 pays 10x
-        { 2, 5m },  // 3 of symbol 2 pays 5x
-        { 3, 2m },  // 3 of symbol 3 pays 2x
-        { 4, 1m },  // 3 of symbol 4 pays 1x
-        { 5, 0.5m } // 3 of symbol 5 pays 0.5x
+    // Paytable: Symbol -> { Count -> Multiplier }
+    private static readonly Dictionary<int, Dictionary<int, decimal>> _paytable = new() {
+        { 1, new() { {3, 0.5m}, {4, 2m}, {5, 5m} } },   // Cherry
+        { 2, new() { {3, 0.5m}, {4, 2m}, {5, 5m} } },   // Lemon
+        { 3, new() { {3, 1m}, {4, 5m}, {5, 10m} } },    // Orange
+        { 4, new() { {3, 1m}, {4, 5m}, {5, 10m} } },    // Plum
+        { 5, new() { {3, 2m}, {4, 10m}, {5, 20m} } },   // Bell
+        { 6, new() { {3, 5m}, {4, 25m}, {5, 50m} } },   // Bar
+        { 7, new() { {3, 10m}, {4, 50m}, {5, 100m} } }  // Seven
     };
     
     public SlotGameEngine(IRngService rngService, IVaultService vaultService, IBrainService brainService, IPromotionService promotionService, IJackpotService jackpotService, IRealTimeService realTimeService, IServiceScopeFactory scopeFactory) 
@@ -35,50 +60,43 @@ public class SlotGameEngine : BaseGameEngine {
                 var lastBet = repo.GetLastBet(sessionId);
                 if (lastBet == null) throw new InvalidOperationException("No bet found.");
 
-                int roundNumber = repo.GetRoundCount(sessionId) + 1;
+                // Assuming bet per line logic. 
+                // TotalBet = BetPerLine * 15.
+                // We use TotalBet for calculations.
+                decimal betPerLine = lastBet.Amount / _paylines.Length;
 
-                // 1. ASK THE BRAIN (The new Logic)
+                // 1. ASK THE BRAIN
                 var decision = BrainService.DecideOutcome(session.UserId, session.GameId, lastBet.Amount);
                 
-                int[] resultSymbols;
-                decimal winAmount;
+                int[,] grid = new int[Rows, Cols];
+                decimal winAmount = 0;
 
-                // 2. REVERSE ENGINEERING (The CMS Logic)
+                // 2. REVERSE ENGINEERING (Multi-Line Solver)
                 if (decision.TargetWinAmount > 0) {
-                    // Find symbols matching target win
-                    decimal targetMultiplier = decision.TargetWinAmount / lastBet.Amount;
-                    resultSymbols = GeneratePatternForWin(targetMultiplier);
-                    winAmount = CalculateWin(resultSymbols, lastBet.Amount);
+                    // Try to construct grid for target win
+                    grid = ConstructGridForWin(decision.TargetWinAmount, betPerLine, out winAmount);
                 }
                 else if (decision.IsNearMiss) {
-                    // Generate Teaser
-                    resultSymbols = new int[] { 1, 1, 2 }; // Hardcoded Near Miss for MVP
+                    grid = ConstructNearMiss();
                     winAmount = 0;
                 }
                 else {
-                    // Brain said "Loss" or "Random Loss"
-                    // Generate a losing combination
-                    resultSymbols = GenerateLosingPattern(session.Seed, roundNumber);
+                    grid = ConstructLosingGrid();
                     winAmount = 0;
                 }
 
-                // 3. VAULT EXECUTION (Credit Win)
+                // 3. VAULT EXECUTION
                 if (winAmount > 0) {
-                    // We assume VaultService.ProcessWin just credits it. 
-                    // Solvency check was done in BrainService.DecideOutcome.
                     VaultService.ProcessWin(session.UserId, winAmount, repo);
-                    
-                    // Update Brain Statistics
                     BrainService.UpdateProfile(session.UserId, lastBet.Amount, winAmount);
                 } else {
                      BrainService.UpdateProfile(session.UserId, lastBet.Amount, 0);
                 }
                 
-                // Track Tournament Win
                 PromotionService.ProcessWinActivity(session.UserId, winAmount, repo);
 
-                // Apply Jackpot (Independent of Brain? Or controlled? Let's keep it random for now)
-                var jackpotResult = await JackpotService.CheckJackpotTrigger(session.GameId, session.Seed, roundNumber, repo);
+                // Jackpot Check (Overlay)
+                var jackpotResult = await JackpotService.CheckJackpotTrigger(session.GameId, session.Seed, repo.GetRoundCount(sessionId), repo);
                 if (jackpotResult.Triggered) {
                     winAmount += jackpotResult.WinAmount;
                     VaultService.ProcessWin(session.UserId, jackpotResult.WinAmount, repo);
@@ -87,9 +105,9 @@ public class SlotGameEngine : BaseGameEngine {
                 var round = new GameRound {
                     Id = Guid.NewGuid(),
                     GameSessionId = sessionId,
-                    RoundNumber = roundNumber,
+                    RoundNumber = repo.GetRoundCount(sessionId) + 1,
                     InputData = JsonSerializer.Serialize(new { Decision = decision.DecisionType }),
-                    RandomResult = JsonSerializer.Serialize(new { Symbols = resultSymbols }),
+                    RandomResult = JsonSerializer.Serialize(new { Grid = FlattenGrid(grid) }),
                     TotalBetAmount = lastBet.Amount,
                     TotalWinAmount = winAmount,
                     ExecutedAt = DateTime.UtcNow,
@@ -98,26 +116,23 @@ public class SlotGameEngine : BaseGameEngine {
                 };
 
                 repo.SaveRound(round);
-
-                // Link bet to round
                 lastBet.GameRoundId = round.Id;
                 repo.UpdateBet(lastBet);
                 
                 var outcome = new Outcome {
                     Id = Guid.NewGuid(),
                     GameRoundId = round.Id,
-                    ResultJson = JsonSerializer.Serialize(new { Symbols = resultSymbols, Win = winAmount }),
+                    ResultJson = JsonSerializer.Serialize(new { Grid = FlattenGrid(grid), Win = winAmount }),
                     WinAmount = winAmount
                 };
                 repo.SaveOutcome(outcome);
                 
                 transaction.Commit();
 
-                // Notify UI
                 await RealTimeService.NotifyGameUpdate(session.UserId, new { 
                     SessionId = sessionId, 
                     Game = "Slot", 
-                    Result = resultSymbols, 
+                    Grid = FlattenGrid(grid), 
                     Win = winAmount,
                     RoundId = round.Id
                 });
@@ -131,34 +146,116 @@ public class SlotGameEngine : BaseGameEngine {
         });
     }
 
+    // --- CONSTRUCTION LOGIC ---
+
+    private int[,] ConstructGridForWin(decimal targetWin, decimal betPerLine, out decimal actualWin) {
+        // Simplified Solver: Find ONE line that satisfies the win (or close to it)
+        // Advanced: Combine multiple lines. For MVP, we stick to single-line dominance to ensure performance.
+        
+        decimal targetMultiplier = targetWin / betPerLine;
+        int[,] grid = new int[Rows, Cols];
+        
+        // Fill with junk first
+        FillJunk(grid);
+
+        // Find best symbol match
+        // Need to find (Symbol, Count) where Multiplier ~= Target
+        int bestSymbol = 1;
+        int bestCount = 3;
+        decimal minDiff = decimal.MaxValue;
+
+        foreach (var sym in _paytable) {
+            foreach (var pay in sym.Value) {
+                decimal diff = Math.Abs(pay.Value - targetMultiplier);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    bestSymbol = sym.Key;
+                    bestCount = pay.Key;
+                }
+            }
+        }
+
+        // Set Line 1 (Middle Row) to this combination
+        int[] line1 = _paylines[0];
+        for (int i = 0; i < bestCount; i++) {
+            grid[line1[i], i] = bestSymbol;
+        }
+        // Ensure next symbol breaks the line (if count < 5)
+        if (bestCount < 5) {
+            grid[line1[bestCount], bestCount] = (bestSymbol == 1) ? 2 : 1;
+        }
+
+        // Recalculate actual win (to account for accidental wins)
+        actualWin = CalculateTotalWin(grid, betPerLine);
+        return grid;
+    }
+
+    private int[,] ConstructNearMiss() {
+        int[,] grid = new int[Rows, Cols];
+        FillJunk(grid);
+        
+        // Put 4 Sevens on Line 1, but block the 5th
+        int[] line1 = _paylines[0];
+        for (int i = 0; i < 4; i++) grid[line1[i], i] = 7;
+        grid[line1[4], 4] = 1; // Blocker
+
+        return grid;
+    }
+
+    private int[,] ConstructLosingGrid() {
+        int[,] grid = new int[Rows, Cols];
+        FillJunk(grid);
+        // Verify 0 win
+        while (CalculateTotalWin(grid, 1) > 0) {
+            FillJunk(grid); // Retry (Lazy approach, but effective for sparse wins)
+        }
+        return grid;
+    }
+
+    private void FillJunk(int[,] grid) {
+        var rnd = new Random();
+        for (int r = 0; r < Rows; r++) {
+            for (int c = 0; c < Cols; c++) {
+                grid[r, c] = _symbols[rnd.Next(_symbols.Length)];
+            }
+        }
+    }
+
+    private decimal CalculateTotalWin(int[,] grid, decimal betPerLine) {
+        decimal totalWin = 0;
+        foreach (var line in _paylines) {
+            int firstSym = grid[line[0], 0];
+            int count = 1;
+            for (int c = 1; c < Cols; c++) {
+                if (grid[line[c], c] == firstSym || firstSym == 8) { // 8 is Wild
+                    count++;
+                } else {
+                    break;
+                }
+            }
+
+            if (count >= 3) {
+                if (_paytable.ContainsKey(firstSym) && _paytable[firstSym].ContainsKey(count)) {
+                    totalWin += _paytable[firstSym][count] * betPerLine;
+                }
+            }
+        }
+        return totalWin;
+    }
+
+    private int[][] FlattenGrid(int[,] grid) {
+        int[][] flat = new int[Rows][];
+        for (int r = 0; r < Rows; r++) {
+            flat[r] = new int[Cols];
+            for (int c = 0; c < Cols; c++) {
+                flat[r][c] = grid[r, c];
+            }
+        }
+        return flat;
+    }
+
     public override async Task<Outcome> GetOutcome(Guid roundId) {
         return await Task.Run(() => ExecuteScoped(repo => repo.GetOutcome(roundId) 
                ?? new Outcome { Id = Guid.NewGuid(), GameRoundId = roundId, ResultJson = "{}" }));
-    }
-
-    private int[] GeneratePatternForWin(decimal targetMultiplier) {
-        // Find best match in Paytable
-        foreach (var entry in _paytable) {
-            if (entry.Value == targetMultiplier) {
-                return new int[] { entry.Key, entry.Key, entry.Key };
-            }
-        }
-        
-        // If no exact match, fallback to lowest win (Symbol 5 = 0.5x) or close match
-        return new int[] { 5, 5, 5 };
-    }
-
-    private int[] GenerateLosingPattern(int seed, int round) {
-        // Just return mismatch
-        return new int[] { 1, 2, 3 };
-    }
-
-    private decimal CalculateWin(int[] symbols, decimal betAmount) {
-        if (symbols[0] == symbols[1] && symbols[1] == symbols[2]) {
-            if (_paytable.TryGetValue(symbols[0], out decimal multiplier)) {
-                return betAmount * multiplier;
-            }
-        }
-        return 0;
     }
 }

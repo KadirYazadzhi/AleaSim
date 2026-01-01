@@ -100,6 +100,27 @@ public class VaultService : IVaultService {
         repo.UpdateUser(user);
     }
 
+    public bool CashoutBonus(Guid userId, IGameRepository repo) {
+        var user = repo.GetUser(userId);
+        if (user == null || user.BonusBalance <= 0) return false;
+
+        decimal amountToCredit = 0;
+
+        if (user.BonusBalance >= 100) {
+            // The 1/10 Rule
+            amountToCredit = user.BonusBalance * 0.10m;
+        } 
+        // If < 100, amountToCredit remains 0 (Forfeit)
+
+        user.Balance += amountToCredit;
+        user.BonusBalance = 0;
+        user.WageringRequirement = 0;
+        user.WageringProgress = 0;
+
+        repo.UpdateUser(user);
+        return true;
+    }
+
     private void CheckWageringCompletion(User user) {
         if (user.WageringProgress >= user.WageringRequirement) {
             // Unlocked! Move Bonus to Real.

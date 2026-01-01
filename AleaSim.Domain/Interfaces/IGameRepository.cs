@@ -29,6 +29,9 @@ public interface IGameRepository {
     void UpdateTournamentEntry(TournamentEntry entry);
     IEnumerable<TournamentEntry> GetTopTournamentEntries(DateTime date, int topCount);
 
+    // Analytics
+    IEnumerable<(Guid UserId, decimal NetResult)> CalculateDailyNet(DateTime date);
+
     // Bets
     void SaveBet(Bet bet);
     void UpdateBet(Bet bet); // Added to update Round ID

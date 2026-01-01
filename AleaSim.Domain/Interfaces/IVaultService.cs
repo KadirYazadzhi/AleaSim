@@ -25,4 +25,9 @@ public interface IVaultService {
     /// Adds funds to the user's bonus wallet (e.g., from Raffle).
     /// </summary>
     void CreditBonus(Guid userId, decimal amount, decimal wageringRequirement, IGameRepository repo);
+
+    /// <summary>
+    /// Converts Bonus to Real Balance at 10% rate if > 100. Else forfeits.
+    /// </summary>
+    bool CashoutBonus(Guid userId, IGameRepository repo);
 }
