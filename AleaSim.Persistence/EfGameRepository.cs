@@ -132,6 +132,50 @@ public class EfGameRepository : IGameRepository {
             .ToList();
     }
 
+    public IEnumerable<(Guid UserId, decimal NetResult)> CalculateDailyNet(DateTime date) {
+        var start = date.Date;
+        var end = start.AddDays(1);
+
+        // Fetch bets for the day
+        var dailyBets = _context.Bets
+            .Where(b => b.CreatedAt >= start && b.CreatedAt < end)
+            .GroupBy(b => b.UserId)
+            .Select(g => new { UserId = g.Key, TotalBet = g.Sum(x => x.Amount) })
+            .ToList();
+
+        // Fetch wins (Outcomes) via Rounds for the day
+        // Rounds have ExecutedAt
+        var dailyWins = _context.GameRounds
+            .Where(r => r.ExecutedAt >= start && r.ExecutedAt < end)
+            .GroupBy(r => _context.GameSessions.FirstOrDefault(s => s.Id == r.GameSessionId)!.UserId) // Potential N+1 issue, optimizing below
+            // Optimization: GameRound doesn't have UserId directly. It has SessionId. Session has UserId.
+            // Better to join.
+            // Let's retry with a cleaner LINQ query on Bets since we have UserId there, 
+            // but Wins are in Rounds.
+            // Alternative: Use Rounds for both Win and Bet (since Round has TotalBetAmount).
+            .Select(g => new { UserId = g.Key, TotalWin = g.Sum(x => x.TotalWinAmount), TotalBet = g.Sum(x => x.TotalBetAmount) })
+            .ToList();
+            
+        // Correct optimized query: Use GameRound which has everything we need
+        // BUT GameRound doesn't have UserId. We need to join GameSession.
+        var stats = _context.GameRounds
+            .Where(r => r.ExecutedAt >= start && r.ExecutedAt < end)
+            .Join(_context.GameSessions, 
+                  round => round.GameSessionId, 
+                  session => session.Id, 
+                  (round, session) => new { session.UserId, round.TotalBetAmount, round.TotalWinAmount })
+            .GroupBy(x => x.UserId)
+            .Select(g => new { 
+                UserId = g.Key, 
+                NetResult = g.Sum(x => x.TotalWinAmount - x.TotalBetAmount) 
+            })
+            .AsEnumerable() // Execute
+            .Select(x => (x.UserId, x.NetResult))
+            .ToList();
+
+        return stats;
+    }
+
     public void SaveBet(Bet bet) {
         _context.Bets.Add(bet);
         _context.SaveChanges();
