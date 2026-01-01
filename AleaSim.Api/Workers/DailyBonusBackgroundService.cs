@@ -69,10 +69,37 @@ public class DailyBonusBackgroundService : BackgroundService {
         }
 
         // 2. Daily Bonuses (Cashback / Loyalty)
-        // This requires iterating ALL users or having a "DailyStats" table.
-        // For MVP, we skip iteration over 1M users. We assume we fetch "Active Yesterday" users.
-        // Mock implementation:
-        // var dailyStats = repo.GetDailyUserStats(yesterday); ...
+        var dailyStats = repo.CalculateDailyNet(yesterday);
+        
+        foreach (var stat in dailyStats) {
+            decimal bonusAmount = 0;
+            string type = "";
+
+            if (stat.NetResult < 0) {
+                // LOSS: Cashback 10%
+                decimal loss = Math.Abs(stat.NetResult);
+                bonusAmount = loss * 0.10m;
+                type = "Cashback";
+            }
+            else if (stat.NetResult > 0) {
+                // WIN: Loyalty 5%
+                bonusAmount = stat.NetResult * 0.05m;
+                type = "Loyalty Reward";
+            }
+
+            if (bonusAmount > 0) {
+                // Credit to Bonus Wallet (1x wagering required)
+                // If bonus < 100, no option to cashout 1/10 (handled in Vault/UI later)
+                vault.CreditBonus(stat.UserId, bonusAmount, bonusAmount, repo);
+                
+                await realTime.NotifyGameUpdate(stat.UserId, new { 
+                    Type = "DailyBonus", 
+                    BonusType = type, 
+                    Amount = bonusAmount,
+                    Message = $"You received a {type} of {bonusAmount:C}!"
+                });
+            }
+        }
         
         _logger.LogInformation("Daily Processing Complete.");
     }

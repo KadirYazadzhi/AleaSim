@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AleaSim.Api.Controllers;
 
@@ -13,9 +14,31 @@ namespace AleaSim.Api.Controllers;
 [Route("api/[controller]")]
 public class GameController : ControllerBase {
     private readonly IGameDirector _gameDirector;
+    private readonly IVaultService _vaultService;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public GameController(IGameDirector gameDirector) {
+    public GameController(IGameDirector gameDirector, IVaultService vaultService, IServiceScopeFactory scopeFactory) {
         _gameDirector = gameDirector;
+        _vaultService = vaultService;
+        _scopeFactory = scopeFactory;
+    }
+
+    [HttpPost("bonus/cashout")]
+    public IActionResult CashoutBonus() {
+        try {
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+            
+            using var scope = _scopeFactory.CreateScope();
+            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+            
+            bool result = _vaultService.CashoutBonus(userId, repo);
+            
+            if (result) return Ok("Bonus processed (Cashed out or Forfeited).");
+            return BadRequest("No active bonus to cash out.");
+        }
+        catch (Exception ex) {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPost("{gameType}/session")]
