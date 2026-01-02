@@ -73,6 +73,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTG9naW4ucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
+[/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Pages/PlayerInspector.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUGxheWVySW5zcGVjdG9yLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
 [/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Pages/Profile.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUHJvZmlsZS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 

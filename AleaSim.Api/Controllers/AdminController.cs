@@ -31,6 +31,23 @@ public class AdminController : ControllerBase {
         return Ok(_auditService.GetLogs());
     }
 
+    [HttpGet("players/search/{query}")]
+    public ActionResult<List<PlayerSearchResultDto>> SearchPlayers(string query) {
+        using var scope = HttpContext.RequestServices.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        
+        var users = repo.SearchUsers(query);
+        var result = users.Select(u => new PlayerSearchResultDto {
+            Id = u.Id,
+            Username = u.Username,
+            Email = u.Email,
+            Balance = u.Balance,
+            Role = u.Role.ToString()
+        }).ToList();
+
+        return Ok(result);
+    }
+
     // --- Player Inspector ---
 
     [HttpGet("players/{id}")]

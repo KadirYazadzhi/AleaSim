@@ -21,6 +21,7 @@ public interface IGameRepository {
     User? GetUser(Guid userId);
     User? GetUserBySessionId(Guid sessionId);
     User? GetUserByUsername(string username);
+    IEnumerable<User> SearchUsers(string query);
     void CreateUser(User user);
     void UpdateUser(User user); // Added generic update
     void UpdateUserBalance(Guid userId, decimal amountToAdd); // Positive to add, negative to subtract

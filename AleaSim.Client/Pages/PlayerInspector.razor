@@ -1,0 +1,110 @@
+@page "/admin/players"
+@using AleaSim.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h3" Class="mb-6">Player Inspector</MudText>
+
+    <MudPaper Class="pa-4 mb-6">
+        <MudTextField T="string" @bind-Value="searchQuery" Label="Search by Username or Email" Variant="Variant.Outlined" 
+                      Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" OnAdornmentClick="OnSearch" 
+                      OnKeyDown="@(e => { if(e.Key == "Enter") OnSearch(); })" />
+    </MudPaper>
+
+    <MudGrid>
+        <!-- Search Results -->
+        <MudItem xs="12" md="4">
+            <MudTable Items="@searchResults" Hover="true" OnRowClick="@((TableRowClickEventArgs<PlayerSearchResultDto> e) => SelectPlayer(e.Item))" T="PlayerSearchResultDto">
+                <HeaderContent>
+                    <MudTh>Username</MudTh>
+                    <MudTh>Balance</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Username">@context.Username</MudTd>
+                    <MudTd DataLabel="Balance">$@context.Balance.ToString("N2")</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudItem>
+
+        <!-- Player Dossier -->
+        <MudItem xs="12" md="8">
+            @if (selectedPlayer != null)
+            {
+                <MudCard Elevation="4" Class="pa-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h5">Dossier: @selectedPlayer.Username</MudText>
+                            <MudText Typo="Typo.caption">ID: @selectedPlayer.Id</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudChip T="string" Color="Color.Info">Role: @selectedPlayer.Role</MudChip>
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudGrid>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.subtitle2">Lifetime Value (LTV)</MudText>
+                                <MudText Typo="Typo.h6" Color="Color.Success">$1,450.00</MudText> <!-- Mock from Dossier -->
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.subtitle2">Current Session RTP</MudText>
+                                <MudText Typo="Typo.h6" Color="Color.Error">112% (Winning)</MudText>
+                            </MudItem>
+                        </MudGrid>
+
+                        <MudDivider Class="my-4" />
+                        
+                        <MudText Typo="Typo.h6" Class="mb-2">Interventions</MudText>
+                        <div class="d-flex gap-4">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="InjectBonus">Inject $50 Bonus</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="ForceCooldown">Force Cooldown</MudButton>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            }
+            else
+            {
+                <MudPaper Class="pa-12 text-center" Style="background: transparent; border: 2px dashed #ccc;">
+                    <MudText Typo="Typo.h6" Style="color: #999;">Select a player to view dossier</MudText>
+                </MudPaper>
+            }
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private string searchQuery = "";
+    private List<PlayerSearchResultDto> searchResults = new();
+    private PlayerSearchResultDto? selectedPlayer;
+
+    private async Task OnSearch() {
+        if (string.IsNullOrWhiteSpace(searchQuery)) return;
+        try {
+            searchResults = await Http.GetFromJsonAsync<List<PlayerSearchResultDto>>($"api/Admin/players/search/{searchQuery}") ?? new();
+            if (!searchResults.Any()) Snackbar.Add("No players found.", Severity.Warning);
+        } catch {
+            Snackbar.Add("Search failed.", Severity.Error);
+        }
+    }
+
+    private void SelectPlayer(PlayerSearchResultDto player) {
+        selectedPlayer = player;
+    }
+
+    private async Task InjectBonus() {
+        if (selectedPlayer == null) return;
+        var dto = new InjectBonusDto { Amount = 50, Reason = "Admin Intervention" };
+        var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/bonus", dto);
+        if (response.IsSuccessStatusCode) Snackbar.Add("Bonus injected!", Severity.Success);
+    }
+
+    private async Task ForceCooldown() {
+        if (selectedPlayer == null) return;
+        var dto = new ForceCooldownDto { DurationMinutes = 60, Reason = "Suspicious activity" };
+        var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/cooldown", dto);
+        if (response.IsSuccessStatusCode) Snackbar.Add("Cooldown forced!", Severity.Error);
+    }
+}

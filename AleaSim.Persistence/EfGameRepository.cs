@@ -72,6 +72,13 @@ public class EfGameRepository : IGameRepository {
         return _context.Users.FirstOrDefault(u => u.Username == username);
     }
 
+    public IEnumerable<User> SearchUsers(string query) {
+        return _context.Users
+            .Where(u => u.Username.Contains(query) || u.Email.Contains(query))
+            .Take(20)
+            .ToList();
+    }
+
     public void CreateUser(User user) {
         _context.Users.Add(user);
         _context.SaveChanges();
