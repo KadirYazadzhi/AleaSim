@@ -297,6 +297,20 @@ public class SlotGameEngine : BaseGameEngine {
                             }
                         }
                     }
+
+                    // Achievements
+                    var achService = provider.GetService<IAchievementService>();
+                    if (achService != null) {
+                        // 1. Total Bets check
+                        int totalRounds = repo.GetRoundCount(sessionId);
+                        await achService.CheckAchievements(session.UserId, "TotalBets", totalRounds, repo);
+
+                        // 2. Win Multiplier check
+                        if (winAmount > 0) {
+                            decimal mult = winAmount / lastBet.Amount;
+                            await achService.CheckAchievements(session.UserId, "MaxMultiplier", mult, repo);
+                        }
+                    }
                 }
                 catch {
                      // Social failures should not break the game round

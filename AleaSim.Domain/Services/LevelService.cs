@@ -5,6 +5,11 @@ namespace AleaSim.Domain.Services;
 
 public class LevelService : ILevelService {
     private const decimal XP_PER_CURRENCY_UNIT = 10m; // Bet $1 -> 10 XP
+    private readonly IAchievementService _achievementService;
+
+    public LevelService(IAchievementService achievementService) {
+        _achievementService = achievementService;
+    }
 
     public UserProgression GetProgression(Guid userId, IGameRepository repo) {
         return repo.GetUserProgression(userId) ?? CreateDefault(userId, repo);
@@ -39,6 +44,9 @@ public class LevelService : ILevelService {
         repo.UpdateUserProgression(prog);
 
         if (leveledUp) {
+            // Check for Level Achievements
+            _ = _achievementService.CheckAchievements(userId, "LevelReached", prog.CurrentLevel, repo);
+
             _ = realTime.NotifyGameUpdate(userId, new {
                 Type = "LevelUp",
                 NewLevel = prog.CurrentLevel,

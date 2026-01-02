@@ -19,11 +19,14 @@ public class AleaSimDbContext : DbContext {
     public DbSet<GlobalSetting> GlobalSettings { get; set; }
     public DbSet<Quest> Quests { get; set; }
     public DbSet<UserProgression> UserProgressions { get; set; }
+    public DbSet<Achievement> Achievements { get; set; }
+    public DbSet<UserAchievement> UserAchievements { get; set; }
 
     public AleaSimDbContext(DbContextOptions<AleaSimDbContext> options) : base(options) {
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) {
+        // ... (existing configurations)
         modelBuilder.ApplyConfiguration(new Configurations.UserConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.GameConfiguration());
         // modelBuilder.ApplyConfiguration(new Configurations.GameSessionConfiguration());
@@ -40,6 +43,15 @@ public class AleaSimDbContext : DbContext {
             entity.Property(e => e.Key).HasMaxLength(100);
             entity.Property(e => e.Value).HasMaxLength(500);
         });
+
+        // Seed Achievements
+        modelBuilder.Entity<Achievement>().HasData(
+            new Achievement { Id = Guid.NewGuid(), Name = "First Blood", Description = "Place your first bet", Icon = "🎯", ConditionType = "TotalBets", ConditionValue = 1 },
+            new Achievement { Id = Guid.NewGuid(), Name = "High Roller", Description = "Wager more than $5,000 total", Icon = "💎", ConditionType = "TotalWagered", ConditionValue = 5000 },
+            new Achievement { Id = Guid.NewGuid(), Name = "The Whale", Description = "Wager more than $50,000 total", Icon = "🐋", ConditionType = "TotalWagered", ConditionValue = 50000 },
+            new Achievement { Id = Guid.NewGuid(), Name = "Lucky Star", Description = "Hit a win over 100x multiplier", Icon = "⭐", ConditionType = "MaxMultiplier", ConditionValue = 100 },
+            new Achievement { Id = Guid.NewGuid(), Name = "Veteran", Description = "Reach Level 10", Icon = "🎖️", ConditionType = "LevelReached", ConditionValue = 10 }
+        );
 
         // Seed Default Settings
         modelBuilder.Entity<GlobalSetting>().HasData(

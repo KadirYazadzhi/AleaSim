@@ -50,6 +50,31 @@
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-4" Disabled="@(profile?.Progression.SkillPoints == 0)">Upgrade Skills</MudButton>
             </MudPaper>
         </MudItem>
+
+        <!-- Achievements Section -->
+        <MudItem xs="12">
+            <MudPaper Class="pa-6" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-4">Hall of Achievements</MudText>
+                <div class="d-flex flex-wrap gap-4">
+                    @if (profile != null && profile.Achievements.Any())
+                    {
+                        @foreach (var ach in profile.Achievements)
+                        {
+                            <MudTooltip Text="@ach.Description">
+                                <MudPaper Class="pa-4 d-flex flex-column align-center justify-center" Style="width: 120px; background: #fffde7; border: 2px solid #fbc02d;">
+                                    <MudText Typo="Typo.h3">@ach.Icon</MudText>
+                                    <MudText Typo="Typo.caption" Align="Align.Center" Style="font-weight: bold;">@ach.Name</MudText>
+                                </MudPaper>
+                            </MudTooltip>
+                        }
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">No achievements unlocked yet. Keep playing!</MudText>
+                    }
+                </div>
+            </MudPaper>
+        </MudItem>
     </MudGrid>
 </MudContainer>
 
@@ -69,5 +94,6 @@
         public decimal Balance { get; set; }
         public decimal BonusBalance { get; set; }
         public UserProgressionDto Progression { get; set; } = new();
+        public List<UserAchievementDto> Achievements { get; set; } = new();
     }
 }

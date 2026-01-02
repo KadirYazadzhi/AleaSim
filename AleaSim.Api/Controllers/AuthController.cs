@@ -38,7 +38,7 @@ public class AuthController : ControllerBase {
 
     [Authorize]
     [HttpGet("me")]
-    public IActionResult GetMe() {
+    public async Task<IActionResult> GetMe() {
         var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
         var user = _repository.GetUser(userId);
         if (user == null) return NotFound();
@@ -46,6 +46,10 @@ public class AuthController : ControllerBase {
         // Get RPG Progress
         var levelService = HttpContext.RequestServices.GetRequiredService<ILevelService>();
         var prog = levelService.GetProgression(userId, _repository);
+
+        // Get Achievements
+        var achService = HttpContext.RequestServices.GetRequiredService<IAchievementService>();
+        var userAchs = await achService.GetUserAchievements(userId, _repository);
 
         return Ok(new {
             user.Username,
@@ -57,7 +61,13 @@ public class AuthController : ControllerBase {
                 CurrentXP = prog.CurrentXP,
                 SkillPoints = prog.SkillPoints,
                 LifetimeXP = prog.LifetimeXP
-            }
+            },
+            Achievements = userAchs.Select(a => new UserAchievementDto {
+                Name = a.Achievement.Name,
+                Description = a.Achievement.Description,
+                Icon = a.Achievement.Icon,
+                UnlockedAt = a.UnlockedAt
+            })
         });
     }
     

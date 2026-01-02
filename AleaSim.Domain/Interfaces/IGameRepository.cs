@@ -89,6 +89,11 @@ public interface IGameRepository {
     void CreateUserProgression(UserProgression progression);
     void UpdateUserProgression(UserProgression progression);
 
+    // Achievements
+    IEnumerable<Achievement> GetAchievementsByCondition(string conditionType);
+    IEnumerable<UserAchievement> GetUserAchievements(Guid userId);
+    void SaveUserAchievement(UserAchievement userAchievement);
+
     // Global Settings
     string GetGlobalSetting(string key);
     void SetGlobalSetting(string key, string value, string description = "");

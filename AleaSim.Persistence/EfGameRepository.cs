@@ -409,6 +409,22 @@ public class EfGameRepository : IGameRepository {
         _context.SaveChanges();
     }
 
+    public IEnumerable<Achievement> GetAchievementsByCondition(string conditionType) {
+        return _context.Achievements.Where(a => a.ConditionType == conditionType).ToList();
+    }
+
+    public IEnumerable<UserAchievement> GetUserAchievements(Guid userId) {
+        return _context.UserAchievements
+            .Include(a => a.Achievement)
+            .Where(a => a.UserId == userId)
+            .ToList();
+    }
+
+    public void SaveUserAchievement(UserAchievement userAchievement) {
+        _context.UserAchievements.Add(userAchievement);
+        _context.SaveChanges();
+    }
+
     public string GetGlobalSetting(string key) {
         var setting = _context.GlobalSettings.Find(key);
         return setting?.Value ?? string.Empty;
