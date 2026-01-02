@@ -1,0 +1,55 @@
+@using AleaSim.Client.Services
+@inject AudioService Audio
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h5">App Settings</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudList T="string">
+            <MudListItem>
+                <div class="d-flex justify-space-between align-center">
+                    <MudText>Sound Effects</MudText>
+                    <MudSwitch @bind-Value="Audio.IsMuted" Color="Color.Primary" Label="@(Audio.IsMuted ? "Muted" : "On")" />
+                </div>
+            </MudListItem>
+            
+            <MudListItem>
+                <div class="d-flex justify-space-between align-center">
+                    <MudText>Dark Mode</MudText>
+                    <MudToggleIconButton @bind-Toggled="@isDarkMode"
+                                         Icon="@Icons.Material.Filled.LightMode" Color="@Color.Warning" Title="Switch to Light Mode"
+                                         ToggledIcon="@Icons.Material.Filled.DarkMode" ToggledColor="@Color.Inherit" ToggledTitle="Switch to Dark Mode" />
+                </div>
+            </MudListItem>
+
+            <MudDivider Class="my-4" />
+            
+            <MudListItem>
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Active Client Seed (Fairness)</MudText>
+                <div class="d-flex gap-2">
+                    <MudTextField @bind-Value="clientSeed" Label="Change Seed" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="UpdateSeed">Update</MudButton>
+                </div>
+            </MudListItem>
+        </MudList>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Color="Color.Primary">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    
+    // This should ideally be synced with a ThemeProvider, for now we mock the state
+    private bool isDarkMode = true;
+    private string clientSeed = "a8b3c9d2";
+
+    private void Close() => MudDialog.Close();
+
+    private void UpdateSeed() {
+        Snackbar.Add("Client seed updated for next session!", Severity.Success);
+    }
+}

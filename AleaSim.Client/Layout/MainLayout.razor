@@ -2,8 +2,16 @@
 @using Blazored.LocalStorage
 @using AleaSim.Client.Services
 @using AleaSim.Client.Components
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inject RealTimeClient RealTime
+@inject ISnackbar Snackbar
+@inject ILocalStorageService LocalStorage
+@inject NotificationService NotifService
+@inject IDialogService DialogService
 
-<MudThemeProvider />
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
@@ -16,6 +24,9 @@
         <AuthorizeView>
             <Authorized>
                 <div class="d-flex align-center gap-4">
+                    <!-- Settings -->
+                    <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" OnClick="OpenSettings" />
+
                     <!-- Chat Toggle -->
                     <MudIconButton Icon="@Icons.Material.Filled.Chat" Color="Color.Inherit" OnClick="@((e) => ChatToggle())" />
 
@@ -72,15 +83,20 @@
 @code {
     bool _drawerOpen = true;
     bool _chatOpen = false;
+    bool _isDarkMode = true;
     private UserProfileDto? userProfile;
 
-    [Inject] IAuthService AuthService { get; set; } = default!;
-    [Inject] NavigationManager Navigation { get; set; } = default!;
-    [Inject] HttpClient Http { get; set; } = default!;
-    [Inject] RealTimeClient RealTime { get; set; } = default!;
-    [Inject] ISnackbar Snackbar { get; set; } = default!;
-    [Inject] ILocalStorageService LocalStorage { get; set; } = default!;
-    [Inject] NotificationService NotifService { get; set; } = default!;
+    private MudTheme _theme = new MudTheme() {
+        PaletteDark = new PaletteDark() {
+            Primary = "#ffD700",
+            Secondary = "#4caf50",
+            Background = "#0f0f0f",
+            Surface = "#1a1a1a",
+            AppbarBackground = "#1a1a1a",
+            DrawerBackground = "#111",
+            TextPrimary = "#ffffff"
+        }
+    };
 
     protected override async Task OnInitializedAsync() {
         NotifService.OnNotificationsChanged += StateHasChanged;
@@ -120,6 +136,11 @@
 
     void DrawerToggle() => _drawerOpen = !_drawerOpen;
     void ChatToggle() => _chatOpen = !_chatOpen;
+
+    private void OpenSettings() {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
+        DialogService.Show<SettingsDialog>("Settings", options);
+    }
 
     private async Task Logout() {
         RealTime.OnBigWinReceived -= HandleBigWin;
