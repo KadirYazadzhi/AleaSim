@@ -9,6 +9,20 @@
     <MudText Typo="Typo.h3" Class="mb-6">Player Profile</MudText>
 
     <MudGrid>
+        <!-- VIP Card Section -->
+        <MudItem xs="12">
+            <MudPaper Class="pa-8 vip-card mb-4" Elevation="6" Style="@GetVipCardStyle(profile?.Progression.Tier ?? VipTier.Bronze)">
+                <div class="d-flex justify-space-between align-center">
+                    <div>
+                        <MudText Typo="Typo.h6" Style="opacity: 0.8; letter-spacing: 2px;">ALEASIM LOYALTY CARD</MudText>
+                        <MudText Typo="Typo.h3" Style="font-weight: 900; margin: 20px 0;">@profile?.Progression.TierName TIER</MudText>
+                        <MudText Typo="Typo.h5">@profile?.Username</MudText>
+                    </div>
+                    <MudIcon Icon="@GetTierIcon(profile?.Progression.Tier ?? VipTier.Bronze)" Style="font-size: 8rem; opacity: 0.3;" />
+                </div>
+            </MudPaper>
+        </MudItem>
+
         <!-- Level & XP Section -->
         <MudItem xs="12">
             <MudPaper Class="pa-6" Elevation="2">
@@ -144,6 +158,21 @@
         public UserProgressionDto Progression { get; set; } = new();
         public List<UserAchievementDto> Achievements { get; set; } = new();
     }
+
+    private string GetVipCardStyle(VipTier tier) => tier switch {
+        VipTier.Diamond => "background: linear-gradient(135deg, #2c3e50 0%, #000000 100%); border: 2px solid #e0e0e0; color: #fff;",
+        VipTier.Platinum => "background: linear-gradient(135deg, #607d8b 0%, #263238 100%); color: #fff;",
+        VipTier.Gold => "background: linear-gradient(135deg, #ffD700 0%, #b8860b 100%); color: #000;",
+        VipTier.Silver => "background: linear-gradient(135deg, #bdc3c7 0%, #2c3e50 100%); color: #fff;",
+        _ => "background: linear-gradient(135deg, #cd7f32 0%, #8b4513 100%); color: #fff;"
+    };
+
+    private string GetTierIcon(VipTier tier) => tier switch {
+        VipTier.Diamond => Icons.Material.Filled.WorkspacePremium,
+        VipTier.Platinum => Icons.Material.Filled.AutoAwesome,
+        VipTier.Gold => Icons.Material.Filled.MilitaryTech,
+        _ => Icons.Material.Filled.Stars
+    };
 
     private async Task UpgradeSkill(string name) {
         var response = await Http.PostAsync($"api/Game/skills/upgrade/{name}", null);

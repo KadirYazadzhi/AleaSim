@@ -27,34 +27,13 @@
                     <!-- Settings -->
                     <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" OnClick="OpenSettings" />
 
-                    <!-- Chat Toggle -->
-                    <MudIconButton Icon="@Icons.Material.Filled.Chat" Color="Color.Inherit" OnClick="@((e) => ChatToggle())" />
-
-                    <!-- Notifications -->
-                    <MudBadge Content="@NotifService.UnreadCount" Color="Color.Error" Overlap="true" Visible="@(NotifService.UnreadCount > 0)">
-                        <MudMenu Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight">
-                            <MudText Typo="Typo.subtitle2" Class="pa-4">Recent Activity</MudText>
-                            <MudDivider />
-                            @if (!NotifService.History.Any()) {
-                                <MudText Typo="Typo.body2" Class="pa-4" Color="Color.Secondary">No notifications yet.</MudText>
-                            }
-                            @foreach (var item in NotifService.History.Take(5)) {
-                                <MudMenuItem>
-                                    <div style="max-width: 250px;">
-                                        <MudText Typo="Typo.body2" Style="font-weight: bold;">@item.Title</MudText>
-                                        <MudText Typo="Typo.caption" Class="d-block">@item.Message</MudText>
-                                    </div>
-                                </MudMenuItem>
-                            }
-                            <MudDivider />
-                            <MudMenuItem OnClick="() => NotifService.MarkAllAsRead()">Mark all as read</MudMenuItem>
-                        </MudMenu>
-                    </MudBadge>
-
                     @if (userProfile != null) {
-                        <MudChip T="string" Icon="@Icons.Material.Filled.Stars" Color="Color.Info">Level @userProfile.Progression.CurrentLevel</MudChip>
-                        <MudText Typo="Typo.h6" Color="Color.Success">$@userProfile.Balance.ToString("N2")</MudText>
+                        <MudChip T="string" Icon="@GetTierIcon(userProfile.Progression.Tier)" Color="@GetTierColor(userProfile.Progression.Tier)" Variant="Variant.Filled">
+                            @userProfile.Progression.TierName (Lv. @userProfile.Progression.CurrentLevel)
+                        </MudChip>
+                        <MudText Typo="Typo.h6" Color="Color.Success" Class="ml-2">$@userProfile.Balance.ToString("N2")</MudText>
                     }
+
                     <MudMenu Icon="@Icons.Material.Filled.AccountCircle" AnchorOrigin="Origin.BottomRight">
                         <MudMenuItem Href="/profile">Profile</MudMenuItem>
                         <MudMenuItem OnClick="Logout">Logout</MudMenuItem>
@@ -133,6 +112,22 @@
             userProfile = await Http.GetFromJsonAsync<UserProfileDto>("api/Auth/me");
         } catch { }
     }
+
+    private string GetTierIcon(VipTier tier) => tier switch {
+        VipTier.Diamond => Icons.Material.Filled.WorkspacePremium,
+        VipTier.Platinum => Icons.Material.Filled.AutoAwesome,
+        VipTier.Gold => Icons.Material.Filled.MilitaryTech,
+        VipTier.Silver => Icons.Material.Filled.Stars,
+        _ => Icons.Material.Filled.Stars
+    };
+
+    private Color GetTierColor(VipTier tier) => tier switch {
+        VipTier.Diamond => Color.Secondary,
+        VipTier.Platinum => Color.Info,
+        VipTier.Gold => Color.Warning,
+        VipTier.Silver => Color.Default,
+        _ => Color.Dark
+    };
 
     void DrawerToggle() => _drawerOpen = !_drawerOpen;
     void ChatToggle() => _chatOpen = !_chatOpen;
