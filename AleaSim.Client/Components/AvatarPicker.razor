@@ -1,0 +1,30 @@
+@using AleaSim.Shared
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">Choose an avatar that reflects your playing style:</MudText>
+        <div class="d-flex flex-wrap gap-4 justify-center">
+            @foreach (var avatar in AvatarConstants.PredefinedAvatars)
+            {
+                <MudAvatar Image="@avatar" Style="height:80px; width:80px; cursor:pointer;" 
+                           Class="hover-scale" @onclick='() => Select(avatar)' />
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .hover-scale { transition: transform 0.2s; }
+    .hover-scale:hover { transform: scale(1.2); border: 2px solid #ffD700; }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private void Select(string url) => MudDialog.Close(DialogResult.Ok(url));
+    private void Cancel() => MudDialog.Cancel();
+}

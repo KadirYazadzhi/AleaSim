@@ -1,9 +1,12 @@
 @page "/profile"
 @using AleaSim.Shared.Models
+@using AleaSim.Shared
+@using System.Text.Json
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
     <MudText Typo="Typo.h3" Class="mb-6">Player Profile</MudText>
@@ -23,19 +26,29 @@
             </MudPaper>
         </MudItem>
 
-        <!-- Level & XP Section -->
+        <!-- Profile Header Section -->
         <MudItem xs="12">
             <MudPaper Class="pa-6" Elevation="2">
                 <div class="d-flex align-center gap-4 mb-4">
-                    <MudAvatar Color="Color.Primary" Style="height:70px; width:70px; font-size:2rem;">@profile?.Username[0].ToString().ToUpper()</MudAvatar>
+                    <div class="position-relative">
+                        <MudAvatar Image="@profile?.AvatarUrl" Style="height:100px; width:100px;" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Class="avatar-edit-btn" OnClick="OpenAvatarPicker" />
+                    </div>
                     <div>
                         <MudText Typo="Typo.h4">@profile?.Username</MudText>
-                        <MudText Typo="Typo.subtitle1" Color="Color.Info">Level @profile?.Progression.CurrentLevel Casino Grinder</MudText>
+                        <MudText Typo="Typo.subtitle1" Color="Color.Info">
+                            @profile?.Progression.TierName TIER - Level @profile?.Progression.CurrentLevel
+                        </MudText>
+                        @if (GetLuckySymbol() != null) {
+                            <MudChip T="string" Icon="@Icons.Material.Filled.AutoFixHigh" Color="Color.Secondary" Size="Size.Small">
+                                Your Lucky Symbol: @GetLuckySymbol()
+                            </MudChip>
+                        }
                     </div>
                 </div>
 
                 <MudText Typo="Typo.body1" Class="mb-1">Progress to Level @(profile?.Progression.CurrentLevel + 1)</MudText>
-                <MudProgressLinear Color="Color.Info" Value="@(profile?.Progression.ProgressPercentage ?? 0)" Height="20" SecondaryColor="Color.Surface" Class="rounded-lg">
+                <MudProgressLinear Color="Color.Info" Value="@(profile?.Progression.ProgressPercentage ?? 0)" Height="20" Class="rounded-lg">
                     <MudText Typo="Typo.subtitle2" Color="Color.Dark">
                         <b>@(profile?.Progression.CurrentXP.ToString("N0")) / @profile?.Progression.NextLevelXP.ToString("N0") XP</b>
                     </MudText>
@@ -45,14 +58,7 @@
             </MudPaper>
         </MudItem>
 
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-6" Elevation="2" Style="height: 100%;">
-                <MudText Typo="Typo.h6" Class="mb-4">Redeem Promo Code</MudText>
-                <MudTextField @bind-Value="voucherCode" Label="Voucher Code" Variant="Variant.Outlined" Placeholder="e.g. FREE100" />
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" Class="mt-4" OnClick="RedeemVoucher" Disabled="@string.IsNullOrEmpty(voucherCode)">Redeem Code</MudButton>
-            </MudPaper>
-        </MudItem>
-
+        <!-- Stats and Perks -->
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-6" Elevation="2" Style="height: 100%;">
                 <MudText Typo="Typo.h6" Class="mb-4">Financial Overview</MudText>
@@ -60,6 +66,14 @@
                     <MudListItem Icon="@Icons.Material.Filled.AccountBalanceWallet">Real Balance: <b>$@profile?.Balance.ToString("N2")</b></MudListItem>
                     <MudListItem Icon="@Icons.Material.Filled.CardGiftcard">Bonus Balance: <b>$@profile?.BonusBalance.ToString("N2")</b></MudListItem>
                 </MudList>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-6" Elevation="2" Style="height: 100%;">
+                <MudText Typo="Typo.h6" Class="mb-4">Redeem Promo Code</MudText>
+                <MudTextField @bind-Value="voucherCode" Label="Voucher Code" Variant="Variant.Outlined" Placeholder="e.g. FREE100" />
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" Class="mt-4" OnClick="RedeemVoucher" Disabled="@string.IsNullOrEmpty(voucherCode)">Redeem Code</MudButton>
             </MudPaper>
         </MudItem>
 
@@ -132,31 +146,52 @@
         }
     }
 
+    private async Task OpenAvatarPicker() {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
+        var dialog = await DialogService.ShowAsync<AleaSim.Client.Components.AvatarPicker>("Select Your Avatar", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is string newUrl) {
+            await UpdateAvatar(newUrl);
+        }
+    }
+
+    private async Task UpdateAvatar(string url) {
+        var response = await Http.PostAsJsonAsync("api/Auth/avatar", url);
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Avatar updated!", Severity.Success);
+            await OnInitializedAsync();
+        }
+    }
+
     private async Task RedeemVoucher() {
         try {
             var response = await Http.PostAsync($"api/Game/vouchers/redeem/{voucherCode}", null);
             if (response.IsSuccessStatusCode) {
                 Snackbar.Add("Success! Bonus credited.", Severity.Success);
                 voucherCode = "";
-                await OnInitializedAsync(); // Reload profile
+                await OnInitializedAsync();
             } else {
-                var error = await response.Content.ReadAsStringAsync();
-                Snackbar.Add(error, Severity.Warning);
+                Snackbar.Add(await response.Content.ReadAsStringAsync(), Severity.Warning);
             }
-        } catch {
-            Snackbar.Add("Error redeeming voucher.", Severity.Error);
+        } catch { }
+    }
+
+    private async Task UpgradeSkill(string name) {
+        var response = await Http.PostAsync($"api/Game/skills/upgrade/{name}", null);
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Perk Upgraded!", Severity.Success);
+            await OnInitializedAsync();
         }
     }
 
-    public class UserProfileResponse {
-        public string Username { get; set; } = "";
-        public decimal Balance { get; set; }
-        public decimal BonusBalance { get; set; }
-        public int LuckyCloverLevel { get; set; }
-        public int CashbackLevel { get; set; }
-        public int XpBoostLevel { get; set; }
-        public UserProgressionDto Progression { get; set; } = new();
-        public List<UserAchievementDto> Achievements { get; set; } = new();
+    private string? GetLuckySymbol() {
+        try {
+            var affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile?.SymbolAffinityJson ?? "{}");
+            if (affinity == null || !affinity.Any()) return null;
+            int symId = affinity.OrderByDescending(x => x.Value).First().Key;
+            return symId switch { 7 => "7️⃣", 8 => "🍀", 10 => "💰", _ => "💎" };
+        } catch { return null; }
     }
 
     private string GetVipCardStyle(VipTier tier) => tier switch {
@@ -174,13 +209,22 @@
         _ => Icons.Material.Filled.Stars
     };
 
-    private async Task UpgradeSkill(string name) {
-        var response = await Http.PostAsync($"api/Game/skills/upgrade/{name}", null);
-        if (response.IsSuccessStatusCode) {
-            Snackbar.Add("Perk Upgraded!", Severity.Success);
-            await OnInitializedAsync();
-        } else {
-            Snackbar.Add("Could not upgrade perk.", Severity.Warning);
-        }
+    public class UserProfileResponse {
+        public string Username { get; set; } = "";
+        public decimal Balance { get; set; }
+        public decimal BonusBalance { get; set; }
+        public string AvatarUrl { get; set; } = "";
+        public string SymbolAffinityJson { get; set; } = "{}";
+        public int LuckyCloverLevel { get; set; }
+        public int CashbackLevel { get; set; }
+        public int XpBoostLevel { get; set; }
+        public UserProgressionDto Progression { get; set; } = new();
+        public List<UserAchievementDto> Achievements { get; set; } = new();
     }
 }
+
+<style>
+    .avatar-edit-btn { position: absolute; bottom: -10px; right: -10px; background: white !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .vip-card { border-radius: 20px; transition: transform 0.3s ease; cursor: default; }
+    .vip-card:hover { transform: translateY(-5px); }
+</style>
