@@ -83,6 +83,11 @@ public interface IGameRepository {
     void CreateQuest(Quest quest);
     void UpdateQuest(Quest quest);
 
+    // RPG Progression
+    UserProgression? GetUserProgression(Guid userId);
+    void CreateUserProgression(UserProgression progression);
+    void UpdateUserProgression(UserProgression progression);
+
     // Global Settings
     string GetGlobalSetting(string key);
     void SetGlobalSetting(string key, string value, string description = "");

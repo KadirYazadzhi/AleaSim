@@ -388,6 +388,20 @@ public class EfGameRepository : IGameRepository {
         _context.SaveChanges();
     }
 
+    public UserProgression? GetUserProgression(Guid userId) {
+        return _context.UserProgressions.FirstOrDefault(p => p.UserId == userId);
+    }
+
+    public void CreateUserProgression(UserProgression progression) {
+        _context.UserProgressions.Add(progression);
+        _context.SaveChanges();
+    }
+
+    public void UpdateUserProgression(UserProgression progression) {
+        _context.UserProgressions.Update(progression);
+        _context.SaveChanges();
+    }
+
     public string GetGlobalSetting(string key) {
         var setting = _context.GlobalSettings.Find(key);
         return setting?.Value ?? string.Empty;

@@ -95,16 +95,51 @@ public class SlotGameEngine : BaseGameEngine {
         // Check state to see if this is a Free Spin
         await ExecuteScopedAsync(async repo => {
             var session = repo.GetSession(sessionId);
+            
+            // Feature Buy Logic
+            bool isFeatureBuy = false;
+            decimal cost = amount;
+
+            if (!string.IsNullOrEmpty(betData) && betData.Contains("\"IsFeatureBuy\":true")) {
+                isFeatureBuy = true;
+                cost = amount * 100; // Feature Buy costs 100x bet
+            }
+
             if (session != null && !string.IsNullOrEmpty(session.GameState)) {
                 var state = JsonSerializer.Deserialize<CloverChaseState>(session.GameState);
                 // If in Bonus (Free Spins), do NOT charge.
                 if (state != null && state.IsBonusActive) {
-                    // Logic to validate, but skip Vault deduction
                     return; 
                 }
             }
-            // Otherwise, standard behavior (Charge)
-            await base.PlaceBet(sessionId, amount, betData);
+            
+            // If Feature Buy, we charge 100x but record the bet as 1x for payout calculations
+            if (isFeatureBuy) {
+                // Manually charge vault 100x
+                bool fundsDeducted = VaultService.ProcessBet(session.UserId, cost, repo);
+                if (!fundsDeducted) throw new InvalidOperationException("Insufficient funds for Feature Buy.");
+                
+                // Record Bet as standard amount (so payouts are correct multiplier)
+                // But we need to flag it as Feature Buy for ResolveRound to trigger bonus
+                var bet = new Bet {
+                    Id = Guid.NewGuid(),
+                    GameSessionId = sessionId,
+                    UserId = session.UserId,
+                    Amount = amount, // Base bet for math
+                    BetData = betData, // Contains IsFeatureBuy flag
+                    CreatedAt = DateTime.UtcNow
+                };
+                repo.SaveBet(bet);
+                
+                // Track Statistics (Total Wagered includes the full cost)
+                BrainService.UpdateProfile(session.UserId, cost, 0); 
+                PromotionService.ProcessBetActivity(session.UserId, cost, repo);
+                await JackpotService.Contribute(session.GameId, cost, repo);
+            } 
+            else {
+                // Standard Bet
+                await base.PlaceBet(sessionId, amount, betData);
+            }
         });
     }
 
@@ -131,9 +166,9 @@ public class SlotGameEngine : BaseGameEngine {
                 }
 
                 var lastBet = repo.GetLastBet(sessionId);
-                // In Free Spins, we might not have a "new" bet record if we skipped PlaceBet? 
-                // Actually, for Free Spins, we usually refer to the "Triggering Bet".
-                // But base.PlaceBet wasn't called, so no new Bet record inserted for this spin?
+                // Feature Buy Check
+                bool isFeatureBuy = lastBet?.BetData?.Contains("\"IsFeatureBuy\":true") ?? false;
+
                 // FIX: If Free Spin, look for the Locking Bet.
                 decimal betAmount = state.IsBonusActive || state.IsRespinActive ? state.LockedBet : (lastBet?.Amount ?? 0);
                 
@@ -142,10 +177,25 @@ public class SlotGameEngine : BaseGameEngine {
                 decimal winAmount = 0;
                 bool isFreeSpin = state.IsBonusActive;
                 bool nudgeTriggered = false;
+                string shadowResult = "";
 
                 // --- MAIN LOGIC FLOW ---
-                string shadowResult = ""; // Local variable to capture shadow decision
-                if (state.IsBonusActive) {
+                if (isFeatureBuy && !state.IsBonusActive && !state.IsRespinActive) {
+                    // FORCE BONUS ENTRY
+                    state.IsBonusActive = true;
+                    state.BonusLives = 3;
+                    state.LockedBet = betAmount;
+                    // Visuals: Show 5 clovers immediately
+                    for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) state.Grid[r,c] = _baseSymbols[0]; // Fill junk
+                    // Place 5 Clovers random
+                    var rnd = new Random();
+                    for(int i=0; i<5; i++) state.Grid[rnd.Next(Rows), i] = SYM_CLOVER;
+                    
+                    TransformCloversToBells(state, betAmount);
+                    // No payout for the trigger spin usually, just entry
+                    winAmount = 0;
+                }
+                else if (state.IsBonusActive) {
                     PlayBonusSpin(state, betAmount, session.Seed);
                     
                     if (state.BonusLives <= 0 || state.BonusSymbols.Count >= Rows * Cols) {
@@ -225,7 +275,16 @@ public class SlotGameEngine : BaseGameEngine {
                     if (questService != null) {
                         questService.GenerateDailyQuests(session.UserId, repo);
                         questService.UpdateProgress(session.UserId, "SpinCount", 1, repo, VaultService);
-                        if (winAmount > 0) questService.UpdateProgress(session.UserId, "WinAmount", (int)winAmount, repo, VaultService);
+                        if (winAmount > 0) {
+                            questService.UpdateProgress(session.UserId, "WinAmount", (int)winAmount, repo, VaultService);
+                        }
+                    }
+
+                    // Leveling (RPG)
+                    var levelService = provider.GetService<ILevelService>();
+                    if (levelService != null) {
+                        // Base XP logic is handled inside service
+                        levelService.AddExperience(session.UserId, lastBet.Amount, repo, RealTimeService);
                     }
 
                     // Leaderboard
