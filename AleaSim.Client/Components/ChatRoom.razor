@@ -7,12 +7,15 @@
     <div class="chat-messages pa-4 flex-grow-1" id="chat-container">
         @foreach (var msg in messages)
         {
-            <div class="message-item mb-2">
-                <MudText Typo="Typo.caption" Style="color: #ffD700; font-weight: bold;">@msg.User</MudText>
-                <div class="message-bubble">
-                    <MudText Typo="Typo.body2" Style="color: white;">@msg.Text</MudText>
+            <div class="message-item mb-2 d-flex gap-2">
+                <MudAvatar Size="Size.Small" Image="@msg.AvatarUrl" Class="mt-1" />
+                <div class="flex-grow-1">
+                    <MudText Typo="Typo.caption" Style="color: #ffD700; font-weight: bold;">@msg.User</MudText>
+                    <div class="message-bubble">
+                        <MudText Typo="Typo.body2" Style="color: white;">@msg.Text</MudText>
+                    </div>
+                    <MudText Typo="Typo.caption" Style="color: #666; font-size: 0.6rem;">@msg.Time.ToShortTimeString()</MudText>
                 </div>
-                <MudText Typo="Typo.caption" Style="color: #666; font-size: 0.6rem;">@msg.Time.ToShortTimeString()</MudText>
             </div>
         }
     </div>
@@ -46,9 +49,9 @@
         RealTime.OnChatMessageReceived += HandleNewMessage;
     }
 
-    private void HandleNewMessage(string user, string text, DateTime time)
+    private void HandleNewMessage(string user, string text, DateTime time, string avatar)
     {
-        messages.Insert(0, new ChatMessage(user, text, time));
+        messages.Insert(0, new ChatMessage(user, text, time, avatar));
         if (messages.Count > 50) messages.RemoveAt(50);
         InvokeAsync(StateHasChanged);
     }
@@ -65,5 +68,5 @@
         RealTime.OnChatMessageReceived -= HandleNewMessage;
     }
 
-    private record ChatMessage(string User, string Text, DateTime Time);
+    private record ChatMessage(string User, string Text, DateTime Time, string AvatarUrl);
 }

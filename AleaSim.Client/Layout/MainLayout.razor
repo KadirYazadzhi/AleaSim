@@ -27,18 +27,39 @@
                     <!-- Settings -->
                     <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" OnClick="OpenSettings" />
 
-                    @if (userProfile != null) {
-                        <MudChip T="string" Icon="@GetTierIcon(userProfile.Progression.Tier)" Color="@GetTierColor(userProfile.Progression.Tier)" Variant="Variant.Filled">
-                            @userProfile.Progression.TierName (Lv. @userProfile.Progression.CurrentLevel)
-                        </MudChip>
-                        <MudText Typo="Typo.h6" Color="Color.Success" Class="ml-2">$@userProfile.Balance.ToString("N2")</MudText>
-                    }
+                                        @if (userProfile != null) {
 
-                    <MudMenu Icon="@Icons.Material.Filled.AccountCircle" AnchorOrigin="Origin.BottomRight">
-                        <MudMenuItem Href="/profile">Profile</MudMenuItem>
-                        <MudMenuItem OnClick="Logout">Logout</MudMenuItem>
-                    </MudMenu>
-                </div>
+                                            <MudChip T="string" Icon="@GetTierIcon(userProfile.Progression.Tier)" Color="@GetTierColor(userProfile.Progression.Tier)" Variant="Variant.Filled">
+
+                                                @userProfile.Progression.TierName (Lv. @userProfile.Progression.CurrentLevel)
+
+                                            </MudChip>
+
+                                            <MudText Typo="Typo.h6" Color="Color.Success" Class="ml-2">$@userProfile.Balance.ToString("N2")</MudText>
+
+                                        }
+
+                                        <MudMenu AnchorOrigin="Origin.BottomRight">
+
+                                            <ActivatorContent>
+
+                                                <MudAvatar Image="@userProfile?.AvatarUrl" Class="ml-2" />
+
+                                            </ActivatorContent>
+
+                                            <ChildContent>
+
+                                                <MudMenuItem Href="/profile">Profile</MudMenuItem>
+
+                                                <MudMenuItem OnClick="Logout">Logout</MudMenuItem>
+
+                                            </ChildContent>
+
+                                        </MudMenu>
+
+                                    </div>
+
+                    
             </Authorized>
             <NotAuthorized>
                 <MudButton Href="/login" Color="Color.Inherit">Login</MudButton>
@@ -156,6 +177,7 @@
     public class UserProfileDto {
         public string Username { get; set; } = "";
         public decimal Balance { get; set; }
+        public string AvatarUrl { get; set; } = "";
         public UserProgressionDto Progression { get; set; } = new();
     }
 }

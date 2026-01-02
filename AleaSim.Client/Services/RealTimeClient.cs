@@ -12,7 +12,7 @@ public class RealTimeClient : IAsyncDisposable {
     public event Action<BigWinEventArgs>? OnBigWinReceived;
     public event Action<string, object>? OnLeaderboardUpdated;
     public event Action<object>? OnGameUpdateReceived;
-    public event Action<string, string, DateTime>? OnChatMessageReceived;
+    public event Action<string, string, DateTime, string>? OnChatMessageReceived; // Added avatar
 
     public async Task StartAsync(string token) {
         if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected) return;
@@ -32,8 +32,8 @@ public class RealTimeClient : IAsyncDisposable {
             OnBalanceUpdated?.Invoke(newBalance);
         });
 
-        _hubConnection.On<string, string, DateTime>("ReceiveChatMessage", (user, msg, time) => {
-            OnChatMessageReceived?.Invoke(user, msg, time);
+        _hubConnection.On<string, string, DateTime, string>("ReceiveChatMessage", (user, msg, time, avatar) => {
+            OnChatMessageReceived?.Invoke(user, msg, time, avatar);
         });
 
         _hubConnection.On<object>("ReceiveGameUpdate", (data) => {

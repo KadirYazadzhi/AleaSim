@@ -7,6 +7,7 @@ public class User {
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
+    public string AvatarUrl { get; set; } = "https://api.dicebear.com/7.x/bottts/svg?seed=default";
     public decimal Balance { get; set; }
     
     // --- Bonus Wallet ---

@@ -52,12 +52,21 @@ public class AuthController : ControllerBase {
         var achService = HttpContext.RequestServices.GetRequiredService<IAchievementService>();
         var userAchs = await achService.GetUserAchievements(userId, _repository);
 
-        return Ok(new {
-            user.Username,
-            user.Balance,
-            user.BonusBalance,
-            Role = user.Role.ToString(),
-            LuckyCloverLevel = userProfile?.LuckyCloverLevel ?? 0, // Using userProfile from repo/service
+                return Ok(new {
+
+                    user.Username,
+
+                    user.Balance,
+
+                    user.BonusBalance,
+
+                    user.AvatarUrl, // Added
+
+                    Role = user.Role.ToString(),
+
+                    LuckyCloverLevel = userProfile?.LuckyCloverLevel ?? 0,
+
+         // Using userProfile from repo/service
             CashbackLevel = userProfile?.CashbackLevel ?? 0,
             XpBoostLevel = userProfile?.XpBoostLevel ?? 0,
             Progression = new UserProgressionDto {
@@ -75,6 +84,18 @@ public class AuthController : ControllerBase {
         });
     }
     
+    [Authorize]
+    [HttpPost("avatar")]
+    public IActionResult UpdateAvatar([FromBody] string avatarUrl) {
+        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+        var user = _repository.GetUser(userId);
+        if (user == null) return NotFound();
+
+        user.AvatarUrl = avatarUrl;
+        _repository.UpdateUser(user);
+        return Ok(new { Message = "Avatar updated!" });
+    }
+
     [HttpPost("register")]
     public IActionResult Register([FromBody] RegisterRequest request) {
          if (_repository.GetUserByUsername(request.Username) != null) {
