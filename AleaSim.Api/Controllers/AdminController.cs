@@ -77,6 +77,13 @@ public class AdminController : ControllerBase {
         return Ok(new { Message = $"Volatility mode set to {dto.Mode}" });
     }
 
+    [HttpPost("simulation/run")]
+    public async Task<ActionResult<SimulationReport>> RunSimulation([FromBody] SimulationRequest request) {
+        var service = HttpContext.RequestServices.GetRequiredService<ISimulationService>();
+        var report = await service.RunSimulation(request);
+        return Ok(report);
+    }
+
     private Guid GetCurrentUserId() {
         var idClaim = User.FindFirst(ClaimTypes.NameIdentifier); // Assuming NameIdentifier holds the GUID
         if (idClaim != null && Guid.TryParse(idClaim.Value, out var id)) {
