@@ -95,6 +95,14 @@ public interface IGameRepository {
     IEnumerable<UserAchievement> GetUserAchievements(Guid userId);
     void SaveUserAchievement(UserAchievement userAchievement);
 
+    // Vouchers
+    Voucher? GetVoucherByCode(string code);
+    bool HasUserRedeemedVoucher(Guid userId, Guid voucherId);
+    void UpdateVoucher(Voucher voucher);
+    void SaveUserVoucher(UserVoucher userVoucher);
+    void CreateVoucher(Voucher voucher);
+    IEnumerable<Voucher> GetAllVouchers();
+
     // Global Settings
     string GetGlobalSetting(string key);
     void SetGlobalSetting(string key, string value, string description = "");

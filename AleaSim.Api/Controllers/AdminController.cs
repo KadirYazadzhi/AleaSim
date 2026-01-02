@@ -1,6 +1,7 @@
 using AleaSim.Shared.Models; // Changed from AleaSim.Api.Models
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Models;
+using AleaSim.Domain.Entities; // Added
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -120,6 +121,26 @@ public class AdminController : ControllerBase {
         var report = await service.RunSimulation(request);
         return Ok(report);
     }
+
+    [HttpPost("vouchers/create")]
+    public IActionResult CreateVoucher([FromBody] CreateVoucherRequest request) {
+        using var scope = HttpContext.RequestServices.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        
+        var voucher = new Voucher {
+            Id = Guid.NewGuid(),
+            Code = request.Code.ToUpper(),
+            Amount = request.Amount,
+            MaxUses = request.MaxUses,
+            ExpiresAt = DateTime.UtcNow.AddDays(30),
+            IsActive = true
+        };
+        
+        repo.CreateVoucher(voucher);
+        return Ok(voucher);
+    }
+
+    public record CreateVoucherRequest(string Code, decimal Amount, int MaxUses);
 
     private Guid GetCurrentUserId() {
         var idClaim = User.FindFirst(ClaimTypes.NameIdentifier); // Assuming NameIdentifier holds the GUID

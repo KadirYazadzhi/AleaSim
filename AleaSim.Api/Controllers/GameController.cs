@@ -128,43 +128,115 @@ public class GameController : ControllerBase {
 
     
 
-            [HttpPost("daily-spin")]
+                [HttpPost("daily-spin")]
 
     
 
-            public async Task<IActionResult> DailySpin() {
+        
 
     
 
-                try {
+                public async Task<IActionResult> DailySpin() {
 
     
 
-                    var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+        
 
     
 
-                    using var scope = _scopeFactory.CreateScope();
+                    try {
 
     
 
-                    var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        
 
     
 
-                    var promo = scope.ServiceProvider.GetRequiredService<IPromotionService>();
+                        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
 
     
 
-                    
+        
 
     
 
-                    var result = await promo.SpinBonusWheel(userId, repo);
+                        using var scope = _scopeFactory.CreateScope();
 
     
 
-                    return Ok(result);
+        
+
+    
+
+                        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+
+    
+
+        
+
+    
+
+                        var promo = scope.ServiceProvider.GetRequiredService<IPromotionService>();
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                        var result = await promo.SpinBonusWheel(userId, repo);
+
+    
+
+        
+
+    
+
+                        return Ok(result);
+
+    
+
+        
+
+    
+
+                    }
+
+    
+
+        
+
+    
+
+                    catch (Exception ex) {
+
+    
+
+        
+
+    
+
+                        return BadRequest(ex.Message);
+
+    
+
+        
+
+    
+
+                    }
+
+    
+
+        
 
     
 
@@ -172,15 +244,143 @@ public class GameController : ControllerBase {
 
     
 
-                catch (Exception ex) {
+        
 
     
 
-                    return BadRequest(ex.Message);
+            
+
+    
+
+        
+
+    
+
+                [HttpPost("vouchers/redeem/{code}")]
+
+    
+
+        
+
+    
+
+                public async Task<IActionResult> RedeemVoucher(string code) {
+
+    
+
+        
+
+    
+
+                    try {
+
+    
+
+        
+
+    
+
+                        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+
+    
+
+        
+
+    
+
+                        using var scope = _scopeFactory.CreateScope();
+
+    
+
+        
+
+    
+
+                        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+
+    
+
+        
+
+    
+
+                        var vault = scope.ServiceProvider.GetRequiredService<IVaultService>();
+
+    
+
+        
+
+    
+
+                        var voucherService = scope.ServiceProvider.GetRequiredService<IVoucherService>();
+
+    
+
+        
+
+    
+
+                        
+
+    
+
+        
+
+    
+
+                        decimal amount = await voucherService.RedeemVoucher(userId, code, repo, vault);
+
+    
+
+        
+
+    
+
+                        return Ok(new { Message = "Voucher redeemed successfully!", Amount = amount });
+
+    
+
+        
+
+    
+
+                    }
+
+    
+
+        
+
+    
+
+                    catch (Exception ex) {
+
+    
+
+        
+
+    
+
+                        return BadRequest(ex.Message);
+
+    
+
+        
+
+    
+
+                    }
+
+    
+
+        
 
     
 
                 }
+
+    
+
+        
 
     
 
@@ -188,7 +388,11 @@ public class GameController : ControllerBase {
 
     
 
-        }
+        
+
+    
+
+            
 
     
 

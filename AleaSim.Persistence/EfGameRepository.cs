@@ -441,6 +441,33 @@ public class EfGameRepository : IGameRepository {
         _context.SaveChanges();
     }
 
+    public Voucher? GetVoucherByCode(string code) {
+        return _context.Vouchers.FirstOrDefault(v => v.Code == code);
+    }
+
+    public bool HasUserRedeemedVoucher(Guid userId, Guid voucherId) {
+        return _context.UserVouchers.Any(uv => uv.UserId == userId && uv.VoucherId == voucherId);
+    }
+
+    public void UpdateVoucher(Voucher voucher) {
+        _context.Vouchers.Update(voucher);
+        _context.SaveChanges();
+    }
+
+    public void SaveUserVoucher(UserVoucher userVoucher) {
+        _context.UserVouchers.Add(userVoucher);
+        _context.SaveChanges();
+    }
+
+    public void CreateVoucher(Voucher voucher) {
+        _context.Vouchers.Add(voucher);
+        _context.SaveChanges();
+    }
+
+    public IEnumerable<Voucher> GetAllVouchers() {
+        return _context.Vouchers.ToList();
+    }
+
     public string GetGlobalSetting(string key) {
         var setting = _context.GlobalSettings.Find(key);
         return setting?.Value ?? string.Empty;

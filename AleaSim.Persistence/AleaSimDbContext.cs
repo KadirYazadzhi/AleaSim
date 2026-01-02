@@ -21,6 +21,8 @@ public class AleaSimDbContext : DbContext {
     public DbSet<UserProgression> UserProgressions { get; set; }
     public DbSet<Achievement> Achievements { get; set; }
     public DbSet<UserAchievement> UserAchievements { get; set; }
+    public DbSet<Voucher> Vouchers { get; set; }
+    public DbSet<UserVoucher> UserVouchers { get; set; }
 
     public AleaSimDbContext(DbContextOptions<AleaSimDbContext> options) : base(options) {
     }

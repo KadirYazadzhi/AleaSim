@@ -31,7 +31,14 @@
             </MudPaper>
         </MudItem>
 
-        <!-- Stats and Perks -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-6" Elevation="2" Style="height: 100%;">
+                <MudText Typo="Typo.h6" Class="mb-4">Redeem Promo Code</MudText>
+                <MudTextField @bind-Value="voucherCode" Label="Voucher Code" Variant="Variant.Outlined" Placeholder="e.g. FREE100" />
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" Class="mt-4" OnClick="RedeemVoucher" Disabled="@string.IsNullOrEmpty(voucherCode)">Redeem Code</MudButton>
+            </MudPaper>
+        </MudItem>
+
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-6" Elevation="2" Style="height: 100%;">
                 <MudText Typo="Typo.h6" Class="mb-4">Financial Overview</MudText>
@@ -80,12 +87,29 @@
 
 @code {
     private UserProfileResponse? profile;
+    private string voucherCode = "";
 
     protected override async Task OnInitializedAsync() {
         try {
             profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
         } catch {
             Snackbar.Add("Failed to load profile.", Severity.Error);
+        }
+    }
+
+    private async Task RedeemVoucher() {
+        try {
+            var response = await Http.PostAsync($"api/Game/vouchers/redeem/{voucherCode}", null);
+            if (response.IsSuccessStatusCode) {
+                Snackbar.Add("Success! Bonus credited.", Severity.Success);
+                voucherCode = "";
+                await OnInitializedAsync(); // Reload profile
+            } else {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(error, Severity.Warning);
+            }
+        } catch {
+            Snackbar.Add("Error redeeming voucher.", Severity.Error);
         }
     }
 
