@@ -1,0 +1,228 @@
+@page "/game/blackjack"
+@using System.Text.Json
+@using AleaSim.Shared.Models
+@using AleaSim.Client.Services
+@implements IAsyncDisposable
+@inject IGameService GameService
+@inject AudioService Audio
+@inject RealTimeClient RealTime
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudGrid Justify="Justify.Center">
+        <!-- Blackjack Table -->
+        <MudItem xs="12" lg="9">
+            <MudPaper Class="pa-8" Style="background: radial-gradient(circle, #006400 0%, #004d00 100%); border: 12px solid #3d2b1f; border-radius: 50% 50% 10% 10% / 20% 20% 10% 10%; min-height: 500px; position: relative; color: white;">
+                
+                <!-- Dealer Area -->
+                <div class="text-center mb-16">
+                    <MudText Typo="Typo.h6" Class="mb-2" Style="opacity: 0.7;">DEALER</MudText>
+                    <div class="d-flex justify-center gap-2">
+                        @foreach (var card in dealerHand)
+                        {
+                            <div class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "")">
+                                @FormatCard(card)
+                            </div>
+                        }
+                        @if (dealerHand.Count == 1 && !isRoundOver)
+                        {
+                            <div class="playing-card back">?</div>
+                        }
+                    </div>
+                    @if (isRoundOver) {
+                        <MudText Typo="Typo.h5" Color="Color.Warning" Class="mt-2">Dealer Value: @CalculateValue(dealerHand)</MudText>
+                    }
+                </div>
+
+                <!-- Table Center Decoration -->
+                <div class="table-center">
+                    <MudText Typo="Typo.h4" Style="opacity: 0.2; font-weight: 900; letter-spacing: 5px;">BLACKJACK PAY 3 TO 2</MudText>
+                    <MudText Typo="Typo.subtitle1" Style="opacity: 0.2;">Dealer must stand on 17 and draw to 16</MudText>
+                </div>
+
+                <!-- Player Area -->
+                <div class="text-center mt-16">
+                    <div class="d-flex justify-center gap-2 mb-2">
+                        @foreach (var card in playerHand)
+                        {
+                            <div class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "")">
+                                @FormatCard(card)
+                            </div>
+                        }
+                    </div>
+                    <MudText Typo="Typo.h5" Color="Color.Info">Your Hand: @CalculateValue(playerHand)</MudText>
+                </div>
+
+                <!-- Game Result Overlays -->
+                @if (!string.IsNullOrEmpty(gameResult))
+                {
+                    <div class="result-overlay">
+                        <MudText Typo="Typo.h2" Style="font-weight: 900; text-shadow: 2px 2px 10px black;">@gameResult</MudText>
+                    </div>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <!-- Controls -->
+        <MudItem xs="12" lg="3">
+            <MudPaper Class="pa-6 d-flex flex-column gap-4">
+                <MudText Typo="Typo.h5">Balance: <span style="color: #4caf50;">$@balance.ToString("N2")</span></MudText>
+                
+                <MudNumericField @bind-Value="betAmount" Label="Bet" Variant="Variant.Outlined" Min="1" Max="500" Disabled="@(!isRoundOver && playerHand.Any())" />
+
+                @if (isRoundOver || !playerHand.Any())
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="OnDeal" Style="height: 80px;">DEAL</MudButton>
+                }
+                else
+                {
+                    <div class="d-flex gap-2">
+                        <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" OnClick='() => OnAction("hit")' Style="height: 60px;">HIT</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick='() => OnAction("stand")' Style="height: 60px;">STAND</MudButton>
+                    </div>
+                }
+
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.caption" Align="Align.Center">RPG XP per Deal: @(betAmount * 10)</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<style>
+    .playing-card {
+        width: 80px; height: 120px; background: white; border-radius: 8px; color: black;
+        display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold;
+        box-shadow: 3px 3px 5px rgba(0,0,0,0.5); border: 1px solid #ddd;
+    }
+    .playing-card.red { color: #b30000; }
+    .playing-card.back { background: #b30000; color: white; border: 2px solid white; }
+    
+    .table-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 100%; pointer-events: none; }
+    .result-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; text-align: center; width: 100%; animation: bounce 0.5s ease; }
+    
+    @@keyframes bounce {
+        0% { transform: translate(-50%, -50%) scale(0.5); }
+        70% { transform: translate(-50%, -50%) scale(1.1); }
+        100% { transform: translate(-50%, -50%) scale(1.0); }
+    }
+</style>
+
+@code {
+    private List<string> playerHand = new();
+    private List<string> dealerHand = new();
+    private decimal balance = 0;
+    private decimal betAmount = 10.0m;
+    private bool isSpinning = false;
+    private bool isRoundOver = true;
+    private string gameResult = "";
+    private Guid? sessionId;
+
+    protected override async Task OnInitializedAsync() {
+        await Audio.Init();
+        await LoadInitialData();
+    }
+
+    private async Task LoadInitialData() {
+        try {
+            var sessionResponse = await GameService.StartSession("blackjack");
+            sessionId = sessionResponse.SessionId;
+            var user = await Http.GetFromJsonAsync<UserDto>("api/Auth/me");
+            if (user != null) balance = user.Balance;
+        } catch { }
+    }
+
+    private async Task OnDeal() {
+        if (sessionId == null || betAmount > balance) return;
+        
+        gameResult = "";
+        isRoundOver = false;
+        playerHand.Clear();
+        dealerHand.Clear();
+        StateHasChanged();
+
+        try {
+            await Audio.PlaySpin();
+            var result = await GameService.PlaceBet("blackjack", sessionId.Value, betAmount);
+            
+            // Initial deal simulation
+            await Task.Delay(500);
+            var state = JsonSerializer.Deserialize<BlackjackStateUI>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            
+            if (state != null) UpdateUI(state);
+        } catch (Exception ex) {
+            Snackbar.Add(ex.Message, Severity.Error);
+            isRoundOver = true;
+        }
+    }
+
+    private async Task OnAction(string action) {
+        if (sessionId == null || isRoundOver) return;
+        
+        await Audio.PlayClick();
+        var response = await GameService.PerformAction("blackjack", sessionId.Value, action);
+        
+        if (response.Success) {
+            var state = JsonSerializer.Deserialize<BlackjackStateUI>(response.UpdatedStateJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (state != null) UpdateUI(state);
+        }
+    }
+
+    private void UpdateUI(BlackjackStateUI state) {
+        playerHand = state.PlayerHand;
+        dealerHand = state.DealerHand;
+        isRoundOver = state.IsRoundOver;
+        
+        if (isRoundOver) {
+            int pVal = CalculateValue(playerHand);
+            int dVal = CalculateValue(dealerHand);
+            
+            if (pVal > 21) gameResult = "BUST!";
+            else if (dVal > 21 || pVal > dVal) gameResult = "YOU WIN!";
+            else if (pVal == dVal) gameResult = "PUSH";
+            else gameResult = "DEALER WINS";
+
+            if (gameResult.Contains("WIN")) Audio.PlayWin();
+            
+            // Refresh balance
+            InvokeAsync(async () => {
+                await Task.Delay(1000);
+                var user = await Http.GetFromJsonAsync<UserDto>("api/Auth/me");
+                if (user != null) balance = user.Balance;
+                StateHasChanged();
+            });
+        }
+        StateHasChanged();
+    }
+
+    private string FormatCard(string card) {
+        if (string.IsNullOrEmpty(card)) return "";
+        string rank = card.Substring(0, card.Length - 1);
+        string suit = card.Substring(card.Length - 1) switch {
+            "H" => "♥", "D" => "♦", "C" => "♣", "S" => "♠", _ => ""
+        };
+        return rank + suit;
+    }
+
+    private int CalculateValue(List<string> hand) {
+        int value = 0; int aces = 0;
+        foreach (var card in hand) {
+            string rank = card.Substring(0, card.Length - 1);
+            if (rank == "A") aces++;
+            else if (new[] { "J", "Q", "K" }.Contains(rank)) value += 10;
+            else value += int.Parse(rank);
+        }
+        for (int i = 0; i < aces; i++) value += (value + 11 <= 21) ? 11 : 1;
+        return value;
+    }
+
+    public async ValueTask DisposeAsync() { }
+
+    public class UserDto { public decimal Balance { get; set; } }
+    public class BlackjackStateUI {
+        public List<string> PlayerHand { get; set; } = new();
+        public List<string> DealerHand { get; set; } = new();
+        public bool IsRoundOver { get; set; }
+    }
+}
