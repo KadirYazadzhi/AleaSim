@@ -1,0 +1,64 @@
+@page "/history"
+@using AleaSim.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h3" Class="mb-6">Betting History</MudText>
+
+    <MudTable Items="@rounds" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" Elevation="2" Class="rounded-lg">
+        <HeaderContent>
+            <MudTh>Date</MudTh>
+            <MudTh>Game</MudTh>
+            <MudTh Style="text-align: right;">Bet</MudTh>
+            <MudTh Style="text-align: right;">Win</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Status</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Date">@context.PlayedAt.ToString("g")</MudTd>
+            <MudTd DataLabel="Game">@context.GameName</MudTd>
+            <MudTd DataLabel="Bet" Style="text-align: right;">$@context.BetAmount.ToString("N2")</MudTd>
+            <MudTd DataLabel="Win" Style="text-align: right;">
+                <MudText Color="@(context.WinAmount > 0 ? Color.Success : Color.Default)" Style="font-weight: bold;">
+                    $@context.WinAmount.ToString("N2")
+                </MudText>
+            </MudTd>
+            <MudTd DataLabel="Type">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@context.ResultSummary</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Status">
+                @if (context.IsWin) {
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowUpward" Color="Color.Success" Size="Size.Small" />
+                } else {
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowDownward" Color="Color.Error" Size="Size.Small" />
+                }
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<GameRoundDto> rounds = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync() {
+        await LoadHistory();
+    }
+
+    private async Task LoadHistory() {
+        isLoading = true;
+        try {
+            rounds = await Http.GetFromJsonAsync<List<GameRoundDto>>("api/Game/history") ?? new();
+        } catch {
+            Snackbar.Add("Failed to load history.", Severity.Error);
+        } finally {
+            isLoading = false;
+        }
+    }
+}

@@ -96,31 +96,135 @@ public class GameController : ControllerBase {
 
     
 
-            [HttpGet("quests")]
+                [HttpGet("quests")]
 
     
 
-            public IActionResult GetQuests() {
+                public IActionResult GetQuests() {
 
     
 
-                var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+                    var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
 
     
 
-                using var scope = _scopeFactory.CreateScope();
+                    using var scope = _scopeFactory.CreateScope();
 
     
 
-                var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+                    var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
 
     
 
-                return Ok(repo.GetActiveQuests(userId));
+                    return Ok(repo.GetActiveQuests(userId));
 
     
 
-            }
+                }
+
+    
+
+            
+
+    
+
+                [HttpGet("history")]
+
+    
+
+                public IActionResult GetHistory() {
+
+    
+
+                    var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+
+    
+
+                    using var scope = _scopeFactory.CreateScope();
+
+    
+
+                    var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+
+    
+
+                    
+
+    
+
+                    var rounds = repo.GetUserRounds(userId, 50);
+
+    
+
+                    var result = rounds.Select(r => {
+
+    
+
+                        // Need GameName. Usually we'd join but for now we infer from session
+
+    
+
+                        var session = repo.GetSession(r.GameSessionId);
+
+    
+
+                        var game = session != null ? repo.GetGame(session.GameId) : null;
+
+    
+
+                        
+
+    
+
+                        return new GameRoundDto {
+
+    
+
+                            Id = r.Id,
+
+    
+
+                            GameName = game?.Name ?? "Unknown Game",
+
+    
+
+                            BetAmount = r.TotalBetAmount,
+
+    
+
+                            WinAmount = r.TotalWinAmount,
+
+    
+
+                            PlayedAt = r.ExecutedAt,
+
+    
+
+                            ResultSummary = r.DecisionType // Use DecisionType as a summary
+
+    
+
+                        };
+
+    
+
+                    });
+
+    
+
+            
+
+    
+
+                    return Ok(result);
+
+    
+
+                }
+
+    
+
+            
 
     
 

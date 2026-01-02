@@ -221,6 +221,19 @@ public class EfGameRepository : IGameRepository {
                             .FirstOrDefault();
     }
 
+    public IEnumerable<GameRound> GetUserRounds(Guid userId, int count) {
+        return _context.GameRounds
+            .Join(_context.GameSessions,
+                  round => round.GameSessionId,
+                  session => session.Id,
+                  (round, session) => new { round, session })
+            .Where(x => x.session.UserId == userId)
+            .OrderByDescending(x => x.round.ExecutedAt)
+            .Take(count)
+            .Select(x => x.round)
+            .ToList();
+    }
+
     public void SaveOutcome(Outcome outcome) {
         _context.Outcomes.Add(outcome);
         _context.SaveChanges();

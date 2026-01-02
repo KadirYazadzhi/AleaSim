@@ -65,3 +65,13 @@ public class RouletteBetDto {
     public string Value { get; set; } = string.Empty; // "17", "red", "even"
     public decimal Amount { get; set; }
 }
+
+public class GameRoundDto {
+    public Guid Id { get; set; }
+    public string GameName { get; set; } = string.Empty;
+    public decimal BetAmount { get; set; }
+    public decimal WinAmount { get; set; }
+    public string ResultSummary { get; set; } = string.Empty; // e.g. "Winning Number: 17" or "Grid Result"
+    public DateTime PlayedAt { get; set; }
+    public bool IsWin => WinAmount > 0;
+}

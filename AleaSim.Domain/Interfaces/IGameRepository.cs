@@ -50,6 +50,7 @@ public interface IGameRepository {
     int GetRoundCount(Guid sessionId);
     void SaveRound(GameRound round);
     GameRound? GetLastRound(Guid sessionId);
+    IEnumerable<GameRound> GetUserRounds(Guid userId, int count);
 
     // Outcomes
     void SaveOutcome(Outcome outcome);
