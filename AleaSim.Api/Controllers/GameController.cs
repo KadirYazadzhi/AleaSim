@@ -82,17 +82,33 @@ public class GameController : ControllerBase {
         }
     }
 
-        [HttpGet("leaderboard/{name}")]
+            [HttpGet("leaderboard/{name}")]
 
-        public IActionResult GetLeaderboard(string name) {
+            public async Task<IActionResult> GetLeaderboard(string name) {
 
-            var service = HttpContext.RequestServices.GetService<ILeaderboardService>();
+                if (name.ToLower() == "tournament") {
 
-            if (service == null) return BadRequest("Leaderboard service unavailable");
+                    using var scope = _scopeFactory.CreateScope();
 
-            return Ok(service.GetLeaderboard(name));
+                    var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
 
-        }
+                    var tournament = scope.ServiceProvider.GetRequiredService<ITournamentService>();
+
+                    return Ok(await tournament.GetCurrentRankings(repo));
+
+                }
+
+                
+
+                var service = HttpContext.RequestServices.GetService<ILeaderboardService>();
+
+                if (service == null) return BadRequest("Leaderboard service unavailable");
+
+                return Ok(service.GetLeaderboard(name));
+
+            }
+
+        
 
     
 

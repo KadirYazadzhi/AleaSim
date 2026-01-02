@@ -52,6 +52,7 @@ builder.Services.AddSingleton<IBrainService, BrainService>(); // New Intelligenc
 builder.Services.AddScoped<IQuestService, QuestService>(); // New Quest System
 builder.Services.AddScoped<IAchievementService, AchievementService>(); // New Achievement System
 builder.Services.AddScoped<IVoucherService, VoucherService>(); // New Voucher System
+builder.Services.AddScoped<ITournamentService, TournamentService>(); // New Tournament System
 builder.Services.AddScoped<ILevelService, LevelService>(); // New RPG System
 builder.Services.AddSingleton<ILeaderboardService, LeaderboardService>(); // New Social System
 builder.Services.AddSingleton<IPromotionService, PromotionService>(); // New Promotions

@@ -51,7 +51,7 @@
 </MudContainer>
 
 @code {
-    private List<LeaderboardRow> topPlayers = new();
+    private List<TournamentRankDto> topPlayers = new();
     private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
@@ -64,19 +64,7 @@
         isLoading = true;
         try
         {
-            // For now, mock data as the real Redis/DB leaderboard endpoint is being finalized
-            await Task.Delay(800);
-            topPlayers = new List<LeaderboardRow>
-            {
-                new(1, "KadirY", 540.5m, 12450.00m),
-                new(2, "DiamondHunter", 210.2m, 5600.50m),
-                new(3, "LuckyIrish", 185.0m, 3200.00m),
-                new(4, "SlotMaster", 95.4m, 1500.20m),
-                new(5, "Whale_01", 88.0m, 8900.00m),
-                new(6, "Anonymous", 45.2m, 450.00m),
-                new(7, "Grinder99", 33.1m, 120.00m),
-                new(8, "Newbie", 12.5m, 50.00m)
-            };
+            topPlayers = await Http.GetFromJsonAsync<List<TournamentRankDto>>("api/Game/leaderboard/tournament") ?? new();
         }
         catch
         {

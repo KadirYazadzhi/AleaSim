@@ -40,10 +40,14 @@ public class DailyBonusBackgroundService : BackgroundService {
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         var vault = scope.ServiceProvider.GetRequiredService<IVaultService>();
         var realTime = scope.ServiceProvider.GetRequiredService<IRealTimeService>();
+        var tournament = scope.ServiceProvider.GetRequiredService<ITournamentService>();
 
-        // 1. Process Tournament (Mock logic for now)
+        // 1. Process Tournament (If yesterday was 30th)
         var yesterday = DateTime.UtcNow.AddDays(-1);
-        
+        if (yesterday.Day == 30) {
+            await tournament.ProcessMonthlyPayout(repo, vault, realTime);
+        }
+
         // 2. Daily Bonuses (Cashback / Loyalty)
         // Using CalculateDailyNet which returns (UserId, NetResult) tuple
         var dailyStats = repo.CalculateDailyNet(yesterday);
