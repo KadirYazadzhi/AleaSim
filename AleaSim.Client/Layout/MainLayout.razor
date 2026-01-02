@@ -13,8 +13,10 @@
         <AuthorizeView>
             <Authorized>
                 <div class="d-flex align-center gap-4">
-                    <MudChip T="string" Icon="@Icons.Material.Filled.Stars" Color="Color.Info">Level 12</MudChip>
-                    <MudText Typo="Typo.h6" Color="Color.Success">$1,240.00</MudText>
+                    @if (userProfile != null) {
+                        <MudChip T="string" Icon="@Icons.Material.Filled.Stars" Color="Color.Info">Level @userProfile.Progression.CurrentLevel</MudChip>
+                        <MudText Typo="Typo.h6" Color="Color.Success">$@userProfile.Balance.ToString("N2")</MudText>
+                    }
                     <MudMenu Icon="@Icons.Material.Filled.AccountCircle" AnchorOrigin="Origin.BottomRight">
                         <MudMenuItem Href="/profile">Profile</MudMenuItem>
                         <MudMenuItem OnClick="Logout">Logout</MudMenuItem>
@@ -41,9 +43,29 @@
 
     bool _drawerOpen = true;
 
+    private UserProfileDto? userProfile;
+
+
+
     [Inject] IAuthService AuthService { get; set; } = default!;
 
     [Inject] NavigationManager Navigation { get; set; } = default!;
+
+    [Inject] HttpClient Http { get; set; } = default!;
+
+
+
+    protected override async Task OnInitializedAsync() {
+
+        // We only try to load if there's a token
+
+        try {
+
+            userProfile = await Http.GetFromJsonAsync<UserProfileDto>("api/Auth/me");
+
+        } catch { /* Silent fail if not auth yet */ }
+
+    }
 
 
 
@@ -65,4 +87,18 @@
 
     }
 
+
+
+    public class UserProfileDto {
+
+        public string Username { get; set; } = "";
+
+        public decimal Balance { get; set; }
+
+        public UserProgressionDto Progression { get; set; } = new();
+
+    }
+
 }
+
+

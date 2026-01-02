@@ -43,11 +43,21 @@ public class AuthController : ControllerBase {
         var user = _repository.GetUser(userId);
         if (user == null) return NotFound();
 
+        // Get RPG Progress
+        var levelService = HttpContext.RequestServices.GetRequiredService<ILevelService>();
+        var prog = levelService.GetProgression(userId, _repository);
+
         return Ok(new {
             user.Username,
             user.Balance,
             user.BonusBalance,
-            Role = user.Role.ToString()
+            Role = user.Role.ToString(),
+            Progression = new UserProgressionDto {
+                CurrentLevel = prog.CurrentLevel,
+                CurrentXP = prog.CurrentXP,
+                SkillPoints = prog.SkillPoints,
+                LifetimeXP = prog.LifetimeXP
+            }
         });
     }
     

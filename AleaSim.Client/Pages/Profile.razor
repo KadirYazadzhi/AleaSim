@@ -1,0 +1,73 @@
+@page "/profile"
+@using AleaSim.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudText Typo="Typo.h3" Class="mb-6">Player Profile</MudText>
+
+    <MudGrid>
+        <!-- Level & XP Section -->
+        <MudItem xs="12">
+            <MudPaper Class="pa-6" Elevation="2">
+                <div class="d-flex align-center gap-4 mb-4">
+                    <MudAvatar Color="Color.Primary" Style="height:70px; width:70px; font-size:2rem;">@profile?.Username[0].ToString().ToUpper()</MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.h4">@profile?.Username</MudText>
+                        <MudText Typo="Typo.subtitle1" Color="Color.Info">Level @profile?.Progression.CurrentLevel Casino Grinder</MudText>
+                    </div>
+                </div>
+
+                <MudText Typo="Typo.body1" Class="mb-1">Progress to Level @(profile?.Progression.CurrentLevel + 1)</MudText>
+                <MudProgressLinear Color="Color.Info" Value="@(profile?.Progression.ProgressPercentage ?? 0)" Height="20" SecondaryColor="Color.Surface" Class="rounded-lg">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Dark">
+                        <b>@(profile?.Progression.CurrentXP.ToString("N0")) / @profile?.Progression.NextLevelXP.ToString("N0") XP</b>
+                    </MudText>
+                </MudProgressLinear>
+                
+                <MudText Typo="Typo.caption" Class="mt-2 d-block">Lifetime Experience: @profile?.Progression.LifetimeXP.ToString("N0") XP</MudText>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Stats and Perks -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-6" Elevation="2" Style="height: 100%;">
+                <MudText Typo="Typo.h6" Class="mb-4">Financial Overview</MudText>
+                <MudList T="string">
+                    <MudListItem Icon="@Icons.Material.Filled.AccountBalanceWallet">Real Balance: <b>$@profile?.Balance.ToString("N2")</b></MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.CardGiftcard">Bonus Balance: <b>$@profile?.BonusBalance.ToString("N2")</b></MudListItem>
+                </MudList>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-6" Elevation="2" Style="height: 100%;">
+                <MudText Typo="Typo.h6" Class="mb-4">Unlocked Perks (Skill Points: @profile?.Progression.SkillPoints)</MudText>
+                <MudAlert Severity="Severity.Info" Class="mb-2">Lucky Charm: Lv. 1 (+1% Bonus Chance)</MudAlert>
+                <MudAlert Severity="Severity.Success">Cashback King: Lv. 2 (12% Weekly)</MudAlert>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-4" Disabled="@(profile?.Progression.SkillPoints == 0)">Upgrade Skills</MudButton>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private UserProfileResponse? profile;
+
+    protected override async Task OnInitializedAsync() {
+        try {
+            profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+        } catch {
+            Snackbar.Add("Failed to load profile.", Severity.Error);
+        }
+    }
+
+    public class UserProfileResponse {
+        public string Username { get; set; } = "";
+        public decimal Balance { get; set; }
+        public decimal BonusBalance { get; set; }
+        public UserProgressionDto Progression { get; set; } = new();
+    }
+}

@@ -82,6 +82,31 @@
                                 <MudText>Simulation in progress... using AI Shadow Mode...</MudText>
                             </MudItem>
                         }
+                        @if (simReport != null) {
+                            <MudItem xs="12" Class="mt-4">
+                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mb-4">
+                                    Final Actual RTP: @simReport.ActualRTP.ToString("F2")% | Max Win: $@simReport.MaxWin.ToString("N2")
+                                </MudAlert>
+                                <MudGrid>
+                                    <MudItem xs="6" md="3">
+                                        <MudText Typo="Typo.subtitle2">Total Bets</MudText>
+                                        <MudText Typo="Typo.body1">$@simReport.TotalBet.ToString("N0")</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6" md="3">
+                                        <MudText Typo="Typo.subtitle2">Total Wins</MudText>
+                                        <MudText Typo="Typo.body1">$@simReport.TotalWin.ToString("N0")</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6" md="3">
+                                        <MudText Typo="Typo.subtitle2">Bonus Games</MudText>
+                                        <MudText Typo="Typo.body1">@simReport.BonusGamesTriggered</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6" md="3">
+                                        <MudText Typo="Typo.subtitle2">Execution Time</MudText>
+                                        <MudText Typo="Typo.body1">@simReport.ExecutionTimeMs.ToString("N0") ms</MudText>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudItem>
+                        }
                     </MudGrid>
                 </MudExpansionPanel>
             </MudExpansionPanels>
@@ -122,11 +147,28 @@
         if (response.IsSuccessStatusCode) await LoadStats();
     }
 
+    private SimulationReport? simReport;
+
     private async Task RunSimulation() {
         isSimulating = true;
-        // Logic to call Simulation endpoint
-        await Task.Delay(2000); // Mock
-        isSimulating = false;
-        Snackbar.Add("Simulation complete. RTP stable at 95.2%", Severity.Info);
+        simReport = null;
+        StateHasChanged();
+
+        try {
+            var request = new SimulationRequest { 
+                GameType = "slot", 
+                Iterations = simIterations, 
+                BetAmount = 1.0m 
+            };
+            var response = await Http.PostAsJsonAsync("api/Admin/simulation/run", request);
+            if (response.IsSuccessStatusCode) {
+                simReport = await response.Content.ReadFromJsonAsync<SimulationReport>();
+                Snackbar.Add("Simulation complete!", Severity.Success);
+            }
+        } catch {
+            Snackbar.Add("Simulation failed.", Severity.Error);
+        } finally {
+            isSimulating = false;
+        }
     }
 }
