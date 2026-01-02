@@ -12,6 +12,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Add Services
 builder.Services.AddControllers();
 builder.Services.AddSignalR(); // Added SignalR
+builder.Services.AddCors(options => {
+    options.AddPolicy("AllowBlazor",
+        policy => policy
+            .WithOrigins("https://localhost:7076", "http://localhost:5286")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials());
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c => {
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme {
@@ -111,7 +119,8 @@ if (app.Environment.IsDevelopment()) {
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // Disabled to fix CORS preflight redirect issue
+app.UseCors("AllowBlazor");
 app.UseAuthentication();
 app.UseAuthorization();
 
