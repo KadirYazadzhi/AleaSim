@@ -16,6 +16,7 @@ public class LoginResponse {
     public string Username { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
 
+    public LoginResponse() {}
     public LoginResponse(string token, string username, string role) {
         Token = token;
         Username = username;

@@ -3,6 +3,7 @@ using AleaSim.Domain.Enums;
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Services; // Added
+using Microsoft.AspNetCore.Authorization; // Added
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -28,14 +29,26 @@ public class AuthController : ControllerBase {
     public IActionResult Login([FromBody] LoginRequest request) {
         var user = _repository.GetUserByUsername(request.Username);
         
-        if (user != null && _passwordHasher.VerifyPassword(user.PasswordHash, request.Password)) {
+        if (user != null && _passwordHasher.VerifyPassword(request.Password, user.PasswordHash)) { // Fixed order
             return Ok(GenerateToken(user.Username, user.Id, user.Role));
         }
-
-        // Fallback check for admin (if Seed didn't run or DB empty, though Seed handles hashing now)
-        // We will remove the plain text check to force usage of Seeded admin.
         
         return Unauthorized("Invalid credentials.");
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public IActionResult GetMe() {
+        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+        var user = _repository.GetUser(userId);
+        if (user == null) return NotFound();
+
+        return Ok(new {
+            user.Username,
+            user.Balance,
+            user.BonusBalance,
+            Role = user.Role.ToString()
+        });
     }
     
     [HttpPost("register")]
@@ -48,7 +61,7 @@ public class AuthController : ControllerBase {
              Id = Guid.NewGuid(),
              Username = request.Username,
              Email = request.Email,
-             PasswordHash = _passwordHasher.HashPassword(request.Password), // Hashed!
+             PasswordHash = _passwordHasher.HashPassword(request.Password), 
              Role = Role.User,
              Balance = 1000m,
              CreatedAt = DateTime.UtcNow,
@@ -73,7 +86,12 @@ public class AuthController : ControllerBase {
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
         var token = tokenHandler.CreateToken(tokenDescriptor);
-        return new LoginResponse(tokenHandler.WriteToken(token), username, role.ToString());
+        
+        return new LoginResponse { 
+            Token = tokenHandler.WriteToken(token), 
+            Username = username, 
+            Role = role.ToString() 
+        };
     }
 }
 

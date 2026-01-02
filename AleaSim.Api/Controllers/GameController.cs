@@ -82,10 +82,34 @@ public class GameController : ControllerBase {
         }
     }
 
-    [HttpGet("leaderboard/{name}")]
-    public IActionResult GetLeaderboard(string name) {
-        var service = HttpContext.RequestServices.GetService<ILeaderboardService>();
-        if (service == null) return BadRequest("Leaderboard service unavailable");
-        return Ok(service.GetLeaderboard(name));
+        [HttpGet("leaderboard/{name}")]
+
+        public IActionResult GetLeaderboard(string name) {
+
+            var service = HttpContext.RequestServices.GetService<ILeaderboardService>();
+
+            if (service == null) return BadRequest("Leaderboard service unavailable");
+
+            return Ok(service.GetLeaderboard(name));
+
+        }
+
+    
+
+        [HttpGet("quests")]
+
+        public IActionResult GetQuests() {
+
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+
+            using var scope = _scopeFactory.CreateScope();
+
+            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+
+            return Ok(repo.GetActiveQuests(userId));
+
+        }
+
     }
-}
+
+    
