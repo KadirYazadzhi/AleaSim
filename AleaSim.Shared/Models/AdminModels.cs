@@ -23,6 +23,16 @@ public class ShadowCompareDto {
     public int SampleSize { get; set; }
 }
 
+public class SentinelAlertDto {
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string AlertType { get; set; } = string.Empty; // "BotDetection", "HighPayout", "SuspiciousActivity"
+    public string Severity { get; set; } = "Medium"; // "Low", "Medium", "High", "Critical"
+    public string Description { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; }
+}
+
 public class SimulationRequest {
     public string GameType { get; set; } = "Slot";
     public decimal BetAmount { get; set; } = 1.0m;

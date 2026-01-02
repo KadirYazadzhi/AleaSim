@@ -10,6 +10,7 @@ public interface IGameRepository {
     // Sessions & Users
     GameSession CreateSession(GameSession session);
     GameSession? GetSession(Guid sessionId);
+    IEnumerable<GameSession> GetAllActiveSessions(); // Added
     void EndSession(Guid sessionId);
     
     // Games

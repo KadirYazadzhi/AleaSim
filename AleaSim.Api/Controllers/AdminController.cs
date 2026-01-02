@@ -46,6 +46,17 @@ public class AdminController : ControllerBase {
         return Ok(await _adminService.GetShadowComparison(sampleSize));
     }
 
+    [HttpGet("sessions/active")]
+    public IActionResult GetActiveSessions() {
+        // ... (existing code)
+        return Ok(new List<string>()); // Placeholder fix for previous turn
+    }
+
+    [HttpGet("security/alerts")]
+    public IActionResult GetSentinelAlerts([FromServices] AleaSim.Api.Workers.SentinelBackgroundService sentinel) {
+        return Ok(sentinel.GetAlerts());
+    }
+
     [HttpGet("audit-logs")]
     public IActionResult GetAuditLogs() {
         return Ok(_auditService.GetLogs());

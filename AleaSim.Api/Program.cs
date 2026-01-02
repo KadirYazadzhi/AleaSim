@@ -65,6 +65,8 @@ builder.Services.AddSingleton<IAuditService, AuditService>();
 builder.Services.AddScoped<IGameDirector, GameDirector>(); // Added Director (Scoped because it uses Repo)
 
 // Background Workers
+builder.Services.AddSingleton<AleaSim.Api.Workers.SentinelBackgroundService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AleaSim.Api.Workers.SentinelBackgroundService>());
 builder.Services.AddHostedService<AleaSim.Api.Workers.RaffleBackgroundService>();
 builder.Services.AddHostedService<AleaSim.Api.Workers.DailyBonusBackgroundService>();
 

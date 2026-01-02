@@ -31,6 +31,10 @@ public class EfGameRepository : IGameRepository {
         return _context.GameSessions.FirstOrDefault(s => s.Id == sessionId);
     }
 
+    public IEnumerable<GameSession> GetAllActiveSessions() {
+        return _context.GameSessions.Where(s => s.IsActive).ToList();
+    }
+
     public void EndSession(Guid sessionId) {
         var session = GetSession(sessionId);
         if (session != null) {
