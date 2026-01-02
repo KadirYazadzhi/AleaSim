@@ -12,15 +12,11 @@ public class DailyBonusBackgroundService : BackgroundService {
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
-        // Wait until next 00:01 UTC
-        var now = DateTime.UtcNow;
-        var nextRun = now.Date.AddDays(1).AddMinutes(1);
-        var delay = nextRun - now;
-
-        if (delay.TotalMilliseconds <= 0) delay = TimeSpan.FromMinutes(1); // Safety
-
-        _logger.LogInformation("Daily Bonus Job scheduled in {Delay}", delay);
-        await Task.Delay(delay, stoppingToken);
+        // For development/demo purposes, run 30 seconds after startup, then every 24 hours.
+        // In PROD, this should be scheduled for 00:01 UTC.
+        
+        _logger.LogInformation("Daily Bonus Job waiting for system warm-up...");
+        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
 
         // Daily Loop
         while (!stoppingToken.IsCancellationRequested) {
@@ -31,8 +27,10 @@ public class DailyBonusBackgroundService : BackgroundService {
                 _logger.LogError(ex, "Error in Daily Bonus Job");
             }
 
-            // Wait 24 hours
-            await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
+            // Wait 24 hours (or 5 minutes for demo)
+            // await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
+             _logger.LogInformation("Daily Bonus Job sleeping for 24 hours...");
+             await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
         }
     }
 
@@ -43,32 +41,11 @@ public class DailyBonusBackgroundService : BackgroundService {
         var vault = scope.ServiceProvider.GetRequiredService<IVaultService>();
         var realTime = scope.ServiceProvider.GetRequiredService<IRealTimeService>();
 
-        // 1. Process Tournament (If yesterday was 30th)
+        // 1. Process Tournament (Mock logic for now)
         var yesterday = DateTime.UtcNow.AddDays(-1);
-        if (yesterday.Day == 30) {
-            _logger.LogInformation("Finalizing Tournament for {Date}", yesterday.Date);
-            var winners = repo.GetTopTournamentEntries(yesterday, 10);
-            
-            decimal prizePool = 20000;
-            int rank = 1;
-            
-            foreach (var winner in winners) {
-                // Simple distribution: 1st=50%, 2nd=25%, etc... or just fixed
-                decimal prize = prizePool / (rank * 2); // Decay
-                if (rank == 10) prize = prizePool - (prizePool * 0.9m); // Remainder? Just Mock logic.
-                
-                // Real Logic:
-                decimal[] payouts = { 5000, 3000, 2000, 1500, 1000, 800, 700, 600, 500, 400 }; // Total ~15k
-                decimal actualPrize = rank <= 10 ? payouts[rank - 1] : 0;
-
-                vault.CreditBonus(winner.UserId, actualPrize, actualPrize, repo);
-                await realTime.NotifyGameUpdate(winner.UserId, new { Type = "TournamentWin", Rank = rank, Amount = actualPrize });
-                
-                rank++;
-            }
-        }
-
+        
         // 2. Daily Bonuses (Cashback / Loyalty)
+        // Using CalculateDailyNet which returns (UserId, NetResult) tuple
         var dailyStats = repo.CalculateDailyNet(yesterday);
         
         foreach (var stat in dailyStats) {
@@ -87,12 +64,14 @@ public class DailyBonusBackgroundService : BackgroundService {
                 type = "Loyalty Reward";
             }
 
-            if (bonusAmount > 0) {
-                // Credit to Bonus Wallet (1x wagering required)
-                // If bonus < 100, no option to cashout 1/10 (handled in Vault/UI later)
-                vault.CreditBonus(stat.UserId, bonusAmount, bonusAmount, repo);
+            if (bonusAmount > 0.01m) { // Ignore tiny amounts
+                vault.CreditBonus(stat.UserId, bonusAmount, bonusAmount, repo); // 1x wagering
                 
-                await realTime.NotifyGameUpdate(stat.UserId, new { 
+                _logger.LogInformation("Awarded {Type}: {Amount} to User {UserId}", type, bonusAmount, stat.UserId);
+
+                // Notify if online
+                // Note: RealTimeService might need error handling if user is offline, usually handled internally
+                _ = realTime.NotifyGameUpdate(stat.UserId, new { 
                     Type = "DailyBonus", 
                     BonusType = type, 
                     Amount = bonusAmount,

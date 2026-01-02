@@ -35,19 +35,21 @@ public class JackpotService : IJackpotService {
         double roll = _rngService.GetNextDouble(seed, HashCode.Combine(sequence, "jackpot"));
         
         lock (_lock) {
-            if (roll < 0.0001) { // Local Jackpot
-                var local = repo.GetOrCreateLocalJackpot(gameId);
+            // Check Local Jackpot with Pressure
+            var local = repo.GetOrCreateLocalJackpot(gameId);
+            if (ShouldTrigger(local, roll, 0.0001)) { // Base chance 1 in 10,000
                 winAmount = local.CurrentValue;
-                local.CurrentValue = 500m; // Reset
+                local.CurrentValue = 500m; // Reset base
                 repo.UpdateJackpot(local);
                 _ = _realTimeService.NotifyJackpotUpdate(local.Name, local.CurrentValue); 
                 return (true, winAmount);
             }
 
-            if (roll < 0.00001) { // Global Jackpot
-                var global = repo.GetGlobalJackpot();
+            // Check Global Jackpot with Pressure
+            var global = repo.GetGlobalJackpot();
+            if (ShouldTrigger(global, roll, 0.00001)) { // Base chance 1 in 100,000
                 winAmount = global.CurrentValue;
-                global.CurrentValue = 10000m; // Reset
+                global.CurrentValue = 10000m; // Reset base
                 repo.UpdateJackpot(global);
                 _ = _realTimeService.NotifyJackpotUpdate(global.Name, global.CurrentValue); 
                 return (true, winAmount);
@@ -55,6 +57,36 @@ public class JackpotService : IJackpotService {
         }
 
         return (false, 0);
+    }
+
+    private bool ShouldTrigger(Jackpot jackpot, double roll, double baseChance) {
+        // 1. Force Drop if cap reached
+        if (jackpot.MustDropAt.HasValue && jackpot.CurrentValue >= jackpot.MustDropAt.Value) {
+            return true;
+        }
+
+        // 2. Standard RNG if no cap
+        if (!jackpot.MustDropAt.HasValue) {
+            return roll < baseChance;
+        }
+
+        // 3. Pressure Logic
+        decimal pressure = jackpot.CurrentValue / jackpot.MustDropAt.Value;
+        
+        if (pressure < 0.9m) {
+            return roll < baseChance; // Normal luck
+        }
+        else {
+            // "Hot Zone" (90% to 100%)
+            // Increase chance exponentially as we get closer to 1.0
+            // Example: Pressure 0.95 -> 1 / (1 - 0.95) = 20x multiplier
+            // Pressure 0.99 -> 1 / (1 - 0.99) = 100x multiplier
+            double multiplier = (double)(1m / (1m - pressure));
+            // Cap multiplier to avoid infinity (though cap check above handles >= 1.0)
+            if (multiplier > 1000) multiplier = 1000;
+            
+            return roll < (baseChance * multiplier);
+        }
     }
 
     public Jackpot GetGlobalJackpot(IGameRepository repo) {

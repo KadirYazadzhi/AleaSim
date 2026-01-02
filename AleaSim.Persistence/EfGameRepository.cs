@@ -273,6 +273,7 @@ public class EfGameRepository : IGameRepository {
                 CurrentValue = 10000m, 
                 ContributionRate = 0.01m, 
                 IsGlobal = true, 
+                MustDropAt = 15000m, // Guaranteed drop at 15k
                 LastUpdated = DateTime.UtcNow 
             };
             _context.Jackpots.Add(jackpot);
@@ -291,6 +292,7 @@ public class EfGameRepository : IGameRepository {
                 CurrentValue = 500m,
                 ContributionRate = 0.005m,
                 IsGlobal = false,
+                MustDropAt = 1000m, // Guaranteed drop at 1k
                 LastUpdated = DateTime.UtcNow
             };
             _context.Jackpots.Add(jackpot);

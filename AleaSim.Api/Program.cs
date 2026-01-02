@@ -50,7 +50,7 @@ builder.Services.AddSingleton<IRtpEngine, RtpEngine>();
 builder.Services.AddSingleton<IVaultService, VaultService>(); // New Financial Core
 builder.Services.AddSingleton<IBrainService, BrainService>(); // New Intelligence Core
 builder.Services.AddSingleton<IPromotionService, PromotionService>(); // New Promotions
-builder.Services.AddScoped<IJackpotService, JackpotService>();
+builder.Services.AddSingleton<IJackpotService, JackpotService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddSingleton<IAuditService, AuditService>(); // Audit is singleton to manage hash chain in memory? Or Scoped?
 // AuditService implementation uses IServiceScopeFactory, so it can be Singleton.
