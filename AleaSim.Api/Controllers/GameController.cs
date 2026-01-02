@@ -100,13 +100,91 @@ public class GameController : ControllerBase {
 
                 
 
-                var service = HttpContext.RequestServices.GetService<ILeaderboardService>();
+                        var service = HttpContext.RequestServices.GetService<ILeaderboardService>();
 
-                if (service == null) return BadRequest("Leaderboard service unavailable");
+                
 
-                return Ok(service.GetLeaderboard(name));
+                        if (service == null) return BadRequest("Leaderboard service unavailable");
 
-            }
+                
+
+                        return Ok(service.GetLeaderboard(name));
+
+                
+
+                    }
+
+                
+
+                
+
+                
+
+                    [HttpGet("leaderboard/history")]
+
+                
+
+                    public IActionResult GetTournamentHistory() {
+
+                
+
+                        using var scope = _scopeFactory.CreateScope();
+
+                
+
+                        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+
+                
+
+                        
+
+                
+
+                        var history = repo.GetTournamentHistory(6); // Last 6 months
+
+                
+
+                        var result = history.Select(h => new TournamentHistoryDto {
+
+                
+
+                            MonthName = h.Month.ToString("MMMM yyyy"),
+
+                
+
+                            WinnerName = h.Username,
+
+                
+
+                            AvatarUrl = h.AvatarUrl,
+
+                
+
+                            Prize = h.PrizeAmount,
+
+                
+
+                            Multiplier = h.Score
+
+                
+
+                        });
+
+                
+
+                
+
+                
+
+                        return Ok(result);
+
+                
+
+                    }
+
+                
+
+                
 
         
 

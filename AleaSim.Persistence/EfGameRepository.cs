@@ -499,11 +499,23 @@ public class EfGameRepository : IGameRepository {
     }
 
     public string GetGlobalSetting(string key) {
-        var setting = _context.GlobalSettings.Find(key);
-        return setting?.Value ?? string.Empty;
+        return _context.GlobalSettings.FirstOrDefault(s => s.Key == key)?.Value ?? string.Empty;
     }
 
-    public void SetGlobalSetting(string key, string value, string description = "") {
+    public void SaveTournamentWinners(IEnumerable<TournamentWinner> winners) {
+        _context.TournamentWinners.AddRange(winners);
+        _context.SaveChanges();
+    }
+
+    public IEnumerable<TournamentWinner> GetTournamentHistory(int months) {
+        return _context.TournamentWinners
+            .OrderByDescending(w => w.Month)
+            .ThenBy(w => w.Rank)
+            .Take(months * 10)
+            .ToList();
+    }
+
+    public void SetGlobalSetting(string key, string value, string description) {
         var setting = _context.GlobalSettings.Find(key);
         if (setting == null) {
             setting = new GlobalSetting { Key = key, Value = value, Description = description, LastUpdated = DateTime.UtcNow };

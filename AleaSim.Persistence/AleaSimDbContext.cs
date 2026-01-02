@@ -24,6 +24,7 @@ public class AleaSimDbContext : DbContext {
     public DbSet<Voucher> Vouchers { get; set; }
     public DbSet<UserVoucher> UserVouchers { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
+    public DbSet<TournamentWinner> TournamentWinners { get; set; }
 
     public AleaSimDbContext(DbContextOptions<AleaSimDbContext> options) : base(options) {
     }

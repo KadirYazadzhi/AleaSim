@@ -109,6 +109,10 @@ public interface IGameRepository {
     void SaveTransaction(Transaction transaction);
     IEnumerable<Transaction> GetUserTransactions(Guid userId, int count);
 
+    // Tournament History
+    void SaveTournamentWinners(IEnumerable<TournamentWinner> winners);
+    IEnumerable<TournamentWinner> GetTournamentHistory(int months);
+
     // Global Settings
     string GetGlobalSetting(string key);
     void SetGlobalSetting(string key, string value, string description = "");

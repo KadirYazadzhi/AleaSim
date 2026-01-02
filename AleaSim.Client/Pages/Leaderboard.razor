@@ -3,86 +3,94 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-    <MudPaper Class="pa-8" Elevation="3" Style="border-radius: 20px; background: #fafafa;">
-        <div class="text-center mb-8">
-            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Large" Color="Color.Warning" Style="font-size: 5rem;" />
-            <MudText Typo="Typo.h3" Style="font-weight: 900;">HALL OF FAME</MudText>
-            <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Top performers of the Monthly Grand Tournament</MudText>
-        </div>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h3" Class="mb-6">Hall of Fame</MudText>
 
-        <MudTable Items="@topPlayers" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" Elevation="0" Class="mt-4">
-            <HeaderContent>
-                <MudTh>Rank</MudTh>
-                <MudTh>Player</MudTh>
-                <MudTh Style="text-align: right;">Win Multiplier</MudTh>
-                <MudTh Style="text-align: right;">Total Paid</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Rank">
-                    @if (context.Rank <= 3)
-                    {
-                        <MudChip T="string" Color="@GetRankColor(context.Rank)" Variant="Variant.Filled" Size="Size.Small">#@context.Rank</MudChip>
-                    }
-                    else
-                    {
-                        <MudText Typo="Typo.body1">#@context.Rank</MudText>
-                    }
-                </MudTd>
-                <MudTd DataLabel="Player">
-                    <div class="d-flex align-center">
-                        <MudAvatar Color="Color.Default" Class="mr-3" Size="Size.Small">@context.Username[0].ToString().ToUpper()</MudAvatar>
-                        <MudText Typo="Typo.body1" Style="font-weight: bold;">@context.Username</MudText>
-                    </div>
-                </MudTd>
-                <MudTd DataLabel="Multiplier" Style="text-align: right;">
-                    <MudText Color="Color.Info" Style="font-weight: bold;">@context.MaxMultiplier.ToString("F1")x</MudText>
-                </MudTd>
-                <MudTd DataLabel="Total Paid" Style="text-align: right;">
-                    <MudText Color="Color.Success" Style="font-weight: bold;">$@context.TotalPaid.ToString("N2")</MudText>
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+        <MudTabPanel Text="Current Tournament" Icon="@Icons.Material.Filled.EmojiEvents">
+            <MudTable Items="@topPlayers" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Rank</MudTh>
+                    <MudTh>Player</MudTh>
+                    <MudTh Style="text-align: right;">Potential Prize</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Rank">
+                        <MudText Style="font-weight: bold; color: #ffD700;">#@context.Rank</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Player">@context.Username</MudTd>
+                    <MudTd DataLabel="Prize" Style="text-align: right;">
+                        <MudText Color="Color.Success" Style="font-weight: bold;">
+                            $@GetEstimatedPrize(context.Rank).ToString("N2")
+                        </MudText>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudTabPanel>
 
-        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-8">
-            Prizes will be distributed automatically on the 30th of the month at 23:59 UTC.
-        </MudAlert>
-    </MudPaper>
+        <MudTabPanel Text="Past Champions" Icon="@Icons.Material.Filled.History">
+            @if (pastWinners == null)
+            {
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            }
+            else if (!pastWinners.Any())
+            {
+                <MudAlert Severity="Severity.Info">No tournament history available yet.</MudAlert>
+            }
+            else
+            {
+                <MudGrid>
+                    @foreach (var winner in pastWinners)
+                    {
+                        <MudItem xs="12" md="6" lg="4">
+                            <MudPaper Class="pa-4 d-flex align-center gap-4" Style="background: #1a1a1a; border-left: 4px solid #ffD700;">
+                                <MudAvatar Image="@winner.AvatarUrl" Size="Size.Large" />
+                                <div>
+                                    <MudText Typo="Typo.subtitle2" Style="color: #aaa;">@winner.MonthName</MudText>
+                                    <MudText Typo="Typo.h6">@winner.WinnerName</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Success">Won $@winner.Prize.ToString("N0") (@winner.Multiplier.ToString("F0")x)</MudText>
+                                </div>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+        </MudTabPanel>
+    </MudTabs>
 </MudContainer>
 
 @code {
     private List<TournamentRankDto> topPlayers = new();
+    private List<TournamentHistoryDto>? pastWinners;
     private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadLeaderboard();
+        await LoadHistory();
     }
 
     private async Task LoadLeaderboard()
     {
         isLoading = true;
-        try
-        {
+        try {
             topPlayers = await Http.GetFromJsonAsync<List<TournamentRankDto>>("api/Game/leaderboard/tournament") ?? new();
-        }
-        catch
-        {
-            Snackbar.Add("Failed to load leaderboard.", Severity.Error);
-        }
-        finally
-        {
+        } catch {
+            Snackbar.Add("Failed to load rankings.", Severity.Error);
+        } finally {
             isLoading = false;
         }
     }
 
-    private Color GetRankColor(int rank) => rank switch
+    private async Task LoadHistory()
     {
-        1 => Color.Warning, // Gold
-        2 => Color.Default, // Silver
-        3 => Color.Secondary, // Bronze
-        _ => Color.Default
-    };
+        try {
+            pastWinners = await Http.GetFromJsonAsync<List<TournamentHistoryDto>>("api/Game/leaderboard/history");
+        } catch { }
+    }
 
-    private record LeaderboardRow(int Rank, string Username, decimal MaxMultiplier, decimal TotalPaid);
+    private decimal GetEstimatedPrize(int rank) {
+        decimal[] prizes = { 5000, 3000, 2000, 1500, 1000, 800, 700, 600, 500, 400 };
+        return rank > 0 && rank <= 10 ? prizes[rank - 1] : 0;
+    }
 }
