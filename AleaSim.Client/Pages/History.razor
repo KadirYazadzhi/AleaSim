@@ -4,6 +4,7 @@
 @attribute [Authorize]
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
     <MudText Typo="Typo.h3" Class="mb-6">Betting History</MudText>
@@ -30,11 +31,14 @@
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@context.ResultSummary</MudChip>
             </MudTd>
             <MudTd DataLabel="Status">
-                @if (context.IsWin) {
-                    <MudIcon Icon="@Icons.Material.Filled.ArrowUpward" Color="Color.Success" Size="Size.Small" />
-                } else {
-                    <MudIcon Icon="@Icons.Material.Filled.ArrowDownward" Color="Color.Error" Size="Size.Small" />
-                }
+                <div class="d-flex align-center gap-2">
+                    @if (context.IsWin) {
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowUpward" Color="Color.Success" Size="Size.Small" />
+                    } else {
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowDownward" Color="Color.Error" Size="Size.Small" />
+                    }
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" OnClick="() => ViewDetails(context)" Title="Replay Round" />
+                </div>
             </MudTd>
         </RowTemplate>
         <PagerContent>
@@ -60,5 +64,11 @@
         } finally {
             isLoading = false;
         }
+    }
+
+    private async Task ViewDetails(GameRoundDto round) {
+        var parameters = new DialogParameters { ["Round"] = round };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
+        await DialogService.ShowAsync<AleaSim.Client.Components.RoundDetailsDialog>("Round Replay", parameters, options);
     }
 }

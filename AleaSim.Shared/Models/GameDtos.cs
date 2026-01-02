@@ -71,7 +71,8 @@ public class GameRoundDto {
     public string GameName { get; set; } = string.Empty;
     public decimal BetAmount { get; set; }
     public decimal WinAmount { get; set; }
-    public string ResultSummary { get; set; } = string.Empty; // e.g. "Winning Number: 17" or "Grid Result"
+    public string ResultSummary { get; set; } = string.Empty;
+    public string FullResultJson { get; set; } = string.Empty; // Added for Replay
     public DateTime PlayedAt { get; set; }
     public bool IsWin => WinAmount > 0;
 }

@@ -192,39 +192,87 @@ public class GameController : ControllerBase {
 
     
 
-                        return new GameRoundDto {
+                                    return new GameRoundDto {
 
     
 
-                            Id = r.Id,
+                        
 
     
 
-                            GameName = game?.Name ?? "Unknown Game",
+                                        Id = r.Id,
 
     
 
-                            BetAmount = r.TotalBetAmount,
+                        
 
     
 
-                            WinAmount = r.TotalWinAmount,
+                                        GameName = game?.Name ?? "Unknown Game",
 
     
 
-                            PlayedAt = r.ExecutedAt,
+                        
 
     
 
-                            ResultSummary = r.DecisionType // Use DecisionType as a summary
+                                        BetAmount = r.TotalBetAmount,
 
     
 
-                        };
+                        
 
     
 
-                    });
+                                        WinAmount = r.TotalWinAmount,
+
+    
+
+                        
+
+    
+
+                                        PlayedAt = r.ExecutedAt,
+
+    
+
+                        
+
+    
+
+                                        ResultSummary = r.DecisionType,
+
+    
+
+                        
+
+    
+
+                                        FullResultJson = r.RandomResult // Pass the raw grid/wheel data
+
+    
+
+                        
+
+    
+
+                                    };
+
+    
+
+                        
+
+    
+
+                                });
+
+    
+
+                        
+
+    
+
+                        
 
     
 
