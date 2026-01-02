@@ -360,7 +360,7 @@ public class GameController : ControllerBase {
 
     
 
-                [HttpPost("vouchers/redeem/{code}")]
+                    [HttpPost("vouchers/redeem/{code}")]
 
     
 
@@ -368,7 +368,7 @@ public class GameController : ControllerBase {
 
     
 
-                public async Task<IActionResult> RedeemVoucher(string code) {
+            
 
     
 
@@ -376,7 +376,7 @@ public class GameController : ControllerBase {
 
     
 
-                    try {
+                    public async Task<IActionResult> RedeemVoucher(string code) {
 
     
 
@@ -384,7 +384,7 @@ public class GameController : ControllerBase {
 
     
 
-                        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+            
 
     
 
@@ -392,7 +392,7 @@ public class GameController : ControllerBase {
 
     
 
-                        using var scope = _scopeFactory.CreateScope();
+                        try {
 
     
 
@@ -400,7 +400,7 @@ public class GameController : ControllerBase {
 
     
 
-                        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+            
 
     
 
@@ -408,7 +408,7 @@ public class GameController : ControllerBase {
 
     
 
-                        var vault = scope.ServiceProvider.GetRequiredService<IVaultService>();
+                            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
 
     
 
@@ -416,7 +416,7 @@ public class GameController : ControllerBase {
 
     
 
-                        var voucherService = scope.ServiceProvider.GetRequiredService<IVoucherService>();
+            
 
     
 
@@ -424,7 +424,7 @@ public class GameController : ControllerBase {
 
     
 
-                        
+                            using var scope = _scopeFactory.CreateScope();
 
     
 
@@ -432,7 +432,7 @@ public class GameController : ControllerBase {
 
     
 
-                        decimal amount = await voucherService.RedeemVoucher(userId, code, repo, vault);
+            
 
     
 
@@ -440,7 +440,159 @@ public class GameController : ControllerBase {
 
     
 
-                        return Ok(new { Message = "Voucher redeemed successfully!", Amount = amount });
+                            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            var vault = scope.ServiceProvider.GetRequiredService<IVaultService>();
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            var voucherService = scope.ServiceProvider.GetRequiredService<IVoucherService>();
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            decimal amount = await voucherService.RedeemVoucher(userId, code, repo, vault);
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            return Ok(new { Message = "Voucher redeemed successfully!", Amount = amount });
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        }
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        catch (Exception ex) {
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            return BadRequest(ex.Message);
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        }
+
+    
+
+        
+
+    
+
+            
 
     
 
@@ -456,7 +608,7 @@ public class GameController : ControllerBase {
 
     
 
-                    catch (Exception ex) {
+            
 
     
 
@@ -464,7 +616,255 @@ public class GameController : ControllerBase {
 
     
 
-                        return BadRequest(ex.Message);
+                
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                    [HttpPost("skills/upgrade/{name}")]
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                    public async Task<IActionResult> UpgradeSkill(string name) {
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        try {
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            using var scope = _scopeFactory.CreateScope();
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            var levelService = scope.ServiceProvider.GetRequiredService<ILevelService>();
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            bool success = await levelService.UpgradeSkill(userId, name, repo);
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            if (success) return Ok(new { Message = $"Skill {name} upgraded!" });
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            return BadRequest("Insufficient skill points or invalid skill.");
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        }
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        catch (Exception ex) {
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            return BadRequest(ex.Message);
+
+    
+
+        
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        }
+
+    
+
+        
+
+    
+
+            
 
     
 
@@ -473,6 +873,14 @@ public class GameController : ControllerBase {
     
 
                     }
+
+    
+
+        
+
+    
+
+            
 
     
 
@@ -488,7 +896,15 @@ public class GameController : ControllerBase {
 
     
 
-            }
+            
+
+    
+
+        
+
+    
+
+                
 
     
 

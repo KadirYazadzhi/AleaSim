@@ -44,7 +44,9 @@ public class BrainService : IBrainService {
 
         // --- RULE 1: The Retention Hook ---
         // Adjusted by Flow: If bored, trigger hook earlier
-        int retentionThreshold = isBored ? 4 : 8;
+        // Adjusted by Skills: LuckyCloverLevel lowers the threshold (-1 streak per level)
+        int skillOffset = profile.LuckyCloverLevel;
+        int retentionThreshold = Math.Max(2, (isBored ? 4 : 8) - skillOffset);
         
         if (profile.LossStreak >= retentionThreshold || (profile.CurrentSessionRtp < 0.5m && profile.TotalWagered > 50)) {
             decimal multiplier = isBored ? (decimal)(new Random().Next(2, 5)) : (decimal)(new Random().Next(10, 25));

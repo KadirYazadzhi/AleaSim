@@ -53,9 +53,12 @@ public class DailyBonusBackgroundService : BackgroundService {
             string type = "";
 
             if (stat.NetResult < 0) {
-                // LOSS: Cashback 10%
+                // LOSS: Base Cashback 10% + Perk Level %
+                var profile = repo.GetPlayerProfile(stat.UserId);
+                decimal cashbackPercent = 0.10m + ((profile?.CashbackLevel ?? 0) * 0.01m);
+                
                 decimal loss = Math.Abs(stat.NetResult);
-                bonusAmount = loss * 0.10m;
+                bonusAmount = loss * cashbackPercent;
                 type = "Cashback";
             }
             else if (stat.NetResult > 0) {

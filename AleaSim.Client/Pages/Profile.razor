@@ -51,10 +51,31 @@
 
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-6" Elevation="2" Style="height: 100%;">
-                <MudText Typo="Typo.h6" Class="mb-4">Unlocked Perks (Skill Points: @profile?.Progression.SkillPoints)</MudText>
-                <MudAlert Severity="Severity.Info" Class="mb-2">Lucky Charm: Lv. 1 (+1% Bonus Chance)</MudAlert>
-                <MudAlert Severity="Severity.Success">Cashback King: Lv. 2 (12% Weekly)</MudAlert>
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-4" Disabled="@(profile?.Progression.SkillPoints == 0)">Upgrade Skills</MudButton>
+                <MudText Typo="Typo.h6" Class="mb-4">RPG Skill Shop (Available Points: @profile?.Progression.SkillPoints)</MudText>
+                
+                <div class="mb-4 d-flex justify-space-between align-center">
+                    <div>
+                        <MudText Typo="Typo.body1">Lucky Clover (Lv. @profile?.LuckyCloverLevel)</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">+@profile?.LuckyCloverLevel% Bonus Trigger Chance</MudText>
+                    </div>
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Color="Color.Primary" OnClick='() => UpgradeSkill("clover")' Disabled="@(profile?.Progression.SkillPoints == 0)" />
+                </div>
+
+                <div class="mb-4 d-flex justify-space-between align-center">
+                    <div>
+                        <MudText Typo="Typo.body1">Cashback King (Lv. @profile?.CashbackLevel)</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@(10 + profile?.CashbackLevel)% Daily Cashback</MudText>
+                    </div>
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Color="Color.Primary" OnClick='() => UpgradeSkill("cashback")' Disabled="@(profile?.Progression.SkillPoints == 0)" />
+                </div>
+
+                <div class="mb-4 d-flex justify-space-between align-center">
+                    <div>
+                        <MudText Typo="Typo.body1">XP Booster (Lv. @profile?.XpBoostLevel)</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">+@(profile?.XpBoostLevel * 10)% Experience Gain</MudText>
+                    </div>
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Color="Color.Primary" OnClick='() => UpgradeSkill("xp")' Disabled="@(profile?.Progression.SkillPoints == 0)" />
+                </div>
             </MudPaper>
         </MudItem>
 
@@ -117,7 +138,20 @@
         public string Username { get; set; } = "";
         public decimal Balance { get; set; }
         public decimal BonusBalance { get; set; }
+        public int LuckyCloverLevel { get; set; }
+        public int CashbackLevel { get; set; }
+        public int XpBoostLevel { get; set; }
         public UserProgressionDto Progression { get; set; } = new();
         public List<UserAchievementDto> Achievements { get; set; } = new();
+    }
+
+    private async Task UpgradeSkill(string name) {
+        var response = await Http.PostAsync($"api/Game/skills/upgrade/{name}", null);
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Perk Upgraded!", Severity.Success);
+            await OnInitializedAsync();
+        } else {
+            Snackbar.Add("Could not upgrade perk.", Severity.Warning);
+        }
     }
 }

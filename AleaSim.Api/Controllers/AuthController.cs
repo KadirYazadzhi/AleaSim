@@ -46,6 +46,7 @@ public class AuthController : ControllerBase {
         // Get RPG Progress
         var levelService = HttpContext.RequestServices.GetRequiredService<ILevelService>();
         var prog = levelService.GetProgression(userId, _repository);
+        var userProfile = _repository.GetPlayerProfile(userId); // Added to get skill levels
 
         // Get Achievements
         var achService = HttpContext.RequestServices.GetRequiredService<IAchievementService>();
@@ -56,6 +57,9 @@ public class AuthController : ControllerBase {
             user.Balance,
             user.BonusBalance,
             Role = user.Role.ToString(),
+            LuckyCloverLevel = userProfile?.LuckyCloverLevel ?? 0, // Using userProfile from repo/service
+            CashbackLevel = userProfile?.CashbackLevel ?? 0,
+            XpBoostLevel = userProfile?.XpBoostLevel ?? 0,
             Progression = new UserProgressionDto {
                 CurrentLevel = prog.CurrentLevel,
                 CurrentXP = prog.CurrentXP,

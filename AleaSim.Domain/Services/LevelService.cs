@@ -23,8 +23,11 @@ public class LevelService : ILevelService {
 
     public void AddExperience(Guid userId, decimal betAmount, IGameRepository repo, IRealTimeService realTime) {
         var prog = GetProgression(userId, repo);
+        var profile = repo.GetPlayerProfile(userId);
         
-        decimal xpGained = betAmount * XP_PER_CURRENCY_UNIT;
+        decimal multiplier = 1.0m + ((profile?.XpBoostLevel ?? 0) * 0.10m);
+        decimal xpGained = betAmount * XP_PER_CURRENCY_UNIT * multiplier;
+        
         prog.CurrentXP += xpGained;
         prog.LifetimeXP += xpGained;
 
@@ -54,5 +57,36 @@ public class LevelService : ILevelService {
                 Message = $"Congratulations! You reached Level {prog.CurrentLevel}!"
             });
         }
+    }
+
+    public async Task<bool> UpgradeSkill(Guid userId, string skillName, IGameRepository repo) {
+        var prog = repo.GetUserProgression(userId);
+        var profile = repo.GetPlayerProfile(userId);
+
+        if (prog == null || profile == null || prog.SkillPoints <= 0) return false;
+
+        bool success = false;
+        switch (skillName.ToLower()) {
+            case "clover":
+                profile.LuckyCloverLevel++;
+                success = true;
+                break;
+            case "cashback":
+                profile.CashbackLevel++;
+                success = true;
+                break;
+            case "xp":
+                profile.XpBoostLevel++;
+                success = true;
+                break;
+        }
+
+        if (success) {
+            prog.SkillPoints--;
+            repo.UpdateUserProgression(prog);
+            repo.UpdatePlayerProfile(profile);
+        }
+
+        return await Task.FromResult(success);
     }
 }

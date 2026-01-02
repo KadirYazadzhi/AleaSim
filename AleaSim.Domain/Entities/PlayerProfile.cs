@@ -33,5 +33,10 @@ public class PlayerProfile {
     // --- Persona & Affinity ---
     public string SymbolAffinityJson { get; set; } = "{}"; // Map of SymbolID -> Score
 
+    // --- Skill Tree / Perks ---
+    public int LuckyCloverLevel { get; set; } = 0; // Each level +1% chance
+    public int CashbackLevel { get; set; } = 0;    // Each level +1% cashback
+    public int XpBoostLevel { get; set; } = 0;     // Each level +10% XP
+
     public DateTime LastUpdate { get; set; } = DateTime.UtcNow;
 }
