@@ -39,9 +39,40 @@
 
         <!-- Charts -->
         <MudItem xs="12" md="8">
-            <MudPaper Class="pa-4" Elevation="2" Style="height: 400px;">
+            <MudPaper Class="pa-4 mb-4" Elevation="2" Style="height: 400px;">
                 <MudText Typo="Typo.h6" Class="mb-4">RTP Trend (Last 24h)</MudText>
                 <MudChart ChartType="ChartType.Line" ChartSeries="@Series" XAxisLabels="@XAxisLabels" Width="100%" Height="300px" />
+            </MudPaper>
+
+            <!-- Shadow Mode Analysis -->
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-4">AI Shadow Mode Analysis (Test Algorithm vs Real)</MudText>
+                @if (shadowStats != null)
+                {
+                    <MudGrid>
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-4 text-center" Style="background: #222; border-left: 5px solid #ffD700;">
+                                <MudText Typo="Typo.subtitle2">REAL RTP</MudText>
+                                <MudText Typo="Typo.h4">@shadowStats.RealRtp.ToString("F1")%</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-4 text-center" Style="background: #222; border-left: 5px solid #4caf50;">
+                                <MudText Typo="Typo.subtitle2">SHADOW RTP (Test)</MudText>
+                                <MudText Typo="Typo.h4" Color="Color.Success">@shadowStats.ShadowRtp.ToString("F1")%</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudAlert Severity="@(Math.Abs(shadowStats.RealRtp - shadowStats.ShadowRtp) < 2 ? Severity.Success : Severity.Warning)">
+                                Difference: @(Math.Abs(shadowStats.RealRtp - shadowStats.ShadowRtp).ToString("F1"))% | Sample Size: @shadowStats.SampleSize rounds.
+                            </MudAlert>
+                        </MudItem>
+                    </MudGrid>
+                }
+                else
+                {
+                    <MudProgressLinear Color="Color.Info" Indeterminate="true" />
+                }
             </MudPaper>
         </MudItem>
 
@@ -135,6 +166,7 @@
     private bool isSimulating = false;
     private SimulationReport? simReport;
     private IntegrityResponse? integrityResult;
+    private ShadowCompareDto? shadowStats;
 
     public List<ChartSeries> Series = new();
     public string[] XAxisLabels = Array.Empty<string>();
@@ -142,6 +174,13 @@
     protected override async Task OnInitializedAsync() {
         await LoadStats();
         await LoadTrendData();
+        await LoadShadowStats();
+    }
+
+    private async Task LoadShadowStats() {
+        try {
+            shadowStats = await Http.GetFromJsonAsync<ShadowCompareDto>("api/Admin/analytics/shadow-mode");
+        } catch { }
     }
 
     private async Task LoadTrendData() {

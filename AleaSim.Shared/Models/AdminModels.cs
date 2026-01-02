@@ -15,6 +15,14 @@ public class RtpTrendPoint {
     public double Rtp { get; set; }
 }
 
+public class ShadowCompareDto {
+    public decimal RealTotalWin { get; set; }
+    public decimal ShadowTotalWin { get; set; }
+    public double RealRtp { get; set; }
+    public double ShadowRtp { get; set; }
+    public int SampleSize { get; set; }
+}
+
 public class SimulationRequest {
     public string GameType { get; set; } = "Slot";
     public decimal BetAmount { get; set; } = 1.0m;

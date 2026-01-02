@@ -16,4 +16,5 @@ public interface IAdminService {
     Task SetGlobalRtp(Guid adminId, decimal targetRtp);
     Task ToggleEmergencyStop(Guid adminId, bool enabled);
     Task SetVolatilityMode(Guid adminId, string mode);
+    Task<ShadowCompareDto> GetShadowComparison(int sampleSize);
 }

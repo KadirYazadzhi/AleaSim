@@ -41,6 +41,11 @@ public class AdminController : ControllerBase {
         return Ok(result);
     }
 
+    [HttpGet("analytics/shadow-mode")]
+    public async Task<ActionResult<ShadowCompareDto>> GetShadowModeStats([FromQuery] int sampleSize = 1000) {
+        return Ok(await _adminService.GetShadowComparison(sampleSize));
+    }
+
     [HttpGet("audit-logs")]
     public IActionResult GetAuditLogs() {
         return Ok(_auditService.GetLogs());

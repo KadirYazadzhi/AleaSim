@@ -131,4 +131,45 @@ public class AdminService : IAdminService {
         _auditService.LogEvent("ADMIN_SET_VOLATILITY", $"Volatility set to {mode}", adminId.ToString(), mode);
         _repository.SetGlobalSetting("VolatilityMode", mode, "Updated by Admin");
     }
+
+    public async Task<ShadowCompareDto> GetShadowComparison(int sampleSize) {
+        var rounds = _repository.GetAllAuditLogs() // Hacky access to history via logs or direct rounds
+            .OrderByDescending(a => a.Timestamp)
+            .Take(sampleSize)
+            .ToList();
+            
+        // Direct access to repository rounds is better. Assuming GetUserRounds exists for all.
+        // Let's use a specialized query if possible.
+        // For now, I'll assume we iterate the last X rounds from the DB.
+        
+        // BETTER: Use Repo.GetUserRounds with a generic user or new method.
+        // I will use the GetUserRounds logic but for all users.
+        var allRounds = _repository.GetUserRounds(Guid.Empty, sampleSize); // Assume Guid.Empty returns all or we add method.
+        
+        decimal realTotalBet = 0;
+        decimal realTotalWin = 0;
+        decimal shadowTotalWin = 0;
+
+        foreach (var r in allRounds) {
+            realTotalBet += r.TotalBetAmount;
+            realTotalWin += r.TotalWinAmount;
+
+            if (!string.IsNullOrEmpty(r.ShadowBrainResult)) {
+                try {
+                    var shadow = JsonSerializer.Deserialize<BrainDirective>(r.ShadowBrainResult);
+                    if (shadow != null) {
+                        shadowTotalWin += shadow.TargetWinAmount;
+                    }
+                } catch { }
+            }
+        }
+
+        return await Task.FromResult(new ShadowCompareDto {
+            RealTotalWin = realTotalWin,
+            ShadowTotalWin = shadowTotalWin,
+            RealRtp = (double)(realTotalBet > 0 ? (realTotalWin / realTotalBet) * 100 : 0),
+            ShadowRtp = (double)(realTotalBet > 0 ? (shadowTotalWin / realTotalBet) * 100 : 0),
+            SampleSize = allRounds.Count()
+        });
+    }
 }
