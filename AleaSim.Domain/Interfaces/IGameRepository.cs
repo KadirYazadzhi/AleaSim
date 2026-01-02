@@ -104,6 +104,10 @@ public interface IGameRepository {
     void CreateVoucher(Voucher voucher);
     IEnumerable<Voucher> GetAllVouchers();
 
+    // Transactions
+    void SaveTransaction(Transaction transaction);
+    IEnumerable<Transaction> GetUserTransactions(Guid userId, int count);
+
     // Global Settings
     string GetGlobalSetting(string key);
     void SetGlobalSetting(string key, string value, string description = "");

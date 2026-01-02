@@ -481,6 +481,19 @@ public class EfGameRepository : IGameRepository {
         return _context.Vouchers.ToList();
     }
 
+    public void SaveTransaction(Transaction transaction) {
+        _context.Transactions.Add(transaction);
+        _context.SaveChanges();
+    }
+
+    public IEnumerable<Transaction> GetUserTransactions(Guid userId, int count) {
+        return _context.Transactions
+            .Where(t => t.UserId == userId)
+            .OrderByDescending(t => t.Timestamp)
+            .Take(count)
+            .ToList();
+    }
+
     public string GetGlobalSetting(string key) {
         var setting = _context.GlobalSettings.Find(key);
         return setting?.Value ?? string.Empty;

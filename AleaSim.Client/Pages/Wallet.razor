@@ -1,0 +1,81 @@
+@page "/wallet"
+@using AleaSim.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudText Typo="Typo.h3" Class="mb-6">My Wallet</MudText>
+
+    <MudGrid>
+        <!-- Deposit Section -->
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-6" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-4">Quick Deposit</MudText>
+                <MudText Typo="Typo.body2" Class="mb-4">Select an amount to instantly top up your balance (Simulation mode).</MudText>
+                
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var amt in depositAmounts)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick='() => PerformDeposit(amt)'>$@amt</MudButton>
+                    }
+                </div>
+
+                <MudNumericField @bind-Value="customAmount" Label="Custom Amount" Variant="Variant.Outlined" Class="mt-4" />
+                <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" Class="mt-4" OnClick='() => PerformDeposit(customAmount)'>Deposit Now</MudButton>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Transaction History -->
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-6" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-4">Transaction History</MudText>
+                @if (transactions == null) {
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                } else {
+                    <MudList T="string" Dense="true">
+                        @foreach (var tx in transactions) {
+                            <MudListItem>
+                                <div class="d-flex justify-space-between">
+                                    <div>
+                                        <MudText Typo="Typo.body2" Style="font-weight: bold;">@tx.Type</MudText>
+                                        <MudText Typo="Typo.caption">@tx.Timestamp.ToString("g")</MudText>
+                                    </div>
+                                    <MudText Typo="Typo.body1" Color="@(tx.Amount > 0 ? Color.Success : Color.Error)">
+                                        @(tx.Amount > 0 ? "+" : "")@tx.Amount.ToString("C2")
+                                    </MudText>
+                                </div>
+                            </MudListItem>
+                            <MudDivider />
+                        }
+                    </MudList>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private List<TransactionDto>? transactions;
+    private decimal[] depositAmounts = { 50, 100, 500, 1000 };
+    private decimal customAmount = 50;
+
+    protected override async Task OnInitializedAsync() {
+        await LoadTransactions();
+    }
+
+    private async Task LoadTransactions() {
+        transactions = await Http.GetFromJsonAsync<List<TransactionDto>>("api/Vault/transactions");
+    }
+
+    private async Task PerformDeposit(decimal amount) {
+        var response = await Http.PostAsJsonAsync("api/Vault/deposit", amount);
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Deposit successful!", Severity.Success);
+            await LoadTransactions();
+        } else {
+            Snackbar.Add("Deposit failed.", Severity.Error);
+        }
+    }
+}
