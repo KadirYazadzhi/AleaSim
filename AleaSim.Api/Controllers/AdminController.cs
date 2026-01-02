@@ -177,6 +177,15 @@ public class AdminController : ControllerBase {
 
     public record CreateVoucherRequest(string Code, decimal Amount, int MaxUses);
 
+    [HttpPost("players/{userId}/force-outcome")]
+    public IActionResult ForceOutcome(Guid userId, [FromBody] BrainDirective directive) {
+        using var scope = HttpContext.RequestServices.CreateScope();
+        var brain = scope.ServiceProvider.GetRequiredService<IBrainService>();
+        
+        brain.SetForcedDirective(userId, directive);
+        return Ok(new { Message = "Next spin outcome forced for user." });
+    }
+
     private Guid GetCurrentUserId() {
         var idClaim = User.FindFirst(ClaimTypes.NameIdentifier); // Assuming NameIdentifier holds the GUID
         if (idClaim != null && Guid.TryParse(idClaim.Value, out var id)) {

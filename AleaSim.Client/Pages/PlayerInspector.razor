@@ -8,68 +8,56 @@
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
     <MudText Typo="Typo.h3" Class="mb-6">Player Inspector</MudText>
 
-    <MudPaper Class="pa-4 mb-6">
-        <MudTextField T="string" @bind-Value="searchQuery" Label="Search by Username or Email" Variant="Variant.Outlined" 
-                      Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" OnAdornmentClick="OnSearch" 
-                      OnKeyDown="@(e => { if(e.Key == "Enter") OnSearch(); })" />
-    </MudPaper>
-
     <MudGrid>
-        <!-- Search Results -->
         <MudItem xs="12" md="4">
-            <MudTable Items="@searchResults" Hover="true" OnRowClick="@((TableRowClickEventArgs<PlayerSearchResultDto> e) => SelectPlayer(e.Item))" T="PlayerSearchResultDto">
-                <HeaderContent>
-                    <MudTh>Username</MudTh>
-                    <MudTh>Balance</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Username">@context.Username</MudTd>
-                    <MudTd DataLabel="Balance">$@context.Balance.ToString("N2")</MudTd>
-                </RowTemplate>
-            </MudTable>
+            <MudPaper Class="pa-4">
+                <MudTextField @bind-Value="searchQuery" Label="Search Player (Username/Email)" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" OnAdornmentClick="Search" />
+                <MudList T="PlayerSearchResultDto" Class="mt-4" Clickable="true">
+                    @foreach (var p in searchResults)
+                    {
+                        <MudListItem OnClick="() => SelectPlayer(p)">
+                            <div class="d-flex justify-space-between">
+                                <MudText>@p.Username</MudText>
+                                <MudText Typo="Typo.caption">@p.Balance.ToString("C")</MudText>
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+            </MudPaper>
         </MudItem>
 
-        <!-- Player Dossier -->
         <MudItem xs="12" md="8">
             @if (selectedPlayer != null)
             {
-                <MudCard Elevation="4" Class="pa-4">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h5">Dossier: @selectedPlayer.Username</MudText>
-                            <MudText Typo="Typo.caption">ID: @selectedPlayer.Id</MudText>
-                        </CardHeaderContent>
-                        <CardHeaderActions>
-                            <MudChip T="string" Color="Color.Info">Role: @selectedPlayer.Role</MudChip>
-                        </CardHeaderActions>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudGrid>
-                            <MudItem xs="6">
-                                <MudText Typo="Typo.subtitle2">Lifetime Value (LTV)</MudText>
-                                <MudText Typo="Typo.h6" Color="Color.Success">$1,450.00</MudText> <!-- Mock from Dossier -->
-                            </MudItem>
-                            <MudItem xs="6">
-                                <MudText Typo="Typo.subtitle2">Current Session RTP</MudText>
-                                <MudText Typo="Typo.h6" Color="Color.Error">112% (Winning)</MudText>
-                            </MudItem>
-                        </MudGrid>
+                <MudPaper Class="pa-6" Elevation="3">
+                    <MudText Typo="Typo.h4">@selectedPlayer.Username</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">ID: @selectedPlayer.Id</MudText>
 
-                        <MudDivider Class="my-4" />
-                        
-                        <MudText Typo="Typo.h6" Class="mb-2">Interventions</MudText>
-                        <div class="d-flex gap-4">
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="InjectBonus">Inject $50 Bonus</MudButton>
-                            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="ForceCooldown">Force Cooldown</MudButton>
-                        </div>
-                    </MudCardContent>
-                </MudCard>
+                    <MudExpansionPanels>
+                        <MudExpansionPanel Text="God Mode Controls" Icon="@Icons.Material.Filled.Bolt" Style="background: #fff9c4;">
+                            <MudText Typo="Typo.body2" Class="mb-4">Manipulate the next spin for @selectedPlayer.Username:</MudText>
+                            <div class="d-flex gap-2">
+                                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick='() => ForceSpin(50, "Admin Gift")'>Force 50x Win</MudButton>
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick='() => ForceSpin(0, "Force Bonus", true)'>Force Bonus</MudButton>
+                                <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick='() => ForceSpin(0, "Admin Cooldown", false, true)'>Force Near Miss</MudButton>
+                            </div>
+                        </MudExpansionPanel>
+
+                        <MudExpansionPanel Text="Inject Bonus Cash">
+                            <MudNumericField @bind-Value="bonusAmount" Label="Amount" Variant="Variant.Outlined" />
+                            <MudTextField @bind-Value="bonusReason" Label="Reason" Variant="Variant.Outlined" Class="mt-2" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="InjectBonus">Add Bonus</MudButton>
+                        </MudExpansionPanel>
+
+                        <MudExpansionPanel Text="Activity Logs">
+                            <MudAlert Severity="Severity.Info">Recent bets and logins will appear here.</MudAlert>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudPaper>
             }
             else
             {
-                <MudPaper Class="pa-12 text-center" Style="background: transparent; border: 2px dashed #ccc;">
-                    <MudText Typo="Typo.h6" Style="color: #999;">Select a player to view dossier</MudText>
-                </MudPaper>
+                <MudAlert Severity="Severity.Info">Search and select a player to inspect details.</MudAlert>
             }
         </MudItem>
     </MudGrid>
@@ -79,32 +67,52 @@
     private string searchQuery = "";
     private List<PlayerSearchResultDto> searchResults = new();
     private PlayerSearchResultDto? selectedPlayer;
+    private decimal bonusAmount = 100;
+    private string bonusReason = "VIP Reward";
 
-    private async Task OnSearch() {
+    private async Task Search()
+    {
         if (string.IsNullOrWhiteSpace(searchQuery)) return;
-        try {
-            searchResults = await Http.GetFromJsonAsync<List<PlayerSearchResultDto>>($"api/Admin/players/search/{searchQuery}") ?? new();
-            if (!searchResults.Any()) Snackbar.Add("No players found.", Severity.Warning);
-        } catch {
-            Snackbar.Add("Search failed.", Severity.Error);
-        }
+        searchResults = await Http.GetFromJsonAsync<List<PlayerSearchResultDto>>($"api/Admin/players/search/{searchQuery}") ?? new();
     }
 
-    private void SelectPlayer(PlayerSearchResultDto player) {
+    private void SelectPlayer(PlayerSearchResultDto player)
+    {
         selectedPlayer = player;
     }
 
-    private async Task InjectBonus() {
+    private async Task InjectBonus()
+    {
         if (selectedPlayer == null) return;
-        var dto = new InjectBonusDto { Amount = 50, Reason = "Admin Intervention" };
-        var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/bonus", dto);
-        if (response.IsSuccessStatusCode) Snackbar.Add("Bonus injected!", Severity.Success);
+        var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/bonus", new { Amount = bonusAmount, Reason = bonusReason });
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Bonus injected successfully!", Severity.Success);
+        }
     }
 
-    private async Task ForceCooldown() {
+    private async Task ForceSpin(decimal targetWinMult, string reason, bool forceBonus = false, bool nearMiss = false) {
         if (selectedPlayer == null) return;
-        var dto = new ForceCooldownDto { DurationMinutes = 60, Reason = "Suspicious activity" };
-        var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/cooldown", dto);
-        if (response.IsSuccessStatusCode) Snackbar.Add("Cooldown forced!", Severity.Error);
+        
+        var directive = new {
+            DecisionType = forceBonus ? "ForceBonus" : (targetWinMult > 0 ? "RetentionHook" : "ManualOverride"),
+            TargetWinAmount = targetWinMult,
+            IsNearMiss = nearMiss,
+            Reason = reason
+        };
+
+        var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/force-outcome", directive);
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Directive sent! Next spin will be forced.", Severity.Success);
+        }
+    }
+
+    public class PlayerSearchResultDto
+    {
+        public Guid Id { get; set; }
+        public string Username { get; set; } = "";
+        public string Email { get; set; } = "";
+        public decimal Balance { get; set; }
+        public string Role { get; set; } = "";
     }
 }

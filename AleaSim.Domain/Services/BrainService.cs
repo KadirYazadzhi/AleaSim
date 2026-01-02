@@ -3,22 +3,30 @@ using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Models;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
+using System.Collections.Concurrent; // Added
 
 namespace AleaSim.Domain.Services;
 
 public class BrainService : IBrainService {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IVaultService _vaultService;
+    private readonly ConcurrentDictionary<Guid, BrainDirective> _forcedDirectives = new(); // Added
 
     public BrainService(IServiceScopeFactory scopeFactory, IVaultService vaultService) {
         _scopeFactory = scopeFactory;
         _vaultService = vaultService;
     }
 
-    public BrainDirective DecideOutcome(Guid userId, Guid gameId, decimal betAmount, bool isShadowMode = false) {
-        using var scope = _scopeFactory.CreateScope();
-        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-        
+    public void SetForcedDirective(Guid userId, BrainDirective directive) {
+        _forcedDirectives[userId] = directive;
+    }
+
+    public BrainDirective DecideOutcome(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo, bool isShadowMode = false) {
+        // 0. Admin Override
+        if (_forcedDirectives.TryRemove(userId, out var forced)) {
+            return forced;
+        }
+
         var profile = repo.GetPlayerProfile(userId); 
         if (profile == null) {
             return new BrainDirective { DecisionType = "Random" };
