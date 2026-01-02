@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AleaSim.Client")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+202f8ab240ccef7bce4c64ecccacb356cd59932f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2e6dea49763b022ba1cc2c369720c1226be912e4")]
 [assembly: System.Reflection.AssemblyProductAttribute("AleaSim.Client")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AleaSim.Client")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

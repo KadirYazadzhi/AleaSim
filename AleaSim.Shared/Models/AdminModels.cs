@@ -1,10 +1,20 @@
-namespace AleaSim.Domain.Models;
+namespace AleaSim.Shared.Models;
+
+public class AdminDashboardStats {
+    public decimal Ggr { get; set; } 
+    public decimal TotalBets { get; set; }
+    public decimal TotalWins { get; set; }
+    public decimal CurrentRtp { get; set; }
+    public int ActivePlayerCount { get; set; }
+    public bool IsEmergencyStopActive { get; set; }
+    public List<string> TopWinners { get; set; } = new();
+}
 
 public class SimulationRequest {
     public string GameType { get; set; } = "Slot";
     public decimal BetAmount { get; set; } = 1.0m;
     public int Iterations { get; set; } = 100000;
-    public Guid? UserId { get; set; } // Optional: simulate a specific player's profile
+    public Guid? UserId { get; set; }
 }
 
 public class SimulationReport {

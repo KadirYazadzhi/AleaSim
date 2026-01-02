@@ -1,6 +1,7 @@
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
-using AleaSim.Domain.Models;
+using AleaSim.Domain.Models; // Added
+using AleaSim.Shared.Models;
 using System.Text.Json;
 
 namespace AleaSim.Domain.Services;

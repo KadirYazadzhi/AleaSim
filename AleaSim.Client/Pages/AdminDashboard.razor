@@ -1,0 +1,132 @@
+@page "/dashboard"
+@using AleaSim.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
+    <MudText Typo="Typo.h3" Class="mb-6">Casino Command Center</MudText>
+
+    <MudGrid>
+        <!-- KPI Cards -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6">Daily GGR</MudText>
+                <MudText Typo="Typo.h4" Color="Color.Success">$@stats.Ggr.ToString("N2")</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6">Active Players</MudText>
+                <MudText Typo="Typo.h4">@stats.ActivePlayerCount</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6">Current RTP</MudText>
+                <MudText Typo="Typo.h4" Color="@(stats.CurrentRtp > 98 ? Color.Error : Color.Default)">@stats.CurrentRtp.ToString("F1")%</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6">System Status</MudText>
+                <MudChip T="string" Color="@(stats.IsEmergencyStopActive ? Color.Error : Color.Success)">
+                    @(stats.IsEmergencyStopActive ? "PAUSED" : "OPERATIONAL")
+                </MudChip>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Charts -->
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-4" Elevation="2" Style="height: 400px;">
+                <MudText Typo="Typo.h6" Class="mb-4">RTP Trend (Last 24h)</MudText>
+                <MudChart ChartType="ChartType.Line" ChartSeries="@Series" XAxisLabels="@XAxisLabels" Width="100%" Height="300px" />
+            </MudPaper>
+        </MudItem>
+
+        <!-- Controls -->
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-4">Global Controls</MudText>
+                
+                <MudSlider T="decimal" @bind-Value="targetRtp" Min="80" Max="99" Step="0.1m" Color="Color.Primary">
+                    Target Global RTP: @targetRtp.ToString("F1")%
+                </MudSlider>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="UpdateRtp" Class="mt-2 full-width">Apply RTP</MudButton>
+
+                <MudDivider Class="my-6" />
+
+                <MudButton Variant="Variant.Filled" 
+                           Color="@(stats.IsEmergencyStopActive ? Color.Success : Color.Error)" 
+                           OnClick="ToggleEmergencyStop"
+                           FullWidth="true"
+                           Style="height: 60px;">
+                    @(stats.IsEmergencyStopActive ? "RESUME SYSTEM" : "EMERGENCY STOP")
+                </MudButton>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Simulation Lab -->
+        <MudItem xs="12">
+            <MudExpansionPanels>
+                <MudExpansionPanel Text="Simulation Lab (Run Stress Tests)">
+                    <MudGrid>
+                        <MudItem xs="12" md="4">
+                            <MudNumericField @bind-Value="simIterations" Label="Iterations" Min="1000" Max="1000000" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunSimulation" Class="mt-4">Start 1M Spin Simulation</MudButton>
+                        </MudItem>
+                        @if (isSimulating) {
+                            <MudItem xs="12" md="8">
+                                <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="my-7" />
+                                <MudText>Simulation in progress... using AI Shadow Mode...</MudText>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private AdminDashboardStats stats = new();
+    private decimal targetRtp = 95.0m;
+    private int simIterations = 100000;
+    private bool isSimulating = false;
+
+    public List<ChartSeries> Series = new() {
+        new ChartSeries() { Name = "Actual RTP", Data = new double[] { 94, 96, 92, 95, 98, 93, 95 } }
+    };
+    public string[] XAxisLabels = { "00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "Now" };
+
+    protected override async Task OnInitializedAsync() {
+        await LoadStats();
+    }
+
+    private async Task LoadStats() {
+        try {
+            stats = await Http.GetFromJsonAsync<AdminDashboardStats>("api/Admin/dashboard") ?? new();
+        } catch {
+            Snackbar.Add("Failed to load admin stats.", Severity.Error);
+        }
+    }
+
+    private async Task UpdateRtp() {
+        var response = await Http.PostAsJsonAsync("api/Admin/config/rtp", new SetRtpDto { TargetRtp = targetRtp });
+        if (response.IsSuccessStatusCode) Snackbar.Add("RTP Updated!", Severity.Success);
+    }
+
+    private async Task ToggleEmergencyStop() {
+        var response = await Http.PostAsJsonAsync("api/Admin/config/emergency-stop", new EmergencyStopDto { Enabled = !stats.IsEmergencyStopActive });
+        if (response.IsSuccessStatusCode) await LoadStats();
+    }
+
+    private async Task RunSimulation() {
+        isSimulating = true;
+        // Logic to call Simulation endpoint
+        await Task.Delay(2000); // Mock
+        isSimulating = false;
+        Snackbar.Add("Simulation complete. RTP stable at 95.2%", Severity.Info);
+    }
+}

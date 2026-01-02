@@ -1,4 +1,4 @@
-using AleaSim.Domain.Models;
+using AleaSim.Shared.Models;
 
 namespace AleaSim.Domain.Interfaces;
 

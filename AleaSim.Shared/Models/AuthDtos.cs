@@ -15,6 +15,12 @@ public class LoginResponse {
     public string Token { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
+
+    public LoginResponse(string token, string username, string role) {
+        Token = token;
+        Username = username;
+        Role = role;
+    }
 }
 
 public class RegisterRequest {

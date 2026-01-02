@@ -1,5 +1,5 @@
 using AleaSim.Domain.Interfaces;
-using AleaSim.Domain.Models;
+using AleaSim.Shared.Models; // Changed
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 

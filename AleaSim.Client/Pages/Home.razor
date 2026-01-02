@@ -40,27 +40,41 @@
         </MudContainer>
     </Authorized>
     <NotAuthorized>
-        <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-16 text-center">
-            <MudText Typo="Typo.h2" Color="Color.Primary" Class="mb-4">Welcome to AleaSim</MudText>
-            <MudText Typo="Typo.h5" Class="mb-8">The Next-Gen AI Casino Simulation</MudText>
-            
-            <MudGrid Justify="Justify.Center" Spacing="4">
-                <MudItem>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/login">Login</MudButton>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+            <MudCarousel Class="mud-width-full" Style="height:400px; border-radius: 12px; overflow:hidden;" ShowArrows="true" ShowBullets="true" AutoCycle="true" TData="object">
+                <MudCarouselItem Transition="Transition.Slide" Color="@Color.Dark">
+                    <div class="d-flex flex-column align-center justify-center h-100" style="background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1596838132731-3301c3fd4317?auto=format&fit=crop&w=1200&q=80'); background-size: cover;">
+                        <MudText Typo="Typo.h2" Style="font-weight: 900; color: white;">CLOVER CHASE</MudText>
+                        <MudText Typo="Typo.h5" Class="mb-4" Style="color: #eee;">Experience the luck of the Irish with our AI-driven slots!</MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/register">Play Now</MudButton>
+                    </div>
+                </MudCarouselItem>
+                <MudCarouselItem Transition="Transition.Slide" Color="@Color.Primary">
+                    <div class="d-flex flex-column align-center justify-center h-100" style="background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1518893063934-f7142c22732b?auto=format&fit=crop&w=1200&q=80'); background-size: cover;">
+                        <MudText Typo="Typo.h2" Style="font-weight: 900; color: white;">NEW RPG LEVELS</MudText>
+                        <MudText Typo="Typo.h5" Class="mb-4" Style="color: #eee;">Level up your account and unlock permanent perks!</MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" Href="/login">Join the Club</MudButton>
+                    </div>
+                </MudCarouselItem>
+            </MudCarousel>
+
+            <MudGrid Class="mt-12 mb-16" Justify="Justify.Center">
+                <MudItem xs="12" md="4" Class="text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Large" Color="Color.Primary" />
+                    <MudText Typo="Typo.h6">AI Engine</MudText>
+                    <MudText Typo="Typo.body2">Our "Brain" adapts to your playstyle for maximum engagement.</MudText>
                 </MudItem>
-                <MudItem>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Large" Href="/register">Register</MudButton>
+                <MudItem xs="12" md="4" Class="text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Typo="Typo.h6">Fast Payouts</MudText>
+                    <MudText Typo="Typo.body2">Instant cashout options and secure financial vault.</MudText>
+                </MudItem>
+                <MudItem xs="12" md="4" Class="text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Large" Color="Color.Warning" />
+                    <MudText Typo="Typo.h6">Big Jackpots</MudText>
+                    <MudText Typo="Typo.body2">Global progressive jackpots that must drop daily!</MudText>
                 </MudItem>
             </MudGrid>
-
-            <MudPaper Elevation="0" Class="mt-16 pa-8 bg-transparent">
-                <MudText Typo="Typo.h6">Features:</MudText>
-                <MudList T="string" Dense="true">
-                    <MudListItem Icon="@Icons.Material.Filled.SmartToy">AI-Driven Odds</MudListItem>
-                    <MudListItem Icon="@Icons.Material.Filled.Speed">Dynamic Flow State</MudListItem>
-                    <MudListItem Icon="@Icons.Material.Filled.EmojiEvents">Daily Quests & RPG Leveling</MudListItem>
-                </MudList>
-            </MudPaper>
         </MudContainer>
     </NotAuthorized>
 </AuthorizeView>
