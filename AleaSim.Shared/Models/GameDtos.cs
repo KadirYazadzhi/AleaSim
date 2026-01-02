@@ -54,3 +54,9 @@ public class GameActionResponse {
         UpdatedStateJson = updatedStateJson;
     }
 }
+
+public class RouletteBetDto {
+    public string Type { get; set; } = string.Empty; // "number", "color", "evenodd"
+    public string Value { get; set; } = string.Empty; // "17", "red", "even"
+    public decimal Amount { get; set; }
+}

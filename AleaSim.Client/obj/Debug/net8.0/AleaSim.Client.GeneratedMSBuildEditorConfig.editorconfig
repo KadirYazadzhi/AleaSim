@@ -49,6 +49,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXMvR2FtZXMvQ2xvdmVyQ2hhc2UucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
+[/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Pages/Games/Roulette.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvR2FtZXMvUm91bGV0dGUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
 [/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Pages/Home.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXMvSG9tZS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 

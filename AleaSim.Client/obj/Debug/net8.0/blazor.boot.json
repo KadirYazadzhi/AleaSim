@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "AleaSim.Client",
   "resources": {
-    "hash": "sha256-gqP8PCfFW6GpoLT6/5+zAmPl0ML3fr1lXb/JIC8OEM4=",
+    "hash": "sha256-kXvWsQDosUqIGlipbAV6PwfbZpQcs3h681YmnZ+YV0k=",
     "jsModuleNative": {
       "dotnet.native.8.0.13.z4i5tzofpl.js": "sha256-xNQsYHtL1vcbrVTHDZAwJM4WovpoyjsrM2C6FQ8cW1w="
     },
@@ -224,12 +224,12 @@
       "mscorlib.wasm": "sha256-RAf5jgXLg+06C4tJ3CabxAZaVjCN2/+E6fxRjRN8yHk=",
       "netstandard.wasm": "sha256-KCAE8RQwTurP5pGnGF819qf9sK++2O0rXzt6tOjlfi8=",
       "System.Private.CoreLib.wasm": "sha256-LQqLbHgeEX4HONx7GwIxGgmzIXP6n2OPxqnq+/4Tyqk=",
-      "AleaSim.Shared.wasm": "sha256-dHkyLGiBR13Yb9O9YM/cveluDOQzFEaezsOiOv11YSI=",
-      "AleaSim.Client.wasm": "sha256-91kGzVBeTDr0KxtDprJl6ZklEQlSVlTdU86ISwT3H2g="
+      "AleaSim.Shared.wasm": "sha256-PjgDp+V6mHHX9DptqRSScNcQBO1NvWuiERaZ729IaFc=",
+      "AleaSim.Client.wasm": "sha256-dW8IyktlR8mP3GCpRlftgBAZPCFeSa7R7u7q1kBlg/E="
     },
     "pdb": {
-      "AleaSim.Shared.pdb": "sha256-uKh198cIe+WLtsbb+o0b86Ok9gS47QXRmQT0RiKPFCs=",
-      "AleaSim.Client.pdb": "sha256-Q+rE4jEWPPuvEbozGUYXGFA/BQcOp8mlnrWi32GcmnQ="
+      "AleaSim.Shared.pdb": "sha256-XbHTzzQ8bphyxLmwiK9fgXvf95d4zTDfU2/maQ2Co9w=",
+      "AleaSim.Client.pdb": "sha256-I1l8q0cw6rlIAQOS8unZORnqtNZrFcT66Fjyn87RYAU="
     }
   },
   "cacheBootResources": true,

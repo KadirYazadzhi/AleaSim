@@ -1,0 +1,209 @@
+@page "/game/roulette"
+@using System.Text.Json
+@using AleaSim.Shared.Models
+@using AleaSim.Client.Services
+@implements IAsyncDisposable
+@inject IGameService GameService
+@inject AudioService Audio
+@inject RealTimeClient RealTime
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudGrid Justify="Justify.Center">
+        <!-- Result Display -->
+        <MudItem xs="12">
+            <MudPaper Class="pa-6 text-center" Style="background: #0a2a0a; border: 4px solid #d4af37; border-radius: 50% 50% 0 0 / 20% 20% 0 0;">
+                @if (isSpinning)
+                {
+                    <MudProgressCircular Color="Color.Warning" Indeterminate="true" Size="Size.Large" />
+                    <MudText Typo="Typo.h5" Class="mt-2" Style="color: white;">Wheel Spinning...</MudText>
+                }
+                else if (winningNumber.HasValue)
+                {
+                    <div class="result-ball @(GetNumberColor(winningNumber.Value))">
+                        @winningNumber
+                    </div>
+                    <MudText Typo="Typo.h4" Class="mt-2" Style="color: white; font-weight: bold;">
+                        @(winningNumber == 0 ? "ZERO" : GetNumberColor(winningNumber.Value).ToUpper()) WINS!
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.h4" Style="color: #666;">Place your bets!</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <!-- Betting Table -->
+        <MudItem xs="12" lg="9">
+            <MudPaper Class="pa-4" Style="background: #004d00; border: 10px solid #3d2b1f; border-radius: 10px;">
+                <div class="roulette-table">
+                    <!-- Zero -->
+                    <div class="cell zero" @onclick='() => AddBet("number", "0")'>
+                        0
+                        @GetBetBadge("number", "0")
+                    </div>
+                    
+                    <!-- Numbers 1-36 -->
+                    <div class="numbers-grid">
+                        @for (int i = 1; i <= 36; i++)
+                        {
+                            var num = i;
+                            <div class="cell @GetNumberColor(num)" @onclick='() => AddBet("number", num.ToString())'>
+                                @num
+                                @GetBetBadge("number", num.ToString())
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Outside Bets -->
+                    <div class="outside-bets">
+                        <div class="cell red" @onclick='() => AddBet("color", "red")'>RED @GetBetBadge("color", "red")</div>
+                        <div class="cell black" @onclick='() => AddBet("color", "black")'>BLACK @GetBetBadge("color", "black")</div>
+                        <div class="cell even" @onclick='() => AddBet("evenodd", "even")'>EVEN @GetBetBadge("evenodd", "even")</div>
+                        <div class="cell odd" @onclick='() => AddBet("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
+                    </div>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Controls -->
+        <MudItem xs="12" lg="3">
+            <MudPaper Class="pa-6 d-flex flex-column gap-4">
+                <MudText Typo="Typo.h5">Balance: <span style="color: #4caf50;">$@balance.ToString("N2")</span></MudText>
+                
+                <MudNumericField @bind-Value="chipValue" Label="Chip Value" Variant="Variant.Outlined" Min="1" Max="100" />
+                
+                <MudText Typo="Typo.subtitle2">Total Bet: $@currentBets.Sum(x => x.Amount).ToString("N2")</MudText>
+
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           Size="Size.Large" 
+                           OnClick="OnSpin" 
+                           Disabled="@(isSpinning || !currentBets.Any())"
+                           Style="height: 80px; font-weight: bold;">
+                    SPIN WHEEL
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ClearBets" Disabled="isSpinning">
+                    CLEAR ALL
+                </MudButton>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<style>
+    .roulette-table { display: flex; flex-direction: row; color: white; user-select: none; }
+    .zero { width: 60px; display: flex; align-items: center; justify-content: center; background: #008000; border: 1px solid white; cursor: pointer; position: relative; }
+    .numbers-grid { display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(3, 1fr); flex-grow: 1; grid-auto-flow: column; }
+    .cell { height: 60px; border: 1px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; font-weight: bold; }
+    .cell:hover { background: rgba(255,255,255,0.1); }
+    .red { background: #b30000; }
+    .black { background: #1a1a1a; }
+    .even, .odd { background: #004d00; width: 100px; }
+    .outside-bets { display: flex; flex-direction: column; }
+    
+    .result-ball { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 2rem; font-weight: bold; border: 4px solid white; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
+    
+    .bet-badge { position: absolute; top: -5px; right: -5px; background: #ffD700; color: black; border-radius: 50%; width: 24px; height: 24px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border: 2px solid white; font-weight: 900; z-index: 5; }
+</style>
+
+@code {
+    private decimal balance = 0;
+    private decimal chipValue = 5.0m;
+    private int? winningNumber;
+    private bool isSpinning = false;
+    private Guid? sessionId;
+    private List<RouletteBetDto> currentBets = new();
+
+    protected override async Task OnInitializedAsync() {
+        await Audio.Init();
+        await LoadInitialData();
+    }
+
+    private async Task LoadInitialData() {
+        try {
+            var sessionResponse = await GameService.StartSession("roulette");
+            sessionId = sessionResponse.SessionId;
+            var user = await Http.GetFromJsonAsync<UserDto>("api/Auth/me");
+            if (user != null) balance = user.Balance;
+        } catch { }
+    }
+
+    private void AddBet(string type, string value) {
+        if (isSpinning) return;
+        Audio.PlayClick();
+        var existing = currentBets.FirstOrDefault(b => b.Type == type && b.Value == value);
+        if (existing != null) existing.Amount += chipValue;
+        else currentBets.Add(new RouletteBetDto { Type = type, Value = value, Amount = chipValue });
+    }
+
+    private void ClearBets() => currentBets.Clear();
+
+    private async Task OnSpin() {
+        if (sessionId == null || isSpinning || !currentBets.Any()) return;
+        
+        decimal totalWager = currentBets.Sum(x => x.Amount);
+        if (totalWager > balance) {
+            Snackbar.Add("Insufficient balance!", Severity.Warning);
+            return;
+        }
+
+        isSpinning = true;
+        winningNumber = null;
+        StateHasChanged();
+
+        try {
+            await Audio.PlaySpin();
+            var betData = JsonSerializer.Serialize(currentBets);
+            var result = await GameService.PlaceBet("roulette", sessionId.Value, totalWager, betData);
+            
+            // Dramatic wait
+            await Task.Delay(2000);
+
+            var resultData = JsonSerializer.Deserialize<RouletteResult>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            winningNumber = resultData?.WinningNumber;
+            
+            if (result.TotalWin > 0) {
+                Snackbar.Add($"WINNER! Number {winningNumber} paid ${result.TotalWin:N2}", Severity.Success);
+                await Audio.PlayWin();
+            }
+            
+            // Refresh balance
+            var user = await Http.GetFromJsonAsync<UserDto>("api/Auth/me");
+            if (user != null) balance = user.Balance;
+            currentBets.Clear();
+        }
+        catch (Exception ex) {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally {
+            isSpinning = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetNumberColor(int num) {
+        if (num == 0) return "zero";
+        int[] redNumbers = { 1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36 };
+        return redNumbers.Contains(num) ? "red" : "black";
+    }
+
+    private RenderFragment? GetBetBadge(string type, string value) {
+        var bet = currentBets.FirstOrDefault(b => b.Type == type && b.Value == value);
+        if (bet == null) return null;
+        return builder => {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "bet-badge");
+            builder.AddContent(2, bet.Amount.ToString("N0"));
+            builder.CloseElement();
+        };
+    }
+
+    public async ValueTask DisposeAsync() { }
+
+    public class UserDto { public decimal Balance { get; set; } }
+    public class RouletteResult { public int WinningNumber { get; set; } }
+}
