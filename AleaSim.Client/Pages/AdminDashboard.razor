@@ -48,12 +48,26 @@
         <!-- Controls -->
         <MudItem xs="12" md="4">
             <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-4">System Integrity</MudText>
+                @if (integrityResult == null)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Info" OnClick="VerifyIntegrity" FullWidth="true">Run Security Scan</MudButton>
+                }
+                else
+                {
+                    <MudAlert Severity="@(integrityResult.IsValid ? Severity.Success : Severity.Error)" Variant="Variant.Filled" Class="mb-2">
+                        @integrityResult.Message
+                    </MudAlert>
+                    <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="() => integrityResult = null" Size="Size.Small">Reset Scan</MudButton>
+                }
+
+                <MudDivider Class="my-6" />
+
                 <MudText Typo="Typo.h6" Class="mb-4">Global Controls</MudText>
-                
                 <MudSlider T="decimal" @bind-Value="targetRtp" Min="80" Max="99" Step="0.1m" Color="Color.Primary">
                     Target Global RTP: @targetRtp.ToString("F1")%
                 </MudSlider>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="UpdateRtp" Class="mt-2 full-width">Apply RTP</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="UpdateRtp" Class="mt-2" FullWidth="true">Apply RTP</MudButton>
 
                 <MudDivider Class="my-6" />
 
@@ -74,7 +88,7 @@
                     <MudGrid>
                         <MudItem xs="12" md="4">
                             <MudNumericField @bind-Value="simIterations" Label="Iterations" Min="1000" Max="1000000" />
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunSimulation" Class="mt-4">Start 1M Spin Simulation</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunSimulation" Class="mt-4">Start Simulation</MudButton>
                         </MudItem>
                         @if (isSimulating) {
                             <MudItem xs="12" md="8">
@@ -119,6 +133,8 @@
     private decimal targetRtp = 95.0m;
     private int simIterations = 100000;
     private bool isSimulating = false;
+    private SimulationReport? simReport;
+    private IntegrityResponse? integrityResult;
 
     public List<ChartSeries> Series = new() {
         new ChartSeries() { Name = "Actual RTP", Data = new double[] { 94, 96, 92, 95, 98, 93, 95 } }
@@ -127,6 +143,14 @@
 
     protected override async Task OnInitializedAsync() {
         await LoadStats();
+    }
+
+    private async Task VerifyIntegrity() {
+        try {
+            integrityResult = await Http.GetFromJsonAsync<IntegrityResponse>("api/Admin/audit/verify");
+        } catch {
+            Snackbar.Add("Integrity check failed.", Severity.Error);
+        }
     }
 
     private async Task LoadStats() {
@@ -147,19 +171,13 @@
         if (response.IsSuccessStatusCode) await LoadStats();
     }
 
-    private SimulationReport? simReport;
-
     private async Task RunSimulation() {
         isSimulating = true;
         simReport = null;
         StateHasChanged();
 
         try {
-            var request = new SimulationRequest { 
-                GameType = "slot", 
-                Iterations = simIterations, 
-                BetAmount = 1.0m 
-            };
+            var request = new SimulationRequest { GameType = "slot", Iterations = simIterations, BetAmount = 1.0m };
             var response = await Http.PostAsJsonAsync("api/Admin/simulation/run", request);
             if (response.IsSuccessStatusCode) {
                 simReport = await response.Content.ReadFromJsonAsync<SimulationReport>();
@@ -170,5 +188,10 @@
         } finally {
             isSimulating = false;
         }
+    }
+
+    public class IntegrityResponse {
+        public bool IsValid { get; set; }
+        public string Message { get; set; } = "";
     }
 }

@@ -31,6 +31,12 @@ public class AdminController : ControllerBase {
         return Ok(_auditService.GetLogs());
     }
 
+    [HttpGet("audit/verify")]
+    public IActionResult VerifyAuditIntegrity() {
+        bool isValid = _auditService.VerifyIntegrity();
+        return Ok(new { IsValid = isValid, Message = isValid ? "Integrity check passed. All records are secure." : "INTEGRITY BREACH DETECTED! Database tampering suspected." });
+    }
+
     [HttpGet("players/search/{query}")]
     public ActionResult<List<PlayerSearchResultDto>> SearchPlayers(string query) {
         using var scope = HttpContext.RequestServices.CreateScope();
