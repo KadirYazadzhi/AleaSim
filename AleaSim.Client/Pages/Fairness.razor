@@ -66,8 +66,24 @@
     }
 
     private void Verify() {
-        // This is a simplified version of the HMAC-SHA512 logic
-        // In a real Blazor app, we'd use the same DeterministicRngService logic
-        verificationResult = new Random().NextDouble(); // Mock for UI demo
+        if (string.IsNullOrWhiteSpace(verifyServerSeed) || string.IsNullOrWhiteSpace(verifyClientSeed))
+        {
+            Snackbar.Add("Please provide both seeds.", Severity.Warning);
+            return;
+        }
+
+        try {
+            string combo = $"{verifyClientSeed}:{verifyNonce}";
+            using var hmac = new HMACSHA512(Encoding.UTF8.GetBytes(verifyServerSeed));
+            byte[] hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(combo));
+
+            // Use the same logic as DeterministicRngService
+            ulong value = BitConverter.ToUInt64(hash, 0);
+            verificationResult = (double)value / ulong.MaxValue;
+            Snackbar.Add("Result verified successfully!", Severity.Success);
+        }
+        catch (Exception ex) {
+            Snackbar.Add("Verification failed: " + ex.Message, Severity.Error);
+        }
     }
 }

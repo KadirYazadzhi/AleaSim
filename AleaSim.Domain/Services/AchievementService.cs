@@ -5,9 +5,11 @@ namespace AleaSim.Domain.Services;
 
 public class AchievementService : IAchievementService {
     private readonly IRealTimeService _realTimeService;
+    private readonly IVaultService _vaultService;
 
-    public AchievementService(IRealTimeService realTimeService) {
+    public AchievementService(IRealTimeService realTimeService, IVaultService vaultService) {
         _realTimeService = realTimeService;
+        _vaultService = vaultService;
     }
 
     public async Task CheckAchievements(Guid userId, string conditionType, decimal currentValue, IGameRepository repo) {
@@ -30,6 +32,11 @@ public class AchievementService : IAchievementService {
                     UnlockedAt = DateTime.UtcNow
                 };
                 repo.SaveUserAchievement(ua);
+
+                // 3. Award Prize
+                if (ach.RewardAmount > 0) {
+                    _vaultService.CreditBonus(userId, ach.RewardAmount, ach.RewardAmount, repo);
+                }
 
                 // Notify User
                 await _realTimeService.NotifyGameUpdate(userId, new {

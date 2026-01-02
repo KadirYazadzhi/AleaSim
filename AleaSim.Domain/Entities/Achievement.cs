@@ -6,6 +6,7 @@ public class Achievement {
     public string Description { get; set; } = string.Empty;
     public string Icon { get; set; } = string.Empty; // MudBlazor Icon name or Emoji
     public string Category { get; set; } = "General"; // Slots, Roulette, Blackjack, Social
+    public decimal RewardAmount { get; set; } // Cash reward for unlocking
     
     // Condition logic (simplified for prototype)
     public string ConditionType { get; set; } = string.Empty; // "TotalSpins", "BigWinCount", "LevelReached"
