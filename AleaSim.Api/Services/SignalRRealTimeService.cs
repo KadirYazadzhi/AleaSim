@@ -1,6 +1,8 @@
 using AleaSim.Api.Hubs;
 using AleaSim.Domain.Interfaces;
+using AleaSim.Shared.Models; // Added
 using Microsoft.AspNetCore.SignalR;
+using AleaSim.Domain.Entities; // Added
 
 namespace AleaSim.Api.Services;
 
@@ -11,8 +13,14 @@ public class SignalRRealTimeService : IRealTimeService {
         _hubContext = hubContext;
     }
 
-    public async Task NotifyJackpotUpdate(string name, decimal newValue) {
-        await _hubContext.Clients.All.SendAsync("ReceiveJackpotUpdate", new { Name = name, Value = newValue });
+    public async Task NotifyJackpotUpdate(Jackpot jackpot) {
+        var dto = new JackpotDto {
+            Name = jackpot.Name,
+            CurrentValue = jackpot.CurrentValue,
+            MustDropAt = jackpot.MustDropAt,
+            IsGlobal = jackpot.IsGlobal
+        };
+        await _hubContext.Clients.All.SendAsync("ReceiveJackpotUpdate", dto);
     }
 
     public async Task NotifyGameUpdate(Guid userId, object gameState) {

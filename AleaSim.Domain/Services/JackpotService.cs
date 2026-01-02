@@ -19,13 +19,13 @@ public class JackpotService : IJackpotService {
             global.CurrentValue += betAmount * global.ContributionRate;
             global.LastUpdated = DateTime.UtcNow;
             repo.UpdateJackpot(global);
-            _ = _realTimeService.NotifyJackpotUpdate(global.Name, global.CurrentValue); // Fire and forget with notification
+            _ = _realTimeService.NotifyJackpotUpdate(global); 
 
             var local = repo.GetOrCreateLocalJackpot(gameId);
             local.CurrentValue += betAmount * local.ContributionRate;
             local.LastUpdated = DateTime.UtcNow;
             repo.UpdateJackpot(local);
-            _ = _realTimeService.NotifyJackpotUpdate(local.Name, local.CurrentValue); 
+            _ = _realTimeService.NotifyJackpotUpdate(local); 
         }
         await Task.CompletedTask;
     }
@@ -41,7 +41,7 @@ public class JackpotService : IJackpotService {
                 winAmount = local.CurrentValue;
                 local.CurrentValue = 500m; // Reset base
                 repo.UpdateJackpot(local);
-                _ = _realTimeService.NotifyJackpotUpdate(local.Name, local.CurrentValue); 
+                _ = _realTimeService.NotifyJackpotUpdate(local); 
                 return (true, winAmount);
             }
 
@@ -51,7 +51,7 @@ public class JackpotService : IJackpotService {
                 winAmount = global.CurrentValue;
                 global.CurrentValue = 10000m; // Reset base
                 repo.UpdateJackpot(global);
-                _ = _realTimeService.NotifyJackpotUpdate(global.Name, global.CurrentValue); 
+                _ = _realTimeService.NotifyJackpotUpdate(global); 
                 return (true, winAmount);
             }
         }
