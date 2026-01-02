@@ -140,6 +140,25 @@ public class AdminController : ControllerBase {
         return Ok(voucher);
     }
 
+    [HttpGet("vouchers")]
+    public IActionResult GetAllVouchers() {
+        using var scope = HttpContext.RequestServices.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        
+        var vouchers = repo.GetAllVouchers();
+        var result = vouchers.Select(v => new VoucherDto {
+            Id = v.Id,
+            Code = v.Code,
+            Amount = v.Amount,
+            MaxUses = v.MaxUses,
+            CurrentUses = v.CurrentUses,
+            ExpiresAt = v.ExpiresAt,
+            IsActive = v.IsActive
+        }).ToList();
+
+        return Ok(result);
+    }
+
     public record CreateVoucherRequest(string Code, decimal Amount, int MaxUses);
 
     private Guid GetCurrentUserId() {
