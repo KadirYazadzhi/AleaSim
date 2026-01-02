@@ -45,6 +45,14 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9DaGF0Um9vbS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
+[/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Components/JackpotTicker.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9KYWNrcG90VGlja2VyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Components/LeaderboardWidget.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MZWFkZXJib2FyZFdpZGdldC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
 [/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Components/LiveWinnersFeed.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MaXZlV2lubmVyc0ZlZWQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 

@@ -1,0 +1,41 @@
+@using AleaSim.Shared.Models
+@inject HttpClient Http
+
+<MudPaper Class="pa-4" Elevation="2" Style="background: #1a1a1a;">
+    <MudText Typo="Typo.h6" Color="Color.Warning" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Class="mr-2" /> Top Players
+    </MudText>
+
+    @if (rankings == null)
+    {
+        <MudProgressLinear Color="Color.Warning" Indeterminate="true" />
+    }
+    else
+    {
+        <MudList T="string" Dense="true">
+            @foreach (var p in rankings.Take(5))
+            {
+                <MudListItem>
+                    <div class="d-flex justify-space-between align-center">
+                        <MudText Typo="Typo.body2" Style="color: white;">
+                            <span style="color: #ffD700; margin-right: 8px;">#@p.Rank</span> @p.Username
+                        </MudText>
+                        <MudText Typo="Typo.caption" Style="color: #4caf50;">@p.MaxMultiplier.ToString("F1")x</MudText>
+                    </div>
+                </MudListItem>
+            }
+        </MudList>
+        <MudButton Variant="Variant.Text" Color="Color.Inherit" FullWidth="true" Href="/leaderboard" Size="Size.Small">View Full Rankings</MudButton>
+    }
+</MudPaper>
+
+@code {
+    private List<TournamentRankDto>? rankings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try {
+            rankings = await Http.GetFromJsonAsync<List<TournamentRankDto>>("api/Game/leaderboard/tournament");
+        } catch { }
+    }
+}

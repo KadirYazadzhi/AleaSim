@@ -1,0 +1,76 @@
+@using AleaSim.Shared.Models
+@using AleaSim.Client.Services
+@implements IDisposable
+
+<div class="jackpot-ticker @(IsHot ? "hot" : "")">
+    <div class="ticker-label">@Title</div>
+    <div class="ticker-value">
+        $@CurrentValue.ToString("N2")
+    </div>
+    @if (MustDropAt.HasValue)
+    {
+        <div class="ticker-progress">
+            <div class="progress-fill" style="width: @ProgressPercentage%"></div>
+        </div>
+    }
+</div>
+
+<style>
+    .jackpot-ticker {
+        background: #1a1a1a;
+        padding: 15px;
+        border-radius: 10px;
+        border: 2px solid #444;
+        text-align: center;
+        transition: all 0.5s ease;
+    }
+    .jackpot-ticker.hot {
+        background: #4a0000;
+        border-color: #ff4500;
+        animation: ticker-pulse 1s infinite;
+    }
+    .ticker-label { color: #aaa; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; }
+    .ticker-value { color: #ffD700; font-size: 1.8rem; font-weight: 900; font-family: 'Courier New', Courier, monospace; }
+    
+    .ticker-progress { height: 4px; background: #333; margin-top: 8px; border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #ffD700; transition: width 1s ease; }
+    .hot .progress-fill { background: #ff4500; }
+
+    @@keyframes ticker-pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.02); box-shadow: 0 0 15px #ff4500; }
+        100% { transform: scale(1); }
+    }
+</style>
+
+@code {
+    [Parameter] public string Title { get; set; } = "JACKPOT";
+    [Parameter] public decimal CurrentValue { get; set; }
+    [Parameter] public decimal? MustDropAt { get; set; }
+    [Parameter] public bool IsHot { get; set; }
+    [Parameter] public double ProgressPercentage { get; set; }
+
+    [Inject] RealTimeClient RealTime { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        RealTime.OnJackpotUpdated += HandleUpdate;
+    }
+
+    private void HandleUpdate(JackpotDto dto)
+    {
+        if (dto.Name.Contains(Title, StringComparison.OrdinalIgnoreCase) || (Title == "GLOBAL" && dto.IsGlobal))
+        {
+            CurrentValue = dto.CurrentValue;
+            MustDropAt = dto.MustDropAt;
+            IsHot = dto.IsHot;
+            ProgressPercentage = dto.ProgressPercentage;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        RealTime.OnJackpotUpdated -= HandleUpdate;
+    }
+}

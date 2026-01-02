@@ -18,6 +18,22 @@
     <MudGrid>
         <!-- Left Side: Game and Jackpot -->
         <MudItem xs="12" lg="9">
+            <div class="d-flex justify-space-between align-center mb-2 px-2">
+                <div class="d-flex gap-2">
+                    @if (profile?.LuckyCloverLevel > 0) {
+                        <MudTooltip Text='$"Lucky Clover Level {profile.LuckyCloverLevel} active!'>
+                            <MudIcon Icon="@Icons.Material.Filled.AutoFixHigh" Color="Color.Secondary" />
+                        </MudTooltip>
+                    }
+                    @if (profile?.XpBoostLevel > 0) {
+                        <MudTooltip Text='$"XP Boost Level {profile.XpBoostLevel} active!'>
+                            <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Info" />
+                        </MudTooltip>
+                    }
+                </div>
+                <MudText Typo="Typo.caption" Style="color: #666;">SESSION ID: @sessionId?.ToString().Substring(0, 8)</MudText>
+            </div>
+
             <MudPaper Class="pa-4 bg-dark text-center mb-4" Elevation="4" Style="@(jackpot.IsHot ? "background: #4a0000; border: 2px solid #ff4500; animation: pulse-red 1s infinite;" : "background: #2c3e50; border: 2px solid #ffD700;")">
                 <MudText Typo="Typo.h4" Style="color: #ffD700; font-weight: bold; text-shadow: 0 0 10px rgba(255,215,0,0.5);">
                     @jackpot.Name: $@jackpot.CurrentValue.ToString("N2")
@@ -167,6 +183,7 @@
     
     private SlotGameStateUI gameState = new();
     private List<QuestUI> activeQuests = new();
+    private UserProfileResponse? profile;
 
     protected override async Task OnInitializedAsync() {
         for(int r=0; r<4; r++) for(int c=0; c<5; c++) grid[r,c] = 1;
@@ -187,8 +204,8 @@
             var sessionResponse = await GameService.StartSession("slot");
             sessionId = sessionResponse.SessionId;
 
-            var userResponse = await Http.GetFromJsonAsync<UserDto>("api/Auth/me");
-            if (userResponse != null) balance = userResponse.Balance;
+            profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+            if (profile != null) balance = profile.Balance;
             
             activeQuests = await Http.GetFromJsonAsync<List<QuestUI>>("api/Game/quests") ?? new();
         } catch { }
@@ -280,10 +297,16 @@
         RealTime.OnJackpotUpdated -= HandleJackpotUpdate;
     }
 
-    public class QuestUI {
-        public string Description { get; set; } = "";
-        public int TargetValue { get; set; }
-        public int CurrentProgress { get; set; }
+        public class QuestUI {
+
+            public string Description { get; set; } = "";
+
+            public int TargetValue { get; set; }
+
+            public int CurrentProgress { get; set; }
+
+        }
+
     }
-    public class UserDto { public decimal Balance { get; set; } }
-}
+
+    

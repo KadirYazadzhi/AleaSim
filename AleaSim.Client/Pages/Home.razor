@@ -80,12 +80,16 @@
                 <!-- Sidebar Content -->
                 <MudItem xs="12" md="4" lg="3">
                     <MudStack Spacing="4">
+                        <JackpotTicker Title="GLOBAL" CurrentValue="12450.23m" MustDropAt="15000m" ProgressPercentage="83" />
+                        
+                        <LeaderboardWidget />
+
                         <LiveWinnersFeed />
                         
                         <MudPaper Class="pa-4" Elevation="2">
-                            <MudText Typo="Typo.h6">Active Promotions</MudText>
-                            <MudAlert Severity="Severity.Info" Class="mt-2">10% Cashback on all losses today!</MudAlert>
-                            <MudAlert Severity="Severity.Success" Class="mt-2">Level Up Reward: $50 Bonus</MudAlert>
+                            <MudText Typo="Typo.h6">Your Activity</MudText>
+                            <MudAlert Severity="Severity.Info" Class="mt-2" Dense="true">10% Cashback Active</MudAlert>
+                            <MudButton Variant="Variant.Outlined" FullWidth="true" Href="/history" Class="mt-2" Size="Size.Small">View History</MudButton>
                         </MudPaper>
                     </MudStack>
                 </MudItem>

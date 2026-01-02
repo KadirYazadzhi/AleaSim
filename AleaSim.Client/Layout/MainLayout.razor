@@ -2,6 +2,7 @@
 @using Blazored.LocalStorage
 @using AleaSim.Client.Services
 @using AleaSim.Client.Components
+@using AleaSim.Shared.Models
 @inject IAuthService AuthService
 @inject NavigationManager Navigation
 @inject HttpClient Http
@@ -24,46 +25,54 @@
         <AuthorizeView>
             <Authorized>
                 <div class="d-flex align-center gap-4">
-                                        <!-- Settings -->
-                                        <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" OnClick="OpenSettings" />
-                    
-                                        @if (userProfile != null) {
-                                            <div class="d-none d-md-flex align-center mr-2">
-                                                <MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment" Color="Color.Error" Size="Size.Small" />
-                                                <MudText Typo="Typo.subtitle2" Style="color: #ff4500; font-weight: bold;">@userProfile.CurrentStreak d</MudText>
-                                            </div>
-                                            <MudChip T="string" Icon="@GetTierIcon(userProfile.Progression.Tier)" Color="@GetTierColor(userProfile.Progression.Tier)" Variant="Variant.Filled">
-                    
+                    <div class="d-none d-md-flex align-center mr-2">
+                        <MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment" Color="Color.Error" Size="Size.Small" />
+                        <MudText Typo="Typo.subtitle2" Style="color: #ff4500; font-weight: bold;">@userProfile?.CurrentStreak d</MudText>
+                    </div>
 
-                                                @userProfile.Progression.TierName (Lv. @userProfile.Progression.CurrentLevel)
+                    <!-- Settings -->
+                    <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" OnClick="OpenSettings" />
 
-                                            </MudChip>
+                    <!-- Chat Toggle -->
+                    <MudIconButton Icon="@Icons.Material.Filled.Chat" Color="Color.Inherit" OnClick="@((e) => ChatToggle())" />
 
-                                            <MudText Typo="Typo.h6" Color="Color.Success" Class="ml-2">$@userProfile.Balance.ToString("N2")</MudText>
-
-                                        }
-
-                                        <MudMenu AnchorOrigin="Origin.BottomRight">
-
-                                            <ActivatorContent>
-
-                                                <MudAvatar Image="@userProfile?.AvatarUrl" Class="ml-2" />
-
-                                            </ActivatorContent>
-
-                                            <ChildContent>
-
-                                                <MudMenuItem Href="/profile">Profile</MudMenuItem>
-
-                                                <MudMenuItem OnClick="Logout">Logout</MudMenuItem>
-
-                                            </ChildContent>
-
-                                        </MudMenu>
-
+                    <!-- Notifications -->
+                    <MudBadge Content="@NotifService.UnreadCount" Color="Color.Error" Overlap="true" Visible="@(NotifService.UnreadCount > 0)">
+                        <MudMenu Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight">
+                            <MudText Typo="Typo.subtitle2" Class="pa-4">Recent Activity</MudText>
+                            <MudDivider />
+                            @if (!NotifService.History.Any()) {
+                                <MudText Typo="Typo.body2" Class="pa-4" Color="Color.Secondary">No notifications yet.</MudText>
+                            }
+                            @foreach (var item in NotifService.History.Take(5)) {
+                                <MudMenuItem>
+                                    <div style="max-width: 250px;">
+                                        <MudText Typo="Typo.body2" Style="font-weight: bold;">@item.Title</MudText>
+                                        <MudText Typo="Typo.caption" Class="d-block">@item.Message</MudText>
                                     </div>
+                                </MudMenuItem>
+                            }
+                            <MudDivider />
+                            <MudMenuItem OnClick="() => NotifService.MarkAllAsRead()">Mark all as read</MudMenuItem>
+                        </MudMenu>
+                    </MudBadge>
 
-                    
+                    @if (userProfile != null) {
+                        <MudChip T="string" Icon="@GetTierIcon(userProfile.Progression.Tier)" Color="@GetTierColor(userProfile.Progression.Tier)" Variant="Variant.Filled">
+                            @userProfile.Progression.TierName (Lv. @userProfile.Progression.CurrentLevel)
+                        </MudChip>
+                        <MudText Typo="Typo.h6" Color="Color.Success">$@userProfile.Balance.ToString("N2")</MudText>
+                    }
+                    <MudMenu AnchorOrigin="Origin.BottomRight">
+                        <ActivatorContent>
+                            <MudAvatar Image="@userProfile?.AvatarUrl" Class="ml-2" />
+                        </ActivatorContent>
+                        <ChildContent>
+                            <MudMenuItem Href="/profile">Profile</MudMenuItem>
+                            <MudMenuItem OnClick="Logout">Logout</MudMenuItem>
+                        </ChildContent>
+                    </MudMenu>
+                </div>
             </Authorized>
             <NotAuthorized>
                 <MudButton Href="/login" Color="Color.Inherit">Login</MudButton>
@@ -88,7 +97,7 @@
     bool _drawerOpen = true;
     bool _chatOpen = false;
     bool _isDarkMode = true;
-    private UserProfileDto? userProfile;
+    private UserProfileResponse? userProfile;
 
     private MudTheme _theme = new MudTheme() {
         PaletteDark = new PaletteDark() {
@@ -142,7 +151,7 @@
 
     private async Task LoadProfile() {
         try {
-            userProfile = await Http.GetFromJsonAsync<UserProfileDto>("api/Auth/me");
+            userProfile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
         } catch { }
     }
 
@@ -167,7 +176,7 @@
 
     private void OpenSettings() {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
-        DialogService.Show<SettingsDialog>("Settings", options);
+        DialogService.ShowAsync<SettingsDialog>("Settings", options);
     }
 
     private async Task Logout() {
@@ -176,13 +185,5 @@
         RealTime.OnBalanceUpdated -= HandleBalanceUpdate;
         await AuthService.Logout();
         Navigation.NavigateTo("/");
-    }
-
-    public class UserProfileDto {
-        public string Username { get; set; } = "";
-        public decimal Balance { get; set; }
-        public string AvatarUrl { get; set; } = "";
-        public int CurrentStreak { get; set; }
-        public UserProgressionDto Progression { get; set; } = new();
     }
 }
