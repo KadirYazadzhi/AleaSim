@@ -15,6 +15,27 @@
         <AuthorizeView>
             <Authorized>
                 <div class="d-flex align-center gap-4">
+                    <!-- Notifications -->
+                    <MudBadge Content="@NotifService.UnreadCount" Color="Color.Error" Overlap="true" Visible="@(NotifService.UnreadCount > 0)">
+                        <MudMenu Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight">
+                            <MudText Typo="Typo.subtitle2" Class="pa-4">Recent Activity</MudText>
+                            <MudDivider />
+                            @if (!NotifService.History.Any()) {
+                                <MudText Typo="Typo.body2" Class="pa-4" Color="Color.Secondary">No notifications yet.</MudText>
+                            }
+                            @foreach (var item in NotifService.History.Take(5)) {
+                                <MudMenuItem>
+                                    <div style="max-width: 250px;">
+                                        <MudText Typo="Typo.body2" Style="font-weight: bold;">@item.Title</MudText>
+                                        <MudText Typo="Typo.caption" Class="d-block">@item.Message</MudText>
+                                    </div>
+                                </MudMenuItem>
+                            }
+                            <MudDivider />
+                            <MudMenuItem OnClick="() => NotifService.MarkAllAsRead()">Mark all as read</MudMenuItem>
+                        </MudMenu>
+                    </MudBadge>
+
                     @if (userProfile != null) {
                         <MudChip T="string" Icon="@Icons.Material.Filled.Stars" Color="Color.Info">Level @userProfile.Progression.CurrentLevel</MudChip>
                         <MudText Typo="Typo.h6" Color="Color.Success">$@userProfile.Balance.ToString("N2")</MudText>
@@ -55,33 +76,71 @@
 
     [Inject] HttpClient Http { get; set; } = default!;
 
-    [Inject] RealTimeClient RealTime { get; set; } = default!;
+        [Inject] RealTimeClient RealTime { get; set; } = default!;
 
-    [Inject] ISnackbar Snackbar { get; set; } = default!;
+        [Inject] ISnackbar Snackbar { get; set; } = default!;
 
-    [Inject] ILocalStorageService LocalStorage { get; set; } = default!;
+        [Inject] ILocalStorageService LocalStorage { get; set; } = default!;
 
+        [Inject] NotificationService NotifService { get; set; } = default!;
 
+    
 
-    protected override async Task OnInitializedAsync() {
+        protected override async Task OnInitializedAsync() {
 
-        await LoadProfile();
+            NotifService.OnNotificationsChanged += StateHasChanged;
 
-        
+            await LoadProfile();
 
-        // Start SignalR
+            
 
-        var token = await LocalStorage.GetItemAsync<string>("authToken");
+            // Start SignalR
 
-        if (!string.IsNullOrEmpty(token)) {
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
 
-            await RealTime.StartAsync(token);
+            if (!string.IsNullOrEmpty(token)) {
 
-            RealTime.OnBigWinReceived += HandleBigWin;
+                await RealTime.StartAsync(token);
+
+                RealTime.OnBigWinReceived += HandleBigWin;
+
+                RealTime.OnGameUpdateReceived += HandleGameUpdate;
+
+            }
 
         }
 
-    }
+    
+
+        private void HandleGameUpdate(object data) {
+
+            // Parse dynamic signalr data
+
+            var json = data.ToString();
+
+            if (json != null && json.Contains("AchievementUnlocked")) {
+
+                 NotifService.Add("Achievement!", "You unlocked a new badge!", "Success");
+
+            }
+
+            else if (json != null && json.Contains("LevelUp")) {
+
+                 NotifService.Add("Level Up!", "Congratulations on your new rank!", "Info");
+
+            }
+
+            else if (json != null && json.Contains("DailyBonus")) {
+
+                 NotifService.Add("Bonus Received", "Daily cashback/loyalty added.", "Success");
+
+            }
+
+            InvokeAsync(StateHasChanged);
+
+        }
+
+    
 
 
 

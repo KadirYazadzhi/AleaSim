@@ -23,6 +23,7 @@ builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IGameService, GameService>();
 builder.Services.AddScoped<AudioService>();
+builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<RealTimeClient>();
 
 await builder.Build().RunAsync();

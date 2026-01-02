@@ -11,6 +11,7 @@ public class RealTimeClient : IAsyncDisposable {
     public event Action<decimal>? OnBalanceUpdated;
     public event Action<BigWinEventArgs>? OnBigWinReceived;
     public event Action<string, object>? OnLeaderboardUpdated;
+    public event Action<object>? OnGameUpdateReceived; // Added back
 
     public async Task StartAsync(string token) {
         if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected) return;
@@ -27,8 +28,8 @@ public class RealTimeClient : IAsyncDisposable {
         });
 
         _hubConnection.On<object>("ReceiveGameUpdate", (data) => {
-            // Usually contains balance or state
-            // For now, let's look for Balance field in the dynamic object
+            OnGameUpdateReceived?.Invoke(data);
+            
             var json = data.ToString();
             if (json != null && json.Contains("Balance")) {
                 // Simplified: extract balance or just trigger refresh

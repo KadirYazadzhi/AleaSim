@@ -1,0 +1,51 @@
+@using MudBlazor
+
+@if (Visible)
+{
+    <div class="celebration-wrapper">
+        <div class="celebration-content">
+            <MudText Typo="Typo.h1" Class="celebration-text">@Title</MudText>
+            <MudText Typo="Typo.h3" Class="celebration-amount">@Amount.ToString("C2")</MudText>
+            <div class="coins-container">
+                @for (int i = 0; i < 20; i++)
+                {
+                    <div class="coin" style="left: @(rnd.Next(0, 100))%; animation-delay: @(rnd.NextDouble() * 2)s">💰</div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .celebration-wrapper {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.8); z-index: 9999;
+        display: flex; align-items: center; justify-content: center;
+        pointer-events: none;
+    }
+    .celebration-content { text-align: center; animation: zoom-in-out 0.5s ease-out; }
+    .celebration-text { 
+        color: #ffD700; font-weight: 900; text-shadow: 0 0 20px #ffD700, 0 0 40px #ff8c00;
+        letter-spacing: 10px;
+    }
+    .celebration-amount { color: white; font-weight: bold; margin-top: 20px; }
+    
+    .coins-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; }
+    .coin { position: absolute; top: -50px; font-size: 2rem; animation: fall 3s linear infinite; }
+
+    @@keyframes zoom-in-out {
+        0% { transform: scale(0); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    @@keyframes fall {
+        to { transform: translateY(110vh) rotate(360deg); }
+    }
+</style>
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public string Title { get; set; } = "BIG WIN!";
+    [Parameter] public decimal Amount { get; set; }
+    
+    private Random rnd = new();
+}
