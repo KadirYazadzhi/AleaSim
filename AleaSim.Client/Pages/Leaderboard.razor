@@ -1,0 +1,100 @@
+@page "/leaderboard"
+@using AleaSim.Shared.Models
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudPaper Class="pa-8" Elevation="3" Style="border-radius: 20px; background: #fafafa;">
+        <div class="text-center mb-8">
+            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Large" Color="Color.Warning" Style="font-size: 5rem;" />
+            <MudText Typo="Typo.h3" Style="font-weight: 900;">HALL OF FAME</MudText>
+            <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Top performers of the Monthly Grand Tournament</MudText>
+        </div>
+
+        <MudTable Items="@topPlayers" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" Elevation="0" Class="mt-4">
+            <HeaderContent>
+                <MudTh>Rank</MudTh>
+                <MudTh>Player</MudTh>
+                <MudTh Style="text-align: right;">Win Multiplier</MudTh>
+                <MudTh Style="text-align: right;">Total Paid</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Rank">
+                    @if (context.Rank <= 3)
+                    {
+                        <MudChip T="string" Color="@GetRankColor(context.Rank)" Variant="Variant.Filled" Size="Size.Small">#@context.Rank</MudChip>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body1">#@context.Rank</MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Player">
+                    <div class="d-flex align-center">
+                        <MudAvatar Color="Color.Default" Class="mr-3" Size="Size.Small">@context.Username[0].ToString().ToUpper()</MudAvatar>
+                        <MudText Typo="Typo.body1" Style="font-weight: bold;">@context.Username</MudText>
+                    </div>
+                </MudTd>
+                <MudTd DataLabel="Multiplier" Style="text-align: right;">
+                    <MudText Color="Color.Info" Style="font-weight: bold;">@context.MaxMultiplier.ToString("F1")x</MudText>
+                </MudTd>
+                <MudTd DataLabel="Total Paid" Style="text-align: right;">
+                    <MudText Color="Color.Success" Style="font-weight: bold;">$@context.TotalPaid.ToString("N2")</MudText>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-8">
+            Prizes will be distributed automatically on the 30th of the month at 23:59 UTC.
+        </MudAlert>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private List<LeaderboardRow> topPlayers = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLeaderboard();
+    }
+
+    private async Task LoadLeaderboard()
+    {
+        isLoading = true;
+        try
+        {
+            // For now, mock data as the real Redis/DB leaderboard endpoint is being finalized
+            await Task.Delay(800);
+            topPlayers = new List<LeaderboardRow>
+            {
+                new(1, "KadirY", 540.5m, 12450.00m),
+                new(2, "DiamondHunter", 210.2m, 5600.50m),
+                new(3, "LuckyIrish", 185.0m, 3200.00m),
+                new(4, "SlotMaster", 95.4m, 1500.20m),
+                new(5, "Whale_01", 88.0m, 8900.00m),
+                new(6, "Anonymous", 45.2m, 450.00m),
+                new(7, "Grinder99", 33.1m, 120.00m),
+                new(8, "Newbie", 12.5m, 50.00m)
+            };
+        }
+        catch
+        {
+            Snackbar.Add("Failed to load leaderboard.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Color GetRankColor(int rank) => rank switch
+    {
+        1 => Color.Warning, // Gold
+        2 => Color.Default, // Silver
+        3 => Color.Secondary, // Bronze
+        _ => Color.Default
+    };
+
+    private record LeaderboardRow(int Rank, string Username, decimal MaxMultiplier, decimal TotalPaid);
+}

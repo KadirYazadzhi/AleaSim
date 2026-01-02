@@ -37,6 +37,10 @@
       "PackagePath": "staticwebassets/index.html"
     },
     {
+      "Id": "/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/wwwroot/js/audio.js",
+      "PackagePath": "staticwebassets/js/audio.js"
+    },
+    {
       "Id": "/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/wwwroot/sample-data/weather.json",
       "PackagePath": "staticwebassets/sample-data/weather.json"
     },

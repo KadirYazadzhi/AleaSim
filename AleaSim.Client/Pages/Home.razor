@@ -1,40 +1,71 @@
 @page "/"
+@using AleaSim.Client.Components
 @inject NavigationManager Navigation
 
 <PageTitle>AleaSim Casino</PageTitle>
 
 <AuthorizeView>
     <Authorized>
-        <MudContainer MaxWidth="MaxWidth.Large">
-            <MudText Typo="Typo.h3" GutterBottom="true">Welcome back, @context.User.Identity?.Name!</MudText>
-            
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge">
             <MudGrid>
-                <!-- Game Card 1: Clover Chase -->
-                <MudItem xs="12" sm="6" md="4">
-                    <MudCard>
-                        <MudCardMedia Image="https://via.placeholder.com/300x200?text=Clover+Chase" Height="200" />
-                        <MudCardContent>
-                            <MudText Typo="Typo.h5">Clover Chase</MudText>
-                            <MudText Typo="Typo.body2">Classic 5-reel slot with Hold & Win bonus!</MudText>
-                        </MudCardContent>
-                        <MudCardActions>
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/game/cloverchase">Play Now</MudButton>
-                        </MudCardActions>
-                    </MudCard>
+                <!-- Main Lobby Content -->
+                <MudItem xs="12" md="8" lg="9">
+                    <!-- Tournament Banner -->
+                    <MudPaper Class="pa-6 mb-6" Style="background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%); color: white; border-radius: 15px;">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.h4" Style="font-weight: 900;">MONTHLY GRAND TOURNAMENT</MudText>
+                                <MudText Typo="Typo.h6">Current Prize Pool: <span style="color: #ffD700; font-weight: bold;">$20,000.00</span></MudText>
+                                <MudText Typo="Typo.body1" Class="mt-2">Ends in: <b>14 Days, 05:22:10</b></MudText>
+                            </div>
+                            <MudButton Variant="Variant.Filled" Color="Color.Warning" Size="Size.Large" Href="/leaderboard">View Rankings</MudButton>
+                        </div>
+                    </MudPaper>
+
+                    <MudText Typo="Typo.h4" GutterBottom="true" Class="mb-4">Explore Games</MudText>
+                    
+                    <MudGrid>
+                        <!-- Game Card 1: Clover Chase -->
+                        <MudItem xs="12" sm="6" lg="4">
+                            <MudCard Class="hover-card">
+                                <MudCardMedia Image="https://images.unsplash.com/photo-1596838132731-3301c3fd4317?auto=format&fit=crop&w=600&q=80" Height="200" />
+                                <MudCardContent>
+                                    <MudText Typo="Typo.h5">Clover Chase</MudText>
+                                    <MudText Typo="Typo.body2">Hold & Win, Free Spins, and Lucky Nudges!</MudText>
+                                </MudCardContent>
+                                <MudCardActions>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Href="/game/cloverchase">Play Now</MudButton>
+                                </MudCardActions>
+                            </MudCard>
+                        </MudItem>
+
+                        <!-- Game Card 2: Roulette -->
+                        <MudItem xs="12" sm="6" lg="4">
+                            <MudCard Class="hover-card">
+                                <MudCardMedia Image="https://images.unsplash.com/photo-1518893063934-f7142c22732b?auto=format&fit=crop&w=600&q=80" Height="200" />
+                                <MudCardContent>
+                                    <MudText Typo="Typo.h5">Roulette Royale</MudText>
+                                    <MudText Typo="Typo.body2">Classic European rules with high stakes.</MudText>
+                                </MudCardContent>
+                                <MudCardActions>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" FullWidth="true" Disabled="true">Coming Soon</MudButton>
+                                </MudCardActions>
+                            </MudCard>
+                        </MudItem>
+                    </MudGrid>
                 </MudItem>
 
-                <!-- More games placeholders -->
-                <MudItem xs="12" sm="6" md="4">
-                    <MudCard>
-                        <MudCardMedia Image="https://via.placeholder.com/300x200?text=Roulette" Height="200" />
-                        <MudCardContent>
-                            <MudText Typo="Typo.h5">Roulette Royale</MudText>
-                            <MudText Typo="Typo.body2">Coming Soon...</MudText>
-                        </MudCardContent>
-                        <MudCardActions>
-                            <MudButton Variant="Variant.Outlined" Disabled="true">Soon</MudButton>
-                        </MudCardActions>
-                    </MudCard>
+                <!-- Sidebar Content -->
+                <MudItem xs="12" md="4" lg="3">
+                    <MudStack Spacing="4">
+                        <LiveWinnersFeed />
+                        
+                        <MudPaper Class="pa-4" Elevation="2">
+                            <MudText Typo="Typo.h6">Active Promotions</MudText>
+                            <MudAlert Severity="Severity.Info" Class="mt-2">10% Cashback on all losses today!</MudAlert>
+                            <MudAlert Severity="Severity.Success" Class="mt-2">Level Up Reward: $50 Bonus</MudAlert>
+                        </MudPaper>
+                    </MudStack>
                 </MudItem>
             </MudGrid>
         </MudContainer>

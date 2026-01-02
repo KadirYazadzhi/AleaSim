@@ -1,0 +1,53 @@
+@using AleaSim.Client.Services
+@implements IDisposable
+
+<MudPaper Class="pa-4" Elevation="2" Style="max-height: 500px; overflow-y: auto; background: #1a1a1a;">
+    <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.LiveTv" Class="mr-2" /> Live Winners
+    </MudText>
+    
+    <MudList T="string" Dense="true">
+        @if (!winners.Any())
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Waiting for winners...</MudText>
+        }
+        @foreach (var win in winners)
+        {
+            <MudListItem>
+                <div class="d-flex justify-space-between align-center">
+                    <div>
+                        <MudText Typo="Typo.body2" Style="color: white; font-weight: bold;">@win.Username</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@win.GameName</MudText>
+                    </div>
+                    <MudText Typo="Typo.body1" Style="color: #4caf50; font-weight: bold;">$@win.Amount.ToString("N2")</MudText>
+                </div>
+            </MudListItem>
+            <MudDivider DividerType="DividerType.Middle" Class="my-1" />
+        }
+    </MudList>
+</MudPaper>
+
+@code {
+    [Inject] RealTimeClient RealTime { get; set; } = default!;
+    private List<WinEntry> winners = new();
+
+    protected override void OnInitialized()
+    {
+        RealTime.OnBigWinReceived += HandleNewWin;
+    }
+
+    private void HandleNewWin(BigWinEventArgs args)
+    {
+        var entry = new WinEntry(args.Username, args.GameName, args.Amount);
+        winners.Insert(0, entry);
+        if (winners.Count > 10) winners.RemoveAt(10);
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        RealTime.OnBigWinReceived -= HandleNewWin;
+    }
+
+    private record WinEntry(string Username, string GameName, decimal Amount);
+}
