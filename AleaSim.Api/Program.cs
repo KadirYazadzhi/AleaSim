@@ -50,6 +50,7 @@ builder.Services.AddSingleton<IRtpEngine, RtpEngine>();
 builder.Services.AddSingleton<IVaultService, VaultService>(); // New Financial Core
 builder.Services.AddSingleton<IBrainService, BrainService>(); // New Intelligence Core
 builder.Services.AddScoped<IQuestService, QuestService>(); // New Quest System
+builder.Services.AddSingleton<ILeaderboardService, LeaderboardService>(); // New Social System
 builder.Services.AddSingleton<IPromotionService, PromotionService>(); // New Promotions
 builder.Services.AddSingleton<IJackpotService, JackpotService>();
 builder.Services.AddScoped<IAdminService, AdminService>();

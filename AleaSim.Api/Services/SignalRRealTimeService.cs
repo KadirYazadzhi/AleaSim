@@ -23,4 +23,18 @@ public class SignalRRealTimeService : IRealTimeService {
     public async Task NotifyRtpUpdate(Guid gameId, double currentRtp) {
         await _hubContext.Clients.All.SendAsync("ReceiveRtpUpdate", new { GameId = gameId, Rtp = currentRtp });
     }
+
+    public async Task NotifyBigWin(string username, string gameName, decimal amount, decimal multiplier) {
+        await _hubContext.Clients.All.SendAsync("ReceiveBigWin", new { 
+            Username = username, 
+            Game = gameName, 
+            Amount = amount, 
+            Multiplier = multiplier,
+            Message = $"{username} just won {amount:C} ({multiplier:F0}x) on {gameName}!"
+        });
+    }
+
+    public async Task NotifyLeaderboardUpdate(string leaderboardName, object topList) {
+        await _hubContext.Clients.All.SendAsync("ReceiveLeaderboard", new { Name = leaderboardName, Data = topList });
+    }
 }

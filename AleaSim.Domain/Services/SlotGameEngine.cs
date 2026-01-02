@@ -212,24 +212,29 @@ public class SlotGameEngine : BaseGameEngine {
                 
                 PromotionService.ProcessWinActivity(session.UserId, winAmount, repo);
                 
-                // --- QUEST INTEGRATION ---
+                // --- SOCIAL: LEADERBOARD & QUESTS ---
                 try {
+                    // Quests
                     var questService = provider.GetService<IQuestService>();
                     if (questService != null) {
-                        // 1. Generate Quests if missing
                         questService.GenerateDailyQuests(session.UserId, repo);
-                        
-                        // 2. Update Spin Count Quest
                         questService.UpdateProgress(session.UserId, "SpinCount", 1, repo, VaultService);
-                        
-                        // 3. Update Win Amount Quest (if won)
-                        if (winAmount > 0) {
-                            questService.UpdateProgress(session.UserId, "WinAmount", (int)winAmount, repo, VaultService);
+                        if (winAmount > 0) questService.UpdateProgress(session.UserId, "WinAmount", (int)winAmount, repo, VaultService);
+                    }
+
+                    // Leaderboard
+                    if (winAmount > 0) {
+                        var leaderboardService = provider.GetService<ILeaderboardService>();
+                        if (leaderboardService != null) {
+                            var user = repo.GetUser(session.UserId);
+                            if (user != null) {
+                                leaderboardService.SubmitScore(session.UserId, user.Username, winAmount, lastBet.Amount, "Clover Chase");
+                            }
                         }
                     }
                 }
                 catch {
-                     // Quest failures should not break the game round
+                     // Social failures should not break the game round
                 }
 
                 session.GameState = JsonSerializer.Serialize(state);

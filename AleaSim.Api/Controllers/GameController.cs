@@ -74,9 +74,17 @@ public class GameController : ControllerBase {
              
              return Ok(new GameActionResponse(true, "Action processed", newState));
         }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
+                catch (Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+            }
+        
+            [HttpGet("leaderboard/{name}")]
+            public IActionResult GetLeaderboard(string name) {
+                var service = HttpContext.RequestServices.GetService<ILeaderboardService>();
+                if (service == null) return BadRequest("Leaderboard service unavailable");
+                return Ok(service.GetLeaderboard(name));
+            }
         }
-    }
-}
+        
