@@ -96,6 +96,37 @@ public class PromotionService : IPromotionService {
         return new { Type = type, Value = value, Message = message };
     }
 
+    public async Task<object> ClaimDailyStreakReward(Guid userId, IGameRepository repo) {
+        var user = repo.GetUser(userId);
+        if (user == null) throw new Exception("User not found");
+
+        var now = DateTime.UtcNow.Date;
+        if (user.LastStreakClaim.HasValue && user.LastStreakClaim.Value.Date == now) {
+            throw new Exception("Already claimed today's reward!");
+        }
+
+        // Calculate Streak
+        if (user.LastStreakClaim.HasValue && user.LastStreakClaim.Value.Date == now.AddDays(-1)) {
+            user.CurrentStreak++;
+        } else {
+            user.CurrentStreak = 1;
+        }
+
+        user.LastStreakClaim = DateTime.UtcNow;
+        
+        // Reward: $1 * Streak (capped at $50)
+        decimal reward = Math.Min(user.CurrentStreak * 1.0m, 50m);
+        
+        _vaultService.CreditBonus(userId, reward, reward, repo); // 1x Wagering
+        repo.UpdateUser(user);
+
+        return await Task.FromResult(new { 
+            Streak = user.CurrentStreak, 
+            Amount = reward, 
+            Message = $"Day {user.CurrentStreak} Streak! ${reward} Bonus added." 
+        });
+    }
+
     private Guid PickWinner(IEnumerable<PlayerProfile> profiles) {
         var profileList = profiles.ToList();
         if (!profileList.Any()) return Guid.Empty;

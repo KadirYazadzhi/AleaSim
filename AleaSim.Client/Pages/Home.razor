@@ -2,6 +2,8 @@
 @using AleaSim.Client.Components
 @inject NavigationManager Navigation
 @inject IDialogService DialogService
+@inject HttpClient Http
+@inject ISnackbar Snackbar
 
 <PageTitle>AleaSim Casino</PageTitle>
 
@@ -131,8 +133,21 @@
 </AuthorizeView>
 
 @code {
-    private void OpenBonusWheel() {
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
-        DialogService.Show<BonusWheel>("Daily Luck Wheel", options);
+    protected override async Task OnInitializedAsync()
+    {
+        try {
+            var response = await Http.PostAsync("api/Game/streak/claim", null);
+            if (response.IsSuccessStatusCode) {
+                var res = await response.Content.ReadFromJsonAsync<StreakResult>();
+                Snackbar.Add(res?.Message ?? "Daily bonus claimed!", Severity.Success);
+            }
+        } catch { }
     }
+
+    private async Task OpenBonusWheel() {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
+        await DialogService.ShowAsync<BonusWheel>("Daily Luck Wheel", options);
+    }
+
+    public class StreakResult { public int Streak { get; set; } public decimal Amount { get; set; } public string Message { get; set; } = ""; }
 }

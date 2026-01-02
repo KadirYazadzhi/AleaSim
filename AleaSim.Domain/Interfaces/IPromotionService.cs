@@ -16,4 +16,5 @@ public interface IPromotionService {
     
     // Daily Reward
     Task<object> SpinBonusWheel(Guid userId, IGameRepository repo);
+    Task<object> ClaimDailyStreakReward(Guid userId, IGameRepository repo);
 }

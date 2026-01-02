@@ -296,7 +296,11 @@ public class GameController : ControllerBase {
 
     
 
-                [HttpPost("daily-spin")]
+                    [HttpPost("daily-spin")]
+
+    
+
+            
 
     
 
@@ -304,7 +308,11 @@ public class GameController : ControllerBase {
 
     
 
-                public async Task<IActionResult> DailySpin() {
+                    public async Task<IActionResult> DailySpin() {
+
+    
+
+            
 
     
 
@@ -312,7 +320,11 @@ public class GameController : ControllerBase {
 
     
 
-                    try {
+                        try {
+
+    
+
+            
 
     
 
@@ -320,7 +332,11 @@ public class GameController : ControllerBase {
 
     
 
-                        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+                            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+
+    
+
+            
 
     
 
@@ -328,7 +344,11 @@ public class GameController : ControllerBase {
 
     
 
-                        using var scope = _scopeFactory.CreateScope();
+                            using var scope = _scopeFactory.CreateScope();
+
+    
+
+            
 
     
 
@@ -336,7 +356,11 @@ public class GameController : ControllerBase {
 
     
 
-                        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+                            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+
+    
+
+            
 
     
 
@@ -344,7 +368,11 @@ public class GameController : ControllerBase {
 
     
 
-                        var promo = scope.ServiceProvider.GetRequiredService<IPromotionService>();
+                            var promo = scope.ServiceProvider.GetRequiredService<IPromotionService>();
+
+    
+
+            
 
     
 
@@ -352,7 +380,11 @@ public class GameController : ControllerBase {
 
     
 
-                        
+                            
+
+    
+
+            
 
     
 
@@ -360,7 +392,11 @@ public class GameController : ControllerBase {
 
     
 
-                        var result = await promo.SpinBonusWheel(userId, repo);
+                            var result = await promo.SpinBonusWheel(userId, repo);
+
+    
+
+            
 
     
 
@@ -368,7 +404,59 @@ public class GameController : ControllerBase {
 
     
 
-                        return Ok(result);
+                            return Ok(result);
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        }
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        catch (Exception ex) {
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            return BadRequest(ex.Message);
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        }
+
+    
+
+            
 
     
 
@@ -380,11 +468,7 @@ public class GameController : ControllerBase {
 
     
 
-        
-
-    
-
-                    catch (Exception ex) {
+            
 
     
 
@@ -392,7 +476,179 @@ public class GameController : ControllerBase {
 
     
 
-                        return BadRequest(ex.Message);
+                
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                    [HttpPost("streak/claim")]
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                    public async Task<IActionResult> ClaimStreakReward() {
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        try {
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            using var scope = _scopeFactory.CreateScope();
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            var promo = scope.ServiceProvider.GetRequiredService<IPromotionService>();
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            var result = await promo.ClaimDailyStreakReward(userId, repo);
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            return Ok(result);
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        }
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        catch (Exception ex) {
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                            return BadRequest(ex.Message);
+
+    
+
+            
+
+    
+
+        
+
+    
+
+                        }
+
+    
+
+            
 
     
 
@@ -404,11 +660,15 @@ public class GameController : ControllerBase {
 
     
 
+            
+
+    
+
         
 
     
 
-                }
+                
 
     
 

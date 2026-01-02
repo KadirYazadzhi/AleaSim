@@ -19,6 +19,10 @@ public class User {
     // --- Activity Tracking ---
     public DateTime? LastBetTimestamp { get; set; }
     public DateTime? LastDailySpin { get; set; }
+    
+    // --- Streak Tracking ---
+    public int CurrentStreak { get; set; } = 0;
+    public DateTime? LastStreakClaim { get; set; }
 
     public Role Role { get; set; }
     public DateTime CreatedAt { get; set; }
