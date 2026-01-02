@@ -100,6 +100,23 @@ public class DailyBonusBackgroundService : BackgroundService {
                 });
             }
         }
+        // 3. Bonus Expiry (7 Days)
+        var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
+        var expiredUsers = repo.GetUsersWithExpiredBonuses(sevenDaysAgo);
+        
+        foreach (var user in expiredUsers) {
+            _logger.LogInformation("Expiring bonus for User {UserId}: {Amount}", user.Id, user.BonusBalance);
+            user.BonusBalance = 0;
+            user.WageringRequirement = 0;
+            user.WageringProgress = 0;
+            user.BonusLastUpdated = null;
+            repo.UpdateUser(user);
+            
+            await realTime.NotifyGameUpdate(user.Id, new { 
+                Type = "BonusExpired", 
+                Message = "Your unused bonus has expired."
+            });
+        }
         
         _logger.LogInformation("Daily Processing Complete.");
     }

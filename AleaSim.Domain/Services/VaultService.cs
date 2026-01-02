@@ -97,6 +97,7 @@ public class VaultService : IVaultService {
 
         user.BonusBalance += amount;
         user.WageringRequirement += wageringRequirement; // Add to existing requirement
+        user.BonusLastUpdated = DateTime.UtcNow;
         repo.UpdateUser(user);
     }
 

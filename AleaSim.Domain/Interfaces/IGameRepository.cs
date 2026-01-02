@@ -17,6 +17,7 @@ public interface IGameRepository {
     void CreateUser(User user);
     void UpdateUser(User user); // Added generic update
     void UpdateUserBalance(Guid userId, decimal amountToAdd); // Positive to add, negative to subtract
+    IEnumerable<User> GetUsersWithExpiredBonuses(DateTime cutoff);
 
     // Player Profile
     PlayerProfile? GetPlayerProfile(Guid userId);
@@ -61,6 +62,7 @@ public interface IGameRepository {
     // Audit
     void LogAudit(AuditEvent auditEvent);
     IEnumerable<AuditEvent> GetAuditLogs(int count);
+    IEnumerable<AuditEvent> GetAllAuditLogs(); // Added
     string? GetLastAuditHash();
     
     // Game Lookups

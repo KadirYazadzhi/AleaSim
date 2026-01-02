@@ -8,4 +8,7 @@ public class GameSession {
     public DateTime StartedAt { get; set; }
     public DateTime? EndedAt { get; set; }
     public bool IsActive { get; set; }
+    
+    // Serialized state for complex games (e.g., Slot Respins, Blackjack Hand)
+    public string GameState { get; set; } = string.Empty;
 }

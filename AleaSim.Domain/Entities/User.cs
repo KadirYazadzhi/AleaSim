@@ -13,6 +13,7 @@ public class User {
     public decimal BonusBalance { get; set; } = 0m;
     public decimal WageringRequirement { get; set; } = 0m; // Target amount to bet
     public decimal WageringProgress { get; set; } = 0m;   // Amount already bet
+    public DateTime? BonusLastUpdated { get; set; }
     
     // --- Activity Tracking ---
     public DateTime? LastBetTimestamp { get; set; }

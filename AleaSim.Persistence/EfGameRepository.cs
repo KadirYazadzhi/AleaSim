@@ -75,6 +75,12 @@ public class EfGameRepository : IGameRepository {
         _context.SaveChanges();
     }
 
+    public IEnumerable<User> GetUsersWithExpiredBonuses(DateTime cutoff) {
+        return _context.Users
+            .Where(u => u.BonusBalance > 0 && u.BonusLastUpdated != null && u.BonusLastUpdated < cutoff)
+            .ToList();
+    }
+
     public PlayerProfile? GetPlayerProfile(Guid userId) {
         return _context.PlayerProfiles.FirstOrDefault(p => p.UserId == userId);
     }
@@ -314,6 +320,10 @@ public class EfGameRepository : IGameRepository {
 
     public IEnumerable<AuditEvent> GetAuditLogs(int count) {
         return _context.AuditLogs.OrderByDescending(x => x.Timestamp).Take(count).ToList();
+    }
+
+    public IEnumerable<AuditEvent> GetAllAuditLogs() {
+        return _context.AuditLogs.OrderBy(x => x.Timestamp).ToList();
     }
 
     public string? GetLastAuditHash() {

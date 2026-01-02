@@ -55,6 +55,30 @@ public class AuditService : IAuditService {
     }
 
     public bool VerifyIntegrity() {
+        using var scope = _scopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        
+        var logs = repo.GetAllAuditLogs().ToList();
+        if (!logs.Any()) return true;
+
+        string expectedPreviousHash = "GENESIS";
+
+        foreach (var log in logs) {
+            // 1. Check Link: Does PreviousHash match?
+            if (log.PreviousHash != expectedPreviousHash) {
+                return false; // Broken chain link
+            }
+
+            // 2. Check Data: Does Hash match Content?
+            string calculatedHash = CalculateHash(log);
+            if (log.Hash != calculatedHash) {
+                return false; // Data tampering
+            }
+
+            // Update for next iteration
+            expectedPreviousHash = log.Hash;
+        }
+
         return true; 
     }
 

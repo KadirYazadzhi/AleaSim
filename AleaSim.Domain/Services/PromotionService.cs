@@ -82,20 +82,35 @@ public class PromotionService : IPromotionService {
         var profileList = profiles.ToList();
         if (!profileList.Any()) return Guid.Empty;
 
-        // Simple weighted random: Tickets = MonthlyWagered / 50
-        double totalTickets = (double)profileList.Sum(p => p.MonthlyWagered / 50m);
+        // Calculate Tickets: 1 Ticket per 50 units wagered
+        // Use a Dictionary or Tuple list to store Ticket thresholds
+        // Or simpler: Cumulative Probability
+        
+        decimal totalTickets = profileList.Sum(p => Math.Floor(p.MonthlyWagered / 50m));
+        
         if (totalTickets <= 0) {
+            // No one has tickets? Fallback to random uniform pick among actives
             return profileList[new Random().Next(profileList.Count)].UserId;
         }
 
-        double roll = new Random().NextDouble() * totalTickets;
-        double current = 0;
-
+        // Random point between 0 and TotalTickets
+        // Random.NextDouble() returns 0..1
+        decimal winningTicket = (decimal)new Random().NextDouble() * totalTickets;
+        
+        decimal currentTicketCount = 0;
         foreach (var p in profileList) {
-            current += (double)(p.MonthlyWagered / 50m);
-            if (current >= roll) return p.UserId;
+            decimal tickets = Math.Floor(p.MonthlyWagered / 50m);
+            if (tickets <= 0) continue;
+
+            currentTicketCount += tickets;
+            
+            // If the counter crosses the winning ticket number, this user wins
+            if (currentTicketCount >= winningTicket) {
+                return p.UserId;
+            }
         }
 
+        // Fallback (should theoretically not reach here due to math)
         return profileList.Last().UserId;
     }
 }
