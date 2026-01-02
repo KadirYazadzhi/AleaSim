@@ -17,6 +17,7 @@ public class User {
     
     // --- Activity Tracking ---
     public DateTime? LastBetTimestamp { get; set; }
+    public DateTime? LastDailySpin { get; set; }
 
     public Role Role { get; set; }
     public DateTime CreatedAt { get; set; }

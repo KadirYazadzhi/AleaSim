@@ -1,0 +1,78 @@
+@using MudBlazor
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject AudioService Audio
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h5" Align="Align.Center">Daily Luck Wheel</MudText>
+    </TitleContent>
+    <DialogContent>
+        <div class="wheel-container @(isSpinning ? "spinning" : "")">
+            <div class="wheel-pointer">▼</div>
+            <div class="wheel-visual">
+                @foreach (var prize in rewards)
+                {
+                    <div class="wheel-slice">@prize</div>
+                }
+            </div>
+        </div>
+        
+        @if (result != null)
+        {
+            <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="mt-4 animate-bounce">
+                @result.Message
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Spin" Disabled="isSpinning || result != null" FullWidth="true">
+            SPIN FOR FREE!
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .wheel-container { position: relative; width: 250px; height: 250px; margin: 0 auto; overflow: hidden; border-radius: 50%; border: 5px solid #d4af37; background: #222; }
+    .wheel-pointer { position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 10; color: #ffD700; font-size: 2rem; }
+    .wheel-visual { width: 100%; height: 100%; transition: transform 3s cubic-bezier(0.15, 0, 0.15, 1); }
+    .spinning .wheel-visual { transform: rotate(1440deg); }
+    
+    .animate-bounce { animation: bounce 0.5s infinite; }
+    @@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!; // Use interface IMudDialogInstance
+    private bool isSpinning = false;
+    private SpinResult? result;
+    private string[] rewards = { "$5", "XP", "$50", "XP", "$5", "JACKPOT?" };
+
+    private async Task Spin() {
+        isSpinning = true;
+        await Audio.PlaySpin();
+        
+        try {
+            var response = await Http.PostAsync("api/Game/daily-spin", null);
+            if (response.IsSuccessStatusCode) {
+                result = await response.Content.ReadFromJsonAsync<SpinResult>();
+                await Task.Delay(3000); 
+                await Audio.PlayWin();
+            } else {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(error, Severity.Warning);
+                MudDialog.Close();
+            }
+        } catch {
+            Snackbar.Add("Error spinning the wheel.", Severity.Error);
+        } finally {
+            isSpinning = false;
+        }
+    }
+
+    public class SpinResult {
+        public string Type { get; set; } = "";
+        public decimal Value { get; set; }
+        public string Message { get; set; } = "";
+    }
+}

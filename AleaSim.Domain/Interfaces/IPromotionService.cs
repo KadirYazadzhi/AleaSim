@@ -11,13 +11,9 @@ public interface IPromotionService {
     /// </summary>
     void ProcessWinActivity(Guid userId, decimal winAmount, IGameRepository repo);
 
-    /// <summary>
-    /// Executes a raffle draw for a specific prize amount.
-    /// </summary>
-    Task ExecuteRaffleDraw(decimal prizeAmount, string raffleType, IGameRepository repo);
-
-    /// <summary>
-    /// Checks if user is eligible for a drop (Active in last 3 mins).
-    /// </summary>
     bool IsUserActive(Guid userId, IGameRepository repo);
+    Task ExecuteRaffleDraw(decimal prizeAmount, string raffleType, IGameRepository repo);
+    
+    // Daily Reward
+    Task<object> SpinBonusWheel(Guid userId, IGameRepository repo);
 }

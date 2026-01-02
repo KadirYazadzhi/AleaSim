@@ -96,20 +96,102 @@ public class GameController : ControllerBase {
 
     
 
-        [HttpGet("quests")]
+            [HttpGet("quests")]
 
-        public IActionResult GetQuests() {
+    
 
-            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+            public IActionResult GetQuests() {
 
-            using var scope = _scopeFactory.CreateScope();
+    
 
-            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+                var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
 
-            return Ok(repo.GetActiveQuests(userId));
+    
+
+                using var scope = _scopeFactory.CreateScope();
+
+    
+
+                var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+
+    
+
+                return Ok(repo.GetActiveQuests(userId));
+
+    
+
+            }
+
+    
+
+        
+
+    
+
+            [HttpPost("daily-spin")]
+
+    
+
+            public async Task<IActionResult> DailySpin() {
+
+    
+
+                try {
+
+    
+
+                    var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+
+    
+
+                    using var scope = _scopeFactory.CreateScope();
+
+    
+
+                    var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+
+    
+
+                    var promo = scope.ServiceProvider.GetRequiredService<IPromotionService>();
+
+    
+
+                    
+
+    
+
+                    var result = await promo.SpinBonusWheel(userId, repo);
+
+    
+
+                    return Ok(result);
+
+    
+
+                }
+
+    
+
+                catch (Exception ex) {
+
+    
+
+                    return BadRequest(ex.Message);
+
+    
+
+                }
+
+    
+
+            }
+
+    
 
         }
 
-    }
+    
+
+        
 
     

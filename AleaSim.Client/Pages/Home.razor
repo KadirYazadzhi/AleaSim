@@ -1,12 +1,18 @@
 @page "/"
 @using AleaSim.Client.Components
 @inject NavigationManager Navigation
+@inject IDialogService DialogService
 
 <PageTitle>AleaSim Casino</PageTitle>
 
 <AuthorizeView>
     <Authorized>
         <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+            <div class="d-flex justify-space-between align-center mb-4">
+                <MudText Typo="Typo.h4">Welcome back, @context.User.Identity?.Name!</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.RotateRight" OnClick="OpenBonusWheel">Claim Daily Spin</MudButton>
+            </div>
+
             <MudGrid>
                 <!-- Main Lobby Content -->
                 <MudItem xs="12" md="8" lg="9">
@@ -123,3 +129,10 @@
         </MudContainer>
     </NotAuthorized>
 </AuthorizeView>
+
+@code {
+    private void OpenBonusWheel() {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
+        DialogService.Show<BonusWheel>("Daily Luck Wheel", options);
+    }
+}
