@@ -34,6 +34,13 @@ public class SlotGameEngine : BaseGameEngine {
             VaultService.ProcessWin(session.UserId, winAmount, repo);
             BrainService.UpdateProfile(session.UserId, betAmount, winAmount);
 
+            // 4. Global Big Win Notification
+            if (betAmount > 0 && (winAmount / betAmount) >= 100) {
+                var user = repo.GetUser(session.UserId);
+                var gameInfo = repo.GetGame(GameId);
+                _ = RealTimeService.NotifyBigWin(user?.Username ?? "Lucky Player", gameInfo?.Name ?? "Clover Chase", winAmount, winAmount / betAmount);
+            }
+
             var round = new GameRound {
                 Id = Guid.NewGuid(),
                 GameSessionId = sessionId,

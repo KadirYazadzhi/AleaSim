@@ -1,13 +1,16 @@
 @using MudBlazor
+@using System.Timers
 
-@if (Visible)
+@if (visible)
 {
     <div class="celebration-wrapper">
         <div class="celebration-content">
+            <MudText Typo="Typo.h4" Style="color: #ffD700; opacity: 0.8;">@Username JUST WON</MudText>
             <MudText Typo="Typo.h1" Class="celebration-text">@Title</MudText>
-            <MudText Typo="Typo.h3" Class="celebration-amount">@Amount.ToString("C2")</MudText>
+            <MudText Typo="Typo.h2" Class="celebration-amount">@Amount.ToString("C2")</MudText>
+            <MudText Typo="Typo.h5" Style="color: white; margin-top: 10px;">on @GameName</MudText>
             <div class="coins-container">
-                @for (int i = 0; i < 20; i++)
+                @for (int i = 0; i < 30; i++)
                 {
                     <div class="coin" style="left: @(rnd.Next(0, 100))%; animation-delay: @(rnd.NextDouble() * 2)s">💰</div>
                 }
@@ -19,33 +22,56 @@
 <style>
     .celebration-wrapper {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        background: rgba(0,0,0,0.8); z-index: 9999;
+        background: radial-gradient(circle, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.95) 100%); z-index: 10000;
         display: flex; align-items: center; justify-content: center;
         pointer-events: none;
     }
-    .celebration-content { text-align: center; animation: zoom-in-out 0.5s ease-out; }
+    .celebration-content { text-align: center; animation: bounce-in 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
     .celebration-text { 
         color: #ffD700; font-weight: 900; text-shadow: 0 0 20px #ffD700, 0 0 40px #ff8c00;
-        letter-spacing: 10px;
+        letter-spacing: 5px; text-transform: uppercase;
     }
-    .celebration-amount { color: white; font-weight: bold; margin-top: 20px; }
+    .celebration-amount { color: #4caf50; font-weight: bold; margin-top: 10px; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
     
-    .coins-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; }
-    .coin { position: absolute; top: -50px; font-size: 2rem; animation: fall 3s linear infinite; }
+    .coins-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
+    .coin { position: absolute; top: -50px; font-size: 2.5rem; animation: fall 4s linear forwards; }
 
-    @@keyframes zoom-in-out {
-        0% { transform: scale(0); opacity: 0; }
-        100% { transform: scale(1); opacity: 1; }
+    @@keyframes bounce-in {
+        0% { transform: scale(0.3); opacity: 0; }
+        50% { transform: scale(1.05); opacity: 1; }
+        70% { transform: scale(0.9); }
+        100% { transform: scale(1); }
     }
     @@keyframes fall {
-        to { transform: translateY(110vh) rotate(360deg); }
+        to { transform: translateY(110vh) rotate(720deg); }
     }
 </style>
 
 @code {
-    [Parameter] public bool Visible { get; set; }
-    [Parameter] public string Title { get; set; } = "BIG WIN!";
-    [Parameter] public decimal Amount { get; set; }
-    
+    private bool visible = false;
+    private string Title = "BIG WIN!";
+    private decimal Amount = 0;
+    private string Username = "";
+    private string GameName = "";
     private Random rnd = new();
+    private Timer? timer;
+
+    public void Show(string username, string game, decimal amount, decimal multiplier) {
+        Username = username;
+        GameName = game;
+        Amount = amount;
+        Title = multiplier >= 500 ? "JACKPOT WIN!" : multiplier >= 100 ? "MEGA WIN!" : "BIG WIN!";
+        
+        visible = true;
+        StateHasChanged();
+
+        timer?.Stop();
+        timer = new Timer(6000); // Show for 6 seconds
+        timer.Elapsed += (s, e) => {
+            visible = false;
+            InvokeAsync(StateHasChanged);
+            timer.Stop();
+        };
+        timer.Start();
+    }
 }

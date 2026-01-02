@@ -15,6 +15,7 @@
 <MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
 <MudDialogProvider />
 <MudSnackbarProvider />
+<CelebrationOverlay @ref="celebrationOverlay" />
 
 <MudLayout>
     <MudAppBar Elevation="1">
@@ -98,6 +99,7 @@
     bool _chatOpen = false;
     bool _isDarkMode = true;
     private UserProfileResponse? userProfile;
+    private CelebrationOverlay celebrationOverlay = default!;
 
     private MudTheme _theme = new MudTheme() {
         PaletteDark = new PaletteDark() {
@@ -142,6 +144,9 @@
     }
 
     private void HandleBigWin(BigWinEventArgs args) {
+        // Trigger Full Screen Celebration for ALL users
+        celebrationOverlay.Show(args.Username, args.GameName, args.Amount, args.Multiplier);
+
         Snackbar.Add($"{args.Username} just won {args.Amount:C} ({args.Multiplier:F0}x) on {args.GameName}!", 
             Severity.Warning, config => {
                 config.Icon = Icons.Material.Filled.EmojiEvents;
