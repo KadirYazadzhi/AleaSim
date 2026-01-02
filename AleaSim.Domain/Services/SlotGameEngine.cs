@@ -378,43 +378,105 @@ public class SlotGameEngine : BaseGameEngine {
         int[,] grid = new int[Rows, Cols];
         for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) grid[r,c] = -1;
         
-        // 1. Find Primary Win Pattern
-        int bestSymbol = 1;
+        // --- ADVANCED MULTI-LINE SOLVER ---
+        // We try to solve: Sum(Line_Multiplier) = TargetMultiplier
+        // We use a simplified greedy approach for this prototype.
+        
+        decimal remainingMultiplier = targetMultiplier;
+        var usedLines = new List<int>();
+        
+        // 1. Pick a high-value line first
+        int primaryLine = 0; // Always Line 1 for simplicity in positioning
+        
+        // Find best symbol for primary line
+        int bestSym = 1;
         int bestCount = 3;
-        decimal minDiff = decimal.MaxValue;
+        decimal bestPay = 0;
 
-        foreach (var sym in _paytable) {
-            foreach (var pay in sym.Value) {
-                decimal diff = Math.Abs(pay.Value - targetMultiplier);
-                if (diff < minDiff) {
-                    minDiff = diff;
-                    bestSymbol = sym.Key;
+        foreach (var sym in _paytable.OrderByDescending(x => x.Key)) {
+            foreach (var pay in sym.Value.OrderByDescending(x => x.Value)) {
+                if (pay.Value <= remainingMultiplier) {
+                    bestSym = sym.Key;
                     bestCount = pay.Key;
+                    bestPay = pay.Value;
+                    goto FoundPrimary;
                 }
             }
         }
-
-        // 2. Set Primary Win on Line 1
-        int[] line1 = _paylines[0];
-        for (int i = 0; i < bestCount; i++) {
-            grid[line1[i], i] = bestSymbol;
-        }
+        FoundPrimary:
         
-        // Block the next position
-        if (bestCount < Cols) {
-            grid[line1[bestCount], bestCount] = GetSafeBlocker(bestSymbol);
+        // Place primary win
+        for (int i = 0; i < bestCount; i++) grid[_paylines[primaryLine][i], i] = bestSym;
+        if (bestCount < Cols) grid[_paylines[primaryLine][bestCount], bestCount] = GetSafeBlocker(bestSym);
+        
+        remainingMultiplier -= bestPay;
+        usedLines.Add(primaryLine);
+
+        // 2. Try to fill remaining with secondary lines if possible
+        if (remainingMultiplier >= 0.2m) { // Minimum paytable value
+            // Look for another line that doesn't conflict too much with Line 1
+            // conflicting = sharing same (column, row) but requiring different symbols
+            for (int l = 1; l < _paylines.Length; l++) {
+                if (remainingMultiplier < 0.2m) break;
+
+                // Simple check: Does this line share spots with already set spots?
+                bool conflict = false;
+                for (int i = 0; i < Cols; i++) {
+                    int r = _paylines[l][i];
+                    if (grid[r, i] != -1) {
+                        // Spot is occupied. Can we use it?
+                        // Only if we need the same symbol there. 
+                        // For simplicity, if it's occupied by anything, we consider it a constraint.
+                        // We'll only use lines that don't overwrite our primary win.
+                    }
+                }
+
+                // To keep it robust, let's find a symbol that fits the remaining multiplier
+                foreach (var sym in _paytable) {
+                    foreach (var pay in sym.Value) {
+                        if (Math.Abs(pay.Value - remainingMultiplier) < 0.01m) { // Exact match found!
+                            // Try to place this on line 'l'
+                            if (CanPlaceOnLine(grid, l, pay.Key, sym.Key)) {
+                                PlaceOnLine(grid, l, pay.Key, sym.Key);
+                                remainingMultiplier -= pay.Value;
+                                goto NextRemaining;
+                            }
+                        }
+                    }
+                }
+                NextRemaining:;
+            }
         }
 
-        // 3. Fill Remaining Spots SAFELY
-        FillJunkSafely(grid, betPerLine, 0); // Base win is 0 because we haven't calculated primary yet, or should we pass expected?
-        // Actually FillJunkSafely logic checks for *unwanted* wins. The primary win is already on grid, so CalculateTotalWin will see it.
-        // We want NO NEW wins. So currentWinBase = CalculateTotalWin(grid) after step 2.
-        
-        // Note: Since grid has -1, CalculateTotalWin might fail if not handled.
-        // Let's assume FillJunkSafely handles -1.
+        // 3. Final cleanup and safety
+        FillJunkSafely(grid, betPerLine, 0); 
         
         actualWin = CalculateTotalWin(grid, betPerLine);
         return grid;
+    }
+
+    private bool CanPlaceOnLine(int[,] grid, int lineIdx, int count, int symbol) {
+        int[] line = _paylines[lineIdx];
+        for (int i = 0; i < count; i++) {
+            int r = line[i];
+            if (grid[r, i] != -1 && grid[r, i] != symbol && !IsClover(grid[r,i])) return false;
+        }
+        // Block next
+        if (count < Cols) {
+            int rBlock = line[count];
+            if (grid[rBlock, count] == symbol) return false; // Already has it, would increase win count
+        }
+        return true;
+    }
+
+    private void PlaceOnLine(int[,] grid, int lineIdx, int count, int symbol) {
+        int[] line = _paylines[lineIdx];
+        for (int i = 0; i < count; i++) {
+            grid[line[i], i] = symbol;
+        }
+        if (count < Cols) {
+            grid[line[count], count] = GetSafeBlocker(symbol);
+        }
     }
 
     private void FillJunkSafely(int[,] grid, decimal betPerLine, decimal currentWinBase) {
