@@ -2,6 +2,7 @@ using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Models;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json;
 
 namespace AleaSim.Domain.Services;
 
@@ -85,14 +86,22 @@ public class BrainService : IBrainService {
             }
         }
 
-        // --- RULE 2: The Cool Down (Stop them from winning too much) ---
-        // If user is winning too much (pRTP > 150%)
+        // --- RULE 2: The Cool Down ---
         if (profile.ActualRtp > 1.5 && profile.TotalWagered > 100) {
-            // Force a Near Miss (Teaser)
+            // Find favorite symbol for Teaser
+            int? favorite = null;
+            try {
+                var affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile.SymbolAffinityJson);
+                if (affinity != null && affinity.Any()) {
+                    favorite = affinity.OrderByDescending(x => x.Value).First().Key;
+                }
+            } catch { }
+
             return new BrainDirective {
                 DecisionType = "CoolDown",
                 TargetWinAmount = 0,
                 IsNearMiss = true,
+                PreferredNearMissSymbol = favorite ?? 8, // Default to Clover if none
                 Reason = "pRTP too high"
             };
         }
@@ -145,7 +154,19 @@ public class BrainService : IBrainService {
 
         profile.TotalWagered += betAmount;
         profile.TotalPaid += winAmount;
-        profile.NetDeposit = profile.TotalWagered - profile.TotalPaid;
+
+        // Affinity Tracking: If user won, boost the affinity of high-value symbols
+        // For now, we simulate this by looking at win size.
+        // In a real system, we'd pass the winning symbol ID here.
+        if (winAmount > betAmount * 5) {
+            var affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile.SymbolAffinityJson) ?? new();
+            // In CloverChase: 7 and Clover (8) are favorites.
+            // Let's assume for this prototype we boost 7 or 8 based on a simple logic.
+            int favoriteCandidate = (new Random().NextDouble() > 0.5) ? 7 : 8; 
+            if (!affinity.ContainsKey(favoriteCandidate)) affinity[favoriteCandidate] = 0;
+            affinity[favoriteCandidate] += (double)(winAmount / betAmount);
+            profile.SymbolAffinityJson = JsonSerializer.Serialize(affinity);
+        }
         
         if (profile.TotalWagered > 0) {
             profile.ActualRtp = (double)(profile.TotalPaid / profile.TotalWagered);

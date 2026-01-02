@@ -338,17 +338,39 @@ public class SlotGameEngine : BaseGameEngine {
         if (decision.TargetWinAmount > 0) {
             decimal actualWin;
             state.Grid = ConstructGridForWin(decision.TargetWinAmount, betAmount / 15m, out actualWin);
+        } else if (decision.IsNearMiss) {
+            // Personalized Near Miss
+            state.Grid = ConstructNearMissGrid(decision.PreferredNearMissSymbol ?? SYM_SEVEN, betAmount / 15m);
         } else {
             // Losing Spin
-            // Initialize with -1
             for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) state.Grid[r,c] = -1;
             FillJunkSafely(state.Grid, betAmount/15m, 0);
         }
         
-        // Ensure no empty spots left (just in case)
+        // Ensure no empty spots left
         var rnd = new Random(seed);
         for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) 
             if (state.Grid[r,c] == -1) state.Grid[r,c] = _baseSymbols[rnd.Next(_baseSymbols.Length)];
+    }
+
+    private int[,] ConstructNearMissGrid(int favoriteSymbol, decimal betPerLine) {
+        int[,] grid = new int[Rows, Cols];
+        for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) grid[r,c] = -1;
+
+        // Place 2 favorites on Line 1 (Columns 0 and 1)
+        grid[_paylines[0][0], 0] = favoriteSymbol;
+        grid[_paylines[0][1], 1] = favoriteSymbol;
+        
+        // Place one favorite just OFF the line on Column 2
+        int targetRow = _paylines[0][2];
+        int nearMissRow = (targetRow == 0) ? 1 : targetRow - 1;
+        grid[nearMissRow, 2] = favoriteSymbol;
+
+        // Block the actual win line on Col 2
+        grid[targetRow, 2] = GetSafeBlocker(favoriteSymbol);
+
+        FillJunkSafely(grid, betPerLine, 0);
+        return grid;
     }
 
     private int[,] ConstructGridForWin(decimal targetWin, decimal betPerLine, out decimal actualWin) {

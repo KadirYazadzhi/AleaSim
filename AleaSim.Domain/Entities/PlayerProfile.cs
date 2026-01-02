@@ -30,5 +30,8 @@ public class PlayerProfile {
     public double AvgSpinInterval { get; set; } = 5.0; // Seconds
     public DateTime LastSpinTimestamp { get; set; } = DateTime.UtcNow;
 
+    // --- Persona & Affinity ---
+    public string SymbolAffinityJson { get; set; } = "{}"; // Map of SymbolID -> Score
+
     public DateTime LastUpdate { get; set; } = DateTime.UtcNow;
 }
