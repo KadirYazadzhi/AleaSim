@@ -144,6 +144,7 @@ public class SlotGameEngine : BaseGameEngine {
                 bool nudgeTriggered = false;
 
                 // --- MAIN LOGIC FLOW ---
+                string shadowResult = ""; // Local variable to capture shadow decision
                 if (state.IsBonusActive) {
                     PlayBonusSpin(state, betAmount, session.Seed);
                     
@@ -177,6 +178,11 @@ public class SlotGameEngine : BaseGameEngine {
                     // Base Game Spin
                     // Bet already processed in PlaceBet
                     var decision = BrainService.DecideOutcome(session.UserId, session.GameId, betAmount);
+                    
+                    // --- SHADOW MODE (Parallel Testing) ---
+                    var shadowDecision = BrainService.DecideOutcome(session.UserId, session.GameId, betAmount, isShadowMode: true);
+                    shadowResult = JsonSerializer.Serialize(shadowDecision);
+
                     PlayBaseSpin(state, decision, betAmount, session.Seed);
                     winAmount = CalculateTotalWin(state.Grid, betAmount / 15m);
 
@@ -246,6 +252,8 @@ public class SlotGameEngine : BaseGameEngine {
                     RandomResult = JsonSerializer.Serialize(new { Grid = FlattenGrid(state.Grid), BonusSymbols = state.BonusSymbols, Nudge = nudgeTriggered, CoinWin = winAmount }), 
                     TotalBetAmount = isFreeSpin ? 0 : lastBet.Amount,
                     TotalWinAmount = winAmount,
+                    DecisionType = isFreeSpin ? "FreeSpin" : (state.IsRespinActive ? "Respin" : "Base"),
+                    ShadowBrainResult = shadowResult,
                     ExecutedAt = DateTime.UtcNow
                 };
 

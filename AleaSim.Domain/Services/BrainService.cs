@@ -14,44 +14,74 @@ public class BrainService : IBrainService {
         _vaultService = vaultService;
     }
 
-    public BrainDirective DecideOutcome(Guid userId, Guid gameId, decimal betAmount) {
+    public BrainDirective DecideOutcome(Guid userId, Guid gameId, decimal betAmount, bool isShadowMode = false) {
         using var scope = _scopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         
-        var profile = repo.GetPlayerProfile(userId); // We need to add this method to Repo later
+        var profile = repo.GetPlayerProfile(userId); 
         if (profile == null) {
-            // New player, no profile yet. Default to Random.
             return new BrainDirective { DecisionType = "Random" };
         }
 
-        // --- RULE 0: Flow State (Dynamic Difficulty) ---
-        // Fast Play (< 2s) -> High Volatility (Big Wins or Nothing)
-        // Slow Play (> 8s) -> Low Volatility (Frequent Small Wins)
-        if (profile.AvgSpinInterval < 2.0) {
-            // Player is in "The Zone". Don't interrupt with small wins.
-            // Increase volatility: Reject small wins (< 2x)
-            // This is a "Soft Directive" - we might modify random outcome logic later
-             // For now, let's just Log it or bias slightly?
-             // Let's implement bias: If Brain was going to be Random, force a choice?
-             // No, let's keep it simple: If Fast, Brain prefers "WhaleLoss" or "WhaleBonus" (High Volatility)
+        // In Shadow Mode, we simulate a different "Generous" algorithm for testing
+        if (isShadowMode) {
+            if (new Random().NextDouble() < 0.3) {
+                return new BrainDirective { 
+                    DecisionType = "Shadow_GenerousWin", 
+                    TargetWinAmount = betAmount * 5,
+                    Reason = "Testing Generous Algorithm" 
+                };
+            }
+            return new BrainDirective { DecisionType = "Shadow_Random" };
         }
 
-        // --- RULE 1: The Retention Hook (Stop them from leaving) ---
-        // If user lost > 5 times in a row OR session RTP is terrible (< 50%)
-        // Adjusted by Flow: If slow (bored), trigger hook earlier (LossStreak > 4)
-        int retentionThreshold = (profile.AvgSpinInterval > 8.0) ? 4 : 8;
+        // --- RULE 0: Flow State (Dynamic Difficulty) ---
+        // Fast Play (< 2.5s) -> High Volatility (Big Wins or Nothing)
+        // Slow Play (> 7.0s) -> Low Volatility (Frequent Small Wins)
+        bool isInFlow = profile.AvgSpinInterval < 2.5;
+        bool isBored = profile.AvgSpinInterval > 7.0;
+
+        // --- RULE 1: The Retention Hook ---
+        // Adjusted by Flow: If bored, trigger hook earlier
+        int retentionThreshold = isBored ? 4 : 8;
         
         if (profile.LossStreak >= retentionThreshold || (profile.CurrentSessionRtp < 0.5m && profile.TotalWagered > 50)) {
-            // Force a win of 5x - 10x bet
-            decimal targetWin = betAmount * (decimal)(new Random().Next(5, 10));
+            decimal multiplier = isBored ? (decimal)(new Random().Next(2, 5)) : (decimal)(new Random().Next(10, 25));
+            decimal targetWin = betAmount * multiplier;
             
-            // Validation: Can Vault afford this "Bribe"?
             if (_vaultService.CanAffordWin(userId, gameId, targetWin, repo)) {
                 return new BrainDirective {
                     DecisionType = "RetentionHook",
                     TargetWinAmount = targetWin,
-                    Reason = "User Loss Streak High"
+                    Reason = isBored ? "Boredom Recovery" : "Loss Streak Protection"
                 };
+            }
+        }
+
+        // --- RULE 2: Flow State Volatility Modification ---
+        if (isInFlow) {
+            // In Flow: We want big hits. If a random small win was going to happen, 
+            // there's a 70% chance we convert it to a Loss to save for a big one later.
+            if (new Random().NextDouble() < 0.7) {
+                return new BrainDirective { 
+                    DecisionType = "FlowVolatility", 
+                    TargetWinAmount = 0, 
+                    IsNearMiss = true,
+                    Reason = "High Speed Volatility Shift" 
+                };
+            }
+        }
+        else if (isBored) {
+            // Bored: Force a small "Drip" win (1.5x - 3x) even if RNG said Loss
+            if (profile.LossStreak > 2 && new Random().NextDouble() < 0.4) {
+                decimal dripWin = betAmount * (decimal)(1.5 + new Random().NextDouble() * 1.5);
+                if (_vaultService.CanAffordWin(userId, gameId, dripWin, repo)) {
+                    return new BrainDirective {
+                        DecisionType = "BoredomDrip",
+                        TargetWinAmount = dripWin,
+                        Reason = "Engagement Boost"
+                    };
+                }
             }
         }
 

@@ -13,6 +13,8 @@ public class GameRound {
     public string DecisionType { get; set; } = "Random"; // e.g., "RetentionHook", "WhaleBonus", "Random"
     public decimal TargetWinAmount { get; set; } // What the Brain requested
     public Guid? DirectiveId { get; set; }       // Link to Brain log (if any)
+    
+    public string ShadowBrainResult { get; set; } = string.Empty; // What a test Brain would have decided
 
     public DateTime ExecutedAt { get; set; }
 }
