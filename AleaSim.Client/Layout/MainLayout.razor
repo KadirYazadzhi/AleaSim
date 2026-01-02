@@ -86,6 +86,14 @@
             await RealTime.StartAsync(token);
             RealTime.OnBigWinReceived += HandleBigWin;
             RealTime.OnGameUpdateReceived += HandleGameUpdate;
+            RealTime.OnBalanceUpdated += HandleBalanceUpdate;
+        }
+    }
+
+    private void HandleBalanceUpdate(decimal newBalance) {
+        if (userProfile != null) {
+            userProfile.Balance = newBalance;
+            InvokeAsync(StateHasChanged);
         }
     }
 
@@ -140,6 +148,7 @@
     private async Task Logout() {
         RealTime.OnBigWinReceived -= HandleBigWin;
         RealTime.OnGameUpdateReceived -= HandleGameUpdate;
+        RealTime.OnBalanceUpdated -= HandleBalanceUpdate;
         await AuthService.Logout();
         Navigation.NavigateTo("/");
     }

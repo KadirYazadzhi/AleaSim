@@ -28,6 +28,10 @@ public class RealTimeClient : IAsyncDisposable {
             OnJackpotUpdated?.Invoke(dto);
         });
 
+        _hubConnection.On<decimal>("ReceiveBalanceUpdate", (newBalance) => {
+            OnBalanceUpdated?.Invoke(newBalance);
+        });
+
         _hubConnection.On<string, string, DateTime>("ReceiveChatMessage", (user, msg, time) => {
             OnChatMessageReceived?.Invoke(user, msg, time);
         });

@@ -28,6 +28,10 @@ public class SignalRRealTimeService : IRealTimeService {
         await _hubContext.Clients.User(userId.ToString()).SendAsync("ReceiveGameUpdate", gameState);
     }
 
+    public async Task NotifyBalanceUpdate(Guid userId, decimal newBalance) {
+        await _hubContext.Clients.User(userId.ToString()).SendAsync("ReceiveBalanceUpdate", newBalance);
+    }
+
     public async Task NotifyRtpUpdate(Guid gameId, double currentRtp) {
         await _hubContext.Clients.All.SendAsync("ReceiveRtpUpdate", new { GameId = gameId, Rtp = currentRtp });
     }

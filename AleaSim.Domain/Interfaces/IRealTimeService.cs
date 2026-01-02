@@ -5,6 +5,7 @@ namespace AleaSim.Domain.Interfaces;
 public interface IRealTimeService {
     Task NotifyJackpotUpdate(Jackpot jackpot);
     Task NotifyGameUpdate(Guid userId, object gameState);
+    Task NotifyBalanceUpdate(Guid userId, decimal newBalance);
     Task NotifyRtpUpdate(Guid gameId, double currentRtp);
     
     // New Social Features
