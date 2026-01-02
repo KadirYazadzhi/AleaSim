@@ -15,7 +15,7 @@ builder.Services.AddSignalR(); // Added SignalR
 builder.Services.AddCors(options => {
     options.AddPolicy("AllowBlazor",
         policy => policy
-            .WithOrigins("https://localhost:7076", "http://localhost:5286")
+            .SetIsOriginAllowed(_ => true) // Allow any origin for Dev (fixes localhost http vs https mismatches)
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials());
@@ -120,6 +120,7 @@ if (app.Environment.IsDevelopment()) {
 }
 
 // app.UseHttpsRedirection(); // Disabled to fix CORS preflight redirect issue
+app.UseRouting(); // Explicit routing
 app.UseCors("AllowBlazor");
 app.UseAuthentication();
 app.UseAuthorization();
