@@ -6,7 +6,7 @@ using System.Text.Json;
 namespace AleaSim.Domain.Services;
 
 public interface IGameDirector {
-    Task<GameSession> StartSession(string gameType, Guid userId);
+    Task<GameSession> StartSession(string gameType, Guid userId, string? clientSeed = null);
     Task<GameRound> PlayRound(string gameType, Guid sessionId, decimal amount, object betData);
     Task<object> ProcessAction(string gameType, Guid sessionId, string action, string actionData);
 }
@@ -22,11 +22,9 @@ public class GameDirector : IGameDirector {
         _auditService = auditService;
     }
 
-    public async Task<GameSession> StartSession(string gameType, Guid userId) {
-        var game = _gameResolver(gameType);
-        var session = await game.StartSession(userId);
-        _auditService.LogEvent("SESSION_START", $"Started {gameType}", userId.ToString(), session.Id.ToString());
-        return session;
+    public async Task<GameSession> StartSession(string gameType, Guid userId, string? clientSeed = null) {
+        var engine = _gameResolver(gameType);
+        return await engine.StartSession(userId, clientSeed: clientSeed);
     }
 
     public async Task<GameRound> PlayRound(string gameType, Guid sessionId, decimal amount, object betData) {

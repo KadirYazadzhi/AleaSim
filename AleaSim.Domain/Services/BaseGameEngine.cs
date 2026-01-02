@@ -64,13 +64,19 @@ public abstract class BaseGameEngine : IGame {
         action(repo);
     }
 
-    public virtual async Task<GameSession> StartSession(Guid userId, int? seed = null) {
+    public virtual async Task<GameSession> StartSession(Guid userId, int? seed = null, string? clientSeed = null) {
         return await ExecuteScopedAsync(async repo => {
-            int newSeed = seed ?? System.Security.Cryptography.RandomNumberGenerator.GetInt32(int.MinValue, int.MaxValue);
+            string sSeed = ((DeterministicRngService)RngService).GenerateNewServerSeed();
+            string sHash = ((DeterministicRngService)RngService).HashSeed(sSeed);
+            string cSeed = clientSeed ?? Guid.NewGuid().ToString().Substring(0, 8);
+
             var session = new GameSession {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                Seed = newSeed,
+                Seed = seed ?? 0, // Keep legacy field for now
+                ClientSeed = cSeed,
+                ServerSeed = sSeed,
+                ServerSeedHash = sHash,
                 StartedAt = DateTime.UtcNow,
                 IsActive = true,
                 GameId = GetGameId(repo)

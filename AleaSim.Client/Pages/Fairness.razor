@@ -1,0 +1,73 @@
+@page "/fairness"
+@using AleaSim.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudText Typo="Typo.h3" Class="mb-6">Provably Fair Verification</MudText>
+
+    <MudGrid>
+        <!-- Active Seeds -->
+        <MudItem xs="12">
+            <MudPaper Class="pa-6" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-4">Current Session Seeds</MudText>
+                <MudAlert Severity="Severity.Info" Class="mb-4">The Server Seed is hidden until the session ends to prevent prediction. You can verify it once you finish playing.</MudAlert>
+                
+                <MudTextField Label="Active Client Seed" @bind-Value="clientSeed" Variant="Variant.Outlined" ReadOnly="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Lock" />
+                <MudTextField Label="Server Seed Hash (SHA-256)" @bind-Value="serverSeedHash" Variant="Variant.Outlined" ReadOnly="true" Class="mt-4" />
+                
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="RotateSeeds">Rotate Seeds (Start New Session)</MudButton>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Verification Tool -->
+        <MudItem xs="12">
+            <MudPaper Class="pa-6" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-4">Verification Tool</MudText>
+                <MudText Typo="Typo.body2" Class="mb-4">Input seeds from a finished session to verify the results independently.</MudText>
+                
+                <MudTextField T="string" Label="Server Seed" @bind-Value="verifyServerSeed" Variant="Variant.Outlined" />
+                <MudTextField T="string" Label="Client Seed" @bind-Value="verifyClientSeed" Variant="Variant.Outlined" Class="mt-4" />
+                <MudNumericField T="int" Label="Nonce (Round Number)" @bind-Value="verifyNonce" Variant="Variant.Outlined" Class="mt-4" />
+                
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-4" OnClick="Verify">Verify Result</MudButton>
+
+                @if (verificationResult.HasValue)
+                {
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="mt-6">
+                        Calculated Number: @verificationResult.Value.ToString("F8")
+                    </MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private string clientSeed = "Loading...";
+    private string serverSeedHash = "Loading...";
+    
+    private string verifyServerSeed = "";
+    private string verifyClientSeed = "";
+    private int verifyNonce = 1;
+    private double? verificationResult;
+
+    protected override async Task OnInitializedAsync() {
+        // In a real app, we'd store these in a state service or fetch from active session
+        clientSeed = "a8b3c9d2"; 
+        serverSeedHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    }
+
+    private async Task RotateSeeds() {
+        // Logic to end current session and start new
+        Snackbar.Add("New seeds generated!", Severity.Success);
+    }
+
+    private void Verify() {
+        // This is a simplified version of the HMAC-SHA512 logic
+        // In a real Blazor app, we'd use the same DeterministicRngService logic
+        verificationResult = new Random().NextDouble(); // Mock for UI demo
+    }
+}

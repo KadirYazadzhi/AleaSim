@@ -9,6 +9,11 @@ public class GameSession {
     public DateTime? EndedAt { get; set; }
     public bool IsActive { get; set; }
     
+    // --- Provably Fair ---
+    public string ServerSeed { get; set; } = string.Empty; // Secret until end of session
+    public string ClientSeed { get; set; } = string.Empty; // User provided
+    public string ServerSeedHash { get; set; } = string.Empty; // Publicly visible
+    
     // Serialized state for complex games (e.g., Slot Respins, Blackjack Hand)
     public string GameState { get; set; } = string.Empty;
 }

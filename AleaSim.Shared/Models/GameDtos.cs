@@ -2,18 +2,23 @@ namespace AleaSim.Shared.Models;
 
 public class StartSessionRequest {
     public Guid GameId { get; set; }
+    public string? ClientSeed { get; set; }
 }
 
 public class StartSessionResponse {
     public Guid SessionId { get; set; }
     public Guid GameId { get; set; }
     public DateTime StartedAt { get; set; }
+    public string ClientSeed { get; set; } = string.Empty;
+    public string ServerSeedHash { get; set; } = string.Empty;
     
     public StartSessionResponse() {}
-    public StartSessionResponse(Guid sessionId, Guid gameId, DateTime startedAt) {
+    public StartSessionResponse(Guid sessionId, Guid gameId, DateTime startedAt, string clientSeed, string serverSeedHash) {
         SessionId = sessionId;
         GameId = gameId;
         StartedAt = startedAt;
+        ClientSeed = clientSeed;
+        ServerSeedHash = serverSeedHash;
     }
 }
 

@@ -57,6 +57,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQ291bnRlci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
+[/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Pages/Fairness.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvRmFpcm5lc3MucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
 [/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Pages/Games/Blackjack.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXMvR2FtZXMvQmxhY2tqYWNrLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 

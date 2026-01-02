@@ -46,9 +46,9 @@ public class GameController : ControllerBase {
         try {
             var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
             
-            var session = await _gameDirector.StartSession(gameType, userId);
+            var session = await _gameDirector.StartSession(gameType, userId, request.ClientSeed);
             
-            return Ok(new StartSessionResponse(session.Id, session.GameId, session.StartedAt));
+            return Ok(new StartSessionResponse(session.Id, session.GameId, session.StartedAt, session.ClientSeed, session.ServerSeedHash));
         }
         catch (Exception ex) {
             return BadRequest(ex.Message);
