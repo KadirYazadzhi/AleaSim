@@ -7,13 +7,13 @@ public class RealTimeClient : IAsyncDisposable {
     private HubConnection? _hubConnection;
     private readonly string _hubUrl = "http://localhost:5286/gamehub";
 
-    // Events for UI components to subscribe to
     public event Action<string, decimal>? OnJackpotUpdated;
-    public event Action<object>? OnGameUpdateReceived;
-    public event Action<string, string, decimal, decimal>? OnBigWinReceived;
+    public event Action<decimal>? OnBalanceUpdated;
+    public event Action<BigWinEventArgs>? OnBigWinReceived;
+    public event Action<string, object>? OnLeaderboardUpdated;
 
     public async Task StartAsync(string token) {
-        if (_hubConnection != null) return;
+        if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected) return;
 
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(_hubUrl, options => {
@@ -22,17 +22,25 @@ public class RealTimeClient : IAsyncDisposable {
             .WithAutomaticReconnect()
             .Build();
 
-        _hubConnection.On<object>("ReceiveJackpotUpdate", (data) => {
-            // Logic to parse dynamic object or use specific DTO
-            // For now, invoking event
+        _hubConnection.On<string, decimal>("ReceiveJackpotUpdate", (name, value) => {
+            OnJackpotUpdated?.Invoke(name, value);
         });
 
         _hubConnection.On<object>("ReceiveGameUpdate", (data) => {
-            OnGameUpdateReceived?.Invoke(data);
+            // Usually contains balance or state
+            // For now, let's look for Balance field in the dynamic object
+            var json = data.ToString();
+            if (json != null && json.Contains("Balance")) {
+                // Simplified: extract balance or just trigger refresh
+            }
         });
 
-        _hubConnection.On<object>("ReceiveBigWin", (data) => {
-            // Logic to notify
+        _hubConnection.On<string, string, decimal, decimal>("ReceiveBigWin", (username, game, amount, mult) => {
+            OnBigWinReceived?.Invoke(new BigWinEventArgs(username, game, amount, mult));
+        });
+
+        _hubConnection.On<string, object>("ReceiveLeaderboard", (name, data) => {
+            OnLeaderboardUpdated?.Invoke(name, data);
         });
 
         await _hubConnection.StartAsync();
@@ -44,3 +52,5 @@ public class RealTimeClient : IAsyncDisposable {
         }
     }
 }
+
+public record BigWinEventArgs(string Username, string GameName, decimal Amount, decimal Multiplier);

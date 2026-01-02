@@ -2,7 +2,9 @@
 @using System.Text.Json
 @using Blazored.LocalStorage
 @using AleaSim.Client.Models
+@implements IAsyncDisposable
 @inject IGameService GameService
+@inject RealTimeClient RealTime
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject ILocalStorageService LocalStorage
@@ -20,9 +22,6 @@
 
             <MudPaper Class="pa-2" Style="background: #0f0f0f; border: 6px solid #3d2b1f; border-radius: 15px; box-shadow: inset 0 0 50px #000;">
                 <div class="slot-container">
-                    <div class="payline-indicators">
-                        <!-- Visual fluff for paylines could go here -->
-                    </div>
                     <MudGrid Spacing="1">
                         @for (int c = 0; c < 5; c++)
                         {
@@ -125,7 +124,6 @@
     }
     .symbol-high { border: 2px solid #ffD700; background: radial-gradient(circle, #443, #111); }
     .symbol-clover { border: 2px solid #4caf50; animation: pulse 2s infinite; }
-    .symbol-win { transform: scale(1.1); box-shadow: 0 0 20px #ffD700; z-index: 10; }
     
     .spinning { animation: reel-spin 0.1s infinite linear; }
     
@@ -155,25 +153,27 @@
     protected override async Task OnInitializedAsync() {
         for(int r=0; r<4; r++) for(int c=0; c<5; c++) grid[r,c] = 1;
         
+        RealTime.OnJackpotUpdated += HandleJackpotUpdate;
         await LoadInitialData();
+    }
+
+    private void HandleJackpotUpdate(string name, decimal value) {
+        if (name.Contains("Global")) {
+            jackpotValue = value;
+            InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task LoadInitialData() {
         try {
-            // 1. Get Session
             var sessionResponse = await GameService.StartSession("slot");
             sessionId = sessionResponse.SessionId;
 
-            // 2. Get Balance & Quests (Would normally come from a dedicated Profile API)
-            // For now, fetching via HttpClient to existing endpoints
-            var userResponse = await Http.GetFromJsonAsync<UserDto>("api/Auth/me"); // Assuming we have this
+            var userResponse = await Http.GetFromJsonAsync<UserDto>("api/Auth/me");
             if (userResponse != null) balance = userResponse.Balance;
             
-            // 3. Get Quests
             activeQuests = await Http.GetFromJsonAsync<List<QuestUI>>("api/Game/quests") ?? new();
-        } catch {
-            // Handle offline/error
-        }
+        } catch { }
     }
 
     private async Task OnSpin() {
@@ -185,11 +185,8 @@
 
         try {
             var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount);
-            
-            // Wait for "spin" animation
             await Task.Delay(1000);
 
-            // Parse Grid
             var gridData = JsonSerializer.Deserialize<SlotResultGrid>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (gridData != null && gridData.Grid != null) {
                 for (int r = 0; r < 4; r++)
@@ -200,9 +197,6 @@
             lastWin = result.TotalWin;
             balance += lastWin;
             if (!gameState.IsBonusActive) balance -= betAmount;
-
-            // Update local state if needed (usually comes via SignalR but we can sync here)
-            // gameState = ...
         }
         catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
@@ -217,13 +211,13 @@
         if (sessionId == null) return;
         var result = await GameService.PerformAction("slot", sessionId.Value, action);
         if (result.Success) {
-            // Update state
+            // Update UI state
         }
     }
 
     private async Task OnBuyBonus() {
-        var betData = JsonSerializer.Serialize(new { IsFeatureBuy = true });
-        // Similar to OnSpin but with feature buy flag
+        var result = await GameService.PlaceBet("slot", sessionId!.Value, betAmount, "{\"IsFeatureBuy\":true}");
+        await OnSpin(); // Re-use spin logic
     }
 
     private string GetSymbolClass(int id) => id switch {
@@ -241,17 +235,12 @@
             _ => "🍃"
         };
         builder.AddContent(0, emoji);
-        
-        // Show multiplier value for bonus symbols (Bell/Coin)
-        if (id >= 10) {
-            builder.OpenElement(1, "div");
-            builder.AddAttribute(2, "style", "font-size: 0.8rem; color: #ffD700; margin-top: -10px;");
-            builder.AddContent(3, "$5.00"); // Mock value, should come from gridData.BonusSymbols
-            builder.CloseElement();
-        }
     };
 
-    // Sub-models for UI
+    public async ValueTask DisposeAsync() {
+        RealTime.OnJackpotUpdated -= HandleJackpotUpdate;
+    }
+
     public class QuestUI {
         public string Description { get; set; } = "";
         public int TargetValue { get; set; }

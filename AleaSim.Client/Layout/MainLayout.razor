@@ -1,4 +1,6 @@
 @inherits LayoutComponentBase
+@using Blazored.LocalStorage
+@using AleaSim.Client.Services
 
 <MudThemeProvider />
 <MudDialogProvider />
@@ -53,17 +55,59 @@
 
     [Inject] HttpClient Http { get; set; } = default!;
 
+    [Inject] RealTimeClient RealTime { get; set; } = default!;
+
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    [Inject] ILocalStorageService LocalStorage { get; set; } = default!;
+
 
 
     protected override async Task OnInitializedAsync() {
 
-        // We only try to load if there's a token
+        await LoadProfile();
+
+        
+
+        // Start SignalR
+
+        var token = await LocalStorage.GetItemAsync<string>("authToken");
+
+        if (!string.IsNullOrEmpty(token)) {
+
+            await RealTime.StartAsync(token);
+
+            RealTime.OnBigWinReceived += HandleBigWin;
+
+        }
+
+    }
+
+
+
+    private async Task LoadProfile() {
 
         try {
 
             userProfile = await Http.GetFromJsonAsync<UserProfileDto>("api/Auth/me");
 
         } catch { /* Silent fail if not auth yet */ }
+
+    }
+
+
+
+    private void HandleBigWin(BigWinEventArgs args) {
+
+        Snackbar.Add($"{args.Username} just won {args.Amount:C} ({args.Multiplier:F0}x) on {args.GameName}!", 
+
+            Severity.Warning, config => {
+
+                config.Icon = Icons.Material.Filled.EmojiEvents;
+
+                config.VisibleStateDuration = 10000;
+
+            });
 
     }
 
@@ -81,11 +125,15 @@
 
     private async Task Logout() {
 
+        RealTime.OnBigWinReceived -= HandleBigWin;
+
         await AuthService.Logout();
 
         Navigation.NavigateTo("/");
 
     }
+
+
 
 
 
