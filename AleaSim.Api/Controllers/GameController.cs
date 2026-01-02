@@ -1,4 +1,4 @@
-using AleaSim.Api.Models;
+using AleaSim.Shared.Models; // Changed
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -72,19 +72,20 @@ public class GameController : ControllerBase {
         try {
              var newState = await _gameDirector.ProcessAction(gameType, sessionId, request.Action, request.ActionData);
              
-             return Ok(new GameActionResponse(true, "Action processed", newState));
+             // Serialize object to string for DTO
+             string stateJson = JsonSerializer.Serialize(newState);
+             return Ok(new GameActionResponse(true, "Action processed", stateJson));
         }
-                catch (Exception ex)
-                {
-                    return BadRequest(ex.Message);
-                }
-            }
-        
-            [HttpGet("leaderboard/{name}")]
-            public IActionResult GetLeaderboard(string name) {
-                var service = HttpContext.RequestServices.GetService<ILeaderboardService>();
-                if (service == null) return BadRequest("Leaderboard service unavailable");
-                return Ok(service.GetLeaderboard(name));
-            }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
         }
-        
+    }
+
+    [HttpGet("leaderboard/{name}")]
+    public IActionResult GetLeaderboard(string name) {
+        var service = HttpContext.RequestServices.GetService<ILeaderboardService>();
+        if (service == null) return BadRequest("Leaderboard service unavailable");
+        return Ok(service.GetLeaderboard(name));
+    }
+}

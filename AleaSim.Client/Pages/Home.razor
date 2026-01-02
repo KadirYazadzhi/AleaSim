@@ -1,0 +1,66 @@
+@page "/"
+@inject NavigationManager Navigation
+
+<PageTitle>AleaSim Casino</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.Large">
+            <MudText Typo="Typo.h3" GutterBottom="true">Welcome back, @context.User.Identity?.Name!</MudText>
+            
+            <MudGrid>
+                <!-- Game Card 1: Clover Chase -->
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard>
+                        <MudCardMedia Image="https://via.placeholder.com/300x200?text=Clover+Chase" Height="200" />
+                        <MudCardContent>
+                            <MudText Typo="Typo.h5">Clover Chase</MudText>
+                            <MudText Typo="Typo.body2">Classic 5-reel slot with Hold & Win bonus!</MudText>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/game/cloverchase">Play Now</MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+
+                <!-- More games placeholders -->
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard>
+                        <MudCardMedia Image="https://via.placeholder.com/300x200?text=Roulette" Height="200" />
+                        <MudCardContent>
+                            <MudText Typo="Typo.h5">Roulette Royale</MudText>
+                            <MudText Typo="Typo.body2">Coming Soon...</MudText>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Variant="Variant.Outlined" Disabled="true">Soon</MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </Authorized>
+    <NotAuthorized>
+        <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-16 text-center">
+            <MudText Typo="Typo.h2" Color="Color.Primary" Class="mb-4">Welcome to AleaSim</MudText>
+            <MudText Typo="Typo.h5" Class="mb-8">The Next-Gen AI Casino Simulation</MudText>
+            
+            <MudGrid Justify="Justify.Center" Spacing="4">
+                <MudItem>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/login">Login</MudButton>
+                </MudItem>
+                <MudItem>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Large" Href="/register">Register</MudButton>
+                </MudItem>
+            </MudGrid>
+
+            <MudPaper Elevation="0" Class="mt-16 pa-8 bg-transparent">
+                <MudText Typo="Typo.h6">Features:</MudText>
+                <MudList T="string" Dense="true">
+                    <MudListItem Icon="@Icons.Material.Filled.SmartToy">AI-Driven Odds</MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Speed">Dynamic Flow State</MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.EmojiEvents">Daily Quests & RPG Leveling</MudListItem>
+                </MudList>
+            </MudPaper>
+        </MudContainer>
+    </NotAuthorized>
+</AuthorizeView>

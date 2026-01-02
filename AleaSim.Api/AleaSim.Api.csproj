@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AleaSim.Domain\AleaSim.Domain.csproj" />
     <ProjectReference Include="..\AleaSim.Persistence\AleaSim.Persistence.csproj" />
+    <ProjectReference Include="..\AleaSim.Shared\AleaSim.Shared.csproj" />
   </ItemGroup>
 
 </Project>

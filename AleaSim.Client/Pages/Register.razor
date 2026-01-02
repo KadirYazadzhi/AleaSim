@@ -1,0 +1,43 @@
+@page "/register"
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5" Align="Align.Center">Join AleaSim</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudForm @bind-IsValid="@success">
+                <MudTextField T="string" Label="Username" Required="true" @bind-Value="model.Username" />
+                <MudTextField T="string" Label="Email" Required="true" InputType="InputType.Email" @bind-Value="model.Email" />
+                <MudTextField T="string" Label="Password" InputType="InputType.Password" Required="true" @bind-Value="model.Password" />
+            </MudForm>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(!success)" OnClick="OnRegister" Class="ml-auto">Register</MudButton>
+        </MudCardActions>
+    </MudCard>
+    <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
+        Already have an account? <MudLink Href="/login">Login here</MudLink>
+    </MudText>
+</MudContainer>
+
+@code {
+    RegisterRequest model = new RegisterRequest("", "", "");
+    bool success;
+
+    private async Task OnRegister() {
+        try {
+            await AuthService.Register(model);
+            Snackbar.Add("Registration successful! Please login.", Severity.Success);
+            Navigation.NavigateTo("/login");
+        }
+        catch (Exception ex) {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

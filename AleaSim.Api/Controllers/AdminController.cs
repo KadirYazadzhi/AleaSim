@@ -1,4 +1,4 @@
-using AleaSim.Api.Models;
+using AleaSim.Shared.Models; // Changed from AleaSim.Api.Models
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Models;
 using Microsoft.AspNetCore.Authorization;

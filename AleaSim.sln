@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AleaSim.Persistence", "Alea
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AleaSim.Api", "AleaSim.Api\AleaSim.Api.csproj", "{22E177B3-B2BC-454E-B21C-0C1A485217C6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AleaSim.Shared", "AleaSim.Shared\AleaSim.Shared.csproj", "{5C999BDE-70E1-4F02-84C8-BE7CB13350C0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AleaSim.Client", "AleaSim.Client\AleaSim.Client.csproj", "{041CF1F1-73B3-4D68-93A6-A561A3D0F623}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +34,13 @@ Global
 		{22E177B3-B2BC-454E-B21C-0C1A485217C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{22E177B3-B2BC-454E-B21C-0C1A485217C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{22E177B3-B2BC-454E-B21C-0C1A485217C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C999BDE-70E1-4F02-84C8-BE7CB13350C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C999BDE-70E1-4F02-84C8-BE7CB13350C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C999BDE-70E1-4F02-84C8-BE7CB13350C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C999BDE-70E1-4F02-84C8-BE7CB13350C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{041CF1F1-73B3-4D68-93A6-A561A3D0F623}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{041CF1F1-73B3-4D68-93A6-A561A3D0F623}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{041CF1F1-73B3-4D68-93A6-A561A3D0F623}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{041CF1F1-73B3-4D68-93A6-A561A3D0F623}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

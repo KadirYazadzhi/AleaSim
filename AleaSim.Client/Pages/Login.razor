@@ -1,0 +1,43 @@
+@page "/login"
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5" Align="Align.Center">AleaSim Login</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudForm @bind-IsValid="@success" @bind-Errors="@errors">
+                <MudTextField T="string" Label="Username" Required="true" RequiredError="Username is required!" @bind-Value="model.Username" />
+                <MudTextField T="string" Label="Password" InputType="InputType.Password" Required="true" RequiredError="Password is required!" @bind-Value="model.Password" />
+            </MudForm>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!success)" OnClick="OnLogin" Class="ml-auto">Login</MudButton>
+        </MudCardActions>
+    </MudCard>
+    <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
+        Don't have an account? <MudLink Href="/register">Register here</MudLink>
+    </MudText>
+</MudContainer>
+
+@code {
+    LoginRequest model = new LoginRequest("", "");
+    bool success;
+    string[] errors = { };
+
+    private async Task OnLogin() {
+        try {
+            await AuthService.Login(model);
+            Snackbar.Add("Login successful!", Severity.Success);
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception ex) {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

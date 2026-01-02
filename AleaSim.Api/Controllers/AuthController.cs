@@ -1,4 +1,4 @@
-using AleaSim.Api.Models;
+using AleaSim.Shared.Models; // Changed
 using AleaSim.Domain.Enums;
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;

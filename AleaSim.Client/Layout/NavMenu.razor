@@ -1,0 +1,26 @@
+<MudNavMenu>
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+    
+    <AuthorizeView>
+        <Authorized>
+            <MudNavLink Href="game/cloverchase" Icon="@Icons.Material.Filled.Casino">Clover Chase</MudNavLink>
+            
+            @if (context.User.IsInRole("Admin"))
+            {
+                <MudNavLink Href="dashboard" Icon="@Icons.Material.Filled.Dashboard">Admin Dashboard</MudNavLink>
+            }
+            
+            <MudNavLink OnClick="Logout" Icon="@Icons.Material.Filled.Logout">Logout</MudNavLink>
+        </Authorized>
+    </AuthorizeView>
+</MudNavMenu>
+
+@code {
+    [Inject] IAuthService AuthService { get; set; } = default!;
+    [Inject] NavigationManager Navigation { get; set; } = default!;
+
+    private async Task Logout() {
+        await AuthService.Logout();
+        Navigation.NavigateTo("/login");
+    }
+}
