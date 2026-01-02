@@ -37,6 +37,20 @@ public abstract class BaseGameEngine : IGame {
         await action(repo);
     }
 
+    // New: Allows accessing other scoped services (e.g., IQuestService)
+    protected async Task ExecuteScopedAsync(Func<IGameRepository, IServiceProvider, Task> action) {
+        using var scope = ScopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        await action(repo, scope.ServiceProvider);
+    }
+    
+    // New: Generic version
+    protected async Task<T> ExecuteScopedAsync<T>(Func<IGameRepository, IServiceProvider, Task<T>> action) {
+        using var scope = ScopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        return await action(repo, scope.ServiceProvider);
+    }
+
     // Synchronous versions for internal logic if needed
     protected T ExecuteScoped<T>(Func<IGameRepository, T> action) {
         using var scope = ScopeFactory.CreateScope();

@@ -109,7 +109,8 @@ public class SlotGameEngine : BaseGameEngine {
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
-        return await ExecuteScopedAsync(async repo => {
+        // Use the new overload providing ServiceProvider
+        return await ExecuteScopedAsync(async (repo, provider) => {
             using var transaction = repo.BeginTransaction();
             try {
                 var session = repo.GetSession(sessionId);
@@ -210,6 +211,26 @@ public class SlotGameEngine : BaseGameEngine {
                 }
                 
                 PromotionService.ProcessWinActivity(session.UserId, winAmount, repo);
+                
+                // --- QUEST INTEGRATION ---
+                try {
+                    var questService = provider.GetService<IQuestService>();
+                    if (questService != null) {
+                        // 1. Generate Quests if missing
+                        questService.GenerateDailyQuests(session.UserId, repo);
+                        
+                        // 2. Update Spin Count Quest
+                        questService.UpdateProgress(session.UserId, "SpinCount", 1, repo, VaultService);
+                        
+                        // 3. Update Win Amount Quest (if won)
+                        if (winAmount > 0) {
+                            questService.UpdateProgress(session.UserId, "WinAmount", (int)winAmount, repo, VaultService);
+                        }
+                    }
+                }
+                catch {
+                     // Quest failures should not break the game round
+                }
 
                 session.GameState = JsonSerializer.Serialize(state);
                 

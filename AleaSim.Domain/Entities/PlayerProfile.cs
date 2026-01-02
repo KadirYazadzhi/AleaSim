@@ -25,5 +25,10 @@ public class PlayerProfile {
     // --- Session State ---
     public decimal CurrentSessionRtp { get; set; }
     public int LossStreak { get; set; }
+    
+    // --- Flow State ---
+    public double AvgSpinInterval { get; set; } = 5.0; // Seconds
+    public DateTime LastSpinTimestamp { get; set; } = DateTime.UtcNow;
+
     public DateTime LastUpdate { get; set; } = DateTime.UtcNow;
 }

@@ -368,6 +368,26 @@ public class EfGameRepository : IGameRepository {
                   (stats, user) => (user.Username, stats.TotalWin));
     }
 
+    public IEnumerable<Quest> GetActiveQuests(Guid userId) {
+        return _context.Quests
+            .Where(q => q.UserId == userId && q.Status != QuestStatus.Claimed && q.Status != QuestStatus.Expired && q.ExpiresAt > DateTime.UtcNow)
+            .ToList();
+    }
+
+    public Quest? GetQuest(Guid questId) {
+        return _context.Quests.Find(questId);
+    }
+
+    public void CreateQuest(Quest quest) {
+        _context.Quests.Add(quest);
+        _context.SaveChanges();
+    }
+
+    public void UpdateQuest(Quest quest) {
+        _context.Quests.Update(quest);
+        _context.SaveChanges();
+    }
+
     public string GetGlobalSetting(string key) {
         var setting = _context.GlobalSettings.Find(key);
         return setting?.Value ?? string.Empty;

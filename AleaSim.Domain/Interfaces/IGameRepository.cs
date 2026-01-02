@@ -77,6 +77,12 @@ public interface IGameRepository {
     int GetActivePlayerCount(int minutes);
     IEnumerable<(string Username, decimal TotalWin)> GetTopWinners(DateTime date, int topCount);
 
+    // Quests
+    IEnumerable<Quest> GetActiveQuests(Guid userId);
+    Quest? GetQuest(Guid questId);
+    void CreateQuest(Quest quest);
+    void UpdateQuest(Quest quest);
+
     // Global Settings
     string GetGlobalSetting(string key);
     void SetGlobalSetting(string key, string value, string description = "");

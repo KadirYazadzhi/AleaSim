@@ -17,6 +17,7 @@ public class AleaSimDbContext : DbContext {
     public DbSet<RTPStatistics> RTPStatistics { get; set; }
     public DbSet<AuditEvent> AuditLogs { get; set; }
     public DbSet<GlobalSetting> GlobalSettings { get; set; }
+    public DbSet<Quest> Quests { get; set; }
 
     public AleaSimDbContext(DbContextOptions<AleaSimDbContext> options) : base(options) {
     }
