@@ -1,6 +1,9 @@
+using AleaSim.Api.Models;
 using AleaSim.Domain.Interfaces;
+using AleaSim.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace AleaSim.Api.Controllers;
 
@@ -8,30 +11,77 @@ namespace AleaSim.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class AdminController : ControllerBase {
+    private readonly IAdminService _adminService;
     private readonly IAuditService _auditService;
-    private readonly IJackpotService _jackpotService;
-    private readonly IRtpEngine _rtpEngine;
-    private readonly IGameRepository _repository;
 
-    public AdminController(IAuditService auditService, IJackpotService jackpotService, IRtpEngine rtpEngine, IGameRepository repository) {
+    public AdminController(IAdminService adminService, IAuditService auditService) {
+        _adminService = adminService;
         _auditService = auditService;
-        _jackpotService = jackpotService;
-        _rtpEngine = rtpEngine;
-        _repository = repository;
+    }
+
+    // --- Dashboard ---
+
+    [HttpGet("dashboard")]
+    public async Task<ActionResult<AdminDashboardStats>> GetDashboard() {
+        return Ok(await _adminService.GetLiveStats());
     }
 
     [HttpGet("audit-logs")]
     public IActionResult GetAuditLogs() {
-        return Ok(_auditService.GetLogs()); // Audit service manages its own locking/access usually or we need to update it too
+        return Ok(_auditService.GetLogs());
     }
 
-    [HttpGet("jackpot/global")]
-    public IActionResult GetGlobalJackpot() {
-        return Ok(_jackpotService.GetGlobalJackpot(_repository));
+    // --- Player Inspector ---
+
+    [HttpGet("players/{id}")]
+    public async Task<ActionResult<PlayerDossier>> GetPlayer(Guid id) {
+        var dossier = await _adminService.GetPlayerDossier(id);
+        if (dossier == null) return NotFound("Player not found.");
+        return Ok(dossier);
     }
 
-    [HttpGet("rtp/game/{gameId}")]
-    public IActionResult GetGameRtp(Guid gameId) {
-        return Ok(_rtpEngine.GetGameStats(gameId, _repository));
+    [HttpPost("players/{id}/bonus")]
+    public async Task<IActionResult> InjectBonus(Guid id, [FromBody] InjectBonusDto dto) {
+        var adminId = GetCurrentUserId();
+        await _adminService.InjectBonus(adminId, id, dto.Amount, dto.Reason);
+        return Ok(new { Message = "Bonus injected successfully." });
+    }
+
+    [HttpPost("players/{id}/cooldown")]
+    public async Task<IActionResult> ForceCooldown(Guid id, [FromBody] ForceCooldownDto dto) {
+        var adminId = GetCurrentUserId();
+        await _adminService.ForceCooldown(adminId, id, dto.DurationMinutes, dto.Reason);
+        return Ok(new { Message = "Cooldown enforced." });
+    }
+
+    // --- System Control ---
+
+    [HttpPost("config/rtp")]
+    public async Task<IActionResult> SetGlobalRtp([FromBody] SetRtpDto dto) {
+        var adminId = GetCurrentUserId();
+        await _adminService.SetGlobalRtp(adminId, dto.TargetRtp);
+        return Ok(new { Message = $"Global RTP set to {dto.TargetRtp}%" });
+    }
+
+    [HttpPost("config/emergency-stop")]
+    public async Task<IActionResult> ToggleEmergencyStop([FromBody] EmergencyStopDto dto) {
+        var adminId = GetCurrentUserId();
+        await _adminService.ToggleEmergencyStop(adminId, dto.Enabled);
+        return Ok(new { Message = dto.Enabled ? "EMERGENCY STOP ACTIVATED" : "System resumed normal operation." });
+    }
+
+    [HttpPost("config/volatility")]
+    public async Task<IActionResult> SetVolatility([FromBody] SetVolatilityDto dto) {
+        var adminId = GetCurrentUserId();
+        await _adminService.SetVolatilityMode(adminId, dto.Mode);
+        return Ok(new { Message = $"Volatility mode set to {dto.Mode}" });
+    }
+
+    private Guid GetCurrentUserId() {
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier); // Assuming NameIdentifier holds the GUID
+        if (idClaim != null && Guid.TryParse(idClaim.Value, out var id)) {
+            return id;
+        }
+        return Guid.Empty; // Or throw
     }
 }

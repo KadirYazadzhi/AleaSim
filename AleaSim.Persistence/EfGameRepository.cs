@@ -32,12 +32,30 @@ public class EfGameRepository : IGameRepository {
     }
 
     public void EndSession(Guid sessionId) {
-        var session = _context.GameSessions.FirstOrDefault(s => s.Id == sessionId);
+        var session = GetSession(sessionId);
         if (session != null) {
-            session.IsActive = false;
             session.EndedAt = DateTime.UtcNow;
+            session.IsActive = false;
             _context.SaveChanges();
         }
+    }
+
+    public Game? GetGame(Guid gameId) {
+        return _context.Games.Find(gameId);
+    }
+
+    public Game? GetGameByType(string gameType) {
+        return _context.Games.FirstOrDefault(g => g.Type == gameType);
+    }
+
+    public void CreateGame(Game game) {
+        _context.Games.Add(game);
+        _context.SaveChanges();
+    }
+
+    public void UpdateGame(Game game) {
+        _context.Games.Update(game);
+        _context.SaveChanges();
     }
 
     public User? GetUser(Guid userId) {
@@ -142,28 +160,7 @@ public class EfGameRepository : IGameRepository {
         var start = date.Date;
         var end = start.AddDays(1);
 
-        // Fetch bets for the day
-        var dailyBets = _context.Bets
-            .Where(b => b.CreatedAt >= start && b.CreatedAt < end)
-            .GroupBy(b => b.UserId)
-            .Select(g => new { UserId = g.Key, TotalBet = g.Sum(x => x.Amount) })
-            .ToList();
-
-        // Fetch wins (Outcomes) via Rounds for the day
-        // Rounds have ExecutedAt
-        var dailyWins = _context.GameRounds
-            .Where(r => r.ExecutedAt >= start && r.ExecutedAt < end)
-            .GroupBy(r => _context.GameSessions.FirstOrDefault(s => s.Id == r.GameSessionId)!.UserId) // Potential N+1 issue, optimizing below
-            // Optimization: GameRound doesn't have UserId directly. It has SessionId. Session has UserId.
-            // Better to join.
-            // Let's retry with a cleaner LINQ query on Bets since we have UserId there, 
-            // but Wins are in Rounds.
-            // Alternative: Use Rounds for both Win and Bet (since Round has TotalBetAmount).
-            .Select(g => new { UserId = g.Key, TotalWin = g.Sum(x => x.TotalWinAmount), TotalBet = g.Sum(x => x.TotalBetAmount) })
-            .ToList();
-            
-        // Correct optimized query: Use GameRound which has everything we need
-        // BUT GameRound doesn't have UserId. We need to join GameSession.
+        // Optimized query joining GameRounds to GameSessions
         var stats = _context.GameRounds
             .Where(r => r.ExecutedAt >= start && r.ExecutedAt < end)
             .Join(_context.GameSessions, 
@@ -247,8 +244,6 @@ public class EfGameRepository : IGameRepository {
     }
 
     public void UpdateRtpStats(Guid gameId, Guid userId, decimal bet, decimal win) {
-        // Here we rely on tracking. If we fetched them before in same scope, they are tracked.
-        // We re-fetch to be safe or use attached entities.
         var gStats = GetOrCreateGameStats(gameId);
         var uStats = GetOrCreateUserStats(userId);
 
@@ -330,22 +325,62 @@ public class EfGameRepository : IGameRepository {
         return _context.AuditLogs.OrderByDescending(x => x.Timestamp).Select(x => x.Hash).FirstOrDefault();
     }
 
-    public Game? GetGameByType(string type) {
-        return _context.Games.FirstOrDefault(g => g.Type == type);
+    public (decimal TotalBets, decimal TotalWins) GetDailyFinancials(DateTime date) {
+        var start = date.Date;
+        var end = start.AddDays(1);
+        
+        var bets = _context.Bets
+            .Where(b => b.CreatedAt >= start && b.CreatedAt < end)
+            .Sum(b => (decimal?)b.Amount) ?? 0m;
+            
+        var wins = _context.GameRounds
+            .Where(r => r.ExecutedAt >= start && r.ExecutedAt < end)
+            .Sum(r => (decimal?)r.TotalWinAmount) ?? 0m;
+        
+        return (bets, wins);
     }
 
-    public Game? GetGame(Guid gameId) {
-        return _context.Games.FirstOrDefault(g => g.Id == gameId);
+    public int GetActivePlayerCount(int minutes) {
+        var cutoff = DateTime.UtcNow.AddMinutes(-minutes);
+        return _context.Users.Count(u => u.LastBetTimestamp >= cutoff);
     }
 
-    public void UpdateGame(Game game) {
-        _context.Games.Update(game);
+    public IEnumerable<(string Username, decimal TotalWin)> GetTopWinners(DateTime date, int topCount) {
+        var start = date.Date;
+        var end = start.AddDays(1);
+        
+        return _context.GameRounds
+            .Where(r => r.ExecutedAt >= start && r.ExecutedAt < end && r.TotalWinAmount > 0)
+            .Join(_context.GameSessions, 
+                  r => r.GameSessionId, 
+                  s => s.Id, 
+                  (r, s) => new { s.UserId, r.TotalWinAmount })
+            .GroupBy(x => x.UserId)
+            .Select(g => new { UserId = g.Key, TotalWin = g.Sum(x => x.TotalWinAmount) })
+            .OrderByDescending(x => x.TotalWin)
+            .Take(topCount)
+            .ToList()
+            .Join(_context.Users, 
+                  stats => stats.UserId, 
+                  user => user.Id, 
+                  (stats, user) => (user.Username, stats.TotalWin));
+    }
+
+    public string GetGlobalSetting(string key) {
+        var setting = _context.GlobalSettings.Find(key);
+        return setting?.Value ?? string.Empty;
+    }
+
+    public void SetGlobalSetting(string key, string value, string description = "") {
+        var setting = _context.GlobalSettings.Find(key);
+        if (setting == null) {
+            setting = new GlobalSetting { Key = key, Value = value, Description = description, LastUpdated = DateTime.UtcNow };
+            _context.GlobalSettings.Add(setting);
+        } else {
+            setting.Value = value;
+            if (!string.IsNullOrEmpty(description)) setting.Description = description;
+            setting.LastUpdated = DateTime.UtcNow;
+        }
         _context.SaveChanges();
-    }
-
-    public Game CreateGame(Game game) {
-        _context.Games.Add(game);
-        _context.SaveChanges();
-        return game;
     }
 }

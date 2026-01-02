@@ -11,6 +11,13 @@ public interface IGameRepository {
     GameSession CreateSession(GameSession session);
     GameSession? GetSession(Guid sessionId);
     void EndSession(Guid sessionId);
+    
+    // Games
+    Game? GetGame(Guid gameId);
+    Game? GetGameByType(string gameType);
+    void CreateGame(Game game);
+    void UpdateGame(Game game);
+
     User? GetUser(Guid userId);
     User? GetUserBySessionId(Guid sessionId);
     User? GetUserByUsername(string username);
@@ -62,12 +69,15 @@ public interface IGameRepository {
     // Audit
     void LogAudit(AuditEvent auditEvent);
     IEnumerable<AuditEvent> GetAuditLogs(int count);
-    IEnumerable<AuditEvent> GetAllAuditLogs(); // Added
+    IEnumerable<AuditEvent> GetAllAuditLogs();
     string? GetLastAuditHash();
-    
-    // Game Lookups
-    Game? GetGame(Guid gameId); // Added for RtpEngine
-    void UpdateGame(Game game); // Added for RtpEngine
-    Game? GetGameByType(string type);
-    Game CreateGame(Game game);
+
+    // Admin Reporting
+    (decimal TotalBets, decimal TotalWins) GetDailyFinancials(DateTime date);
+    int GetActivePlayerCount(int minutes);
+    IEnumerable<(string Username, decimal TotalWin)> GetTopWinners(DateTime date, int topCount);
+
+    // Global Settings
+    string GetGlobalSetting(string key);
+    void SetGlobalSetting(string key, string value, string description = "");
 }
