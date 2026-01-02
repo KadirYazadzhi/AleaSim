@@ -349,6 +349,22 @@ public class EfGameRepository : IGameRepository {
         return (bets, wins);
     }
 
+    public IEnumerable<(DateTime Hour, decimal Bets, decimal Wins)> GetRtpTrend(int hours) {
+        var cutoff = DateTime.UtcNow.AddHours(-hours);
+        
+        return _context.GameRounds
+            .Where(r => r.ExecutedAt >= cutoff)
+            .AsEnumerable() // Grouping by date parts is easier in memory for this scale
+            .GroupBy(r => new DateTime(r.ExecutedAt.Year, r.ExecutedAt.Month, r.ExecutedAt.Day, r.ExecutedAt.Hour, 0, 0))
+            .Select(g => (
+                Hour: g.Key,
+                Bets: g.Sum(x => x.TotalBetAmount),
+                Wins: g.Sum(x => x.TotalWinAmount)
+            ))
+            .OrderBy(x => x.Hour)
+            .ToList();
+    }
+
     public int GetActivePlayerCount(int minutes) {
         var cutoff = DateTime.UtcNow.AddMinutes(-minutes);
         return _context.Users.Count(u => u.LastBetTimestamp >= cutoff);

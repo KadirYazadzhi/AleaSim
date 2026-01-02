@@ -136,13 +136,28 @@
     private SimulationReport? simReport;
     private IntegrityResponse? integrityResult;
 
-    public List<ChartSeries> Series = new() {
-        new ChartSeries() { Name = "Actual RTP", Data = new double[] { 94, 96, 92, 95, 98, 93, 95 } }
-    };
-    public string[] XAxisLabels = { "00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "Now" };
+    public List<ChartSeries> Series = new();
+    public string[] XAxisLabels = Array.Empty<string>();
 
     protected override async Task OnInitializedAsync() {
         await LoadStats();
+        await LoadTrendData();
+    }
+
+    private async Task LoadTrendData() {
+        try {
+            var trendPoints = await Http.GetFromJsonAsync<List<RtpTrendPoint>>("api/Admin/analytics/rtp-trend");
+            if (trendPoints != null && trendPoints.Any()) {
+                Series = new List<ChartSeries> {
+                    new ChartSeries { Name = "Actual RTP %", Data = trendPoints.Select(p => p.Rtp).ToArray() }
+                };
+                XAxisLabels = trendPoints.Select(p => p.Label).ToArray();
+            } else {
+                // Fallback if no data yet
+                Series = new List<ChartSeries> { new ChartSeries { Name = "Actual RTP %", Data = new double[] { 95, 95 } } };
+                XAxisLabels = new string[] { "Waiting for data...", "Now" };
+            }
+        } catch { }
     }
 
     private async Task VerifyIntegrity() {

@@ -26,6 +26,20 @@ public class AdminController : ControllerBase {
         return Ok(await _adminService.GetLiveStats());
     }
 
+    [HttpGet("analytics/rtp-trend")]
+    public IActionResult GetAnalyticsTrend() {
+        using var scope = HttpContext.RequestServices.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        
+        var trend = repo.GetRtpTrend(24); // Last 24 hours
+        var result = trend.Select(t => new RtpTrendPoint {
+            Label = t.Hour.ToString("HH:mm"),
+            Rtp = t.Bets > 0 ? (double)(t.Wins / t.Bets) * 100 : 95.0
+        }).ToList();
+
+        return Ok(result);
+    }
+
     [HttpGet("audit-logs")]
     public IActionResult GetAuditLogs() {
         return Ok(_auditService.GetLogs());

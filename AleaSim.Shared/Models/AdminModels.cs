@@ -10,6 +10,11 @@ public class AdminDashboardStats {
     public List<string> TopWinners { get; set; } = new();
 }
 
+public class RtpTrendPoint {
+    public string Label { get; set; } = string.Empty;
+    public double Rtp { get; set; }
+}
+
 public class SimulationRequest {
     public string GameType { get; set; } = "Slot";
     public decimal BetAmount { get; set; } = 1.0m;
