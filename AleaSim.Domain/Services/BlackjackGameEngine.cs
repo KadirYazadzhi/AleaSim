@@ -27,9 +27,11 @@ public class BlackjackGameEngine : BaseGameEngine {
             if (session == null) throw new Exception("Session not found");
             var lastBet = repo.GetLastBet(sessionId);
             if (lastBet == null) throw new Exception("No bet found");
+            
+            int roundNum = repo.GetRoundCount(sessionId) + 1;
+            int seq = roundNum * 100; // Offset sequence by round number
 
-            var state = new BlackjackState { BetAmount = lastBet.Amount, Sequence = 0 };
-            int seq = 0;
+            var state = new BlackjackState { BetAmount = lastBet.Amount, Sequence = seq };
             state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
             state.DealerHand.Add(DrawCard(session.Seed, ref seq));
             state.PlayerHand.Add(DrawCard(session.Seed, ref seq));

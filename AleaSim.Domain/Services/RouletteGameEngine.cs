@@ -18,9 +18,10 @@ public class RouletteGameEngine : BaseGameEngine {
             var session = repo.GetSession(sessionId);
             var lastBet = repo.GetLastBet(sessionId);
             decimal betAmount = lastBet?.Amount ?? 1.0m;
+            int nonce = repo.GetRoundCount(sessionId) + 1;
 
             var decision = BrainService.DecideOutcome(session.UserId, GameId, betAmount, repo);
-            int number = decision.TargetWinAmount > 0 ? 17 : RngService.GetNextInt(session.Seed, 1, 0, 37);
+            int number = decision.TargetWinAmount > 0 ? 17 : RngService.GetNextInt(session.Seed, nonce, 0, 37);
 
             decimal winAmount = decision.TargetWinAmount;
             VaultService.ProcessWin(session.UserId, winAmount, repo);

@@ -14,7 +14,7 @@
 @inject NavigationManager Navigation
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <CelebrationOverlay Visible="showCelebration" Title="@celebrationTitle" Amount="@lastWin" />
+    <CelebrationOverlay @ref="localCelebration" />
     <MudGrid>
         <!-- Left Side: Game and Jackpot -->
         <MudItem xs="12" lg="9">
@@ -173,8 +173,7 @@
 @code {
     private int[,] grid = new int[4, 5];
     private bool isSpinning = false;
-    private bool showCelebration = false;
-    private string celebrationTitle = "BIG WIN!";
+    private CelebrationOverlay localCelebration = default!;
     private decimal balance = 0;
     private decimal lastWin = 0;
     private decimal betAmount = 1.0m;
@@ -226,13 +225,15 @@
             var gridData = JsonSerializer.Deserialize<SlotResultGrid>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             
             bool wasBonusActive = gameState.IsBonusActive;
-            // Update local state (in a real app, state would be part of the result)
-            // For now, let's look at the result win/metadata to infer trigger
             
             if (gridData != null && gridData.Grid != null) {
-                for (int r = 0; r < 4; r++)
-                    for (int c = 0; c < 5; c++)
+                for (int r = 0; r < 4; r++) {
+                    if (r >= gridData.Grid.Length) break;
+                    for (int c = 0; c < 5; c++) {
+                        if (c >= gridData.Grid[r].Length) break;
                         grid[r, c] = gridData.Grid[r][c];
+                    }
+                }
             }
 
             lastWin = result.TotalWin;
@@ -241,16 +242,12 @@
 
             // Trigger Celebration
             if (lastWin > betAmount * 20) {
-                celebrationTitle = "BIG WIN!";
-                showCelebration = true;
+                localCelebration.Show(profile?.Username ?? "You", "Clover Chase", lastWin, lastWin/betAmount);
                 await Audio.PlayBigWin();
-                _ = Task.Delay(4000).ContinueWith(_ => { showCelebration = false; InvokeAsync(StateHasChanged); });
             }
             else if (result.RandomResultJson.Contains("\"IsBonusActive\":true") && !wasBonusActive) {
-                celebrationTitle = "BONUS TRIGGERED!";
-                showCelebration = true;
-                await Audio.PlayBigWin(); // Use big win sound for bonus too
-                _ = Task.Delay(3000).ContinueWith(_ => { showCelebration = false; InvokeAsync(StateHasChanged); });
+                localCelebration.Show(profile?.Username ?? "You", "BONUS TRIGGERED!", 0, 0);
+                await Audio.PlayBigWin();
             }
             else if (lastWin > 0) await Audio.PlayWin();
         }

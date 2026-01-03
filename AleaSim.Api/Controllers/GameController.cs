@@ -222,135 +222,7 @@ public class GameController : ControllerBase {
 
     
 
-                [HttpGet("history")]
-
-    
-
-                public IActionResult GetHistory() {
-
-    
-
-                    var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
-
-    
-
-                    using var scope = _scopeFactory.CreateScope();
-
-    
-
-                    var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-
-    
-
-                    
-
-    
-
-                    var rounds = repo.GetUserRounds(userId, 50);
-
-    
-
-                    var result = rounds.Select(r => {
-
-    
-
-                        // Need GameName. Usually we'd join but for now we infer from session
-
-    
-
-                        var session = repo.GetSession(r.GameSessionId);
-
-    
-
-                        var game = session != null ? repo.GetGame(session.GameId) : null;
-
-    
-
-                        
-
-    
-
-                                    return new GameRoundDto {
-
-    
-
-                        
-
-    
-
-                                        Id = r.Id,
-
-    
-
-                        
-
-    
-
-                                        GameName = game?.Name ?? "Unknown Game",
-
-    
-
-                        
-
-    
-
-                                        BetAmount = r.TotalBetAmount,
-
-    
-
-                        
-
-    
-
-                                        WinAmount = r.TotalWinAmount,
-
-    
-
-                        
-
-    
-
-                                        PlayedAt = r.ExecutedAt,
-
-    
-
-                        
-
-    
-
-                                        ResultSummary = r.DecisionType,
-
-    
-
-                        
-
-    
-
-                                        FullResultJson = r.RandomResult // Pass the raw grid/wheel data
-
-    
-
-                        
-
-    
-
-                                    };
-
-    
-
-                        
-
-    
-
-                                });
-
-    
-
-                        
-
-    
-
-                        
+                                [HttpGet("history")]
 
     
 
@@ -358,11 +230,191 @@ public class GameController : ControllerBase {
 
     
 
-                    return Ok(result);
+                                public IActionResult GetHistory() {
 
     
 
-                }
+            
+
+    
+
+                                    var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+
+    
+
+            
+
+    
+
+                                    using var scope = _scopeFactory.CreateScope();
+
+    
+
+            
+
+    
+
+                                    var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+
+    
+
+            
+
+    
+
+                                    
+
+    
+
+            
+
+    
+
+                                    var rounds = repo.GetUserRounds(userId, 50);
+
+    
+
+            
+
+    
+
+                                    var result = rounds.Select(r => {
+
+    
+
+            
+
+    
+
+                                        // Need GameName. Usually we'd join but for now we infer from session
+
+    
+
+            
+
+    
+
+                                        var session = repo.GetSession(r.GameSessionId);
+
+    
+
+            
+
+    
+
+                                        var game = session != null ? repo.GetGame(session.GameId) : null;
+
+    
+
+            
+
+    
+
+                                        
+
+    
+
+            
+
+    
+
+                                        return new GameRoundDto {
+
+    
+
+            
+
+    
+
+                                            Id = r.Id,
+
+    
+
+            
+
+    
+
+                                            GameName = game?.Name ?? "Unknown Game",
+
+    
+
+            
+
+    
+
+                                            BetAmount = r.TotalBetAmount,
+
+    
+
+            
+
+    
+
+                                            WinAmount = r.TotalWinAmount,
+
+    
+
+            
+
+    
+
+                                            PlayedAt = r.ExecutedAt,
+
+    
+
+            
+
+    
+
+                                            ResultSummary = r.DecisionType,
+
+    
+
+            
+
+    
+
+                                            FullResultJson = r.RandomResult // Pass the raw grid/wheel data
+
+    
+
+            
+
+    
+
+                                        };
+
+    
+
+            
+
+    
+
+                                    }).ToList(); // Materialize here!
+
+    
+
+            
+
+    
+
+                            
+
+    
+
+            
+
+    
+
+                                    return Ok(result);
+
+    
+
+            
+
+    
+
+                                }
 
     
 
