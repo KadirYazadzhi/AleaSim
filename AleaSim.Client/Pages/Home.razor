@@ -4,6 +4,7 @@
 @inject IDialogService DialogService
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>AleaSim Casino</PageTitle>
 
@@ -139,13 +140,16 @@
 @code {
     protected override async Task OnInitializedAsync()
     {
-        try {
-            var response = await Http.PostAsync("api/Game/streak/claim", null);
-            if (response.IsSuccessStatusCode) {
-                var res = await response.Content.ReadFromJsonAsync<StreakResult>();
-                Snackbar.Add(res?.Message ?? "Daily bonus claimed!", Severity.Success);
-            }
-        } catch { }
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true) {
+            try {
+                var response = await Http.PostAsync("api/Game/streak/claim", null);
+                if (response.IsSuccessStatusCode) {
+                    var res = await response.Content.ReadFromJsonAsync<StreakResult>();
+                    Snackbar.Add(res?.Message ?? "Daily bonus claimed!", Severity.Success);
+                }
+            } catch { }
+        }
     }
 
     private async Task OpenBonusWheel() {

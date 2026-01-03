@@ -11,6 +11,7 @@
 @inject ILocalStorageService LocalStorage
 @inject NotificationService NotifService
 @inject IDialogService DialogService
+@inject AuthenticationStateProvider AuthStateProvider
 
 <MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
 <MudDialogProvider />
@@ -115,14 +116,18 @@
 
     protected override async Task OnInitializedAsync() {
         NotifService.OnNotificationsChanged += StateHasChanged;
-        await LoadProfile();
         
-        var token = await LocalStorage.GetItemAsync<string>("authToken");
-        if (!string.IsNullOrEmpty(token)) {
-            await RealTime.StartAsync(token);
-            RealTime.OnBigWinReceived += HandleBigWin;
-            RealTime.OnGameUpdateReceived += HandleGameUpdate;
-            RealTime.OnBalanceUpdated += HandleBalanceUpdate;
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true) {
+            await LoadProfile();
+            
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (!string.IsNullOrEmpty(token)) {
+                await RealTime.StartAsync(token);
+                RealTime.OnBigWinReceived += HandleBigWin;
+                RealTime.OnGameUpdateReceived += HandleGameUpdate;
+                RealTime.OnBalanceUpdated += HandleBalanceUpdate;
+            }
         }
     }
 
