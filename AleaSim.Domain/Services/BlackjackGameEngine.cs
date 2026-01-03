@@ -22,7 +22,7 @@ public class BlackjackGameEngine : BaseGameEngine {
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
-        return await ExecuteScopedAsync(async repo => {
+        return await ExecuteScopedAsync(async (repo, questService) => {
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
             var lastBet = repo.GetLastBet(sessionId);
@@ -46,7 +46,7 @@ public class BlackjackGameEngine : BaseGameEngine {
                 RandomResult = JsonSerializer.Serialize(state)
             };
 
-            if (state.IsRoundOver) await FinishRoundAsync(session, round, state, repo);
+            if (state.IsRoundOver) await FinishRoundAsync(session, round, state, repo, questService);
 
             repo.SaveRound(round);
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Game = "Blackjack", State = state });
@@ -55,7 +55,7 @@ public class BlackjackGameEngine : BaseGameEngine {
     }
 
     public override async Task ProcessAction(Guid sessionId, string action, string actionData) {
-        await ExecuteScopedAsync(async repo => {
+        await ExecuteScopedAsync(async (repo, questService) => {
             var session = repo.GetSession(sessionId);
             var round = repo.GetLastRound(sessionId);
             if (round == null) return;
@@ -66,9 +66,9 @@ public class BlackjackGameEngine : BaseGameEngine {
                 int seq = state.Sequence;
                 state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
                 state.Sequence = seq;
-                if (CalculateHandValue(state.PlayerHand) >= 21) await FinishRoundAsync(session, round, state, repo);
+                if (CalculateHandValue(state.PlayerHand) >= 21) await FinishRoundAsync(session, round, state, repo, questService);
             } else if (action.ToLower() == "stand") {
-                await FinishRoundAsync(session, round, state, repo);
+                await FinishRoundAsync(session, round, state, repo, questService);
             }
 
             round.RandomResult = JsonSerializer.Serialize(state);
@@ -77,13 +77,16 @@ public class BlackjackGameEngine : BaseGameEngine {
         });
     }
 
-    private async Task FinishRoundAsync(GameSession session, GameRound round, BlackjackState state, IGameRepository repo) {
+    private async Task FinishRoundAsync(GameSession session, GameRound round, BlackjackState state, IGameRepository repo, IQuestService questService) {
         state.IsRoundOver = true;
         int pVal = CalculateHandValue(state.PlayerHand);
         int dVal = CalculateHandValue(state.DealerHand);
         decimal win = (pVal > 21) ? 0 : (pVal > dVal || dVal > 21) ? state.BetAmount * 2 : (pVal == dVal) ? state.BetAmount : 0;
 
-        if (win > 0) VaultService.ProcessWin(session.UserId, win, repo);
+        if (win > 0) {
+            VaultService.ProcessWin(session.UserId, win, repo);
+            questService.UpdateProgress(session.UserId, "WinAmount", (int)win, repo, VaultService);
+        }
         BrainService.UpdateProfile(session.UserId, state.BetAmount, win);
         round.TotalWinAmount = win;
         await Task.CompletedTask;

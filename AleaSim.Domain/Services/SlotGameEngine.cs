@@ -20,7 +20,7 @@ public class SlotGameEngine : BaseGameEngine {
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
-        return await ExecuteScopedAsync(async repo => {
+        return await ExecuteScopedAsync(async (repo, questService) => {
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
 
@@ -33,6 +33,10 @@ public class SlotGameEngine : BaseGameEngine {
             decimal winAmount = decision.TargetWinAmount;
             VaultService.ProcessWin(session.UserId, winAmount, repo);
             BrainService.UpdateProfile(session.UserId, betAmount, winAmount);
+            
+            if (winAmount > 0) {
+                questService.UpdateProgress(session.UserId, "WinAmount", (int)winAmount, repo, VaultService);
+            }
 
             // 4. Global Big Win Notification
             if (betAmount > 0 && (winAmount / betAmount) >= 100) {

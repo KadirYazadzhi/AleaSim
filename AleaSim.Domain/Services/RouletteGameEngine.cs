@@ -14,7 +14,7 @@ public class RouletteGameEngine : BaseGameEngine {
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
-        return await ExecuteScopedAsync(async repo => {
+        return await ExecuteScopedAsync(async (repo, questService) => {
             var session = repo.GetSession(sessionId);
             var lastBet = repo.GetLastBet(sessionId);
             decimal betAmount = lastBet?.Amount ?? 1.0m;
@@ -25,6 +25,10 @@ public class RouletteGameEngine : BaseGameEngine {
             decimal winAmount = decision.TargetWinAmount;
             VaultService.ProcessWin(session.UserId, winAmount, repo);
             BrainService.UpdateProfile(session.UserId, betAmount, winAmount);
+            
+            if (winAmount > 0) {
+                questService.UpdateProgress(session.UserId, "WinAmount", (int)winAmount, repo, VaultService);
+            }
 
             var round = new GameRound {
                 Id = Guid.NewGuid(),

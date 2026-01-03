@@ -25,7 +25,7 @@ public abstract class BaseGameEngine : IGame {
     }
 
     public virtual async Task PlaceBet(Guid sessionId, decimal amount, string betData) {
-        await ExecuteScopedAsync(async repo => {
+        await ExecuteScopedAsync(async (repo, questService) => {
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
 
@@ -43,6 +43,10 @@ public abstract class BaseGameEngine : IGame {
                 BrainService.UpdateProfile(session.UserId, amount, 0);
                 PromotionService.ProcessBetActivity(session.UserId, amount, repo);
                 await JackpotService.Contribute(session.GameId, amount, repo);
+                
+                // Quest Integration
+                questService.GenerateDailyQuests(session.UserId, repo);
+                questService.UpdateProgress(session.UserId, "SpinCount", 1, repo, VaultService);
             } else {
                 throw new Exception("Insufficient funds");
             }
@@ -73,11 +77,25 @@ public abstract class BaseGameEngine : IGame {
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         await action(repo);
     }
+    
+    protected async Task ExecuteScopedAsync(Func<IGameRepository, IQuestService, Task> action) {
+        using var scope = ScopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        var questService = scope.ServiceProvider.GetRequiredService<IQuestService>();
+        await action(repo, questService);
+    }
 
     protected async Task<T> ExecuteScopedAsync<T>(Func<IGameRepository, Task<T>> action) {
         using var scope = ScopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         return await action(repo);
+    }
+    
+    protected async Task<T> ExecuteScopedAsync<T>(Func<IGameRepository, IQuestService, Task<T>> action) {
+        using var scope = ScopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        var questService = scope.ServiceProvider.GetRequiredService<IQuestService>();
+        return await action(repo, questService);
     }
     
     protected T ExecuteScoped<T>(Func<IGameRepository, T> action) {
