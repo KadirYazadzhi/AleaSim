@@ -25,11 +25,12 @@ public class AuthController : ControllerBase {
         _passwordHasher = passwordHasher;
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
     public IActionResult Login([FromBody] LoginRequest request) {
         var user = _repository.GetUserByUsername(request.Username);
         
-        if (user != null && _passwordHasher.VerifyPassword(request.Password, user.PasswordHash)) { // Fixed order
+        if (user != null && _passwordHasher.VerifyPassword(user.PasswordHash, request.Password)) {
             return Ok(GenerateToken(user.Username, user.Id, user.Role));
         }
         
@@ -96,6 +97,7 @@ public class AuthController : ControllerBase {
         return Ok(new { Message = "Avatar updated!" });
     }
 
+    [AllowAnonymous]
     [HttpPost("register")]
     public IActionResult Register([FromBody] RegisterRequest request) {
          if (_repository.GetUserByUsername(request.Username) != null) {
