@@ -325,9 +325,20 @@ public class EfGameRepository : IGameRepository {
         return jackpot;
     }
 
-    public void UpdateJackpot(Jackpot jackpot) {
-        _context.Jackpots.Update(jackpot);
-        _context.SaveChanges();
+    public IEnumerable<Jackpot> GetJackpots() {
+        var jackpots = _context.Jackpots.ToList();
+        if (!jackpots.Any(j => j.Tier == JackpotTier.Clubs)) {
+            // Seed 4 tiers
+            _context.Jackpots.AddRange(
+                new Jackpot { Id = Guid.NewGuid(), Name = "Clubs", Tier = JackpotTier.Clubs, CurrentValue = 50, ContributionRate = 0.01m, IsGlobal = true, MustDropAt = 100, LastUpdated = DateTime.UtcNow },
+                new Jackpot { Id = Guid.NewGuid(), Name = "Diamonds", Tier = JackpotTier.Diamonds, CurrentValue = 200, ContributionRate = 0.005m, IsGlobal = true, MustDropAt = 500, LastUpdated = DateTime.UtcNow },
+                new Jackpot { Id = Guid.NewGuid(), Name = "Hearts", Tier = JackpotTier.Hearts, CurrentValue = 1000, ContributionRate = 0.002m, IsGlobal = true, MustDropAt = 2500, LastUpdated = DateTime.UtcNow },
+                new Jackpot { Id = Guid.NewGuid(), Name = "Spades", Tier = JackpotTier.Spades, CurrentValue = 10000, ContributionRate = 0.001m, IsGlobal = true, MustDropAt = 50000, LastUpdated = DateTime.UtcNow }
+            );
+            _context.SaveChanges();
+            return _context.Jackpots.ToList();
+        }
+        return jackpots;
     }
 
     public void SaveJackpotTrigger(Jackpot jackpot, decimal winAmount) {

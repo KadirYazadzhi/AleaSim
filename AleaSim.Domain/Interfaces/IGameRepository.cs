@@ -64,6 +64,7 @@ public interface IGameRepository {
     IEnumerable<RTPStatistics> GetAllRtpStats(); // Optional for aggregation
 
     // Jackpots
+    IEnumerable<Jackpot> GetJackpots(); // Added
     Jackpot GetGlobalJackpot();
     Jackpot GetOrCreateLocalJackpot(Guid gameId);
     void UpdateJackpot(Jackpot jackpot);
