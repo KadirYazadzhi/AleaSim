@@ -8,6 +8,7 @@ public class UserProfileResponse {
     public decimal BonusBalance { get; set; }
     public string AvatarUrl { get; set; } = "";
     public string SymbolAffinityJson { get; set; } = "{}";
+    public string? ActiveGameStateJson { get; set; } // Added for recovery
     public int LuckyCloverLevel { get; set; }
     public int CashbackLevel { get; set; }
     public int XpBoostLevel { get; set; }

@@ -53,16 +53,18 @@ public class AuthController : ControllerBase {
         var achService = HttpContext.RequestServices.GetRequiredService<IAchievementService>();
         var userAchs = await achService.GetUserAchievements(userId, _repository);
 
+        // Get Active Session for State Recovery
+        var activeSession = _repository.GetAllActiveSessions()
+            .Where(s => s.UserId == userId)
+            .OrderByDescending(s => s.StartedAt)
+            .FirstOrDefault();
+
                 return Ok(new {
-
                     user.Username,
-
                     user.Balance,
-
                     user.BonusBalance,
-
-                    user.AvatarUrl, // Added
-
+                    user.AvatarUrl,
+                    ActiveGameStateJson = activeSession?.GameState, // Added
                     Role = user.Role.ToString(),
 
                     LuckyCloverLevel = userProfile?.LuckyCloverLevel ?? 0,

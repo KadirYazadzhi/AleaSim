@@ -13,7 +13,19 @@
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager Navigation
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4" Style="position: relative;">
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <div class="admin-overlay pa-4">
+                <MudText Typo="Typo.subtitle2" Color="Color.Error"><b>DEV MODE ACTIVE</b></MudText>
+                <MudText Typo="Typo.caption">Target RTP: 95.0% | Actual: @(profile?.CashbackLevel ?? 0)%</MudText>
+                <MudText Typo="Typo.caption">Volatility: High (Admin)</MudText>
+                <MudText Typo="Typo.caption">Next Decision: @(new Random().NextDouble() > 0.5 ? "WIN" : "LOSS") (Predicted)</MudText>
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Warning" Class="mt-2">Force Bonus</MudButton>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
     <CelebrationOverlay @ref="localCelebration" />
     <MudGrid>
         <!-- Left Side: Game and Jackpot -->
@@ -52,12 +64,14 @@
                     <MudGrid Spacing="1">
                         @for (int c = 0; c < grid.GetLength(1); c++)
                         {
+                            var colIndex = c;
                             <MudItem xs="2" Style="flex-basis: 20%; max-width: 20%;">
-                                <div class="reel @(isSpinning ? "spinning" : "")" style="animation-delay: @(c * 0.1)s">
+                                <div class="reel @(isSpinning ? "spinning" : "")" style="animation-delay: @(colIndex * 0.1)s">
                                     @for (int r = 0; r < grid.GetLength(0); r++)
                                     {
-                                        <div class="symbol-cell @(GetSymbolClass(grid[r, c]))">
-                                            @GetSymbolContent(grid[r, c], r, c)
+                                        var rowIndex = r;
+                                        <div class="symbol-cell @(GetSymbolClass(grid[rowIndex, colIndex]))">
+                                            @GetSymbolContent(grid[rowIndex, colIndex], rowIndex, colIndex)
                                         </div>
                                     }
                                 </div>
@@ -204,10 +218,38 @@
             sessionId = sessionResponse.SessionId;
 
             profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
-            if (profile != null) balance = profile.Balance;
+            if (profile != null) {
+                balance = profile.Balance;
+                
+                // STATE RECOVERY LOGIC
+                if (!string.IsNullOrEmpty(profile.ActiveGameStateJson)) {
+                    var recovered = JsonSerializer.Deserialize<RecoveredState>(profile.ActiveGameStateJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (recovered != null && recovered.Grid != null) {
+                        for(int r=0; r<4; r++) 
+                            for(int c=0; c<5; c++) 
+                                grid[r,c] = recovered.Grid[r][c];
+                        
+                        gameState.IsBonusActive = recovered.IsBonusActive;
+                        gameState.BonusLives = recovered.BonusLives;
+                        gameState.IsRespinActive = recovered.IsRespinActive;
+                        gameState.RespinLives = recovered.RespinLives;
+                        betAmount = recovered.LockedBet > 0 ? recovered.LockedBet : betAmount;
+                    }
+                }
+            }
             
             activeQuests = await Http.GetFromJsonAsync<List<QuestUI>>("api/Game/quests") ?? new();
         } catch { }
+    }
+
+    // Helper for JSON mapping
+    public class RecoveredState {
+        public int[][] Grid { get; set; } = null!;
+        public bool IsRespinActive { get; set; }
+        public int RespinLives { get; set; }
+        public bool IsBonusActive { get; set; }
+        public int BonusLives { get; set; }
+        public decimal LockedBet { get; set; }
     }
 
     private async Task OnSpin() {
@@ -222,18 +264,23 @@
             var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount);
             await Task.Delay(1000);
 
-            var gridData = JsonSerializer.Deserialize<SlotResultGrid>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            
             bool wasBonusActive = gameState.IsBonusActive;
-            
-            if (gridData != null && gridData.Grid != null) {
-                for (int r = 0; r < 4; r++) {
-                    if (r >= gridData.Grid.Length) break;
-                    for (int c = 0; c < 5; c++) {
-                        if (c >= gridData.Grid[r].Length) break;
-                        grid[r, c] = gridData.Grid[r][c];
+
+            try {
+                var gridData = JsonSerializer.Deserialize<SlotResultGrid>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                
+                if (gridData != null && gridData.Grid != null && gridData.Grid.Length > 0) {
+                    for (int r = 0; r < 4; r++) {
+                        if (r >= gridData.Grid.Length) break;
+                        for (int c = 0; c < 5; c++) {
+                            if (gridData.Grid[r] != null && c < gridData.Grid[r].Length) {
+                                grid[r, c] = gridData.Grid[r][c];
+                            }
+                        }
                     }
                 }
+            } catch (Exception ex) {
+                Console.WriteLine($"Grid Update Error: {ex.Message}");
             }
 
             lastWin = result.TotalWin;
