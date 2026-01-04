@@ -45,14 +45,12 @@ public class BrainService : IBrainService {
         }
 
         // --- RULE 0: Flow State (Dynamic Difficulty) ---
-        // Fast Play (< 2.5s) -> High Volatility (Big Wins or Nothing)
-        // Slow Play (> 7.0s) -> Low Volatility (Frequent Small Wins)
         bool isInFlow = profile.AvgSpinInterval < 2.5;
         bool isBored = profile.AvgSpinInterval > 7.0;
+        double volatility = isInFlow ? 2.0 : (isBored ? 0.5 : 1.0);
 
         // --- RULE 1: The Retention Hook ---
         // Adjusted by Flow: If bored, trigger hook earlier
-        // Adjusted by Skills: LuckyCloverLevel lowers the threshold (-1 streak per level)
         int skillOffset = profile.LuckyCloverLevel;
         int retentionThreshold = Math.Max(2, (isBored ? 4 : 8) - skillOffset);
         
@@ -64,77 +62,17 @@ public class BrainService : IBrainService {
                 return new BrainDirective {
                     DecisionType = "RetentionHook",
                     TargetWinAmount = targetWin,
+                    VolatilityModifier = volatility,
                     Reason = isBored ? "Boredom Recovery" : "Loss Streak Protection"
                 };
             }
         }
 
-        // --- RULE 2: Flow State Volatility Modification ---
-        if (isInFlow) {
-            // In Flow: We want big hits. If a random small win was going to happen, 
-            // there's a 70% chance we convert it to a Loss to save for a big one later.
-            if (new Random().NextDouble() < 0.7) {
-                return new BrainDirective { 
-                    DecisionType = "FlowVolatility", 
-                    TargetWinAmount = 0, 
-                    IsNearMiss = true,
-                    Reason = "High Speed Volatility Shift" 
-                };
-            }
-        }
-        else if (isBored) {
-            // Bored: Force a small "Drip" win (1.5x - 3x) even if RNG said Loss
-            if (profile.LossStreak > 2 && new Random().NextDouble() < 0.4) {
-                decimal dripWin = betAmount * (decimal)(1.5 + new Random().NextDouble() * 1.5);
-                if (_vaultService.CanAffordWin(userId, gameId, dripWin, repo)) {
-                    return new BrainDirective {
-                        DecisionType = "BoredomDrip",
-                        TargetWinAmount = dripWin,
-                        Reason = "Engagement Boost"
-                    };
-                }
-            }
-        }
-
-        // --- RULE 2: The Cool Down ---
-        if (profile.ActualRtp > 1.5 && profile.TotalWagered > 100) {
-            // Find favorite symbol for Teaser
-            int? favorite = null;
-            try {
-                var affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile.SymbolAffinityJson);
-                if (affinity != null && affinity.Any()) {
-                    favorite = affinity.OrderByDescending(x => x.Value).First().Key;
-                }
-            } catch { }
-
-            return new BrainDirective {
-                DecisionType = "CoolDown",
-                TargetWinAmount = 0,
-                IsNearMiss = true,
-                PreferredNearMissSymbol = favorite ?? 8, // Default to Clover if none
-                Reason = "pRTP too high"
-            };
-        }
-
-        // --- RULE 3: The Whale Protocol (High Rollers) ---
-        if (betAmount >= 50) {
-            // High Rollers hate small wins (1x). Give them nothing or Big Win.
-            // 80% chance of Loss, 20% chance of Big Win check
-            if (new Random().NextDouble() < 0.2) {
-                 decimal whaleWin = betAmount * 20;
-                 if (_vaultService.CanAffordWin(userId, gameId, whaleWin, repo)) {
-                     return new BrainDirective {
-                        DecisionType = "WhaleBonus",
-                        TargetWinAmount = whaleWin
-                    };
-                 }
-            }
-            // Else force loss (don't give small wins)
-            return new BrainDirective { DecisionType = "WhaleLoss", TargetWinAmount = 0 };
-        }
-
-        // Default: Let the engine decide (Random within standard RTP)
-        return new BrainDirective { DecisionType = "Random" };
+        // --- Default with Volatility ---
+        return new BrainDirective { 
+            DecisionType = "Random", 
+            VolatilityModifier = volatility 
+        };
     }
 
     public void UpdateProfile(Guid userId, decimal betAmount, decimal winAmount) {

@@ -12,16 +12,13 @@ public class SlotGameEngine : BaseGameEngine {
     private const int Cols = 5;
     private const int PaylinesCount = 20;
     
-    // Symbol IDs
-    private const int SYM_WILD_CLOVER = 8;    // Universal Wild + Trigger
-    private const int SYM_WILD_SEVEN = 7;     // Wild for Fruits
-    private const int SYM_BELL = 10;          // Bonus Symbol
-    private const int SYM_COLLECT_COIN = 11;  // Instant win during Respins
-    private const int SYM_GOLDEN_CLOVER = 12; // Super Trigger (Rare)
+    private const int SYM_WILD_CLOVER = 8;
+    private const int SYM_WILD_SEVEN = 7;
+    private const int SYM_BELL = 10;
+    private const int SYM_COLLECT_COIN = 11;
+    private const int SYM_GOLDEN_CLOVER = 12;
     
-    private readonly int[] _reelStrip = { 
-        1, 2, 3, 4, 5, 1, 2, 3, 4, 6, 1, 2, 3, 5, 1, 2, 7, 1, 3, 4, 8, 1, 2, 3, 4, 5, 1, 2, 8, 3, 4, 11, 12 
-    };
+    private readonly int[] _baseStrip = { 1, 2, 3, 4, 5, 1, 2, 3, 4, 6, 1, 2, 3, 5, 1, 2, 7, 1, 3, 4, 8, 1, 2, 3, 4, 5, 1, 2, 8, 3, 4, 11, 12 };
 
     private readonly int[][] _paylines = new int[][] {
         new[] {0,0,0,0,0}, new[] {1,1,1,1,1}, new[] {2,2,2,2,2}, new[] {3,3,3,3,3},
@@ -57,7 +54,7 @@ public class SlotGameEngine : BaseGameEngine {
         public bool IsBonusActive { get; set; } 
         public int BonusLives { get; set; }
         public decimal LockedBet { get; set; }
-        public decimal Denomination { get; set; } = 0.01m; // Default
+        public decimal Denomination { get; set; } = 0.01m;
         public List<BellValue> BonusBells { get; set; } = new(); 
         public bool WasNudged { get; set; }
         public SlotState() { for(int r=0; r<Rows; r++) Grid[r] = new int[Cols]; }
@@ -90,13 +87,21 @@ public class SlotGameEngine : BaseGameEngine {
             }
 
             var directive = BrainService.DecideOutcome(session.UserId, GameId, currentBet, repo);
+            
+            // Apply Dynamic Difficulty (Volatility)
+            int[] activeStrip = _baseStrip;
+            if (directive.VolatilityModifier >= 2.0) {
+                // High Vol: Remove some cherries (1) and lemons (2), add more Sevens (7)
+                activeStrip = _baseStrip.Select(s => (s == 1 || s == 2) ? (new Random().NextDouble() > 0.5 ? s : 7) : s).ToArray();
+            }
+
             decimal totalWin = 0;
             int attempts = 0;
 
             do {
                 attempts++;
                 if (state.IsBonusActive) PlayBonusRound(state, session.Seed + attempts);
-                else instantWin = PlayStandardRound(state, session.Seed + attempts);
+                else instantWin = PlayStandardRound(state, session.Seed + attempts, activeStrip);
 
                 if (state.IsBonusActive) {
                     totalWin = 0; 
@@ -125,21 +130,21 @@ public class SlotGameEngine : BaseGameEngine {
                 DecisionType = directive.DecisionType, ExecutedAt = DateTime.UtcNow
             };
             repo.SaveRound(round);
-            await RealTimeService.NotifyGameUpdate(session.UserId, new { Grid = state.Grid, Win = totalWin, IsRespin = state.IsRespinActive, Nudge = state.WasNudged });
+            await RealTimeService.NotifyGameUpdate(session.UserId, new { Grid = state.Grid, Win = totalWin, IsRespin = state.IsRespinActive, Nudge = state.WasNudged, Volatility = directive.VolatilityModifier });
             return round;
         });
     }
 
-    private decimal PlayStandardRound(SlotState state, int seed) {
+    private decimal PlayStandardRound(SlotState state, int seed, int[] strip) {
         int nonce = 0; decimal coinWin = 0;
         var stickyMap = new HashSet<(int,int)>(state.StickyClovers.Select(p => (p.R, p.C)));
         int[] stops = new int[Cols];
 
         for (int c = 0; c < Cols; c++) {
-            stops[c] = RngService.GetNextInt(seed, nonce++, 0, _reelStrip.Length);
+            stops[c] = RngService.GetNextInt(seed, nonce++, 0, strip.Length);
             for (int r = 0; r < Rows; r++) {
                 if (stickyMap.Contains((r,c))) { state.Grid[r][c] = SYM_WILD_CLOVER; continue; }
-                state.Grid[r][c] = _reelStrip[(stops[c] + r) % _reelStrip.Length];
+                state.Grid[r][c] = strip[(stops[c] + r) % strip.Length];
             }
         }
 
@@ -161,9 +166,9 @@ public class SlotGameEngine : BaseGameEngine {
             state.RespinLives--;
             if (state.RespinLives == 0 && state.StickyClovers.Count == 4) {
                 for (int c = 0; c < Cols; c++) {
-                    int aIdx = (stops[c] - 1 + _reelStrip.Length) % _reelStrip.Length;
-                    int bIdx = (stops[c] + Rows) % _reelStrip.Length;
-                    if (_reelStrip[aIdx] == SYM_WILD_CLOVER || _reelStrip[bIdx] == SYM_WILD_CLOVER) {
+                    int aIdx = (stops[c] - 1 + strip.Length) % strip.Length;
+                    int bIdx = (stops[c] + Rows) % strip.Length;
+                    if (strip[aIdx] == SYM_WILD_CLOVER || strip[bIdx] == SYM_WILD_CLOVER) {
                         state.WasNudged = true; state.RespinLives = 3;
                         state.StickyClovers.Add(new Point { R = 0, C = c }); 
                         break;
