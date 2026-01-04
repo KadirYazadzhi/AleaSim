@@ -18,31 +18,15 @@
         <Authorized>
             <div class="admin-overlay pa-4">
                 <MudText Typo="Typo.subtitle2" Color="Color.Error"><b>DEV MODE ACTIVE</b></MudText>
-                <MudText Typo="Typo.caption">Target RTP: 95.0% | Actual: @(profile?.CashbackLevel ?? 0)%</MudText>
-                <MudText Typo="Typo.caption">Volatility: High (Admin)</MudText>
-                <MudText Typo="Typo.caption">Next Decision: @(new Random().NextDouble() > 0.5 ? "WIN" : "LOSS") (Predicted)</MudText>
-                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Warning" Class="mt-2">Force Bonus</MudButton>
+                <MudText Typo="Typo.caption">Target RTP: 95.0%</MudText>
             </div>
         </Authorized>
     </AuthorizeView>
 
     <CelebrationOverlay @ref="localCelebration" />
     <MudGrid>
-        <!-- Left Side: Game and Jackpot -->
         <MudItem xs="12" lg="9">
             <div class="d-flex justify-space-between align-center mb-2 px-2">
-                <div class="d-flex gap-2">
-                    @if (profile?.LuckyCloverLevel > 0) {
-                        <MudTooltip Text='$"Lucky Clover Level {profile.LuckyCloverLevel} active!'>
-                            <MudIcon Icon="@Icons.Material.Filled.AutoFixHigh" Color="Color.Secondary" />
-                        </MudTooltip>
-                    }
-                    @if (profile?.XpBoostLevel > 0) {
-                        <MudTooltip Text='$"XP Boost Level {profile.XpBoostLevel} active!'>
-                            <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Info" />
-                        </MudTooltip>
-                    }
-                </div>
                 <MudText Typo="Typo.caption" Style="color: #666;">SESSION ID: @sessionId?.ToString().Substring(0, 8)</MudText>
             </div>
 
@@ -50,28 +34,23 @@
                 <MudText Typo="Typo.h4" Style="color: #ffD700; font-weight: bold; text-shadow: 0 0 10px rgba(255,215,0,0.5);">
                     @jackpot.Name: $@jackpot.CurrentValue.ToString("N2")
                 </MudText>
-                @if (jackpot.MustDropAt.HasValue)
-                {
-                    <div class="px-16 mt-2">
-                        <MudProgressLinear Color="@(jackpot.IsHot ? Color.Error : Color.Warning)" Value="@jackpot.ProgressPercentage" Height="10" />
-                        <MudText Typo="Typo.caption" Style="color: #ccc;">MUST DROP AT: $@jackpot.MustDropAt.Value.ToString("N0")</MudText>
-                    </div>
-                }
             </MudPaper>
 
             <MudPaper Class="pa-2" Style="background: #0f0f0f; border: 6px solid #3d2b1f; border-radius: 15px; box-shadow: inset 0 0 50px #000;">
                 <div class="slot-container">
                     <MudGrid Spacing="1">
-                        @for (int c = 0; c < grid.GetLength(1); c++)
+                        @for (int c = 0; c < 5; c++)
                         {
                             var colIndex = c;
+                            bool isAnticipating = IsAnticipating(colIndex);
                             <MudItem xs="2" Style="flex-basis: 20%; max-width: 20%;">
-                                <div class="reel @(isSpinning ? "spinning" : "")" style="animation-delay: @(colIndex * 0.1)s">
-                                    @for (int r = 0; r < grid.GetLength(0); r++)
+                                <div class="reel @(isSpinning ? "spinning" : "") @(isAnticipating ? "anticipation" : "")" 
+                                     style="animation-delay: @(colIndex * (isAnticipating ? 0.6 : 0.1))s">
+                                    @for (int r = 0; r < 4; r++)
                                     {
                                         var rowIndex = r;
                                         <div class="symbol-cell @(GetSymbolClass(grid[rowIndex, colIndex]))">
-                                            @GetSymbolContent(grid[rowIndex, colIndex], rowIndex, colIndex)
+                                            @GetSymbolContent(grid[rowIndex, colIndex])
                                         </div>
                                     }
                                 </div>
@@ -81,7 +60,6 @@
                 </div>
             </MudPaper>
 
-            <!-- Bottom Info Bar -->
             <MudPaper Class="mt-4 pa-4 d-flex justify-space-between align-center" Style="background: #1a1a1a; color: white;">
                 <MudText Typo="Typo.h6">LAST WIN: <span style="color: #ffD700;">$@lastWin.ToString("N2")</span></MudText>
                 <div class="d-flex gap-4">
@@ -97,51 +75,17 @@
             </MudPaper>
         </MudItem>
 
-        <!-- Right Side: Controls and Quests -->
         <MudItem xs="12" lg="3">
             <MudStack Spacing="4">
                 <MudPaper Class="pa-6" Elevation="3">
                     <MudText Typo="Typo.h5" Class="mb-4">Credits: <span style="color: #4caf50; font-weight: bold;">$@balance.ToString("N2")</span></MudText>
-                    
                     <MudNumericField @bind-Value="betAmount" Label="Stake" Variant="Variant.Outlined" Min="0.1m" Max="100" Step="0.5m" Format="C2" />
-                    
-                    <MudButton Variant="Variant.Filled" 
-                               Color="@(gameState.IsBonusActive ? Color.Error : Color.Primary)" 
-                               Size="Size.Large" 
-                               OnClick="OnSpin" 
-                               Disabled="@(isSpinning || (gameState.CanGamble && !isSpinning))"
-                               FullWidth="true"
-                               Class="mt-4"
-                               Style="height: 100px; font-size: 2rem; font-weight: 900; border-bottom: 6px solid rgba(0,0,0,0.2);">
+                    <MudButton Variant="Variant.Filled" Color="@(gameState.IsBonusActive ? Color.Error : Color.Primary)" Size="Size.Large" OnClick="OnSpin" Disabled="@(isSpinning)" FullWidth="true" Class="mt-4" Style="height: 100px; font-size: 2rem; font-weight: 900;">
                         @(isSpinning ? "..." : (gameState.IsBonusActive ? "FREE SPIN" : "SPIN"))
                     </MudButton>
-
-                    @if (gameState.CanGamble)
-                    {
-                        <div class="d-flex gap-2 mt-4">
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" OnClick='() => OnAction("gamble")'>GAMBLE ($@gameState.PendingGambleAmount)</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="Color.Default" FullWidth="true" OnClick='() => OnAction("collect")'>COLLECT</MudButton>
-                        </div>
-                    }
-
-                    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="OnBuyBonus" FullWidth="true" Class="mt-2" Disabled="isSpinning">
-                        Buy Bonus Entry ($@(betAmount * 100))
-                    </MudButton>
-                </MudPaper>
-
-                <!-- Quests Panel -->
-                <MudPaper Class="pa-4" Style="background: #f5f5f5;">
-                    <MudText Typo="Typo.h6" Class="mb-2"><MudIcon Icon="@Icons.Material.Filled.Assignment" Class="mr-2"/>Daily Quests</MudText>
-                    @foreach (var quest in activeQuests)
-                    {
-                        <div class="mb-3">
-                            <div class="d-flex justify-space-between mb-1">
-                                <MudText Typo="Typo.caption">@quest.Description</MudText>
-                                <MudText Typo="Typo.caption" Style="font-weight: bold;">@quest.CurrentProgress / @quest.TargetValue</MudText>
-                            </div>
-                            <MudProgressLinear Color="Color.Primary" Value="@(((double)quest.CurrentProgress / quest.TargetValue) * 100)" />
-                        </div>
-                    }
+                    <div class="d-flex gap-2 mt-4">
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" OnClick='() => OnAction("gamble")' Disabled="@(lastWin == 0 || isSpinning)">GAMBLE</MudButton>
+                    </div>
                 </MudPaper>
             </MudStack>
         </MudItem>
@@ -150,38 +94,12 @@
 
 <style>
     .slot-container { padding: 10px; }
-    .symbol-cell {
-        height: 110px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(#333, #111);
-        margin-bottom: 6px;
-        border-radius: 8px;
-        font-size: 2.8rem;
-        border: 1px solid #444;
-        transition: all 0.3s ease;
-    }
-    .symbol-high { border: 2px solid #ffD700; background: radial-gradient(circle, #443, #111); }
-    .symbol-clover { border: 2px solid #4caf50; animation: pulse 2s infinite; }
-    
+    .symbol-cell { height: 110px; display: flex; align-items: center; justify-content: center; background: linear-gradient(#333, #111); margin-bottom: 6px; border-radius: 8px; font-size: 2.8rem; border: 1px solid #444; }
+    .symbol-high { border: 2px solid #ffD700; }
+    .symbol-clover { border: 2px solid #4caf50; }
     .spinning { animation: reel-spin 0.1s infinite linear; }
-    
-    @@keyframes reel-spin {
-        0% { transform: translateY(0); }
-        100% { transform: translateY(10px); }
-    }
-    @@keyframes pulse {
-        0% { filter: drop-shadow(0 0 2px #4caf50); }
-        50% { filter: drop-shadow(0 0 10px #4caf50); }
-        100% { filter: drop-shadow(0 0 2px #4caf50); }
-    }
-    @@keyframes pulse-red {
-        0% { box-shadow: 0 0 5px #ff4500; }
-        50% { box-shadow: 0 0 25px #ff4500; }
-        100% { box-shadow: 0 0 5px #ff4500; }
-    }
+    .anticipation { border: 2px solid #ff4500; box-shadow: 0 0 20px #ff4500; animation: reel-spin 0.05s infinite linear !important; }
+    @@keyframes reel-spin { 0% { transform: translateY(0); } 100% { transform: translateY(10px); } }
 </style>
 
 @code {
@@ -191,166 +109,77 @@
     private decimal balance = 0;
     private decimal lastWin = 0;
     private decimal betAmount = 1.0m;
-    private JackpotDto jackpot = new() { Name = "GLOBAL JACKPOT", CurrentValue = 12450.23m, MustDropAt = 15000m };
+    private JackpotDto jackpot = new() { Name = "GLOBAL JACKPOT", CurrentValue = 12450.23m };
     private Guid? sessionId;
-    
     private SlotGameStateUI gameState = new();
     private List<QuestUI> activeQuests = new();
     private UserProfileResponse? profile;
 
     protected override async Task OnInitializedAsync() {
         for(int r=0; r<4; r++) for(int c=0; c<5; c++) grid[r,c] = 1;
-        
         RealTime.OnJackpotUpdated += HandleJackpotUpdate;
         await LoadInitialData();
     }
 
-    private void HandleJackpotUpdate(JackpotDto dto) {
-        if (dto.IsGlobal) {
-            jackpot = dto;
-            InvokeAsync(StateHasChanged);
-        }
-    }
+    private void HandleJackpotUpdate(JackpotDto dto) { if (dto.IsGlobal) { jackpot = dto; InvokeAsync(StateHasChanged); } }
 
     private async Task LoadInitialData() {
         try {
             var sessionResponse = await GameService.StartSession("slot");
             sessionId = sessionResponse.SessionId;
-
             profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
             if (profile != null) {
                 balance = profile.Balance;
-                
-                // STATE RECOVERY LOGIC
                 if (!string.IsNullOrEmpty(profile.ActiveGameStateJson)) {
                     var recovered = JsonSerializer.Deserialize<RecoveredState>(profile.ActiveGameStateJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                     if (recovered != null && recovered.Grid != null) {
-                        for(int r=0; r<4; r++) 
-                            for(int c=0; c<5; c++) 
-                                grid[r,c] = recovered.Grid[r][c];
-                        
+                        for(int r=0; r<4; r++) for(int c=0; c<5; c++) grid[r,c] = recovered.Grid[r][c];
                         gameState.IsBonusActive = recovered.IsBonusActive;
-                        gameState.BonusLives = recovered.BonusLives;
                         gameState.IsRespinActive = recovered.IsRespinActive;
-                        gameState.RespinLives = recovered.RespinLives;
                         betAmount = recovered.LockedBet > 0 ? recovered.LockedBet : betAmount;
                     }
                 }
             }
-            
-            activeQuests = await Http.GetFromJsonAsync<List<QuestUI>>("api/Game/quests") ?? new();
         } catch { }
     }
 
-    // Helper for JSON mapping
-    public class RecoveredState {
-        public int[][] Grid { get; set; } = null!;
-        public bool IsRespinActive { get; set; }
-        public int RespinLives { get; set; }
-        public bool IsBonusActive { get; set; }
-        public int BonusLives { get; set; }
-        public decimal LockedBet { get; set; }
+    private bool IsAnticipating(int col) {
+        if (!isSpinning || col < 3) return false;
+        int clovers = 0;
+        for (int c = 0; c < col; c++) {
+            for (int r = 0; r < 4; r++) if (grid[r, c] == 8) { clovers++; break; }
+        }
+        return clovers >= 3;
     }
 
     private async Task OnSpin() {
         if (sessionId == null || isSpinning) return;
-        
-        await Audio.PlaySpin();
-        isSpinning = true;
-        lastWin = 0;
-        StateHasChanged();
-
+        isSpinning = true; lastWin = 0; StateHasChanged();
         try {
+            await Audio.PlaySpin();
             var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount);
-            await Task.Delay(1000);
-
-            bool wasBonusActive = gameState.IsBonusActive;
-
-            try {
-                var gridData = JsonSerializer.Deserialize<SlotResultGrid>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                
-                if (gridData != null && gridData.Grid != null && gridData.Grid.Length > 0) {
-                    for (int r = 0; r < 4; r++) {
-                        if (r >= gridData.Grid.Length) break;
-                        for (int c = 0; c < 5; c++) {
-                            if (gridData.Grid[r] != null && c < gridData.Grid[r].Length) {
-                                grid[r, c] = gridData.Grid[r][c];
-                            }
-                        }
-                    }
-                }
-            } catch (Exception ex) {
-                Console.WriteLine($"Grid Update Error: {ex.Message}");
+            await Task.Delay(2000);
+            var gridData = JsonSerializer.Deserialize<SlotResultGrid>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (gridData != null && gridData.Grid != null) {
+                for (int r = 0; r < 4; r++) for (int c = 0; c < 5; c++) grid[r, c] = gridData.Grid[r][c];
             }
-
             lastWin = result.TotalWin;
-            balance += lastWin;
-            if (!gameState.IsBonusActive) balance -= betAmount;
-
-            // Trigger Celebration
-            if (lastWin > betAmount * 20) {
-                localCelebration.Show(profile?.Username ?? "You", "Clover Chase", lastWin, lastWin/betAmount);
-                await Audio.PlayBigWin();
-            }
-            else if (result.RandomResultJson.Contains("\"IsBonusActive\":true") && !wasBonusActive) {
-                localCelebration.Show(profile?.Username ?? "You", "BONUS TRIGGERED!", 0, 0);
-                await Audio.PlayBigWin();
-            }
-            else if (lastWin > 0) await Audio.PlayWin();
-        }
-        catch (Exception ex) {
-            Snackbar.Add(ex.Message, Severity.Error);
-        }
-        finally {
-            isSpinning = false;
-            StateHasChanged();
-        }
+            profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+            if (profile != null) balance = profile.Balance;
+            if (lastWin > betAmount * 20) localCelebration.Show(profile?.Username ?? "You", "Clover Chase", lastWin, lastWin/betAmount);
+        } catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { isSpinning = false; StateHasChanged(); }
     }
 
     private async Task OnAction(string action) {
-        if (sessionId == null) return;
-        var result = await GameService.PerformAction("slot", sessionId.Value, action);
-        if (result.Success) {
-            // Update UI state
-        }
+        await GameService.PerformAction("slot", sessionId!.Value, action);
+        await LoadInitialData();
     }
 
-    private async Task OnBuyBonus() {
-        var result = await GameService.PlaceBet("slot", sessionId!.Value, betAmount, "{\"IsFeatureBuy\":true}");
-        await OnSpin(); // Re-use spin logic
-    }
+    private string GetSymbolClass(int id) => id switch { 7 => "symbol-high", 8 => "symbol-clover", 10 => "symbol-clover symbol-high", _ => "" };
+    private string GetSymbolContent(int id) => id switch { 1 => "🍒", 2 => "🍋", 3 => "🍊", 4 => "🍇", 5 => "🔔", 6 => "💎", 7 => "7️⃣", 8 => "🍀", 10 => "💰", 11 => "🥈", 12 => "🥉", _ => "🍃" };
 
-    private string GetSymbolClass(int id) => id switch {
-        7 => "symbol-high",
-        8 => "symbol-clover",
-        10 => "symbol-clover symbol-high",
-        _ => ""
-    };
-
-    private RenderFragment GetSymbolContent(int id, int r, int c) => builder => {
-        string emoji = id switch {
-            1 => "🍒", 2 => "🍋", 3 => "🍊", 4 => "🍇",
-            5 => "🔔", 6 => "💎", 7 => "7️⃣", 8 => "🍀",
-            10 => "💰", 11 => "🥈", 12 => "🥉",
-            _ => "🍃"
-        };
-        builder.AddContent(0, emoji);
-    };
-
-    public async ValueTask DisposeAsync() {
-        RealTime.OnJackpotUpdated -= HandleJackpotUpdate;
-    }
-
-        public class QuestUI {
-
-            public string Description { get; set; } = "";
-
-            public int TargetValue { get; set; }
-
-            public int CurrentProgress { get; set; }
-
-        }
-
-    }
-
-    
+    public async ValueTask DisposeAsync() { RealTime.OnJackpotUpdated -= HandleJackpotUpdate; }
+    public class QuestUI { public string Description { get; set; } = ""; public int TargetValue { get; set; } public int CurrentProgress { get; set; } }
+    public class RecoveredState { public int[][] Grid { get; set; } = null!; public bool IsRespinActive { get; set; } public bool IsBonusActive { get; set; } public decimal LockedBet { get; set; } }
+}
