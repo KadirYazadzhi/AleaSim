@@ -88,10 +88,8 @@ public class SlotGameEngine : BaseGameEngine {
 
             var directive = BrainService.DecideOutcome(session.UserId, GameId, currentBet, repo);
             
-            // Apply Dynamic Difficulty (Volatility)
             int[] activeStrip = _baseStrip;
             if (directive.VolatilityModifier >= 2.0) {
-                // High Vol: Remove some cherries (1) and lemons (2), add more Sevens (7)
                 activeStrip = _baseStrip.Select(s => (s == 1 || s == 2) ? (new Random().NextDouble() > 0.5 ? s : 7) : s).ToArray();
             }
 
@@ -101,7 +99,10 @@ public class SlotGameEngine : BaseGameEngine {
             do {
                 attempts++;
                 if (state.IsBonusActive) PlayBonusRound(state, session.Seed + attempts);
-                else instantWin = PlayStandardRound(state, session.Seed + attempts, activeStrip);
+                else {
+                    if (directive.IsNearMiss && attempts == 1) GenerateNearMissGrid(state, directive.PreferredNearMissSymbol ?? 7);
+                    else instantWin = PlayStandardRound(state, session.Seed + attempts, activeStrip);
+                }
 
                 if (state.IsBonusActive) {
                     totalWin = 0; 
@@ -130,9 +131,23 @@ public class SlotGameEngine : BaseGameEngine {
                 DecisionType = directive.DecisionType, ExecutedAt = DateTime.UtcNow
             };
             repo.SaveRound(round);
-            await RealTimeService.NotifyGameUpdate(session.UserId, new { Grid = state.Grid, Win = totalWin, IsRespin = state.IsRespinActive, Nudge = state.WasNudged, Volatility = directive.VolatilityModifier });
+            await RealTimeService.NotifyGameUpdate(session.UserId, new { Grid = state.Grid, Win = totalWin, IsRespin = state.IsRespinActive, Nudge = state.WasNudged });
             return round;
         });
+    }
+
+    private void GenerateNearMissGrid(SlotState state, int symbol) {
+        // Construct a "Near Win" on Line 1 (Row 1)
+        // [Sym] [Sym] [Other] ...
+        var rnd = new Random();
+        for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) state.Grid[r][c] = _baseStrip[rnd.Next(_baseStrip.Length)];
+        
+        state.Grid[1][0] = symbol;
+        state.Grid[1][1] = symbol;
+        // Place the 3rd one exactly above or below the line
+        state.Grid[rnd.NextDouble() > 0.5 ? 0 : 2][2] = symbol;
+        // Ensure the actual line is NOT a win
+        state.Grid[1][2] = (symbol == 1) ? 2 : 1; 
     }
 
     private decimal PlayStandardRound(SlotState state, int seed, int[] strip) {

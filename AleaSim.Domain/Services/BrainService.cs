@@ -68,7 +68,28 @@ public class BrainService : IBrainService {
             }
         }
 
-        // --- Default with Volatility ---
+        // --- RULE 2: The Cool Down ---
+        if (profile.ActualRtp > 1.2 && profile.TotalWagered > 100) {
+            // Find favorite symbol for Teaser from affinity data
+            int favoriteSymbol = 7; // Default to Seven
+            try {
+                var affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile.SymbolAffinityJson);
+                if (affinity != null && affinity.Any()) {
+                    favoriteSymbol = affinity.OrderByDescending(x => x.Value).First().Key;
+                }
+            } catch { }
+
+            return new BrainDirective {
+                DecisionType = "CoolDown",
+                TargetWinAmount = 0,
+                IsNearMiss = true,
+                PreferredNearMissSymbol = favoriteSymbol,
+                VolatilityModifier = volatility,
+                Reason = "pRTP normalization"
+            };
+        }
+
+        // Default with Volatility
         return new BrainDirective { 
             DecisionType = "Random", 
             VolatilityModifier = volatility 
