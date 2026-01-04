@@ -79,7 +79,6 @@ public class SlotGameEngine : BaseGameEngine {
             var lastBet = repo.GetLastBet(sessionId);
             decimal currentBet = lastBet?.Amount ?? 1.0m;
             
-            // Extract Denomination from bet data if present
             try {
                 if (!string.IsNullOrEmpty(lastBet?.BetData)) {
                     var data = JsonSerializer.Deserialize<JsonElement>(lastBet.BetData);
@@ -115,7 +114,7 @@ public class SlotGameEngine : BaseGameEngine {
 
             do {
                 attempts++;
-                if (state.IsBonusActive) PlayBonusRound(state, session.Seed + attempts);
+                if (state.IsBonusActive) PlayBonusRound(state, session.Seed + attempts, repo); // Pass Repo
                 else {
                     if (directive.IsNearMiss && attempts == 1) GenerateNearMissGrid(state, directive.PreferredNearMissSymbol ?? 7, session.Seed);
                     else instantWin = PlayStandardRound(state, session.Seed + attempts, activeStrip);
@@ -222,7 +221,7 @@ public class SlotGameEngine : BaseGameEngine {
         }
     }
 
-    private void PlayBonusRound(SlotState state, int seed) {
+    private void PlayBonusRound(SlotState state, int seed, IGameRepository repo) {
         bool landed = false; int nonce = 0;
         for (int r = 0; r < Rows; r++) {
             for (int c = 0; c < Cols; c++) {
@@ -234,10 +233,23 @@ public class SlotGameEngine : BaseGameEngine {
                     int minis = state.BonusBells.Count(b => b.Type == BellType.Mini);
                     int minors = state.BonusBells.Count(b => b.Type == BellType.Minor);
                     
-                    if (tr < 0.001) { bell.Type = BellType.Major; bell.Value = state.Denomination * 10000m; }
-                    else if (tr < 0.011 && minors < 3) { bell.Type = BellType.Minor; bell.Value = state.Denomination * 5000m; }
-                    else if (tr < 0.06 && minis < 5) { bell.Type = BellType.Mini; bell.Value = state.Denomination * 1000m; }
-                    else { bell.Type = BellType.Cash; bell.Value = state.LockedBet * (state.HasGoldenClover ? RngService.GetNextInt(seed, nonce++, 5, 10) : RngService.GetNextInt(seed, nonce++, 1, 10)); }
+                    // FIXED: Fetch REAL progressive value from JackpotService
+                    if (tr < 0.001) { 
+                        bell.Type = BellType.Major; // Spades
+                        bell.Value = JackpotService.GetTierValue(JackpotTier.Spades, repo);
+                    }
+                    else if (tr < 0.011 && minors < 3) { 
+                        bell.Type = BellType.Minor; // Hearts/Diamonds
+                        bell.Value = JackpotService.GetTierValue(JackpotTier.Hearts, repo);
+                    }
+                    else if (tr < 0.06 && minis < 5) { 
+                        bell.Type = BellType.Mini; // Clubs
+                        bell.Value = JackpotService.GetTierValue(JackpotTier.Clubs, repo);
+                    }
+                    else { 
+                        bell.Type = BellType.Cash; 
+                        bell.Value = state.LockedBet * (state.HasGoldenClover ? RngService.GetNextInt(seed, nonce++, 5, 10) : RngService.GetNextInt(seed, nonce++, 1, 10)); 
+                    }
                     state.BonusBells.Add(bell);
                 }
             }
@@ -245,6 +257,7 @@ public class SlotGameEngine : BaseGameEngine {
         if (landed) state.BonusLives = 3; else state.BonusLives--;
     }
 
+    // ... (EvaluateGrid, IsMatch, CheckBrainCompliance, ProcessAction, GetOutcome, GetCurrentState same as before)
     private decimal EvaluateGrid(int[][] grid, decimal bet) {
         decimal win = 0;
         foreach (var line in _paylines) {
@@ -278,18 +291,14 @@ public class SlotGameEngine : BaseGameEngine {
             if (session == null) return;
             SlotState state = JsonSerializer.Deserialize<SlotState>(session.GameState) ?? new SlotState();
             var lastRound = repo.GetLastRound(sessionId);
-            
-            // Gamble Security Fix: Use RNG service instead of new Random
             if (action.ToLower() == "gamble" && lastRound != null && lastRound.TotalWinAmount > 0) {
-                // Use session seed to ensure reproducibility/audit
                 bool win = RngService.GetNextDouble(session.Seed, (int)DateTime.UtcNow.Ticks) > 0.5;
-                
                 decimal oldWin = lastRound.TotalWinAmount;
                 lastRound.TotalWinAmount = win ? oldWin * 2 : 0;
                 lastRound.DecisionType = win ? "Gamble_Win" : "Gamble_Loss";
                 repo.SaveRound(lastRound);
-                if (win) VaultService.ProcessWin(session.UserId, oldWin, repo); // Add the extra half
-                else repo.UpdateUserBalance(session.UserId, -oldWin); // Remove original win
+                if (win) VaultService.ProcessWin(session.UserId, oldWin, repo);
+                else repo.UpdateUserBalance(session.UserId, -oldWin);
             }
             session.GameState = JsonSerializer.Serialize(state);
             repo.SaveChanges();

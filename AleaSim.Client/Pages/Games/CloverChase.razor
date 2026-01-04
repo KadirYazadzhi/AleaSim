@@ -210,7 +210,7 @@
         try {
             await Audio.PlaySpin();
             // Send denomination in metadata
-            string betData = $"{{"Denomination":{denomination}}}";
+            string betData = $"{{Denomination:{denomination}}}";
             var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount, betData);
             
             await Task.Delay(2000); // Drama
