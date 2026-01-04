@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "nOwEJpSMvXsYyMVvltc/dFed5+983Z5EFxQxe8GCG7c=",
+  "Hash": "LpiW1weWbDt/+UrX7ZmegTxQGixuOQwe7yMC48vlXPw=",
   "Source": "AleaSim.Client",
   "BasePath": "/",
   "Mode": "Root",
@@ -8584,6 +8584,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot/css/bootstrap/bootstrap.min.css.map"
+    },
+    {
+      "Identity": "/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/wwwroot/favicon.ico",
+      "SourceId": "AleaSim.Client",
+      "SourceType": "Discovered",
+      "ContentRoot": "/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/wwwroot/",
+      "BasePath": "/",
+      "RelativePath": "favicon.ico",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/favicon.ico"
     },
     {
       "Identity": "/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/wwwroot/favicon.png",

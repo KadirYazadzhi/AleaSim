@@ -1,5 +1,6 @@
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Services;
+using AleaSim.Domain.Extensions;
 using AleaSim.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -50,48 +51,17 @@ builder.Services.AddDbContext<AleaSimDbContext>(options =>
 // Persistence Service (Repository)
 builder.Services.AddScoped<IGameRepository, EfGameRepository>();
 
-// Domain Services (Singleton for simulation state)
-builder.Services.AddSingleton<IRngService, DeterministicRngService>();
-builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
-builder.Services.AddSingleton<IRealTimeService, AleaSim.Api.Services.SignalRRealTimeService>(); // Added
-builder.Services.AddSingleton<IRtpEngine, RtpEngine>();
-builder.Services.AddSingleton<IVaultService, VaultService>(); // New Financial Core
-builder.Services.AddSingleton<IBrainService, BrainService>(); // New Intelligence Core
-builder.Services.AddScoped<IQuestService, QuestService>(); // New Quest System
-builder.Services.AddScoped<IAchievementService, AchievementService>(); // New Achievement System
-builder.Services.AddScoped<IVoucherService, VoucherService>(); // New Voucher System
-builder.Services.AddScoped<ITournamentService, TournamentService>(); // New Tournament System
-builder.Services.AddScoped<ILevelService, LevelService>(); // New RPG System
-builder.Services.AddSingleton<ILeaderboardService, LeaderboardService>(); // New Social System
-builder.Services.AddSingleton<IPromotionService, PromotionService>(); // New Promotions
-builder.Services.AddSingleton<IJackpotService, JackpotService>();
-builder.Services.AddScoped<IAdminService, AdminService>();
-builder.Services.AddScoped<ISimulationService, SimulationService>();
-builder.Services.AddSingleton<IAuditService, AuditService>();
- // Audit is singleton to manage hash chain in memory? Or Scoped?
-// AuditService implementation uses IServiceScopeFactory, so it can be Singleton.
-builder.Services.AddScoped<IGameDirector, GameDirector>(); // Added Director (Scoped because it uses Repo)
+// Real-Time Service (SignalR Implementation)
+builder.Services.AddSingleton<IRealTimeService, AleaSim.Api.Services.SignalRRealTimeService>();
+
+// Domain Core (Shared Logic)
+builder.Services.AddAleaSimCore();
 
 // Background Workers
 builder.Services.AddSingleton<AleaSim.Api.Workers.SentinelBackgroundService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AleaSim.Api.Workers.SentinelBackgroundService>());
 builder.Services.AddHostedService<AleaSim.Api.Workers.RaffleBackgroundService>();
 builder.Services.AddHostedService<AleaSim.Api.Workers.DailyBonusBackgroundService>();
-
-// Game Engines
-builder.Services.AddSingleton<SlotGameEngine>();
-builder.Services.AddSingleton<RouletteGameEngine>();
-builder.Services.AddSingleton<BlackjackGameEngine>();
-
-// Game Factory / Resolver
-builder.Services.AddSingleton<Func<string, IGame>>(serviceProvider => key => {
-    return key.ToLower() switch {
-        "slot" => serviceProvider.GetRequiredService<SlotGameEngine>(),
-        "roulette" => serviceProvider.GetRequiredService<RouletteGameEngine>(),
-        "blackjack" => serviceProvider.GetRequiredService<BlackjackGameEngine>(),
-        _ => throw new KeyNotFoundException("Game engine not found")
-    };
-});
 
 // Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is missing in configuration.");
@@ -108,6 +78,18 @@ builder.Services.AddAuthentication(x => {
         IssuerSigningKey = new SymmetricSecurityKey(key),
         ValidateIssuer = false,
         ValidateAudience = false
+    };
+    
+    // SignalR Auth: Extract token from query string
+    x.Events = new JwtBearerEvents {
+        OnMessageReceived = context => {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/gamehub")) {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -139,9 +121,9 @@ using (var scope = app.Services.CreateScope()) {
     // Seed Games if missing
     if (!db.Games.Any()) {
         db.Games.AddRange(
-            new AleaSim.Domain.Entities.Game { Id = Guid.NewGuid(), Name = "Slot Machine", Type = "Slot", MinBet = 1, MaxBet = 100, TargetRTP = 0.95, IsActive = true },
-            new AleaSim.Domain.Entities.Game { Id = Guid.NewGuid(), Name = "European Roulette", Type = "Roulette", MinBet = 1, MaxBet = 500, TargetRTP = 0.97, IsActive = true },
-            new AleaSim.Domain.Entities.Game { Id = Guid.NewGuid(), Name = "Blackjack", Type = "Blackjack", MinBet = 5, MaxBet = 200, TargetRTP = 0.99, IsActive = true }
+            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000001"), Name = "Slot Machine", Type = "Slot", MinBet = 1, MaxBet = 100, TargetRTP = 0.95, IsActive = true },
+            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = "European Roulette", Type = "Roulette", MinBet = 1, MaxBet = 500, TargetRTP = 0.97, IsActive = true },
+            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000003"), Name = "Blackjack", Type = "Blackjack", MinBet = 5, MaxBet = 200, TargetRTP = 0.99, IsActive = true }
         );
         db.SaveChanges();
     }

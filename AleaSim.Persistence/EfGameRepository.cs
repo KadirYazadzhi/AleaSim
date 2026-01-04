@@ -12,7 +12,6 @@ public class EfGameRepository : IGameRepository {
         _context = context;
     }
 
-    // Helper for explicit transactions if needed outside of SaveChanges
     public ITransaction BeginTransaction() {
         return new EfTransactionWrapper(_context.Database.BeginTransaction());
     }
@@ -92,9 +91,6 @@ public class EfGameRepository : IGameRepository {
         var user = _context.Users.FirstOrDefault(u => u.Id == userId);
         if (user != null) {
             user.Balance += amountToAdd;
-            // Note: We don't SaveChanges here automatically to allow batching in transaction, 
-            // OR we save, and transaction rollback reverts it.
-            // For safety in this hybrid approach, we Save. Transaction will rollback if needed.
             _context.SaveChanges();
         }
     }
@@ -156,12 +152,9 @@ public class EfGameRepository : IGameRepository {
     }
 
     public IEnumerable<TournamentEntry> GetTopTournamentEntries(DateTime date, int topCount) {
-        // Fetch into memory to calculate ROI property if needed, but better to order in DB if computed column.
-        // ROI is computed property, so EF might not translate it directly unless configured.
-        // For MVP, fetch all for the day and sort in memory (assuming not millions of players).
         return _context.TournamentEntries
             .Where(t => t.TournamentDate.Date == date.Date)
-            .AsEnumerable() // Client-side evaluation for the computed property
+            .AsEnumerable()
             .OrderByDescending(t => t.RoiPercentage)
             .Take(topCount)
             .ToList();
@@ -171,7 +164,6 @@ public class EfGameRepository : IGameRepository {
         var start = date.Date;
         var end = start.AddDays(1);
 
-        // Optimized query joining GameRounds to GameSessions
         var stats = _context.GameRounds
             .Where(r => r.ExecutedAt >= start && r.ExecutedAt < end)
             .Join(_context.GameSessions, 
@@ -183,7 +175,7 @@ public class EfGameRepository : IGameRepository {
                 UserId = g.Key, 
                 NetResult = g.Sum(x => x.TotalWinAmount - x.TotalBetAmount) 
             })
-            .AsEnumerable() // Execute
+            .AsEnumerable()
             .Select(x => (x.UserId, x.NetResult))
             .ToList();
 
@@ -288,22 +280,24 @@ public class EfGameRepository : IGameRepository {
         return _context.RTPStatistics.ToList();
     }
 
-    public Jackpot GetGlobalJackpot() {
-        var jackpot = _context.Jackpots.FirstOrDefault(j => j.IsGlobal);
-        if (jackpot == null) {
-            jackpot = new Jackpot { 
-                Id = Guid.NewGuid(), 
-                Name = "Global Grand Jackpot", 
-                CurrentValue = 10000m, 
-                ContributionRate = 0.01m, 
-                IsGlobal = true, 
-                MustDropAt = 15000m, // Guaranteed drop at 15k
-                LastUpdated = DateTime.UtcNow 
-            };
-            _context.Jackpots.Add(jackpot);
+    public IEnumerable<Jackpot> GetJackpots() {
+        var jackpots = _context.Jackpots.ToList();
+        if (!jackpots.Any(j => j.Tier == JackpotTier.Clubs)) {
+            _context.Jackpots.AddRange(
+                new Jackpot { Id = Guid.NewGuid(), Name = "Clubs", Tier = JackpotTier.Clubs, CurrentValue = 50, ContributionRate = 0.01m, IsGlobal = true, MustDropAt = 100, LastUpdated = DateTime.UtcNow },
+                new Jackpot { Id = Guid.NewGuid(), Name = "Diamonds", Tier = JackpotTier.Diamonds, CurrentValue = 200, ContributionRate = 0.005m, IsGlobal = true, MustDropAt = 500, LastUpdated = DateTime.UtcNow },
+                new Jackpot { Id = Guid.NewGuid(), Name = "Hearts", Tier = JackpotTier.Hearts, CurrentValue = 1000, ContributionRate = 0.002m, IsGlobal = true, MustDropAt = 2500, LastUpdated = DateTime.UtcNow },
+                new Jackpot { Id = Guid.NewGuid(), Name = "Spades", Tier = JackpotTier.Spades, CurrentValue = 10000, ContributionRate = 0.001m, IsGlobal = true, MustDropAt = 50000, LastUpdated = DateTime.UtcNow }
+            );
             _context.SaveChanges();
+            return _context.Jackpots.ToList();
         }
-        return jackpot;
+        return jackpots;
+    }
+
+    public Jackpot GetGlobalJackpot() {
+        // Fallback for legacy code
+        return GetJackpots().First(j => j.Tier == JackpotTier.Spades);
     }
 
     public Jackpot GetOrCreateLocalJackpot(Guid gameId) {
@@ -316,7 +310,7 @@ public class EfGameRepository : IGameRepository {
                 CurrentValue = 500m,
                 ContributionRate = 0.005m,
                 IsGlobal = false,
-                MustDropAt = 1000m, // Guaranteed drop at 1k
+                MustDropAt = 1000m,
                 LastUpdated = DateTime.UtcNow
             };
             _context.Jackpots.Add(jackpot);
@@ -325,20 +319,9 @@ public class EfGameRepository : IGameRepository {
         return jackpot;
     }
 
-    public IEnumerable<Jackpot> GetJackpots() {
-        var jackpots = _context.Jackpots.ToList();
-        if (!jackpots.Any(j => j.Tier == JackpotTier.Clubs)) {
-            // Seed 4 tiers
-            _context.Jackpots.AddRange(
-                new Jackpot { Id = Guid.NewGuid(), Name = "Clubs", Tier = JackpotTier.Clubs, CurrentValue = 50, ContributionRate = 0.01m, IsGlobal = true, MustDropAt = 100, LastUpdated = DateTime.UtcNow },
-                new Jackpot { Id = Guid.NewGuid(), Name = "Diamonds", Tier = JackpotTier.Diamonds, CurrentValue = 200, ContributionRate = 0.005m, IsGlobal = true, MustDropAt = 500, LastUpdated = DateTime.UtcNow },
-                new Jackpot { Id = Guid.NewGuid(), Name = "Hearts", Tier = JackpotTier.Hearts, CurrentValue = 1000, ContributionRate = 0.002m, IsGlobal = true, MustDropAt = 2500, LastUpdated = DateTime.UtcNow },
-                new Jackpot { Id = Guid.NewGuid(), Name = "Spades", Tier = JackpotTier.Spades, CurrentValue = 10000, ContributionRate = 0.001m, IsGlobal = true, MustDropAt = 50000, LastUpdated = DateTime.UtcNow }
-            );
-            _context.SaveChanges();
-            return _context.Jackpots.ToList();
-        }
-        return jackpots;
+    public void UpdateJackpot(Jackpot jackpot) {
+        _context.Jackpots.Update(jackpot);
+        _context.SaveChanges();
     }
 
     public void SaveJackpotTrigger(Jackpot jackpot, decimal winAmount) {
@@ -382,7 +365,7 @@ public class EfGameRepository : IGameRepository {
         
         return _context.GameRounds
             .Where(r => r.ExecutedAt >= cutoff)
-            .AsEnumerable() // Grouping by date parts is easier in memory for this scale
+            .AsEnumerable() 
             .GroupBy(r => new DateTime(r.ExecutedAt.Year, r.ExecutedAt.Month, r.ExecutedAt.Day, r.ExecutedAt.Hour, 0, 0))
             .Select(g => (
                 Hour: g.Key,

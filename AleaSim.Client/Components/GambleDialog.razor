@@ -1,0 +1,79 @@
+@using AleaSim.Client.Services
+@inject IGameService GameService
+@inject AudioService Audio
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex flex-column align-center justify-center pa-4">
+            <MudText Typo="Typo.h4" Class="mb-4">DOUBLE OR NOTHING</MudText>
+            <MudText Typo="Typo.h5" Color="Color.Success" Class="mb-6">RISK: $@Amount.ToString("N2") -> WIN: $@(Amount * 2).ToString("N2")</MudText>
+
+            <div class="d-flex gap-4">
+                <MudPaper Class="card-choice red" @onclick='() => Play("red")' Elevation="4">
+                    <MudIcon Icon="@Icons.Material.Filled.Favorite" Size="Size.Large" />
+                    <MudText>RED</MudText>
+                </MudPaper>
+                <MudPaper Class="card-choice black" @onclick='() => Play("black")' Elevation="4">
+                    <MudIcon Icon="@Icons.Material.Filled.Spoke" Size="Size.Large" />
+                    <MudText>BLACK</MudText>
+                </MudPaper>
+            </div>
+            
+            @if (isProcessing) {
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Collect" Color="Color.Secondary">COLLECT ($@Amount)</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .card-choice { width: 120px; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s; }
+    .card-choice:hover { transform: scale(1.1); }
+    .red { background: #b71c1c; color: white; }
+    .black { background: #212121; color: white; }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public decimal Amount { get; set; }
+    [Parameter] public Guid SessionId { get; set; }
+
+    private bool isProcessing = false;
+
+    private async Task Play(string choice) {
+        if (isProcessing) return;
+        isProcessing = true;
+        await Audio.PlayClick();
+
+        // Simulate suspense
+        await Task.Delay(1000);
+
+        try {
+            // Note: Backend logic is 50/50 RNG, choice is visual only for now
+            var response = await GameService.PerformAction("slot", SessionId, "gamble", choice);
+            
+            if (response.Success) {
+                // Check new state or balance to see if won
+                // For simplicity, we assume if action succeeded without error, we check result via UI update
+                // Ideally response should contain result.
+                // We'll close and let parent refresh.
+                
+                // Hack: Check if we won by querying state or assuming win if balance up?
+                // Actually, backend saves round decision.
+                // Let's just close and let main UI update.
+                MudDialog.Close(DialogResult.Ok(true));
+            } else {
+                Snackbar.Add("Gamble failed.", Severity.Error);
+                MudDialog.Close(DialogResult.Cancel());
+            }
+        } catch {
+            MudDialog.Close(DialogResult.Cancel());
+        }
+    }
+
+    private void Collect() => MudDialog.Close(DialogResult.Cancel());
+}

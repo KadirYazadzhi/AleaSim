@@ -25,6 +25,10 @@
       "PackagePath": "staticwebassets/css/bootstrap/bootstrap.min.css.map"
     },
     {
+      "Id": "/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/wwwroot/favicon.ico",
+      "PackagePath": "staticwebassets/favicon.ico"
+    },
+    {
       "Id": "/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/wwwroot/favicon.png",
       "PackagePath": "staticwebassets/favicon.png"
     },

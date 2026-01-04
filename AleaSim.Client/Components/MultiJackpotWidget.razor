@@ -1,0 +1,80 @@
+@using AleaSim.Shared.Models
+@using AleaSim.Client.Services
+@implements IDisposable
+@inject RealTimeClient RealTime
+
+<div class="jackpot-container">
+    <div class="jackpot-row spades">
+        <div class="suit">♠</div>
+        <div class="name">MEGA</div>
+        <div class="value">$@spades.ToString("N2")</div>
+    </div>
+    <div class="jackpot-row hearts">
+        <div class="suit">♥</div>
+        <div class="name">MAJOR</div>
+        <div class="value">$@hearts.ToString("N2")</div>
+    </div>
+    <div class="jackpot-row diamonds">
+        <div class="suit">♦</div>
+        <div class="name">MINOR</div>
+        <div class="value">$@diamonds.ToString("N2")</div>
+    </div>
+    <div class="jackpot-row clubs">
+        <div class="suit">♣</div>
+        <div class="name">MINI</div>
+        <div class="value">$@clubs.ToString("N2")</div>
+    </div>
+</div>
+
+<style>
+    .jackpot-container {
+        background: #111;
+        border: 2px solid #d4af37;
+        border-radius: 8px;
+        padding: 10px;
+        color: white;
+        font-family: 'Courier New', Courier, monospace;
+    }
+    .jackpot-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px;
+        margin-bottom: 2px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 4px;
+        align-items: center;
+    }
+    .suit { font-size: 1.5rem; width: 30px; }
+    .name { flex-grow: 1; text-align: left; margin-left: 10px; font-weight: bold; font-size: 0.8rem; color: #aaa; }
+    .value { font-weight: 900; font-size: 1.1rem; color: #ffD700; }
+    
+    .spades { border-left: 4px solid #fff; }
+    .hearts { border-left: 4px solid #d32f2f; .suit { color: #d32f2f; } }
+    .diamonds { border-left: 4px solid #1976d2; .suit { color: #1976d2; } }
+    .clubs { border-left: 4px solid #388e3c; .suit { color: #388e3c; } }
+</style>
+
+@code {
+    private decimal spades = 10000m;
+    private decimal hearts = 2500m;
+    private decimal diamonds = 500m;
+    private decimal clubs = 50m;
+
+    protected override void OnInitialized() {
+        RealTime.OnJackpotUpdated += HandleUpdate;
+    }
+
+    private void HandleUpdate(JackpotDto dto) {
+        if (dto.Name.Contains("Spades")) spades = dto.CurrentValue;
+        else if (dto.Name.Contains("Hearts")) hearts = dto.CurrentValue;
+        else if (dto.Name.Contains("Diamonds")) diamonds = dto.CurrentValue;
+        else if (dto.Name.Contains("Clubs")) clubs = dto.CurrentValue;
+        else if (dto.IsGlobal) spades = dto.CurrentValue; // Fallback
+        
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() {
+        RealTime.OnJackpotUpdated -= HandleUpdate;
+    }
+}

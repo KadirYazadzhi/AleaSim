@@ -97,10 +97,49 @@ public class BlackjackGameEngine : BaseGameEngine {
     private string DrawCard(int seed, ref int seq) {
         seq++;
         int idx = RngService.GetNextInt(seed, seq, 0, 52);
-        return "A2345678910JQK"[idx % 13].ToString() + "HDCS"[idx / 13];
+        int rankIdx = idx % 13;
+        int suitIdx = idx / 13;
+        
+        string rank = rankIdx switch {
+            0 => "A",
+            9 => "10",
+            10 => "J",
+            11 => "Q",
+            12 => "K",
+            _ => (rankIdx + 1).ToString()
+        };
+        
+        string suit = "HDCS"[suitIdx].ToString();
+        return rank + suit;
     }
 
-    private int CalculateHandValue(List<string> hand) => 20; // Simplified for rebuild
+    private int CalculateHandValue(List<string> hand) {
+        int value = 0;
+        int aces = 0;
+        
+        foreach (var card in hand) {
+            if (string.IsNullOrEmpty(card)) continue;
+            string rank = card.Substring(0, card.Length - 1); // Extract rank (handle 10)
+            
+            if (rank == "A") {
+                aces++;
+            } else if (rank == "J" || rank == "Q" || rank == "K") {
+                value += 10;
+            } else if (int.TryParse(rank, out int val)) {
+                value += val;
+            }
+        }
+        
+        for (int i = 0; i < aces; i++) {
+            if (value + 11 <= 21) {
+                value += 11;
+            } else {
+                value += 1;
+            }
+        }
+        
+        return value;
+    }
     public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome());
     public override Task<object?> GetCurrentState(Guid sessionId) => Task.FromResult<object?>(null);
 }

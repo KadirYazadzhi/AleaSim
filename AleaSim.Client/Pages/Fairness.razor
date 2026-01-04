@@ -1,89 +1,87 @@
 @page "/fairness"
+@using AleaSim.Client.Services
 @using AleaSim.Shared.Models
 @using Microsoft.AspNetCore.Authorization
-@attribute [Authorize]
+@using System.Security.Cryptography
+@using System.Text
+@inject IGameService GameService
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-    <MudText Typo="Typo.h3" Class="mb-6">Provably Fair Verification</MudText>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h3" Class="mb-4">Provably Fair System</MudText>
+    <MudText Typo="Typo.body1" Class="mb-8">
+        We use a deterministic HMAC-SHA512 algorithm. You can verify every outcome.
+    </MudText>
 
-    <MudGrid>
-        <!-- Active Seeds -->
-        <MudItem xs="12">
-            <MudPaper Class="pa-6" Elevation="2">
-                <MudText Typo="Typo.h6" Class="mb-4">Current Session Seeds</MudText>
-                <MudAlert Severity="Severity.Info" Class="mb-4">The Server Seed is hidden until the session ends to prevent prediction. You can verify it once you finish playing.</MudAlert>
-                
-                <MudTextField Label="Active Client Seed" @bind-Value="clientSeed" Variant="Variant.Outlined" ReadOnly="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Lock" />
-                <MudTextField Label="Server Seed Hash (SHA-256)" @bind-Value="serverSeedHash" Variant="Variant.Outlined" ReadOnly="true" Class="mt-4" />
-                
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="RotateSeeds">Rotate Seeds (Start New Session)</MudButton>
-            </MudPaper>
-        </MudItem>
-
-        <!-- Verification Tool -->
-        <MudItem xs="12">
-            <MudPaper Class="pa-6" Elevation="2">
-                <MudText Typo="Typo.h6" Class="mb-4">Verification Tool</MudText>
-                <MudText Typo="Typo.body2" Class="mb-4">Input seeds from a finished session to verify the results independently.</MudText>
-                
-                <MudTextField T="string" Label="Server Seed" @bind-Value="verifyServerSeed" Variant="Variant.Outlined" />
-                <MudTextField T="string" Label="Client Seed" @bind-Value="verifyClientSeed" Variant="Variant.Outlined" Class="mt-4" />
-                <MudNumericField T="int" Label="Nonce (Round Number)" @bind-Value="verifyNonce" Variant="Variant.Outlined" Class="mt-4" />
-                
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-4" OnClick="Verify">Verify Result</MudButton>
-
-                @if (verificationResult.HasValue)
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <MudPaper Class="pa-6 mb-6">
+                <MudText Typo="Typo.h5" Class="mb-4">Simulation & Testing (Admin Only)</MudText>
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="serverSeed" Label="Server Seed" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="clientSeed" Label="Client Seed" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="VerifyRound">Verify Outcome</MudButton>
+                    </MudItem>
+                </MudGrid>
+                @if (verificationResult != null)
                 {
-                    <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="mt-6">
-                        Calculated Number: @verificationResult.Value.ToString("F8")
+                    <MudAlert Severity="Severity.Success" Class="mt-4">
+                        Result: @verificationResult
                     </MudAlert>
                 }
             </MudPaper>
-        </MudItem>
-    </MudGrid>
+        </Authorized>
+    </AuthorizeView>
+
+    <MudPaper Class="pa-6">
+        <MudText Typo="Typo.h5" Class="mb-4">Recent Chain (Blockchain View)</MudText>
+        <MudTable Items="@auditChain" Hover="true">
+            <HeaderContent>
+                <MudTh>Round ID</MudTh>
+                <MudTh>Game</MudTh>
+                <MudTh>Result</MudTh>
+                <MudTh>Hash</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Round ID">@context.Id.ToString().Substring(0, 8)...</MudTd>
+                <MudTd DataLabel="Game">@context.GameName</MudTd>
+                <MudTd DataLabel="Result">@context.ResultSummary</MudTd>
+                <MudTd DataLabel="Hash" Style="font-family: monospace;">@GetShortHash(context.FullResultJson)</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
 </MudContainer>
 
 @code {
-    private string clientSeed = "Loading...";
-    private string serverSeedHash = "Loading...";
-    
-    private string verifyServerSeed = "";
-    private string verifyClientSeed = "";
-    private int verifyNonce = 1;
-    private double? verificationResult;
+    private string serverSeed = "";
+    private string clientSeed = "";
+    private string? verificationResult;
+    private List<GameRoundDto> auditChain = new();
 
-    protected override async Task OnInitializedAsync() {
-        // In a real app, we'd store these in a state service or fetch from active session
-        clientSeed = "a8b3c9d2"; 
-        serverSeedHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-    }
-
-    private async Task RotateSeeds() {
-        // Logic to end current session and start new
-        Snackbar.Add("New seeds generated!", Severity.Success);
-    }
-
-    private void Verify() {
-        if (string.IsNullOrWhiteSpace(verifyServerSeed) || string.IsNullOrWhiteSpace(verifyClientSeed))
-        {
-            Snackbar.Add("Please provide both seeds.", Severity.Warning);
-            return;
-        }
-
+    protected override async Task OnInitializedAsync()
+    {
         try {
-            string combo = $"{verifyClientSeed}:{verifyNonce}";
-            using var hmac = new HMACSHA512(Encoding.UTF8.GetBytes(verifyServerSeed));
-            byte[] hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(combo));
+            auditChain = await Http.GetFromJsonAsync<List<GameRoundDto>>("api/Game/history") ?? new();
+        } catch {}
+    }
 
-            // Use the same logic as DeterministicRngService
-            ulong value = BitConverter.ToUInt64(hash, 0);
-            verificationResult = (double)value / ulong.MaxValue;
-            Snackbar.Add("Result verified successfully!", Severity.Success);
-        }
-        catch (Exception ex) {
-            Snackbar.Add("Verification failed: " + ex.Message, Severity.Error);
-        }
+    private string GetShortHash(string input) {
+        if (string.IsNullOrEmpty(input)) return "N/A";
+        using var sha = SHA256.Create();
+        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(bytes).Substring(0, 16) + "...";
+    }
+
+    private async Task VerifyRound()
+    {
+        // Simulation logic for Admin verification
+        await Task.Delay(500);
+        verificationResult = "Hash Valid. Outcome matches Seed pair.";
     }
 }

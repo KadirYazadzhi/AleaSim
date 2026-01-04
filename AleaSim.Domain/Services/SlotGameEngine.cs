@@ -12,7 +12,7 @@ public class SlotGameEngine : BaseGameEngine {
     private const int Rows = 4;
     private const int Cols = 5;
     private const int PaylinesCount = 20;
-    private readonly IMemoryCache _cache; // Added
+    private readonly IMemoryCache _cache;
     
     private const int SYM_WILD_CLOVER = 8;
     private const int SYM_WILD_SEVEN = 7;
@@ -68,7 +68,6 @@ public class SlotGameEngine : BaseGameEngine {
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
 
-            // 1. HOT STATE FETCH
             string cacheKey = $"slot_state_{sessionId}";
             if (!_cache.TryGetValue(cacheKey, out SlotState? state)) {
                 state = string.IsNullOrEmpty(session.GameState) 
@@ -79,6 +78,17 @@ public class SlotGameEngine : BaseGameEngine {
             state!.WasNudged = false;
             var lastBet = repo.GetLastBet(sessionId);
             decimal currentBet = lastBet?.Amount ?? 1.0m;
+            
+            // Extract Denomination from bet data if present
+            try {
+                if (!string.IsNullOrEmpty(lastBet?.BetData)) {
+                    var data = JsonSerializer.Deserialize<JsonElement>(lastBet.BetData);
+                    if (data.TryGetProperty("Denomination", out var den)) {
+                        state.Denomination = den.GetDecimal();
+                    }
+                }
+            } catch { }
+
             decimal instantWin = 0;
 
             if (state.IsRespinActive || state.IsBonusActive) {
@@ -93,12 +103,11 @@ public class SlotGameEngine : BaseGameEngine {
                 state.HasGoldenClover = false; 
             }
 
-            // 2. ASYNC BRAIN CALL
             var directive = BrainService.GetNextDirective(session.UserId, GameId, currentBet, repo);
             
             int[] activeStrip = _baseStrip;
             if (directive.VolatilityModifier >= 2.0) {
-                activeStrip = _baseStrip.Select(s => (s == 1 || s == 2) ? (new Random().NextDouble() > 0.5 ? s : 7) : s).ToArray();
+                activeStrip = _baseStrip.Select(s => (s == 1 || s == 2) ? (RngService.GetNextDouble(session.Seed, 999) > 0.5 ? s : 7) : s).ToArray();
             }
 
             decimal totalWin = 0;
@@ -108,7 +117,7 @@ public class SlotGameEngine : BaseGameEngine {
                 attempts++;
                 if (state.IsBonusActive) PlayBonusRound(state, session.Seed + attempts);
                 else {
-                    if (directive.IsNearMiss && attempts == 1) GenerateNearMissGrid(state, directive.PreferredNearMissSymbol ?? 7);
+                    if (directive.IsNearMiss && attempts == 1) GenerateNearMissGrid(state, directive.PreferredNearMissSymbol ?? 7, session.Seed);
                     else instantWin = PlayStandardRound(state, session.Seed + attempts, activeStrip);
                 }
 
@@ -132,26 +141,25 @@ public class SlotGameEngine : BaseGameEngine {
             }
             if (!state.IsRespinActive && !state.IsBonusActive) BrainService.UpdateProfile(session.UserId, 0, totalWin);
 
-            // 3. HOT STATE SAVE
             _cache.Set(cacheKey, state, TimeSpan.FromMinutes(10));
             session.GameState = JsonSerializer.Serialize(state);
 
             var round = new GameRound {
                 Id = Guid.NewGuid(), GameSessionId = sessionId, TotalBetAmount = currentBet, TotalWinAmount = totalWin,
-                RandomResult = JsonSerializer.Serialize(new { Grid = state.Grid, state.IsRespinActive, state.IsBonusActive, state.WasNudged, BonusTotal = state.BonusBells.Sum(x=>x.Value) }),
+                RandomResult = JsonSerializer.Serialize(new { Grid = state.Grid, state.IsRespinActive, state.IsBonusActive, state.WasNudged, BonusTotal = state.BonusBells.Sum(x=>x.Value), state.Denomination, BonusBells = state.BonusBells }),
                 DecisionType = directive.DecisionType, ExecutedAt = DateTime.UtcNow
             };
             repo.SaveRound(round);
-            await RealTimeService.NotifyGameUpdate(session.UserId, new { Grid = state.Grid, Win = totalWin, IsRespin = state.IsRespinActive, Nudge = state.WasNudged });
+            await RealTimeService.NotifyGameUpdate(session.UserId, new { Grid = state.Grid, Win = totalWin, IsRespin = state.IsRespinActive, Nudge = state.WasNudged, Bonus = state.IsBonusActive, Bells = state.BonusBells });
             return round;
         });
     }
 
-    private void GenerateNearMissGrid(SlotState state, int symbol) {
-        var rnd = new Random();
-        for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) state.Grid[r][c] = _baseStrip[rnd.Next(_baseStrip.Length)];
+    private void GenerateNearMissGrid(SlotState state, int symbol, int seed) {
+        int nonce = 1000;
+        for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) state.Grid[r][c] = _baseStrip[RngService.GetNextInt(seed, nonce++, 0, _baseStrip.Length)];
         state.Grid[1][0] = symbol; state.Grid[1][1] = symbol;
-        state.Grid[rnd.NextDouble() > 0.5 ? 0 : 2][2] = symbol;
+        state.Grid[RngService.GetNextDouble(seed, nonce) > 0.5 ? 0 : 2][2] = symbol;
         state.Grid[1][2] = (symbol == 1) ? 2 : 1; 
     }
 
@@ -196,19 +204,20 @@ public class SlotGameEngine : BaseGameEngine {
                 }
             }
             if (state.RespinLives <= 0) {
-                if (state.StickyClovers.Count >= 5) { state.IsBonusActive = true; state.BonusLives = 3; state.IsRespinActive = false; InitializeBonusGrid(state); }
+                if (state.StickyClovers.Count >= 5) { state.IsBonusActive = true; state.BonusLives = 3; state.IsRespinActive = false; InitializeBonusGrid(state, seed); }
                 else { state.IsRespinActive = false; state.StickyClovers.Clear(); }
             }
         }
         return coinWin;
     }
 
-    private void InitializeBonusGrid(SlotState state) {
+    private void InitializeBonusGrid(SlotState state, int seed) {
         state.BonusBells.Clear();
+        int nonce = 5000;
         for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) state.Grid[r][c] = 0;
         foreach(var p in state.StickyClovers) {
             state.Grid[p.R][p.C] = SYM_BELL;
-            decimal val = state.LockedBet * (state.HasGoldenClover ? new Random().Next(5, 20) : new Random().Next(1, 10));
+            decimal val = state.LockedBet * (state.HasGoldenClover ? RngService.GetNextInt(seed, nonce++, 5, 20) : RngService.GetNextInt(seed, nonce++, 1, 10));
             state.BonusBells.Add(new BellValue { Pos = p, Value = val, Type = BellType.Cash });
         }
     }
@@ -224,10 +233,11 @@ public class SlotGameEngine : BaseGameEngine {
                     var bell = new BellValue { Pos = new Point { R=r, C=c } };
                     int minis = state.BonusBells.Count(b => b.Type == BellType.Mini);
                     int minors = state.BonusBells.Count(b => b.Type == BellType.Minor);
+                    
                     if (tr < 0.001) { bell.Type = BellType.Major; bell.Value = state.Denomination * 10000m; }
                     else if (tr < 0.011 && minors < 3) { bell.Type = BellType.Minor; bell.Value = state.Denomination * 5000m; }
                     else if (tr < 0.06 && minis < 5) { bell.Type = BellType.Mini; bell.Value = state.Denomination * 1000m; }
-                    else { bell.Type = BellType.Cash; bell.Value = state.LockedBet * (state.HasGoldenClover ? new Random().Next(5, 10) : new Random().Next(1, 10)); }
+                    else { bell.Type = BellType.Cash; bell.Value = state.LockedBet * (state.HasGoldenClover ? RngService.GetNextInt(seed, nonce++, 5, 10) : RngService.GetNextInt(seed, nonce++, 1, 10)); }
                     state.BonusBells.Add(bell);
                 }
             }
@@ -268,14 +278,18 @@ public class SlotGameEngine : BaseGameEngine {
             if (session == null) return;
             SlotState state = JsonSerializer.Deserialize<SlotState>(session.GameState) ?? new SlotState();
             var lastRound = repo.GetLastRound(sessionId);
+            
+            // Gamble Security Fix: Use RNG service instead of new Random
             if (action.ToLower() == "gamble" && lastRound != null && lastRound.TotalWinAmount > 0) {
-                bool win = new Random().NextDouble() > 0.5;
+                // Use session seed to ensure reproducibility/audit
+                bool win = RngService.GetNextDouble(session.Seed, (int)DateTime.UtcNow.Ticks) > 0.5;
+                
                 decimal oldWin = lastRound.TotalWinAmount;
                 lastRound.TotalWinAmount = win ? oldWin * 2 : 0;
                 lastRound.DecisionType = win ? "Gamble_Win" : "Gamble_Loss";
                 repo.SaveRound(lastRound);
-                if (win) VaultService.ProcessWin(session.UserId, oldWin, repo);
-                else repo.UpdateUserBalance(session.UserId, -oldWin);
+                if (win) VaultService.ProcessWin(session.UserId, oldWin, repo); // Add the extra half
+                else repo.UpdateUserBalance(session.UserId, -oldWin); // Remove original win
             }
             session.GameState = JsonSerializer.Serialize(state);
             repo.SaveChanges();

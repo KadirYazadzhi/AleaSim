@@ -50,15 +50,34 @@ public class PromotionService : IPromotionService {
     }
 
     public async Task ExecuteRaffleDraw(decimal prizeAmount, string raffleType, IGameRepository repo) {
-        var activeProfiles = repo.GetActiveProfiles(TimeSpan.FromMinutes(3));
-        var winnerId = PickWinner(activeProfiles);
+        // Get all active profiles from the last 10 minutes to have a candidate pool
+        var activeProfiles = repo.GetActiveProfiles(TimeSpan.FromMinutes(10)).ToList();
+        
+        Guid winnerId = Guid.Empty;
+        int attempts = 0;
+
+        // Re-roll Logic: Try up to 10 times to find a strictly active/online user
+        while (attempts < 10) {
+            var candidateId = PickWinner(activeProfiles);
+            if (candidateId == Guid.Empty) break;
+
+            // Strict check: Must have bet in last 3 minutes
+            if (IsUserActive(candidateId, repo)) {
+                winnerId = candidateId;
+                break;
+            }
+            
+            // Remove candidate from pool to avoid re-picking same inactive user
+            activeProfiles.RemoveAll(p => p.UserId == candidateId);
+            attempts++;
+        }
         
         if (winnerId != Guid.Empty) {
             _vaultService.CreditBonus(winnerId, prizeAmount, prizeAmount, repo);
             await _realTimeService.NotifyGameUpdate(winnerId, new {
                 Type = "RaffleWin",
                 Amount = prizeAmount,
-                Message = $"You won the {raffleType} Raffle!"
+                Message = $"🎉 You won the {raffleType} Raffle!"
             });
         }
     }
