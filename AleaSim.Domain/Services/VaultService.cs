@@ -13,10 +13,12 @@ public class VaultService : IVaultService {
 
     public bool ProcessBet(Guid userId, decimal amount, IGameRepository repo) {
         var user = repo.GetUser(userId);
+        var profile = repo.GetPlayerProfile(userId);
         if (user == null) return false;
 
         bool success = false;
 
+        // ... (existing wallet logic)
         if (user.BonusBalance > 0) {
             if (user.BonusBalance >= amount) {
                 user.BonusBalance -= amount;
@@ -47,6 +49,13 @@ public class VaultService : IVaultService {
         }
 
         if (success) {
+            // Update Shadow Wallet
+            if (profile != null) {
+                // Assume 95% default if no game-specific RTP known here
+                profile.ShadowBalance += amount * 0.95m;
+                repo.UpdatePlayerProfile(profile);
+            }
+
             repo.UpdateUser(user);
             _ = _realTime.NotifyBalanceUpdate(userId, user.Balance + user.BonusBalance);
         }
@@ -56,7 +65,14 @@ public class VaultService : IVaultService {
 
     public void ProcessWin(Guid userId, decimal amount, IGameRepository repo) {
         var user = repo.GetUser(userId);
+        var profile = repo.GetPlayerProfile(userId);
         if (user == null) return;
+
+        // Deduct from Shadow Wallet
+        if (profile != null) {
+            profile.ShadowBalance -= amount;
+            repo.UpdatePlayerProfile(profile);
+        }
 
         if (user.BonusBalance > 0 && user.WageringProgress < user.WageringRequirement) {
             user.BonusBalance += amount;
@@ -71,8 +87,15 @@ public class VaultService : IVaultService {
     public bool CanAffordWin(Guid userId, Guid gameId, decimal winAmount, IGameRepository repo) {
         lock (_lock) {
             var game = repo.GetGame(gameId);
+            var profile = repo.GetPlayerProfile(userId);
+            
             if (game == null) return false;
-            return game.PoolBalance >= winAmount;
+
+            // Strict check: Casino must have funds AND User must have enough Shadow Balance
+            bool casinoCanAfford = game.PoolBalance >= winAmount;
+            bool userHasShadowCredit = profile == null || profile.ShadowBalance >= winAmount;
+
+            return casinoCanAfford && userHasShadowCredit;
         }
     }
 
