@@ -10,11 +10,30 @@ namespace AleaSim.Domain.Services;
 public class BrainService : IBrainService {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IVaultService _vaultService;
-    private readonly ConcurrentDictionary<Guid, BrainDirective> _forcedDirectives = new(); // Added
+    private readonly ConcurrentDictionary<Guid, BrainDirective> _forcedDirectives = new(); 
+    private readonly ConcurrentDictionary<Guid, Queue<BrainDirective>> _directiveQueues = new(); // Added
 
     public BrainService(IServiceScopeFactory scopeFactory, IVaultService vaultService) {
         _scopeFactory = scopeFactory;
         _vaultService = vaultService;
+    }
+
+    public BrainDirective GetNextDirective(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo) {
+        // 1. Admin Forced always wins
+        if (_forcedDirectives.TryRemove(userId, out var forced)) return forced;
+
+        // 2. Get or Init Queue
+        var queue = _directiveQueues.GetOrAdd(userId, _ => new Queue<BrainDirective>());
+
+        lock (queue) {
+            if (queue.Count == 0) {
+                // Pre-calculate 5 steps
+                for (int i = 0; i < 5; i++) {
+                    queue.Enqueue(DecideOutcome(userId, gameId, betAmount, repo));
+                }
+            }
+            return queue.Dequeue();
+        }
     }
 
     public void SetForcedDirective(Guid userId, BrainDirective directive) {

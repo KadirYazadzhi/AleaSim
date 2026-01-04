@@ -4,6 +4,7 @@ using AleaSim.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using AleaSim.Domain.Models;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace AleaSim.Domain.Services;
 
@@ -11,6 +12,7 @@ public class SlotGameEngine : BaseGameEngine {
     private const int Rows = 4;
     private const int Cols = 5;
     private const int PaylinesCount = 20;
+    private readonly IMemoryCache _cache; // Added
     
     private const int SYM_WILD_CLOVER = 8;
     private const int SYM_WILD_SEVEN = 7;
@@ -37,8 +39,9 @@ public class SlotGameEngine : BaseGameEngine {
 
     private Guid GameId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
-    public SlotGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope) 
+    public SlotGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, IMemoryCache cache) 
         : base(rng, vault, brain, promo, jackpot, realTime, scope) {
+        _cache = cache;
     }
 
     public enum BellType { Cash, Mini, Minor, Major }
@@ -65,11 +68,15 @@ public class SlotGameEngine : BaseGameEngine {
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
 
-            SlotState state = string.IsNullOrEmpty(session.GameState) 
-                ? new SlotState() 
-                : JsonSerializer.Deserialize<SlotState>(session.GameState) ?? new SlotState();
+            // 1. HOT STATE FETCH
+            string cacheKey = $"slot_state_{sessionId}";
+            if (!_cache.TryGetValue(cacheKey, out SlotState? state)) {
+                state = string.IsNullOrEmpty(session.GameState) 
+                    ? new SlotState() 
+                    : JsonSerializer.Deserialize<SlotState>(session.GameState) ?? new SlotState();
+            }
 
-            state.WasNudged = false;
+            state!.WasNudged = false;
             var lastBet = repo.GetLastBet(sessionId);
             decimal currentBet = lastBet?.Amount ?? 1.0m;
             decimal instantWin = 0;
@@ -86,7 +93,8 @@ public class SlotGameEngine : BaseGameEngine {
                 state.HasGoldenClover = false; 
             }
 
-            var directive = BrainService.DecideOutcome(session.UserId, GameId, currentBet, repo);
+            // 2. ASYNC BRAIN CALL
+            var directive = BrainService.GetNextDirective(session.UserId, GameId, currentBet, repo);
             
             int[] activeStrip = _baseStrip;
             if (directive.VolatilityModifier >= 2.0) {
@@ -124,7 +132,10 @@ public class SlotGameEngine : BaseGameEngine {
             }
             if (!state.IsRespinActive && !state.IsBonusActive) BrainService.UpdateProfile(session.UserId, 0, totalWin);
 
+            // 3. HOT STATE SAVE
+            _cache.Set(cacheKey, state, TimeSpan.FromMinutes(10));
             session.GameState = JsonSerializer.Serialize(state);
+
             var round = new GameRound {
                 Id = Guid.NewGuid(), GameSessionId = sessionId, TotalBetAmount = currentBet, TotalWinAmount = totalWin,
                 RandomResult = JsonSerializer.Serialize(new { Grid = state.Grid, state.IsRespinActive, state.IsBonusActive, state.WasNudged, BonusTotal = state.BonusBells.Sum(x=>x.Value) }),
@@ -137,16 +148,10 @@ public class SlotGameEngine : BaseGameEngine {
     }
 
     private void GenerateNearMissGrid(SlotState state, int symbol) {
-        // Construct a "Near Win" on Line 1 (Row 1)
-        // [Sym] [Sym] [Other] ...
         var rnd = new Random();
         for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) state.Grid[r][c] = _baseStrip[rnd.Next(_baseStrip.Length)];
-        
-        state.Grid[1][0] = symbol;
-        state.Grid[1][1] = symbol;
-        // Place the 3rd one exactly above or below the line
+        state.Grid[1][0] = symbol; state.Grid[1][1] = symbol;
         state.Grid[rnd.NextDouble() > 0.5 ? 0 : 2][2] = symbol;
-        // Ensure the actual line is NOT a win
         state.Grid[1][2] = (symbol == 1) ? 2 : 1; 
     }
 
