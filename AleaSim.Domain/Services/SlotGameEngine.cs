@@ -57,6 +57,7 @@ public class SlotGameEngine : BaseGameEngine {
         public bool IsBonusActive { get; set; } 
         public int BonusLives { get; set; }
         public decimal LockedBet { get; set; }
+        public decimal Denomination { get; set; } = 0.01m; // Default
         public List<BellValue> BonusBells { get; set; } = new(); 
         public bool WasNudged { get; set; }
         public SlotState() { for(int r=0; r<Rows; r++) Grid[r] = new int[Cols]; }
@@ -164,7 +165,7 @@ public class SlotGameEngine : BaseGameEngine {
                     int bIdx = (stops[c] + Rows) % _reelStrip.Length;
                     if (_reelStrip[aIdx] == SYM_WILD_CLOVER || _reelStrip[bIdx] == SYM_WILD_CLOVER) {
                         state.WasNudged = true; state.RespinLives = 3;
-                        state.StickyClovers.Add(new Point { R = 0, C = c }); // Simplified place
+                        state.StickyClovers.Add(new Point { R = 0, C = c }); 
                         break;
                     }
                 }
@@ -198,9 +199,9 @@ public class SlotGameEngine : BaseGameEngine {
                     var bell = new BellValue { Pos = new Point { R=r, C=c } };
                     int minis = state.BonusBells.Count(b => b.Type == BellType.Mini);
                     int minors = state.BonusBells.Count(b => b.Type == BellType.Minor);
-                    if (tr < 0.001) { bell.Type = BellType.Major; bell.Value = state.LockedBet * 500; }
-                    else if (tr < 0.011 && minors < 3) { bell.Type = BellType.Minor; bell.Value = state.LockedBet * 50; }
-                    else if (tr < 0.06 && minis < 5) { bell.Type = BellType.Mini; bell.Value = state.LockedBet * 20; }
+                    if (tr < 0.001) { bell.Type = BellType.Major; bell.Value = state.Denomination * 10000m; }
+                    else if (tr < 0.011 && minors < 3) { bell.Type = BellType.Minor; bell.Value = state.Denomination * 5000m; }
+                    else if (tr < 0.06 && minis < 5) { bell.Type = BellType.Mini; bell.Value = state.Denomination * 1000m; }
                     else { bell.Type = BellType.Cash; bell.Value = state.LockedBet * (state.HasGoldenClover ? new Random().Next(5, 10) : new Random().Next(1, 10)); }
                     state.BonusBells.Add(bell);
                 }
@@ -240,43 +241,22 @@ public class SlotGameEngine : BaseGameEngine {
         await ExecuteScopedAsync(async (repo, questService) => {
             var session = repo.GetSession(sessionId);
             if (session == null) return;
-
             SlotState state = JsonSerializer.Deserialize<SlotState>(session.GameState) ?? new SlotState();
             var lastRound = repo.GetLastRound(sessionId);
-            
-            if (action.ToLower() == "gamble") {
-                if (lastRound == null || lastRound.TotalWinAmount <= 0) return;
-
-                // 50/50 Chance
+            if (action.ToLower() == "gamble" && lastRound != null && lastRound.TotalWinAmount > 0) {
                 bool win = new Random().NextDouble() > 0.5;
-                decimal newWin = win ? lastRound.TotalWinAmount * 2 : 0;
-
-                // Update Round in DB for Audit
-                lastRound.TotalWinAmount = newWin;
+                decimal oldWin = lastRound.TotalWinAmount;
+                lastRound.TotalWinAmount = win ? oldWin * 2 : 0;
                 lastRound.DecisionType = win ? "Gamble_Win" : "Gamble_Loss";
                 repo.SaveRound(lastRound);
-
-                // Update User Balance via Vault
-                if (win) {
-                    VaultService.ProcessWin(session.UserId, lastRound.TotalWinAmount / 2, repo); // Credit the extra half
-                } else {
-                    // This is tricky: we already credited the win in ResolveRound. 
-                    // To "Lose" it, we must deduct the full original win.
-                    var user = repo.GetUser(session.UserId);
-                    if (user != null) {
-                        user.Balance -= (lastRound.TotalWinAmount == 0 ? lastRound.TotalBetAmount * 0 : 0); // Placeholder logic
-                        // BETTER: VaultService needs a "ReverseWin" or we just deduct from balance.
-                        repo.UpdateUserBalance(session.UserId, - (newWin == 0 ? lastRound.TotalWinAmount : 0)); // Dummy, wait
-                    }
-                }
-                // Actually, the most robust way is to deduct the original win if they lose the gamble.
-                // Since ResolveRound already called VaultService.ProcessWin.
+                if (win) VaultService.ProcessWin(session.UserId, oldWin, repo);
+                else repo.UpdateUserBalance(session.UserId, -oldWin);
             }
-            
             session.GameState = JsonSerializer.Serialize(state);
             repo.SaveChanges();
         });
     }
+
     public override async Task<Outcome> GetOutcome(Guid roundId) => new Outcome { GameRoundId = roundId };
     public override async Task<object?> GetCurrentState(Guid sessionId) => null;
 }
