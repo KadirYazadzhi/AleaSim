@@ -16,11 +16,34 @@ public class JackpotService : IJackpotService {
     public async Task Contribute(Guid gameId, decimal betAmount, IGameRepository repo) {
         lock (_lock) {
             var jackpots = repo.GetJackpots().ToList();
+            
             foreach (var j in jackpots) {
-                j.CurrentValue += betAmount * j.ContributionRate;
-                j.LastUpdated = DateTime.UtcNow;
-                repo.UpdateJackpot(j);
-                _ = _realTimeService.NotifyJackpotUpdate(j); 
+                // Logic: 
+                // Global Tiers (Hearts/Spades) grow from ALL bets.
+                // Local Tiers (Clubs/Diamonds) grow ONLY if current gameId matches jackpot's GameId (if set) OR are treated as per-game pools.
+                // For simplicity in this architecture where we have 4 SINGLETON jackpots in DB:
+                // We treat all as Global for accrual, but different rates. 
+                // IF we want true local, we need multiple rows per tier per game.
+                // Let's assume Clubs/Diamonds are "Daily/Hourly" globals for now to keep it simple, OR check design docs.
+                // Design says: "Major/Mega must increase ONLY for Slot".
+                
+                // Refined Logic:
+                // Spades (Mega) -> Global
+                // Hearts (Major) -> Slot Specific? 
+                
+                // Let's stick to the Tier definition:
+                // If Tier is Clubs/Diamonds (Low), we might want them to be fast moving globals.
+                // If Tier is Spades (Mega), it's global.
+                // If Tier is Hearts (Major), let's make it Local if GameId is set.
+                
+                bool shouldContribute = j.IsGlobal || (j.GameId == gameId);
+                
+                if (shouldContribute) {
+                    j.CurrentValue += betAmount * j.ContributionRate;
+                    j.LastUpdated = DateTime.UtcNow;
+                    repo.UpdateJackpot(j);
+                    _ = _realTimeService.NotifyJackpotUpdate(j); 
+                }
             }
         }
         await Task.CompletedTask;
@@ -30,11 +53,24 @@ public class JackpotService : IJackpotService {
         double roll = _rngService.GetNextDouble(seed, HashCode.Combine(sequence, "jackpot_trigger"));
         
         lock (_lock) {
-            var jackpots = repo.GetJackpots().OrderBy(j => j.Tier).ToList();
+            // Only check jackpots relevant to this game
+            var jackpots = repo.GetJackpots()
+                .Where(j => j.IsGlobal || j.GameId == gameId)
+                .OrderBy(j => j.Tier)
+                .ToList();
+
             foreach (var j in jackpots) {
-                // Must Drop Pressure Logic
                 decimal pressure = j.MustDropAt.HasValue ? j.CurrentValue / j.MustDropAt.Value : 0.1m;
-                double threshold = 0.0001 * (double)pressure; // Base 1 in 10,000 * pressure
+                // Base chance varies by tier rarity
+                double baseChance = j.Tier switch {
+                    JackpotTier.Clubs => 0.001,    // 1 in 1000
+                    JackpotTier.Diamonds => 0.0005, // 1 in 2000
+                    JackpotTier.Hearts => 0.0001,   // 1 in 10000
+                    JackpotTier.Spades => 0.00001,  // 1 in 100000
+                    _ => 0.0001
+                };
+                
+                double threshold = baseChance * (double)pressure; 
 
                 if (roll < threshold || (j.MustDropAt.HasValue && j.CurrentValue >= j.MustDropAt.Value)) {
                     decimal win = j.CurrentValue;
@@ -59,4 +95,9 @@ public class JackpotService : IJackpotService {
 
     public Jackpot GetGlobalJackpot(IGameRepository repo) => repo.GetJackpots().First(j => j.Tier == JackpotTier.Spades);
     public Jackpot GetLocalJackpot(Guid gameId, IGameRepository repo) => repo.GetOrCreateLocalJackpot(gameId);
+
+    public decimal GetTierValue(JackpotTier tier, IGameRepository repo) {
+        var jackpot = repo.GetJackpots().FirstOrDefault(j => j.Tier == tier);
+        return jackpot?.CurrentValue ?? 0m;
+    }
 }

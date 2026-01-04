@@ -7,4 +7,5 @@ public interface IJackpotService {
     Task<(bool Triggered, decimal WinAmount)> CheckJackpotTrigger(Guid gameId, int seed, int sequence, IGameRepository repo);
     Jackpot GetGlobalJackpot(IGameRepository repo);
     Jackpot GetLocalJackpot(Guid gameId, IGameRepository repo);
+    decimal GetTierValue(JackpotTier tier, IGameRepository repo); // Added
 }

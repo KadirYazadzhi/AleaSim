@@ -11,11 +11,9 @@
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudGrid Justify="Justify.Center">
-        <!-- Blackjack Table -->
         <MudItem xs="12" lg="9">
             <MudPaper Class="pa-8" Style="background: radial-gradient(circle, #006400 0%, #004d00 100%); border: 12px solid #3d2b1f; border-radius: 50% 50% 10% 10% / 20% 20% 10% 10%; min-height: 500px; position: relative; color: white;">
                 
-                <!-- Dealer Area -->
                 <div class="text-center mb-16">
                     <MudText Typo="Typo.h6" Class="mb-2" Style="opacity: 0.7;">DEALER</MudText>
                     <div class="d-flex justify-center gap-2">
@@ -35,13 +33,11 @@
                     }
                 </div>
 
-                <!-- Table Center Decoration -->
                 <div class="table-center">
                     <MudText Typo="Typo.h4" Style="opacity: 0.2; font-weight: 900; letter-spacing: 5px;">BLACKJACK PAY 3 TO 2</MudText>
                     <MudText Typo="Typo.subtitle1" Style="opacity: 0.2;">Dealer must stand on 17 and draw to 16</MudText>
                 </div>
 
-                <!-- Player Area -->
                 <div class="text-center mt-16">
                     <div class="d-flex justify-center gap-2 mb-2">
                         @foreach (var card in playerHand)
@@ -54,7 +50,6 @@
                     <MudText Typo="Typo.h5" Color="Color.Info">Your Hand: @CalculateValue(playerHand)</MudText>
                 </div>
 
-                <!-- Game Result Overlays -->
                 @if (!string.IsNullOrEmpty(gameResult))
                 {
                     <div class="result-overlay">
@@ -64,7 +59,6 @@
             </MudPaper>
         </MudItem>
 
-        <!-- Controls -->
         <MudItem xs="12" lg="3">
             <MudPaper Class="pa-6 d-flex flex-column gap-4">
                 <MudText Typo="Typo.h5">Balance: <span style="color: #4caf50;">$@balance.ToString("N2")</span></MudText>
@@ -114,27 +108,35 @@
     private List<string> dealerHand = new();
     private decimal balance = 0;
     private decimal betAmount = 10.0m;
-    private bool isSpinning = false;
     private bool isRoundOver = true;
     private string gameResult = "";
     private Guid? sessionId;
 
     protected override async Task OnInitializedAsync() {
         await Audio.Init();
-        await LoadInitialData();
+        await RefreshBalance();
     }
 
-    private async Task LoadInitialData() {
+    private async Task RefreshBalance() {
         try {
-            var sessionResponse = await GameService.StartSession("blackjack");
-            sessionId = sessionResponse.SessionId;
             var user = await Http.GetFromJsonAsync<UserDto>("api/Auth/me");
             if (user != null) balance = user.Balance;
+            StateHasChanged();
         } catch { }
     }
 
     private async Task OnDeal() {
-        if (sessionId == null || betAmount > balance) return;
+        if (sessionId == null) {
+            try {
+                var sessionResponse = await GameService.StartSession("blackjack");
+                sessionId = sessionResponse.SessionId;
+            } catch { Snackbar.Add("Failed to start session", Severity.Error); return; }
+        }
+
+        if (betAmount > balance) {
+            Snackbar.Add("Insufficient funds", Severity.Warning);
+            return;
+        }
         
         gameResult = "";
         isRoundOver = false;
@@ -144,16 +146,18 @@
 
         try {
             await Audio.PlaySpin();
+            // Optimistically update balance
+            balance -= betAmount;
+            
             var result = await GameService.PlaceBet("blackjack", sessionId.Value, betAmount);
-            
-            // Initial deal simulation
-            await Task.Delay(500);
             var state = JsonSerializer.Deserialize<BlackjackStateUI>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            
             if (state != null) UpdateUI(state);
+            
+            await RefreshBalance(); // Sync exact balance
         } catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
             isRoundOver = true;
+            await RefreshBalance(); // Revert optimistic update
         }
     }
 
@@ -161,11 +165,14 @@
         if (sessionId == null || isRoundOver) return;
         
         await Audio.PlayClick();
-        var response = await GameService.PerformAction("blackjack", sessionId.Value, action);
-        
-        if (response.Success) {
-            var state = JsonSerializer.Deserialize<BlackjackStateUI>(response.UpdatedStateJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (state != null) UpdateUI(state);
+        try {
+            var response = await GameService.PerformAction("blackjack", sessionId.Value, action);
+            if (response.Success) {
+                var state = JsonSerializer.Deserialize<BlackjackStateUI>(response.UpdatedStateJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (state != null) UpdateUI(state);
+            }
+        } catch (Exception ex) {
+            Snackbar.Add(ex.Message, Severity.Error);
         }
     }
 
@@ -183,15 +190,11 @@
             else if (pVal == dVal) gameResult = "PUSH";
             else gameResult = "DEALER WINS";
 
-            if (gameResult.Contains("WIN")) Audio.PlayWin();
-            
-            // Refresh balance
-            InvokeAsync(async () => {
-                await Task.Delay(1000);
-                var user = await Http.GetFromJsonAsync<UserDto>("api/Auth/me");
-                if (user != null) balance = user.Balance;
-                StateHasChanged();
-            });
+            if (gameResult.Contains("WIN") || gameResult == "PUSH") {
+                if (gameResult.Contains("WIN")) Audio.PlayWin();
+                // Delay refresh to allow animation to finish visually, then sync money
+                Task.Delay(1000).ContinueWith(_ => InvokeAsync(RefreshBalance));
+            }
         }
         StateHasChanged();
     }
@@ -199,9 +202,7 @@
     private string FormatCard(string card) {
         if (string.IsNullOrEmpty(card)) return "";
         string rank = card.Substring(0, card.Length - 1);
-        string suit = card.Substring(card.Length - 1) switch {
-            "H" => "♥", "D" => "♦", "C" => "♣", "S" => "♠", _ => ""
-        };
+        string suit = card.Substring(card.Length - 1) switch { "H" => "♥", "D" => "♦", "C" => "♣", "S" => "♠", _ => "" };
         return rank + suit;
     }
 
@@ -218,11 +219,6 @@
     }
 
     public async ValueTask DisposeAsync() { }
-
     public class UserDto { public decimal Balance { get; set; } }
-    public class BlackjackStateUI {
-        public List<string> PlayerHand { get; set; } = new();
-        public List<string> DealerHand { get; set; } = new();
-        public bool IsRoundOver { get; set; }
-    }
+    public class BlackjackStateUI { public List<string> PlayerHand { get; set; } = new(); public List<string> DealerHand { get; set; } = new(); public bool IsRoundOver { get; set; } }
 }

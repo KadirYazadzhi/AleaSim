@@ -1,0 +1,50 @@
+@inherits LayoutComponentBase
+@using AleaSim.Client.Services
+@inject NavigationManager Navigation
+@inject IAuthService AuthService
+
+<MudThemeProvider Theme="_adminTheme" IsDarkMode="true" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Color="Color.Dark">
+        <MudText Typo="Typo.h5" Class="ml-3">AleaSim <span style="color: #ff4500;">BACKOFFICE</span></MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Outlined" Color="Color.Inherit" OnClick="ExitAdmin">Exit to Casino</MudButton>
+    </MudAppBar>
+    <MudDrawer Open="true" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="DrawerVariant.Persistent">
+        <MudNavMenu>
+            <MudText Typo="Typo.subtitle2" Class="pa-4" Color="Color.Secondary">MANAGEMENT</MudText>
+            <MudNavLink Href="/dashboard" Icon="@Icons.Material.Filled.Dashboard">Overview</MudNavLink>
+            <MudNavLink Href="/admin/monitor" Icon="@Icons.Material.Filled.LiveTv">Live Monitor</MudNavLink>
+            <MudNavLink Href="/admin/players" Icon="@Icons.Material.Filled.People">Player Manager</MudNavLink>
+            
+            <MudText Typo="Typo.subtitle2" Class="pa-4 mt-4" Color="Color.Secondary">SYSTEM</MudText>
+            <MudNavLink Href="/admin/vouchers" Icon="@Icons.Material.Filled.ConfirmationNumber">Vouchers</MudNavLink>
+            <MudNavLink Href="/fairness" Icon="@Icons.Material.Filled.Security">Audit Logs</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="my-4 pt-4">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private MudTheme _adminTheme = new MudTheme() {
+        PaletteDark = new PaletteDark() {
+            Primary = "#ff4500", // Admin Red/Orange
+            Secondary = "#00e676",
+            Background = "#121212",
+            Surface = "#1e1e1e",
+            AppbarBackground = "#000000",
+            DrawerBackground = "#1a1a1a"
+        }
+    };
+
+    private void ExitAdmin() {
+        Navigation.NavigateTo("/");
+    }
+}
