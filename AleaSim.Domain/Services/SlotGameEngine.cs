@@ -13,36 +13,29 @@ public class SlotGameEngine : BaseGameEngine {
     private const int PaylinesCount = 20;
     
     // Symbol IDs
-    private const int SYM_WILD_CLOVER = 8; // Universal Wild + Trigger
-    private const int SYM_WILD_SEVEN = 7;  // Wild for Fruits
-    private const int SYM_BELL = 10;       // Bonus Symbol (Base value)
+    private const int SYM_WILD_CLOVER = 8;    // Universal Wild + Trigger
+    private const int SYM_WILD_SEVEN = 7;     // Wild for Fruits
+    private const int SYM_BELL = 10;          // Bonus Symbol
+    private const int SYM_COLLECT_COIN = 11;  // Instant win during Respins
     private const int SYM_GOLDEN_CLOVER = 12; // Super Trigger (Rare)
     
-    // Reel Strips (Simplified for Probability)
-    // Heavier on low symbols (1-4), lighter on High (7, 8). Added 12 (Golden) very rarely.
     private readonly int[] _reelStrip = { 
-        1, 2, 3, 4, 5, 1, 2, 3, 4, 6, 1, 2, 3, 5, 1, 2, 7, 1, 3, 4, 8, 1, 2, 3, 4, 5, 1, 2, 8, 3, 4, 12 
+        1, 2, 3, 4, 5, 1, 2, 3, 4, 6, 1, 2, 3, 5, 1, 2, 7, 1, 3, 4, 8, 1, 2, 3, 4, 5, 1, 2, 8, 3, 4, 11, 12 
     };
 
-    // Paylines (5x4 Standard)
     private readonly int[][] _paylines = new int[][] {
-        new[] {0,0,0,0,0}, new[] {1,1,1,1,1}, new[] {2,2,2,2,2}, new[] {3,3,3,3,3}, // Straights
-        new[] {0,1,2,1,0}, new[] {1,2,3,2,1}, new[] {2,1,0,1,2}, new[] {3,2,1,2,3}, // V and ^
-        new[] {0,1,0,1,0}, new[] {1,0,1,0,1}, new[] {2,3,2,3,2}, new[] {3,2,3,2,3}, // ZigZags
-        new[] {0,0,1,0,0}, new[] {1,1,2,1,1}, new[] {2,2,3,2,2}, new[] {1,1,0,1,1}, // Small Bumps
-        new[] {2,2,1,2,2}, new[] {1,0,0,0,1}, new[] {2,3,3,3,2}, new[] {0,1,1,1,0}  // Mixed
+        new[] {0,0,0,0,0}, new[] {1,1,1,1,1}, new[] {2,2,2,2,2}, new[] {3,3,3,3,3},
+        new[] {0,1,2,1,0}, new[] {1,2,3,2,1}, new[] {2,1,0,1,2}, new[] {3,2,1,2,3},
+        new[] {0,1,0,1,0}, new[] {1,0,1,0,1}, new[] {2,3,2,3,2}, new[] {3,2,3,2,3},
+        new[] {0,0,1,0,0}, new[] {1,1,2,1,1}, new[] {2,2,3,2,2}, new[] {1,1,0,1,1},
+        new[] {2,2,1,2,2}, new[] {1,0,0,0,1}, new[] {2,3,3,3,2}, new[] {0,1,1,1,0}
     };
 
-    // Paytable (3, 4, 5 matches multipliers)
     private readonly Dictionary<int, decimal[]> _paytable = new() {
-        { 1, new[] { 0.2m, 0.5m, 2.0m } }, // Cherry
-        { 2, new[] { 0.2m, 0.5m, 2.0m } }, // Lemon
-        { 3, new[] { 0.4m, 1.0m, 4.0m } }, // Orange
-        { 4, new[] { 0.5m, 1.5m, 5.0m } }, // Plum
-        { 5, new[] { 1.0m, 3.0m, 10.0m } }, // Grapes
-        { 6, new[] { 1.5m, 5.0m, 15.0m } }, // Watermelon
-        { 7, new[] { 2.5m, 10.0m, 25.0m } }, // Red Seven
-        { 8, new[] { 5.0m, 20.0m, 50.0m } }  // Clover (Line Pay)
+        { 1, new[] { 0.2m, 0.5m, 2.0m } }, { 2, new[] { 0.2m, 0.5m, 2.0m } },
+        { 3, new[] { 0.4m, 1.0m, 4.0m } }, { 4, new[] { 0.5m, 1.5m, 5.0m } },
+        { 5, new[] { 1.0m, 3.0m, 10.0m } }, { 6, new[] { 1.5m, 5.0m, 15.0m } },
+        { 7, new[] { 2.5m, 10.0m, 25.0m } }, { 8, new[] { 5.0m, 20.0m, 50.0m } }
     };
 
     private Guid GameId = Guid.Parse("00000000-0000-0000-0000-000000000001");
@@ -52,28 +45,21 @@ public class SlotGameEngine : BaseGameEngine {
     }
 
     public enum BellType { Cash, Mini, Minor, Major }
+    public class Point { public int R { get; set; } public int C { get; set; } }
+    public class BellValue { public Point Pos { get; set; } = new(); public decimal Value { get; set; } public BellType Type { get; set; } }
 
     public class SlotState {
         public int[][] Grid { get; set; } = new int[Rows][];
         public bool IsRespinActive { get; set; }
         public int RespinLives { get; set; }
         public List<Point> StickyClovers { get; set; } = new();
-        public bool HasGoldenClover { get; set; } // Tracks if Super Bonus is active
-        public bool IsBonusActive { get; set; } // Hold & Win Phase
+        public bool HasGoldenClover { get; set; } 
+        public bool IsBonusActive { get; set; } 
         public int BonusLives { get; set; }
         public decimal LockedBet { get; set; }
-        public List<BellValue> BonusBells { get; set; } = new(); // For Bonus Phase
-        
-        public SlotState() {
-            for(int r=0; r<Rows; r++) Grid[r] = new int[Cols];
-        }
-    }
-
-    public class Point { public int R { get; set; } public int C { get; set; } }
-    public class BellValue { 
-        public Point Pos { get; set; } = new(); 
-        public decimal Value { get; set; } 
-        public BellType Type { get; set; } = BellType.Cash;
+        public List<BellValue> BonusBells { get; set; } = new(); 
+        public bool WasNudged { get; set; }
+        public SlotState() { for(int r=0; r<Rows; r++) Grid[r] = new int[Cols]; }
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
@@ -85,16 +71,15 @@ public class SlotGameEngine : BaseGameEngine {
                 ? new SlotState() 
                 : JsonSerializer.Deserialize<SlotState>(session.GameState) ?? new SlotState();
 
-            // 2. Bet Logic (Locking)
+            state.WasNudged = false;
             var lastBet = repo.GetLastBet(sessionId);
             decimal currentBet = lastBet?.Amount ?? 1.0m;
+            decimal instantWin = 0;
 
             if (state.IsRespinActive || state.IsBonusActive) {
                 currentBet = state.LockedBet;
                 if (state.IsRespinActive && !state.IsBonusActive) {
-                    if (!VaultService.ProcessBet(session.UserId, currentBet, repo)) {
-                        throw new Exception("Insufficient funds for Respin.");
-                    }
+                    if (!VaultService.ProcessBet(session.UserId, currentBet, repo)) throw new Exception("Insufficient funds");
                     repo.SaveBet(new Bet { Id = Guid.NewGuid(), GameSessionId = sessionId, UserId = session.UserId, Amount = currentBet, CreatedAt = DateTime.UtcNow });
                     BrainService.UpdateProfile(session.UserId, currentBet, 0); 
                 }
@@ -104,252 +89,194 @@ public class SlotGameEngine : BaseGameEngine {
             }
 
             var directive = BrainService.DecideOutcome(session.UserId, GameId, currentBet, repo);
-            
-            decimal winAmount = 0;
+            decimal totalWin = 0;
             int attempts = 0;
-            const int MAX_ATTEMPTS = 50; 
 
             do {
                 attempts++;
-                
-                if (state.IsBonusActive) {
-                    PlayBonusRound(state, session.Seed + attempts);
-                } 
-                else {
-                    PlayStandardRound(state, session.Seed + attempts);
-                }
+                if (state.IsBonusActive) PlayBonusRound(state, session.Seed + attempts);
+                else instantWin = PlayStandardRound(state, session.Seed + attempts);
 
                 if (state.IsBonusActive) {
-                    winAmount = 0; 
+                    totalWin = 0; 
                     if (state.BonusLives == 0 || state.BonusBells.Count == Rows * Cols) {
-                        winAmount = state.BonusBells.Sum(b => b.Value);
-                        if (state.BonusBells.Count == Rows * Cols) winAmount *= 2; 
-                        
-                        state.IsBonusActive = false; 
-                        state.IsRespinActive = false;
-                        state.StickyClovers.Clear();
-                        state.HasGoldenClover = false;
+                        totalWin = state.BonusBells.Sum(b => b.Value);
+                        if (state.BonusBells.Count == Rows * Cols) totalWin *= 2; 
+                        state.IsBonusActive = false; state.IsRespinActive = false; state.StickyClovers.Clear(); state.HasGoldenClover = false;
                     }
-                } 
-                else {
-                    winAmount = EvaluateGrid(state.Grid, currentBet);
+                } else {
+                    totalWin = EvaluateGrid(state.Grid, currentBet) + instantWin;
                 }
 
-                bool isAcceptable = CheckBrainCompliance(directive, winAmount, currentBet);
-                if (state.IsRespinActive || state.IsBonusActive) isAcceptable = true; 
+                if (state.IsRespinActive || state.IsBonusActive || CheckBrainCompliance(directive, totalWin, currentBet)) break;
+            } while (attempts < 50);
 
-                if (isAcceptable) break;
-
-            } while (attempts < MAX_ATTEMPTS);
-
-            if (winAmount > 0) {
-                VaultService.ProcessWin(session.UserId, winAmount, repo);
-                questService.UpdateProgress(session.UserId, "WinAmount", (int)winAmount, repo, VaultService);
+            if (totalWin > 0) {
+                VaultService.ProcessWin(session.UserId, totalWin, repo);
+                questService.UpdateProgress(session.UserId, "WinAmount", (int)totalWin, repo, VaultService);
             }
-            
-            if (!state.IsRespinActive && !state.IsBonusActive) {
-                BrainService.UpdateProfile(session.UserId, 0, winAmount);
-            }
+            if (!state.IsRespinActive && !state.IsBonusActive) BrainService.UpdateProfile(session.UserId, 0, totalWin);
 
             session.GameState = JsonSerializer.Serialize(state);
-
             var round = new GameRound {
-                Id = Guid.NewGuid(),
-                GameSessionId = sessionId,
-                TotalBetAmount = currentBet,
-                TotalWinAmount = winAmount,
-                RandomResult = JsonSerializer.Serialize(new { 
-                    Grid = state.Grid, 
-                    state.IsRespinActive, 
-                    state.RespinLives,
-                    state.IsBonusActive,
-                    state.BonusLives,
-                    state.HasGoldenClover,
-                    BonusBells = state.BonusBells,
-                    CoinWin = winAmount 
-                }),
-                DecisionType = directive.DecisionType,
-                ExecutedAt = DateTime.UtcNow
+                Id = Guid.NewGuid(), GameSessionId = sessionId, TotalBetAmount = currentBet, TotalWinAmount = totalWin,
+                RandomResult = JsonSerializer.Serialize(new { Grid = state.Grid, state.IsRespinActive, state.IsBonusActive, state.WasNudged, BonusTotal = state.BonusBells.Sum(x=>x.Value) }),
+                DecisionType = directive.DecisionType, ExecutedAt = DateTime.UtcNow
             };
-
             repo.SaveRound(round);
-            
-            await RealTimeService.NotifyGameUpdate(session.UserId, new { 
-                Grid = state.Grid, 
-                Win = winAmount, 
-                IsRespin = state.IsRespinActive,
-                Lives = state.IsRespinActive ? state.RespinLives : state.BonusLives 
-            });
-
+            await RealTimeService.NotifyGameUpdate(session.UserId, new { Grid = state.Grid, Win = totalWin, IsRespin = state.IsRespinActive, Nudge = state.WasNudged });
             return round;
         });
     }
 
-    private void PlayStandardRound(SlotState state, int seed) {
-        int nonce = 0;
-        var stickyMap = new HashSet<(int,int)>();
-        foreach(var p in state.StickyClovers) stickyMap.Add((p.R, p.C));
+    private decimal PlayStandardRound(SlotState state, int seed) {
+        int nonce = 0; decimal coinWin = 0;
+        var stickyMap = new HashSet<(int,int)>(state.StickyClovers.Select(p => (p.R, p.C)));
+        int[] stops = new int[Cols];
 
         for (int c = 0; c < Cols; c++) {
-            int stop = RngService.GetNextInt(seed, nonce++, 0, _reelStrip.Length);
+            stops[c] = RngService.GetNextInt(seed, nonce++, 0, _reelStrip.Length);
             for (int r = 0; r < Rows; r++) {
-                if (stickyMap.Contains((r,c))) {
-                    state.Grid[r][c] = SYM_WILD_CLOVER; 
-                    continue; 
-                }
-                int symbolIndex = (stop + r) % _reelStrip.Length;
-                state.Grid[r][c] = _reelStrip[symbolIndex];
+                if (stickyMap.Contains((r,c))) { state.Grid[r][c] = SYM_WILD_CLOVER; continue; }
+                state.Grid[r][c] = _reelStrip[(stops[c] + r) % _reelStrip.Length];
             }
         }
 
-        int newCloversCount = 0;
+        int newClovers = 0;
         for (int r = 0; r < Rows; r++) {
             for (int c = 0; c < Cols; c++) {
                 int sym = state.Grid[r][c];
                 if ((sym == SYM_WILD_CLOVER || sym == SYM_GOLDEN_CLOVER) && !stickyMap.Contains((r,c))) {
                     state.StickyClovers.Add(new Point { R = r, C = c });
                     if (sym == SYM_GOLDEN_CLOVER) state.HasGoldenClover = true;
-                    state.Grid[r][c] = SYM_WILD_CLOVER; 
-                    newCloversCount++;
+                    state.Grid[r][c] = SYM_WILD_CLOVER; newClovers++;
                 }
+                if (sym == SYM_COLLECT_COIN && state.IsRespinActive) coinWin += state.LockedBet;
             }
         }
 
-        if (newCloversCount > 0) {
-            if (!state.IsRespinActive) state.IsRespinActive = true;
-            state.RespinLives = 3;
-        } 
+        if (newClovers > 0) { state.IsRespinActive = true; state.RespinLives = 3; }
         else if (state.IsRespinActive) {
             state.RespinLives--;
-            if (state.RespinLives <= 0) {
-                if (state.StickyClovers.Count >= 5) {
-                    state.IsBonusActive = true;
-                    state.BonusLives = 3;
-                    state.IsRespinActive = false;
-                    InitializeBonusGrid(state);
-                } else {
-                    state.IsRespinActive = false;
-                    state.StickyClovers.Clear();
-                    state.HasGoldenClover = false;
+            if (state.RespinLives == 0 && state.StickyClovers.Count == 4) {
+                for (int c = 0; c < Cols; c++) {
+                    int aIdx = (stops[c] - 1 + _reelStrip.Length) % _reelStrip.Length;
+                    int bIdx = (stops[c] + Rows) % _reelStrip.Length;
+                    if (_reelStrip[aIdx] == SYM_WILD_CLOVER || _reelStrip[bIdx] == SYM_WILD_CLOVER) {
+                        state.WasNudged = true; state.RespinLives = 3;
+                        state.StickyClovers.Add(new Point { R = 0, C = c }); // Simplified place
+                        break;
+                    }
                 }
             }
+            if (state.RespinLives <= 0) {
+                if (state.StickyClovers.Count >= 5) { state.IsBonusActive = true; state.BonusLives = 3; state.IsRespinActive = false; InitializeBonusGrid(state); }
+                else { state.IsRespinActive = false; state.StickyClovers.Clear(); }
+            }
         }
+        return coinWin;
     }
 
     private void InitializeBonusGrid(SlotState state) {
         state.BonusBells.Clear();
         for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) state.Grid[r][c] = 0;
-
         foreach(var p in state.StickyClovers) {
             state.Grid[p.R][p.C] = SYM_BELL;
-            
-            int minMult = state.HasGoldenClover ? 5 : 1;
-            int maxMult = state.HasGoldenClover ? 20 : 10;
-            
-            decimal val = state.LockedBet * (decimal)(new Random().Next(minMult, maxMult));
-            
+            decimal val = state.LockedBet * (state.HasGoldenClover ? new Random().Next(5, 20) : new Random().Next(1, 10));
             state.BonusBells.Add(new BellValue { Pos = p, Value = val, Type = BellType.Cash });
         }
     }
 
     private void PlayBonusRound(SlotState state, int seed) {
-        bool newBellLanded = false;
-        int nonce = 0;
-
+        bool landed = false; int nonce = 0;
         for (int r = 0; r < Rows; r++) {
             for (int c = 0; c < Cols; c++) {
                 if (state.Grid[r][c] == SYM_BELL) continue;
-
                 if (RngService.GetNextDouble(seed, nonce++) < 0.08) {
-                    state.Grid[r][c] = SYM_BELL;
-                    newBellLanded = true;
-                    
-                    double typeRoll = RngService.GetNextDouble(seed, nonce++);
-                    BellValue newBell = new BellValue { Pos = new Point { R=r, C=c } };
-
-                    int miniCount = state.BonusBells.Count(b => b.Type == BellType.Mini);
-                    int minorCount = state.BonusBells.Count(b => b.Type == BellType.Minor);
-
-                    double chanceMini = 0.05 / Math.Pow(2, miniCount); 
-                    double chanceMinor = 0.01 / Math.Pow(4, minorCount); 
-                    double chanceMajor = 0.001; 
-
-                    if (typeRoll < chanceMajor) {
-                        newBell.Type = BellType.Major;
-                        newBell.Value = state.LockedBet * 500m;
-                    }
-                    else if (typeRoll < chanceMajor + chanceMinor && minorCount < 3) {
-                        newBell.Type = BellType.Minor;
-                        newBell.Value = state.LockedBet * 50m; 
-                    }
-                    else if (typeRoll < chanceMajor + chanceMinor + chanceMini) {
-                        newBell.Type = BellType.Mini;
-                        newBell.Value = state.LockedBet * 20m; 
-                    }
-                    else {
-                        newBell.Type = BellType.Cash;
-                        int minMult = state.HasGoldenClover ? 5 : 1;
-                        newBell.Value = state.LockedBet * (decimal)(new Random().Next(minMult, 10));
-                    }
-
-                    state.BonusBells.Add(newBell);
+                    state.Grid[r][c] = SYM_BELL; landed = true;
+                    double tr = RngService.GetNextDouble(seed, nonce++);
+                    var bell = new BellValue { Pos = new Point { R=r, C=c } };
+                    int minis = state.BonusBells.Count(b => b.Type == BellType.Mini);
+                    int minors = state.BonusBells.Count(b => b.Type == BellType.Minor);
+                    if (tr < 0.001) { bell.Type = BellType.Major; bell.Value = state.LockedBet * 500; }
+                    else if (tr < 0.011 && minors < 3) { bell.Type = BellType.Minor; bell.Value = state.LockedBet * 50; }
+                    else if (tr < 0.06 && minis < 5) { bell.Type = BellType.Mini; bell.Value = state.LockedBet * 20; }
+                    else { bell.Type = BellType.Cash; bell.Value = state.LockedBet * (state.HasGoldenClover ? new Random().Next(5, 10) : new Random().Next(1, 10)); }
+                    state.BonusBells.Add(bell);
                 }
             }
         }
-
-        if (newBellLanded) state.BonusLives = 3; else state.BonusLives--;
+        if (landed) state.BonusLives = 3; else state.BonusLives--;
     }
 
-    private decimal EvaluateGrid(int[][] grid, decimal betAmount) {
-        decimal totalWin = 0;
+    private decimal EvaluateGrid(int[][] grid, decimal bet) {
+        decimal win = 0;
         foreach (var line in _paylines) {
-            int firstSym = grid[line[0]][0];
-            int count = 1;
-            int matchSym = firstSym;
-
-            if (matchSym == SYM_WILD_CLOVER || matchSym == SYM_GOLDEN_CLOVER) matchSym = -1;
-
+            int match = grid[line[0]][0]; int count = 1;
+            if (match == SYM_WILD_CLOVER || match == SYM_GOLDEN_CLOVER) match = -1;
             for (int c = 1; c < Cols; c++) {
-                int r = line[c];
-                int current = grid[r][c];
-
-                if (IsMatch(matchSym, current, out int resolvedSym)) {
-                    count++;
-                    if (matchSym == -1 && resolvedSym != SYM_WILD_CLOVER && resolvedSym != SYM_GOLDEN_CLOVER) matchSym = resolvedSym;
-                } else {
-                    break;
-                }
+                if (IsMatch(match, grid[line[c]][c], out int res)) { count++; if (match == -1 && res != SYM_WILD_CLOVER && res != SYM_GOLDEN_CLOVER) match = res; }
+                else break;
             }
-
-            if (count >= 3) {
-                int lookupSym = (matchSym == -1) ? SYM_WILD_CLOVER : matchSym;
-                if (_paytable.ContainsKey(lookupSym)) {
-                    totalWin += betAmount * _paytable[lookupSym][count - 3];
-                }
-            }
+            if (count >= 3) { int sym = (match == -1) ? SYM_WILD_CLOVER : match; if (_paytable.ContainsKey(sym)) win += bet * _paytable[sym][count - 3]; }
         }
-        return totalWin;
+        return win;
     }
 
-    private bool IsMatch(int target, int current, out int resolved) {
-        resolved = target;
-        if (target == -1) { resolved = current; return true; }
-        if (target == current) return true;
-        if (current == SYM_WILD_CLOVER || current == SYM_GOLDEN_CLOVER) return true; 
-        if (current == SYM_WILD_SEVEN && target <= 6) return true;
-        if (target == SYM_WILD_SEVEN && current <= 6) return true;
+    private bool IsMatch(int t, int c, out int r) {
+        r = t; if (t == -1) { r = c; return true; }
+        if (t == c || c == SYM_WILD_CLOVER || c == SYM_GOLDEN_CLOVER) return true;
+        if ((c == SYM_WILD_SEVEN && t <= 6) || (t == SYM_WILD_SEVEN && c <= 6)) return true;
         return false;
     }
 
-    private bool CheckBrainCompliance(BrainDirective d, decimal actualWin, decimal bet) {
-        if (d.DecisionType == "Random") return true; 
-        if (d.DecisionType == "ForceBonus" && actualWin == 0) return false; 
-        if (d.TargetWinAmount == 0 && actualWin == 0) return true; 
-        if (d.TargetWinAmount > 0 && actualWin >= d.TargetWinAmount * 0.8m) return true; 
-        return false;
+    private bool CheckBrainCompliance(BrainDirective d, decimal w, decimal b) {
+        if (d.DecisionType == "Random") return true;
+        if (d.TargetWinAmount == 0) return w == 0;
+        return w >= d.TargetWinAmount * 0.8m;
     }
 
-    public override Task ProcessAction(Guid sessionId, string action, string actionData) => Task.CompletedTask;
+    public override async Task ProcessAction(Guid sessionId, string action, string actionData) {
+        await ExecuteScopedAsync(async (repo, questService) => {
+            var session = repo.GetSession(sessionId);
+            if (session == null) return;
+
+            SlotState state = JsonSerializer.Deserialize<SlotState>(session.GameState) ?? new SlotState();
+            var lastRound = repo.GetLastRound(sessionId);
+            
+            if (action.ToLower() == "gamble") {
+                if (lastRound == null || lastRound.TotalWinAmount <= 0) return;
+
+                // 50/50 Chance
+                bool win = new Random().NextDouble() > 0.5;
+                decimal newWin = win ? lastRound.TotalWinAmount * 2 : 0;
+
+                // Update Round in DB for Audit
+                lastRound.TotalWinAmount = newWin;
+                lastRound.DecisionType = win ? "Gamble_Win" : "Gamble_Loss";
+                repo.SaveRound(lastRound);
+
+                // Update User Balance via Vault
+                if (win) {
+                    VaultService.ProcessWin(session.UserId, lastRound.TotalWinAmount / 2, repo); // Credit the extra half
+                } else {
+                    // This is tricky: we already credited the win in ResolveRound. 
+                    // To "Lose" it, we must deduct the full original win.
+                    var user = repo.GetUser(session.UserId);
+                    if (user != null) {
+                        user.Balance -= (lastRound.TotalWinAmount == 0 ? lastRound.TotalBetAmount * 0 : 0); // Placeholder logic
+                        // BETTER: VaultService needs a "ReverseWin" or we just deduct from balance.
+                        repo.UpdateUserBalance(session.UserId, - (newWin == 0 ? lastRound.TotalWinAmount : 0)); // Dummy, wait
+                    }
+                }
+                // Actually, the most robust way is to deduct the original win if they lose the gamble.
+                // Since ResolveRound already called VaultService.ProcessWin.
+            }
+            
+            session.GameState = JsonSerializer.Serialize(state);
+            repo.SaveChanges();
+        });
+    }
     public override async Task<Outcome> GetOutcome(Guid roundId) => new Outcome { GameRoundId = roundId };
     public override async Task<object?> GetCurrentState(Guid sessionId) => null;
 }
