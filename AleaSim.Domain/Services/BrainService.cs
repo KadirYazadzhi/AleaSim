@@ -132,36 +132,30 @@ public class BrainService : IBrainService {
             repo.CreatePlayerProfile(profile);
         }
 
-        // Flow State Calculation
         var now = DateTime.UtcNow;
         var interval = (now - profile.LastSpinTimestamp).TotalSeconds;
-        // Exponential Moving Average (Alpha = 0.2) to smooth out spikes
-        if (interval > 0.5 && interval < 600) { // Ignore impossible speeds or AFK
+        if (interval > 0.5 && interval < 600) {
             profile.AvgSpinInterval = (profile.AvgSpinInterval * 0.8) + (interval * 0.2);
         }
         profile.LastSpinTimestamp = now;
-
         profile.TotalWagered += betAmount;
         profile.TotalPaid += winAmount;
 
-        // Affinity Tracking
-        // Need positive betAmount to calculate multiplier
         if (betAmount > 0 && winAmount > betAmount * 5) {
-            var affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile.SymbolAffinityJson) ?? new();
-            int favoriteCandidate = (new Random().NextDouble() > 0.5) ? 7 : 8; 
+            var affinity = new Dictionary<int, double>();
+            try { affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile.SymbolAffinityJson ?? "{") ?? new(); } catch {}            int favoriteCandidate = (new Random().NextDouble() > 0.5) ? 7 : 8; 
             if (!affinity.ContainsKey(favoriteCandidate)) affinity[favoriteCandidate] = 0;
-            affinity[favoriteCandidate] += (double)(winAmount / betAmount);
+            affinity[favoriteCandidate] += (double)winAmount / (double)betAmount;
             profile.SymbolAffinityJson = JsonSerializer.Serialize(affinity);
         }
-        
+
         if (profile.TotalWagered > 0) {
             profile.ActualRtp = (double)(profile.TotalPaid / profile.TotalWagered);
         }
 
         if (winAmount > 0) {
             profile.LossStreak = 0;
-            profile.CurrentSessionRtp = (decimal)((double)winAmount / (double)betAmount); // Simplification for session
-        } else {
+        } else if (betAmount > 0) {
             profile.LossStreak++;
         }
 

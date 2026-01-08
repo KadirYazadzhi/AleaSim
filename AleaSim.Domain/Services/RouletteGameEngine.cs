@@ -8,6 +8,7 @@ using System.Text.Json;
 namespace AleaSim.Domain.Services;
 
 public class RouletteGameEngine : BaseGameEngine {
+    public class RouletteState { public int Nonce { get; set; } }
     private Guid GameId = Guid.Parse("00000000-0000-0000-0000-000000000002");
 
     public RouletteGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope) 
@@ -20,7 +21,11 @@ public class RouletteGameEngine : BaseGameEngine {
             var lastBet = repo.GetLastBet(sessionId);
             decimal betAmount = lastBet?.Amount ?? 1.0m;
             // Use Ticks to ensure uniqueness even if DB is lagging
-            int nonce = (int)(DateTime.UtcNow.Ticks % int.MaxValue); 
+            var state = string.IsNullOrEmpty(session.GameState) 
+                ? new RouletteState() 
+                : JsonSerializer.Deserialize<RouletteState>(session.GameState) ?? new RouletteState();
+            int nonce = state.Nonce++;
+            session.GameState = JsonSerializer.Serialize(state);
             
             var bets = new List<RouletteBetDto>();
             try {
