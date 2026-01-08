@@ -9,8 +9,8 @@ namespace AleaSim.Domain.Services;
 public class BlackjackGameEngine : BaseGameEngine {
     private Guid GameId = Guid.Parse("00000000-0000-0000-0000-000000000003");
 
-    public BlackjackGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, ILevelService levelService, IServiceScopeFactory scope) 
-        : base(rng, vault, brain, promo, jackpot, realTime, levelService, scope) { 
+    public BlackjackGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope) 
+        : base(rng, vault, brain, promo, jackpot, realTime, scope) {   
     }
 
     public class BlackjackState {
@@ -24,7 +24,7 @@ public class BlackjackGameEngine : BaseGameEngine {
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
-        return await ExecuteScopedAsync(async (repo, questService) => {
+        return await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
             var lastBet = repo.GetLastBet(sessionId);
@@ -59,7 +59,7 @@ public class BlackjackGameEngine : BaseGameEngine {
     }
 
     public override async Task ProcessAction(Guid sessionId, string action, string actionData) {
-        await ExecuteScopedAsync(async (repo, questService) => {
+        await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
             var round = repo.GetLastRound(sessionId);
             if (round == null) return;
@@ -192,7 +192,7 @@ public class BlackjackGameEngine : BaseGameEngine {
     }
     public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome());
     public override async Task<object?> GetCurrentState(Guid sessionId) {
-        return await ExecuteScopedAsync(async (repo, questService) => {
+        return await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var round = repo.GetLastRound(sessionId);
             if (round == null) return null;
             return JsonSerializer.Deserialize<BlackjackState>(round.RandomResult);

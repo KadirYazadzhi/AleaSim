@@ -12,22 +12,20 @@ public abstract class BaseGameEngine : IGame {
     protected readonly IPromotionService PromotionService;
     protected readonly IJackpotService JackpotService;
     protected readonly IRealTimeService RealTimeService;
-    protected readonly ILevelService LevelService;
     protected readonly IServiceScopeFactory ScopeFactory;
 
-    protected BaseGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, ILevelService levelService, IServiceScopeFactory scope) {
+    protected BaseGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope) {
         RngService = rng;
         VaultService = vault;
         BrainService = brain;
         PromotionService = promo;
         JackpotService = jackpot;
         RealTimeService = realTime;
-        LevelService = levelService;
         ScopeFactory = scope;
     }
 
     public virtual async Task PlaceBet(Guid sessionId, decimal amount, string betData) {
-        await ExecuteScopedAsync(async (repo, questService) => {
+        await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
 
@@ -49,7 +47,7 @@ public abstract class BaseGameEngine : IGame {
                 // Quest Integration
                 questService.GenerateDailyQuests(session.UserId, repo);
                 questService.UpdateProgress(session.UserId, "SpinCount", 1, repo, VaultService);
-                LevelService.AddExperience(session.UserId, amount, repo, RealTimeService);
+                levelService.AddExperience(session.UserId, amount, repo, RealTimeService);
             } else {
                 throw new Exception("Insufficient funds");
             }
@@ -80,12 +78,13 @@ public abstract class BaseGameEngine : IGame {
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         await action(repo);
     }
-    
-    protected async Task ExecuteScopedAsync(Func<IGameRepository, IQuestService, Task> action) {
+
+    protected async Task ExecuteScopedAsync(Func<IGameRepository, IQuestService, ILevelService, Task> action) {
         using var scope = ScopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         var questService = scope.ServiceProvider.GetRequiredService<IQuestService>();
-        await action(repo, questService);
+        var levelService = scope.ServiceProvider.GetRequiredService<ILevelService>();
+        await action(repo, questService, levelService);
     }
 
     protected async Task<T> ExecuteScopedAsync<T>(Func<IGameRepository, Task<T>> action) {
@@ -94,11 +93,12 @@ public abstract class BaseGameEngine : IGame {
         return await action(repo);
     }
     
-    protected async Task<T> ExecuteScopedAsync<T>(Func<IGameRepository, IQuestService, Task<T>> action) {
+    protected async Task<T> ExecuteScopedAsync<T>(Func<IGameRepository, IQuestService, ILevelService, Task<T>> action) {
         using var scope = ScopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         var questService = scope.ServiceProvider.GetRequiredService<IQuestService>();
-        return await action(repo, questService);
+        var levelService = scope.ServiceProvider.GetRequiredService<ILevelService>();
+        return await action(repo, questService, levelService);
     }
     
     protected T ExecuteScoped<T>(Func<IGameRepository, T> action) {

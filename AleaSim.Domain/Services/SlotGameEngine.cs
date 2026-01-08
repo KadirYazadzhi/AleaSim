@@ -41,8 +41,8 @@ public class SlotGameEngine : BaseGameEngine {
 
     private Guid GameId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
-    public SlotGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, ILevelService levelService, IServiceScopeFactory scope, IMemoryCache cache) 
-        : base(rng, vault, brain, promo, jackpot, realTime, levelService, scope) { 
+    public SlotGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, IMemoryCache cache) 
+        : base(rng, vault, brain, promo, jackpot, realTime, scope) {   
         _cache = cache;
     }
 
@@ -70,7 +70,7 @@ public class SlotGameEngine : BaseGameEngine {
         var semaphore = _sessionLocks.GetOrAdd(sessionId, _ => new SemaphoreSlim(1, 1));
         await semaphore.WaitAsync();
         try {
-            return await ExecuteScopedAsync(async (repo, questService) => {
+            return await ExecuteScopedAsync(async (repo, questService, levelService) => {
                 var session = repo.GetSession(sessionId);
                 if (session == null) throw new Exception("Session not found");
 
@@ -315,7 +315,7 @@ public class SlotGameEngine : BaseGameEngine {
     }
 
     public override async Task ProcessAction(Guid sessionId, string action, string actionData) {
-        await ExecuteScopedAsync(async (repo, questService) => {
+        await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
             if (session == null) return;
             SlotState state = JsonSerializer.Deserialize<SlotState>(session.GameState) ?? new SlotState();

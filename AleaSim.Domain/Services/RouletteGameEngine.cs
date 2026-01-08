@@ -11,12 +11,12 @@ public class RouletteGameEngine : BaseGameEngine {
     public class RouletteState { public int Nonce { get; set; } }
     private Guid GameId = Guid.Parse("00000000-0000-0000-0000-000000000002");
 
-    public RouletteGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, ILevelService levelService, IServiceScopeFactory scope) 
-        : base(rng, vault, brain, promo, jackpot, realTime, levelService, scope) { 
+    public RouletteGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope) 
+        : base(rng, vault, brain, promo, jackpot, realTime, scope) {   
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
-        return await ExecuteScopedAsync(async (repo, questService) => {
+        return await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
             var lastBet = repo.GetLastBet(sessionId);
             decimal betAmount = lastBet?.Amount ?? 1.0m;
