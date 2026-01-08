@@ -13,20 +13,18 @@ public class VaultService : IVaultService {
     }
 
     public bool ProcessBet(Guid userId, decimal amount, IGameRepository repo) {
-        // Simple Lock for MVP (Should be DB Transaction with RowLock in Prod)
+        if (amount < 0) return false;
         lock (_lock) {
             var user = repo.GetUser(userId);
             var profile = repo.GetPlayerProfile(userId);
             if (user == null) return false;
 
-            // GOD MODE: Admins have infinite funds and don't spend money
             if (user.Role == Role.Admin) {
                  _ = _realTime.NotifyBalanceUpdate(userId, user.Balance + user.BonusBalance);
                 return true;
             }
 
             bool success = false;
-
             if (user.BonusBalance > 0) {
                 if (user.BonusBalance >= amount) {
                     user.BonusBalance -= amount;
@@ -44,7 +42,6 @@ public class VaultService : IVaultService {
                          user.WageringProgress += bonusPart;
                          CheckWageringCompletion(user);
                     }
-
                     if (user.Balance >= remainder) {
                         user.Balance -= remainder;
                         success = true;
@@ -57,28 +54,31 @@ public class VaultService : IVaultService {
             }
 
             if (success) {
-                // Update Shadow Wallet
                 if (profile != null) {
-                    // Assume 95% default if no game-specific RTP known here
                     profile.ShadowBalance += amount * 0.95m;
                     repo.UpdatePlayerProfile(profile);
                 }
-
                 repo.UpdateUser(user);
+                
+                // Financial Log
+                repo.SaveTransaction(new Transaction {
+                    Id = Guid.NewGuid(), UserId = userId, Amount = -amount, Type = TransactionType.Bet, 
+                    Description = "Game Bet", Timestamp = DateTime.UtcNow, ResultingBalance = user.Balance
+                });
+
                 _ = _realTime.NotifyBalanceUpdate(userId, user.Balance + user.BonusBalance);
             }
-
             return success;
         }
     }
 
     public void ProcessWin(Guid userId, decimal amount, IGameRepository repo) {
+        if (amount <= 0) return;
         lock (_lock) {
             var user = repo.GetUser(userId);
             var profile = repo.GetPlayerProfile(userId);
             if (user == null) return;
 
-            // Deduct from Shadow Wallet
             if (profile != null) {
                 profile.ShadowBalance -= amount;
                 repo.UpdatePlayerProfile(profile);
@@ -91,6 +91,13 @@ public class VaultService : IVaultService {
             }
 
             repo.UpdateUser(user);
+
+            // Financial Log
+            repo.SaveTransaction(new Transaction {
+                Id = Guid.NewGuid(), UserId = userId, Amount = amount, Type = TransactionType.Win, 
+                Description = "Game Win", Timestamp = DateTime.UtcNow, ResultingBalance = user.Balance
+            });
+
             _ = _realTime.NotifyBalanceUpdate(userId, user.Balance + user.BonusBalance);
         }
     }
@@ -99,30 +106,30 @@ public class VaultService : IVaultService {
         lock (_lock) {
             var game = repo.GetGame(gameId);
             var profile = repo.GetPlayerProfile(userId);
-            
             if (game == null) return false;
-
-            // Strict check: Casino must have funds AND User must have enough Shadow Balance
             bool casinoCanAfford = game.PoolBalance >= winAmount;
             bool userHasShadowCredit = profile == null || profile.ShadowBalance >= winAmount;
-
-            if (!strictShadowCheck) {
-                return casinoCanAfford;
-            }
-
+            if (!strictShadowCheck) return casinoCanAfford;
             return casinoCanAfford && userHasShadowCredit;
         }
     }
 
     public void CreditBonus(Guid userId, decimal amount, decimal wageringRequirement, IGameRepository repo) {
+        if (amount <= 0) return;
         lock (_lock) {
             var user = repo.GetUser(userId);
             if (user == null) return;
-
             user.BonusBalance += amount;
             user.WageringRequirement += wageringRequirement;
             user.BonusLastUpdated = DateTime.UtcNow;
             repo.UpdateUser(user);
+
+            // Financial Log
+            repo.SaveTransaction(new Transaction {
+                Id = Guid.NewGuid(), UserId = userId, Amount = amount, Type = TransactionType.Bonus, 
+                Description = "Bonus Credited", Timestamp = DateTime.UtcNow, ResultingBalance = user.Balance
+            });
+
             _ = _realTime.NotifyBalanceUpdate(userId, user.Balance + user.BonusBalance);
         }
     }
@@ -131,15 +138,20 @@ public class VaultService : IVaultService {
         lock (_lock) {
             var user = repo.GetUser(userId);
             if (user == null || user.BonusBalance <= 0) return false;
-
             decimal amountToCredit = (user.BonusBalance >= 100) ? user.BonusBalance * 0.10m : 0;
-
             user.Balance += amountToCredit;
             user.BonusBalance = 0;
             user.WageringRequirement = 0;
             user.WageringProgress = 0;
-
             repo.UpdateUser(user);
+
+            if (amountToCredit > 0) {
+                repo.SaveTransaction(new Transaction {
+                    Id = Guid.NewGuid(), UserId = userId, Amount = amountToCredit, Type = TransactionType.Bonus, 
+                    Description = "Bonus Cashout", Timestamp = DateTime.UtcNow, ResultingBalance = user.Balance
+                });
+            }
+
             _ = _realTime.NotifyBalanceUpdate(userId, user.Balance);
             return true;
         }

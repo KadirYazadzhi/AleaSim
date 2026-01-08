@@ -11,8 +11,8 @@ public class RouletteGameEngine : BaseGameEngine {
     public class RouletteState { public int Nonce { get; set; } }
     private Guid GameId = Guid.Parse("00000000-0000-0000-0000-000000000002");
 
-    public RouletteGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope) 
-        : base(rng, vault, brain, promo, jackpot, realTime, scope) {
+    public RouletteGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, ILevelService levelService, IServiceScopeFactory scope) 
+        : base(rng, vault, brain, promo, jackpot, realTime, levelService, scope) { 
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
@@ -20,6 +20,8 @@ public class RouletteGameEngine : BaseGameEngine {
             var session = repo.GetSession(sessionId);
             var lastBet = repo.GetLastBet(sessionId);
             decimal betAmount = lastBet?.Amount ?? 1.0m;
+            var game = repo.GetGame(GameId);
+            if (game != null && betAmount > (decimal)game.MaxBet) throw new Exception("Bet exceeds game maximum limit.");
             // Use Ticks to ensure uniqueness even if DB is lagging
             var state = string.IsNullOrEmpty(session.GameState) 
                 ? new RouletteState() 

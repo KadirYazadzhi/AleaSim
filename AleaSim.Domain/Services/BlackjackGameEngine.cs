@@ -9,13 +9,15 @@ namespace AleaSim.Domain.Services;
 public class BlackjackGameEngine : BaseGameEngine {
     private Guid GameId = Guid.Parse("00000000-0000-0000-0000-000000000003");
 
-    public BlackjackGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope) 
-        : base(rng, vault, brain, promo, jackpot, realTime, scope) {
+    public BlackjackGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, ILevelService levelService, IServiceScopeFactory scope) 
+        : base(rng, vault, brain, promo, jackpot, realTime, levelService, scope) { 
     }
 
     public class BlackjackState {
         public List<string> PlayerHand { get; set; } = new();
         public List<string> DealerHand { get; set; } = new();
+        public List<string>? SplitHand { get; set; } = null;
+        public bool IsDoubleDown { get; set; }
         public decimal BetAmount { get; set; }
         public bool IsRoundOver { get; set; }
         public int Sequence { get; set; }
@@ -64,7 +66,29 @@ public class BlackjackGameEngine : BaseGameEngine {
             var state = JsonSerializer.Deserialize<BlackjackState>(round.RandomResult);
             if (state == null || state.IsRoundOver) return;
 
-            if (action.ToLower() == "hit") {
+            if (action.ToLower() == "double" && state.PlayerHand.Count == 2) {
+                if (VaultService.ProcessBet(session.UserId, state.BetAmount, repo)) {
+                    state.IsDoubleDown = true;
+                    int seq = state.Sequence;
+                    state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
+                    state.Sequence = seq;
+                    await FinishRoundAsync(session, round, state, repo, questService);
+                } else throw new Exception("Insufficient funds for Double Down")
+            } else if (action.ToLower() == "split" && state.PlayerHand.Count == 2 && state.SplitHand == null) {
+                // Check if cards are same rank
+                string r1 = state.PlayerHand[0].Substring(0, state.PlayerHand[0].Length - 1);
+                string r2 = state.PlayerHand[1].Substring(0, state.PlayerHand[1].Length - 1);
+                if (r1 == r2) {
+                    if (VaultService.ProcessBet(session.UserId, state.BetAmount, repo)) {
+                        state.SplitHand = new List<string> { state.PlayerHand[1] };
+                        state.PlayerHand.RemoveAt(1);
+                        int seq = state.Sequence;
+                        state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
+                        state.SplitHand.Add(DrawCard(session.Seed, ref seq));
+                        state.Sequence = seq;
+                    } else throw new Exception("Insufficient funds for Split")
+                }
+            } else if (action.ToLower() == "hit") {
                 int seq = state.Sequence;
                 state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
                 state.Sequence = seq;
@@ -83,7 +107,33 @@ public class BlackjackGameEngine : BaseGameEngine {
         state.IsRoundOver = true;
         int pVal = CalculateHandValue(state.PlayerHand);
         int dVal = CalculateHandValue(state.DealerHand);
-        decimal win = (pVal > 21) ? 0 : (pVal > dVal || dVal > 21) ? state.BetAmount * 2 : (pVal == dVal) ? state.BetAmount : 0;
+        decimal win = 0;
+        decimal currentBet = state.IsDoubleDown ? state.BetAmount * 2 : state.BetAmount;
+        
+        // Dealer plays if player didn't bust
+        if (pVal <= 21 || (state.SplitHand != null && CalculateHandValue(state.SplitHand) <= 21)) {
+            int seq = state.Sequence;
+            while (dVal < 17) {
+                state.DealerHand.Add(DrawCard(session.Seed, ref seq));
+                dVal = CalculateHandValue(state.DealerHand);
+            }
+            state.Sequence = seq;
+        }
+
+        // Main Hand
+        if (pVal <= 21) {
+            if (dVal > 21 || pVal > dVal) win += currentBet * 2;
+            else if (pVal == dVal) win += currentBet;
+        }
+
+        // Split Hand
+        if (state.SplitHand != null) {
+            int sVal = CalculateHandValue(state.SplitHand);
+            if (sVal <= 21) {
+                if (dVal > 21 || sVal > dVal) win += state.BetAmount * 2;
+                else if (sVal == dVal) win += state.BetAmount;
+            }
+        }
 
         if (win > 0) {
             VaultService.ProcessWin(session.UserId, win, repo);

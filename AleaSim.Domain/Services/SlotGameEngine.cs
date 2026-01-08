@@ -41,8 +41,8 @@ public class SlotGameEngine : BaseGameEngine {
 
     private Guid GameId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
-    public SlotGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, IMemoryCache cache) 
-        : base(rng, vault, brain, promo, jackpot, realTime, scope) {
+    public SlotGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, ILevelService levelService, IServiceScopeFactory scope, IMemoryCache cache) 
+        : base(rng, vault, brain, promo, jackpot, realTime, levelService, scope) { 
         _cache = cache;
     }
 
@@ -116,10 +116,12 @@ public class SlotGameEngine : BaseGameEngine {
 
             do {
                 attempts++;
-                if (state.IsBonusActive) PlayBonusRound(state, session.Seed + attempts, repo); // Pass Repo
+                if (state.IsBonusActive) { PlayBonusRound(state, session.Seed + attempts, repo); session.GameState = JsonSerializer.Serialize(state); repo.SaveChanges(); } // Pass Repo
                 else {
                     if (directive.IsNearMiss && attempts == 1) GenerateNearMissGrid(state, directive.PreferredNearMissSymbol ?? 7, session.Seed);
                     else instantWin = PlayStandardRound(state, session.Seed + attempts, activeStrip);
+                session.GameState = JsonSerializer.Serialize(state);
+                repo.SaveChanges();
                 }
 
                 if (state.IsBonusActive) {

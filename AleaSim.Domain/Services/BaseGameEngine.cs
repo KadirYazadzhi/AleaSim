@@ -12,15 +12,17 @@ public abstract class BaseGameEngine : IGame {
     protected readonly IPromotionService PromotionService;
     protected readonly IJackpotService JackpotService;
     protected readonly IRealTimeService RealTimeService;
+    protected readonly ILevelService LevelService;
     protected readonly IServiceScopeFactory ScopeFactory;
 
-    protected BaseGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope) {
+    protected BaseGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, ILevelService levelService, IServiceScopeFactory scope) {
         RngService = rng;
         VaultService = vault;
         BrainService = brain;
         PromotionService = promo;
         JackpotService = jackpot;
         RealTimeService = realTime;
+        LevelService = levelService;
         ScopeFactory = scope;
     }
 
@@ -47,6 +49,7 @@ public abstract class BaseGameEngine : IGame {
                 // Quest Integration
                 questService.GenerateDailyQuests(session.UserId, repo);
                 questService.UpdateProgress(session.UserId, "SpinCount", 1, repo, VaultService);
+                LevelService.AddExperience(session.UserId, amount, repo, RealTimeService);
             } else {
                 throw new Exception("Insufficient funds");
             }
