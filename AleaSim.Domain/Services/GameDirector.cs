@@ -28,6 +28,7 @@ public class GameDirector : IGameDirector {
     }
 
     public async Task<GameRound> PlayRound(string gameType, Guid sessionId, decimal amount, object betData) {
+        if (amount <= 0) throw new ArgumentException("Bet amount must be positive.");
         var gameEngine = _gameResolver(gameType);
         
         var session = _repo.GetSession(sessionId);

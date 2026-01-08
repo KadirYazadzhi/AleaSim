@@ -1,94 +1,74 @@
-# System Audit: AleaSim.Api
+# System Audit Phase 2: Domain & Engine Deep Dive
 Date: 08 January 2026
-Status: Resolved
+Status: Critical Issues Detected
 
-This document outlines the bugs, security vulnerabilities, architectural flaws, and performance bottlenecks identified during the initial code review of the `AleaSim.Api` project.
+This document covers issues found in the core Domain logic, Game Engines, and Service orchestration.
 
-## 1. Critical Logic Errors & Broken Features
+## 1. Concurrency & Data Integrity
 
-### A. Sentinel Service "Blind Spot" [FIXED]
-*   **File:** `Workers/SentinelBackgroundService.cs`
-*   **Method:** `ScanForAnomalies`
-*   **Issue:** The service calls `repo.GetUserRounds(Guid.Empty, 100)`. Passing `Guid.Empty` usually signifies a filter for a specific user ID. If the repository logic filters strictly by ID, this query returns nothing (or only system records).
-*   **Consequence:** The security monitor is effectively blind and checks zero player bets.
-*   **Fix:** Implement a method `repo.GetGlobalRecentRounds(int count)` to fetch the latest bets regardless of user ID.
-*   **Status:** **Fixed.** Added `GetGlobalRecentRounds` to repository and updated service to use it.
+### A. SlotGameEngine Session Lock [FIXED-PENDING-COMMIT]
+*   **File:** `AleaSim.Domain/Services/SlotGameEngine.cs`
+*   **Issue:** `ResolveRound` used `_cache` without locking, allowing race conditions (double-spins).
+*   **Status:** **Patched.** Added `ConcurrentDictionary<Guid, SemaphoreSlim>` for per-session locking.
 
-### B. Missing Bot Detection Logic
-*   **File:** `Workers/SentinelBackgroundService.cs`
-*   **Method:** `ScanForAnomalies`
-*   **Issue:** The comment mentions "Bot Detection (Rapid betting)", but the implementation is just a log statement: `_logger.LogDebug(...)`.
-*   **Consequence:** No protection against script/bot attacks.
+### B. VaultService Balance Integrity [FIXED-PENDING-COMMIT]
+*   **File:** `AleaSim.Domain/Services/VaultService.cs`
+*   **Issue:** `ProcessBet` and `ProcessWin` lacked synchronization, leading to potential "Lost Update" of user balance.
+*   **Status:** **Patched.** Added `lock` mechanism (as MVP substitute for DB Transactions).
 
-### C. Admin Dashboard "Fake" Data [FIXED]
-*   **File:** `Controllers/AdminController.cs`
-*   **Method:** `GetActiveSessions`
-*   **Issue:** Explicitly returns `new List<string>()` with a comment `// Placeholder fix`.
-*   **Consequence:** Administrators cannot see or manage active player sessions.
-*   **Fix:** Added `GetActiveSessionsDetails` to repository returning `ActiveSessionDto` with joins. Updated `AdminController` to use it.
+### C. BrainService Pre-Calculation Race
+*   **File:** `AleaSim.Domain/Services/BrainService.cs`
+*   **Method:** `GetNextDirective`
+*   **Issue:** While it uses `lock (queue)`, if the queue is empty, it calculates 5 steps. If `DecideOutcome` is slow or relies on mutable state, multiple threads might enter the calculation phase if not careful.
+*   **Fix:** Ensure the calculation block is inside the lock (already done, but needs verification for performance).
 
-## 2. Security Vulnerabilities
+## 2. Game Logic & Security Exploits
 
-### A. Hardcoded Admin Backdoor [FIXED]
-*   **File:** `Controllers/AuthController.cs`
-*   **Method:** `PromoteToAdmin`
-*   **Issue:** Contains `if (secret != "MakeMeAdminPlease")`.
-*   **Risk:** **CRITICAL**. Any user who knows this string (visible in source control) can elevate privileges to Admin.
-*   **Fix:** Move secret to Environment Variables/Vault and hash it.
-*   **Status:** **Fixed.** Changed to use `Configuration["Admin:Secret"]`.
+### A. The "Negative Bet" Balance Exploit [FIXED-PENDING-COMMIT]
+*   **File:** `AleaSim.Domain/Services/GameDirector.cs`
+*   **Issue:** No validation for `amount > 0`. Users could send negative bets to increase their balance (`Balance -= -100` -> `Balance += 100`).
+*   **Status:** **Fixed.** Added `if (amount <= 0) throw ...` in `GameDirector`.
 
-### B. Information Leakage (Exception Handling) [FIXED]
-*   **File:** Global (Controllers)
-*   **Issue:** Catch blocks return `BadRequest(ex.Message)`.
-*   **Risk:** Exposes internal system details (stack traces, database timeouts, column names) to potential attackers.
-*   **Fix:** Log the specific error and return a generic "Internal Server Error" or sanitary message to the client.
-*   **Status:** **Fixed.** Updated Controllers to use `_logger.LogError` and return generic 500 status for unhandled exceptions.
+### B. SlotGameEngine: Inconsistent Jackpot resets
+*   **File:** `AleaSim.Domain/Services/SlotGameEngine.cs`
+*   **Method:** `PlayBonusRound`
+*   **Issue:**
+    ```csharp
+    bell.Value = JackpotService.ClaimJackpot(JackpotTier.Spades, repo);
+    ```
+    This claims the jackpot *during* the generation of the grid. If the user never finishes the bonus round (e.g., closes the tab), the jackpot is already reset in the DB, but the player never got the money (it's only in `session.GameState`).
+*   **Fix:** Jackpot should be *calculated* (frozen) when the bell lands, but only *Claimed* (reset in DB and credited to user) when the Bonus Round officially finishes and `totalWin` is processed.
 
-### C. Authentication Flow Fragility [FIXED]
-*   **File:** `Controllers/GameController.cs` (and others)
-*   **Method:** `CashoutBonus`
-*   **Issue:** `Guid.Parse(User.FindFirst(...)?.Value ?? Guid.Empty.ToString())`.
-*   **Risk:** If the token claim is missing, it defaults to `Guid.Empty` instead of throwing 401 Unauthorized. This might lead to database queries executing against a non-existent "Zero User", causing unpredictable behavior.
-*   **Fix:** Implemented `GetUserIdOrThrow` helper method that throws `UnauthorizedAccessException` on missing claim.
-*   **Status:** **Fixed.** Applied to Auth, Game, and Vault controllers.
+### C. RouletteEngine: Predictable RNG (Nonce Reuse)
+*   **File:** `AleaSim.Domain/Services/RouletteGameEngine.cs`
+*   **Issue:**
+    ```csharp
+    int nonce = (int)(DateTime.UtcNow.Ticks % int.MaxValue);
+    ```
+    If two requests happen in the same millisecond (or very close), they might get the same `nonce`. Since the `serverSeed` is static for the session, they get the same result.
+*   **Fix:** Store and increment a `Nonce` in the `GameSession` entity/state.
 
-## 3. Performance & Architecture
+## 3. Unimplemented / "Dead" Logic
 
-### A. The "N+1" Query Disaster [FIXED]
-*   **File:** `Controllers/GameController.cs`
-*   **Method:** `GetHistory`
-*   **Issue:** Retrieves a list of rounds, then iterates through *each* round to query the Session and then the Game individually (`repo.GetSession`, `repo.GetGame`).
-*   **Impact:** For 50 history items, this executes **101 database queries**. Under load, this will crash the database.
-*   **Fix:** Use `.Include(r => r.Session.Game)` in the repository or a proper SQL JOIN.
-*   **Status:** **Fixed.** Implemented `GetUserHistory` in Repository with efficient Joins.
+### A. AdminService: ForceCooldown
+*   **File:** `AleaSim.Domain/Services/AdminService.cs`
+*   **Issue:** Method is empty. Admin "Cooldown" button does nothing.
+*   **Fix:** Add `LockoutUntil` to `User` or `PlayerProfile` and check it in `AuthController` or `GameDirector`.
 
-### B. Thread Safety / Race Conditions [FIXED]
-*   **File:** `Workers/SentinelBackgroundService.cs`
-*   **Member:** `_recentAlerts` (List<T>)
-*   **Issue:** The list is modified by the background thread (`ScanForAnomalies`) and read by the API thread (`GetAlerts`) simultaneously without locking.
-*   **Impact:** Will cause `System.InvalidOperationException: Collection was modified` and crash the service under load.
-*   **Fix:** Use `ConcurrentQueue<T>` or a `lock` mechanism.
-*   **Status:** **Fixed.** Added lock mechanism for `_recentAlerts`.
+### B. SlotGameEngine: Symbol Affinity Tracking
+*   **File:** `AleaSim.Domain/Services/BrainService.cs`
+*   **Method:** `UpdateProfile`
+*   **Issue:** Cut off/Incomplete: `affinity[favoriteCandidate] += (dou`.
+*   **Status:** **Bug.** Half-written code.
 
-### C. Data Wipe on Restart [FIXED]
-*   **File:** `Program.cs`
-*   **Line:** `db.Database.EnsureDeleted();`
-*   **Issue:** The database is completely dropped every time the application starts.
-*   **Impact:** Impossible to maintain state, test long-term features, or keep user accounts between restarts.
-*   **Status:** **Fixed.** Commented out `EnsureDeleted`.
+### C. AdminDashboard: RTP Trend
+*   **File:** `AleaSim.Persistence/EfGameRepository.cs`
+*   **Method:** `GetRtpTrend`
+*   **Issue:** Not fully seen, but `AdminController` uses it. Need to ensure it's not a placeholder.
 
-### D. Incorrect Dependency Injection Usage [FIXED]
-*   **File:** All Controllers
-*   **Issue:** Injecting `IServiceScopeFactory` and manually creating scopes (`using var scope = ...`) inside controller actions.
-*   **Impact:** Controllers are already Scoped. This adds unnecessary boilerplate, complexity, and slight overhead. Services like `IGameRepository` should be injected directly into the Controller constructor.
-*   **Status:** **Fixed.** Refactored all Controllers to use Constructor Injection.
-
-## 4. Missing Implementation Details [VERIFIED]
-
-The following services are used via Interface but their logic was not found in the API layer analysis (likely in `AleaSim.Domain` or `AleaSim.Shared` or unimplemented):
-*   `IPromotionService` (Crucial for `DailySpin`)
-*   `ITournamentService` (Crucial for Leaderboards)
-*   `IVoucherService` (Crucial for Economy)
-*   `ILevelService` (Crucial for RPG progression)
-
-**Status:** **Verified.** The implementations exist in `AleaSim.Domain/Services/` and are correctly registered in `ServiceCollectionExtensions.cs`.
+## 4. Summary of Planned Actions
+1.  **Commit Phase 2 Fixes:** (Vault, GameDirector, Slot Lock).
+2.  **Fix Slot Jackpot Claiming:** Move `ClaimJackpot` call to end of bonus.
+3.  **Fix Roulette Nonce:** Use incremental nonce from session.
+4.  **Complete BrainService:** Fix the truncated `UpdateProfile` method.
+5.  **Implement ForceCooldown:** Add DB field and logic.

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Enums;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Caching.Memory;
 namespace AleaSim.Domain.Services;
 
 public class SlotGameEngine : BaseGameEngine {
+    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> _sessionLocks = new();
     private const int Rows = 4;
     private const int Cols = 5;
     private const int PaylinesCount = 20;
@@ -151,6 +153,9 @@ public class SlotGameEngine : BaseGameEngine {
             repo.SaveRound(round);
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Grid = state.Grid, Win = totalWin, IsRespin = state.IsRespinActive, Nudge = state.WasNudged, Bonus = state.IsBonusActive, Bells = state.BonusBells });
             return round;
+        } finally {
+            semaphore.Release();
+        }
         });
     }
 
