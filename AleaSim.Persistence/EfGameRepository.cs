@@ -1,3 +1,4 @@
+using AleaSim.Shared.Models;
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,23 @@ public class EfGameRepository : IGameRepository {
 
     public IEnumerable<GameSession> GetAllActiveSessions() {
         return _context.GameSessions.Where(s => s.IsActive).ToList();
+    }
+
+    
+    public IEnumerable<ActiveSessionDto> GetActiveSessionsDetails() {
+        return _context.GameSessions
+            .Where(s => s.IsActive)
+            .Join(_context.Users, s => s.UserId, u => u.Id, (s, u) => new { s, u })
+            .Join(_context.Games, x => x.s.GameId, g => g.Id, (x, g) => new { x.s, x.u, g })
+            .Select(x => new ActiveSessionDto {
+                SessionId = x.s.Id,
+                Username = x.u.Username,
+                GameName = x.g.Name,
+                StartedAt = x.s.StartedAt,
+                TotalWagered = _context.GameRounds.Where(r => r.GameSessionId == x.s.Id).Sum(r => r.TotalBetAmount),
+                TotalWon = _context.GameRounds.Where(r => r.GameSessionId == x.s.Id).Sum(r => r.TotalWinAmount)
+            })
+            .ToList();
     }
 
     public void EndSession(Guid sessionId) {
@@ -227,6 +245,14 @@ public class EfGameRepository : IGameRepository {
             .OrderByDescending(x => x.round.ExecutedAt)
             .Take(count)
             .Select(x => x.round)
+            .ToList();
+    }
+
+    
+    public IEnumerable<GameRound> GetGlobalRecentRounds(int count) {
+        return _context.GameRounds
+            .OrderByDescending(r => r.ExecutedAt)
+            .Take(count)
             .ToList();
     }
 

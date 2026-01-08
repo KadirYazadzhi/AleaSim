@@ -1,7 +1,7 @@
-using AleaSim.Shared.Models; // Changed from AleaSim.Api.Models
+using AleaSim.Shared.Models;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Models;
-using AleaSim.Domain.Entities; // Added
+using AleaSim.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -14,10 +14,12 @@ namespace AleaSim.Api.Controllers;
 public class AdminController : ControllerBase {
     private readonly IAdminService _adminService;
     private readonly IAuditService _auditService;
+    private readonly IGameRepository _repo;
 
-    public AdminController(IAdminService adminService, IAuditService auditService) {
+    public AdminController(IAdminService adminService, IAuditService auditService, IGameRepository repo) {
         _adminService = adminService;
         _auditService = auditService;
+        _repo = repo;
     }
 
     // --- Dashboard ---
@@ -29,10 +31,7 @@ public class AdminController : ControllerBase {
 
     [HttpGet("analytics/rtp-trend")]
     public IActionResult GetAnalyticsTrend() {
-        using var scope = HttpContext.RequestServices.CreateScope();
-        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-        
-        var trend = repo.GetRtpTrend(24); // Last 24 hours
+        var trend = _repo.GetRtpTrend(24); // Last 24 hours
         var result = trend.Select(t => new RtpTrendPoint {
             Label = t.Hour.ToString("HH:mm"),
             Rtp = t.Bets > 0 ? (double)(t.Wins / t.Bets) * 100 : 95.0
@@ -48,8 +47,7 @@ public class AdminController : ControllerBase {
 
     [HttpGet("sessions/active")]
     public IActionResult GetActiveSessions() {
-        // ... (existing code)
-        return Ok(new List<string>()); // Placeholder fix for previous turn
+        return Ok(_repo.GetActiveSessionsDetails());
     }
 
     [HttpGet("security/alerts")]
@@ -70,10 +68,7 @@ public class AdminController : ControllerBase {
 
     [HttpGet("players/search/{query}")]
     public ActionResult<List<PlayerSearchResultDto>> SearchPlayers(string query) {
-        using var scope = HttpContext.RequestServices.CreateScope();
-        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-        
-        var users = repo.SearchUsers(query);
+        var users = _repo.SearchUsers(query);
         var result = users.Select(u => new PlayerSearchResultDto {
             Id = u.Id,
             Username = u.Username,
@@ -140,9 +135,6 @@ public class AdminController : ControllerBase {
 
     [HttpPost("vouchers/create")]
     public IActionResult CreateVoucher([FromBody] CreateVoucherRequest request) {
-        using var scope = HttpContext.RequestServices.CreateScope();
-        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-        
         var voucher = new Voucher {
             Id = Guid.NewGuid(),
             Code = request.Code.ToUpper(),
@@ -152,16 +144,13 @@ public class AdminController : ControllerBase {
             IsActive = true
         };
         
-        repo.CreateVoucher(voucher);
+        _repo.CreateVoucher(voucher);
         return Ok(voucher);
     }
 
     [HttpGet("vouchers")]
     public IActionResult GetAllVouchers() {
-        using var scope = HttpContext.RequestServices.CreateScope();
-        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-        
-        var vouchers = repo.GetAllVouchers();
+        var vouchers = _repo.GetAllVouchers();
         var result = vouchers.Select(v => new VoucherDto {
             Id = v.Id,
             Code = v.Code,

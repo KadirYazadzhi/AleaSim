@@ -1,3 +1,4 @@
+using AleaSim.Shared.Models;
 using AleaSim.Domain.Entities;
 
 namespace AleaSim.Domain.Interfaces;
@@ -11,6 +12,7 @@ public interface IGameRepository {
     GameSession CreateSession(GameSession session);
     GameSession? GetSession(Guid sessionId);
     IEnumerable<GameSession> GetAllActiveSessions(); // Added
+    IEnumerable<ActiveSessionDto> GetActiveSessionsDetails();
     void EndSession(Guid sessionId);
     
     // Games
@@ -52,6 +54,7 @@ public interface IGameRepository {
     void SaveRound(GameRound round);
     GameRound? GetLastRound(Guid sessionId);
     IEnumerable<GameRound> GetUserRounds(Guid userId, int count);
+    IEnumerable<GameRound> GetGlobalRecentRounds(int count);
 
     // Outcomes
     void SaveOutcome(Outcome outcome);

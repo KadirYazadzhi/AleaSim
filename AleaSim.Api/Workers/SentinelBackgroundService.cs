@@ -10,13 +10,18 @@ public class SentinelBackgroundService : BackgroundService {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<SentinelBackgroundService> _logger;
     private readonly List<SentinelAlertDto> _recentAlerts = new(); // In-memory for current session
+    private readonly object _lock = new();
 
     public SentinelBackgroundService(IServiceScopeFactory scopeFactory, ILogger<SentinelBackgroundService> logger) {
         _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
-    public IEnumerable<SentinelAlertDto> GetAlerts() => _recentAlerts.Take(50);
+    public IEnumerable<SentinelAlertDto> GetAlerts() {
+        lock (_lock) {
+            return _recentAlerts.ToList();
+        }
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
         _logger.LogInformation("Sentinel Security Monitor started.");
@@ -38,7 +43,7 @@ public class SentinelBackgroundService : BackgroundService {
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         
         // 1. Scan for High Payouts (> 500x)
-        var recentRounds = repo.GetUserRounds(Guid.Empty, 100); // Assume Guid.Empty or new method for ALL recent
+        var recentRounds = repo.GetGlobalRecentRounds(100);
         
         foreach (var round in recentRounds) {
             if (round.TotalBetAmount > 0 && (round.TotalWinAmount / round.TotalBetAmount) >= 500) {
@@ -61,8 +66,10 @@ public class SentinelBackgroundService : BackgroundService {
     }
 
     private void AddAlert(SentinelAlertDto alert) {
-        _recentAlerts.Insert(0, alert);
-        if (_recentAlerts.Count > 100) _recentAlerts.RemoveAt(100);
+        lock (_lock) {
+            _recentAlerts.Insert(0, alert);
+            if (_recentAlerts.Count > 100) _recentAlerts.RemoveAt(100);
+        }
         _logger.LogWarning("SENTINEL ALERT: {Type} - {Desc}", alert.AlertType, alert.Description);
     }
 }
