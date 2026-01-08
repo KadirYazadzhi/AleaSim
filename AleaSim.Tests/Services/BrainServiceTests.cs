@@ -45,7 +45,7 @@ public class BrainServiceTests {
             SymbolAffinityJson = "{}"
         };
         _mockRepo.Setup(r => r.GetPlayerProfile(userId)).Returns(profile);
-        _mockVault.Setup(v => v.CanAffordWin(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), _mockRepo.Object)).Returns(true);
+        _mockVault.Setup(v => v.CanAffordWin(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), _mockRepo.Object, It.IsAny<bool>())).Returns(true);
 
         // Act
         var directive = _brainService.DecideOutcome(userId, gameId, 1.0m, _mockRepo.Object);

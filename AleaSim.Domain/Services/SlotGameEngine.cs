@@ -233,18 +233,18 @@ public class SlotGameEngine : BaseGameEngine {
                     int minis = state.BonusBells.Count(b => b.Type == BellType.Mini);
                     int minors = state.BonusBells.Count(b => b.Type == BellType.Minor);
                     
-                    // FIXED: Fetch REAL progressive value from JackpotService
+                    // FIXED: Fetch REAL progressive value from JackpotService AND CLAIM IT (Resetting the pool)
                     if (tr < 0.001) { 
                         bell.Type = BellType.Major; // Spades
-                        bell.Value = JackpotService.GetTierValue(JackpotTier.Spades, repo);
+                        bell.Value = JackpotService.ClaimJackpot(JackpotTier.Spades, repo);
                     }
                     else if (tr < 0.011 && minors < 3) { 
                         bell.Type = BellType.Minor; // Hearts/Diamonds
-                        bell.Value = JackpotService.GetTierValue(JackpotTier.Hearts, repo);
+                        bell.Value = JackpotService.ClaimJackpot(JackpotTier.Hearts, repo);
                     }
                     else if (tr < 0.06 && minis < 5) { 
                         bell.Type = BellType.Mini; // Clubs
-                        bell.Value = JackpotService.GetTierValue(JackpotTier.Clubs, repo);
+                        bell.Value = JackpotService.ClaimJackpot(JackpotTier.Clubs, repo);
                     }
                     else { 
                         bell.Type = BellType.Cash; 

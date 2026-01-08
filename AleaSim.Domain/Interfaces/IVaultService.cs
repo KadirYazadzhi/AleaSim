@@ -19,7 +19,7 @@ public interface IVaultService {
     /// Checks if the casino (Pool) can afford to pay this win.
     /// Also checks User's pRTP status (Shadow Wallet).
     /// </summary>
-    bool CanAffordWin(Guid userId, Guid gameId, decimal winAmount, IGameRepository repo);
+    bool CanAffordWin(Guid userId, Guid gameId, decimal winAmount, IGameRepository repo, bool strictShadowCheck = true);
 
     /// <summary>
     /// Adds funds to the user's bonus wallet (e.g., from Raffle).

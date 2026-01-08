@@ -84,7 +84,7 @@ public class VaultService : IVaultService {
         _ = _realTime.NotifyBalanceUpdate(userId, user.Balance + user.BonusBalance);
     }
 
-    public bool CanAffordWin(Guid userId, Guid gameId, decimal winAmount, IGameRepository repo) {
+    public bool CanAffordWin(Guid userId, Guid gameId, decimal winAmount, IGameRepository repo, bool strictShadowCheck = true) {
         lock (_lock) {
             var game = repo.GetGame(gameId);
             var profile = repo.GetPlayerProfile(userId);
@@ -94,6 +94,10 @@ public class VaultService : IVaultService {
             // Strict check: Casino must have funds AND User must have enough Shadow Balance
             bool casinoCanAfford = game.PoolBalance >= winAmount;
             bool userHasShadowCredit = profile == null || profile.ShadowBalance >= winAmount;
+
+            if (!strictShadowCheck) {
+                return casinoCanAfford;
+            }
 
             return casinoCanAfford && userHasShadowCredit;
         }

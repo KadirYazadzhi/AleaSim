@@ -19,7 +19,8 @@ public class RouletteGameEngine : BaseGameEngine {
             var session = repo.GetSession(sessionId);
             var lastBet = repo.GetLastBet(sessionId);
             decimal betAmount = lastBet?.Amount ?? 1.0m;
-            int nonce = repo.GetRoundCount(sessionId) + 1; 
+            // Use Ticks to ensure uniqueness even if DB is lagging
+            int nonce = (int)(DateTime.UtcNow.Ticks % int.MaxValue); 
             
             var bets = new List<RouletteBetDto>();
             try {
@@ -66,14 +67,11 @@ public class RouletteGameEngine : BaseGameEngine {
             
             decimal actualWin = CalculatePayout(number, bets);
 
-            // Important: Check if vault can pay. If not, re-roll to a loss?
-            // For simplicity in "Random", we assume standard edge handles it long term, 
-            // but for safety we should check CanAffordWin. 
-            // If random win is HUGE and Vault is empty -> force re-roll?
-            // Leaving it as-is for now as per "Fairness" rule, VaultService will handle debt or we assume infinite bank for randoms.
-            // Actually VaultService.CanAffordWin should be checked.
+            // Important: Check if vault can pay.
+            // For "Random" decisions, we bypass the strict Shadow Wallet check to allow luck.
+            bool isRandom = decision.DecisionType == "Random";
             
-            if (actualWin > 0 && !VaultService.CanAffordWin(session.UserId, GameId, actualWin, repo)) {
+            if (actualWin > 0 && !VaultService.CanAffordWin(session.UserId, GameId, actualWin, repo, strictShadowCheck: !isRandom)) {
                 // Emergency Reroll to Loss
                 var losingCandidates = allNumbers.Where(n => CalculatePayout(n, bets) == 0).ToList();
                 if (losingCandidates.Any()) number = losingCandidates[RngService.GetNextInt(session.Seed, nonce+99, 0, losingCandidates.Count)];

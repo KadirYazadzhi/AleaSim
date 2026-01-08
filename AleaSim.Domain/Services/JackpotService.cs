@@ -96,6 +96,22 @@ public class JackpotService : IJackpotService {
     public Jackpot GetGlobalJackpot(IGameRepository repo) => repo.GetJackpots().First(j => j.Tier == JackpotTier.Spades);
     public Jackpot GetLocalJackpot(Guid gameId, IGameRepository repo) => repo.GetOrCreateLocalJackpot(gameId);
 
+    public decimal ClaimJackpot(JackpotTier tier, IGameRepository repo) {
+        lock (_lock) {
+            var jackpot = repo.GetJackpots().FirstOrDefault(j => j.Tier == tier);
+            if (jackpot == null) return 0m;
+
+            decimal win = jackpot.CurrentValue;
+            jackpot.CurrentValue = GetResetValue(tier);
+            jackpot.LastUpdated = DateTime.UtcNow;
+            
+            repo.UpdateJackpot(jackpot);
+            _ = _realTimeService.NotifyJackpotUpdate(jackpot);
+            
+            return win;
+        }
+    }
+
     public decimal GetTierValue(JackpotTier tier, IGameRepository repo) {
         var jackpot = repo.GetJackpots().FirstOrDefault(j => j.Tier == tier);
         return jackpot?.CurrentValue ?? 0m;
