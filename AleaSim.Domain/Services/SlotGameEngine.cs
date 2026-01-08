@@ -93,9 +93,9 @@ public class SlotGameEngine : BaseGameEngine {
             if (state.IsRespinActive || state.IsBonusActive) {
                 currentBet = state.LockedBet;
                 if (state.IsRespinActive && !state.IsBonusActive) {
-                    if (!VaultService.ProcessBet(session.UserId, currentBet, repo)) throw new Exception("Insufficient funds");
-                    repo.SaveBet(new Bet { Id = Guid.NewGuid(), GameSessionId = sessionId, UserId = session.UserId, Amount = currentBet, CreatedAt = DateTime.UtcNow });
-                    BrainService.UpdateProfile(session.UserId, currentBet, 0); 
+                    // Respins are FREE (Sticky Wilds feature)
+                    // Do not charge the user, do not update wagered stats
+                    repo.SaveBet(new Bet { Id = Guid.NewGuid(), GameSessionId = sessionId, UserId = session.UserId, Amount = 0, BetData = "{\"Type\":\"Respin\"}", CreatedAt = DateTime.UtcNow });
                 }
             } else {
                 state.LockedBet = currentBet;

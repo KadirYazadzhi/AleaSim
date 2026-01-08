@@ -1,5 +1,6 @@
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
+using AleaSim.Domain.Enums;
 
 namespace AleaSim.Domain.Services;
 
@@ -15,6 +16,12 @@ public class VaultService : IVaultService {
         var user = repo.GetUser(userId);
         var profile = repo.GetPlayerProfile(userId);
         if (user == null) return false;
+
+        // GOD MODE: Admins have infinite funds and don't spend money
+        if (user.Role == Role.Admin) {
+             _ = _realTime.NotifyBalanceUpdate(userId, user.Balance + user.BonusBalance);
+            return true;
+        }
 
         bool success = false;
 

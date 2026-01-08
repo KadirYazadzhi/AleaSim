@@ -88,7 +88,8 @@ public class BrainService : IBrainService {
         }
 
         // --- RULE 2: The Cool Down ---
-        if (profile.ActualRtp > 1.2 && profile.TotalWagered > 100) {
+        // Increased threshold to 250% RTP and added probability check to avoid constant killing of luck
+        if (profile.ActualRtp > 2.5 && profile.TotalWagered > 100 && new Random().NextDouble() < 0.4) {
             // Find favorite symbol for Teaser from affinity data
             int favoriteSymbol = 7; // Default to Seven
             try {
@@ -143,13 +144,10 @@ public class BrainService : IBrainService {
         profile.TotalWagered += betAmount;
         profile.TotalPaid += winAmount;
 
-        // Affinity Tracking: If user won, boost the affinity of high-value symbols
-        // For now, we simulate this by looking at win size.
-        // In a real system, we'd pass the winning symbol ID here.
-        if (winAmount > betAmount * 5) {
+        // Affinity Tracking
+        // Need positive betAmount to calculate multiplier
+        if (betAmount > 0 && winAmount > betAmount * 5) {
             var affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile.SymbolAffinityJson) ?? new();
-            // In CloverChase: 7 and Clover (8) are favorites.
-            // Let's assume for this prototype we boost 7 or 8 based on a simple logic.
             int favoriteCandidate = (new Random().NextDouble() > 0.5) ? 7 : 8; 
             if (!affinity.ContainsKey(favoriteCandidate)) affinity[favoriteCandidate] = 0;
             affinity[favoriteCandidate] += (double)(winAmount / betAmount);

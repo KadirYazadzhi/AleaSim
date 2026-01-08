@@ -32,9 +32,14 @@
 
     private async Task OnLogin() {
         try {
-            await AuthService.Login(model);
+            var response = await AuthService.Login(model);
             Snackbar.Add("Login successful!", Severity.Success);
-            Navigation.NavigateTo("/");
+            
+            if (response.Role == "Admin") {
+                Navigation.NavigateTo("/dashboard");
+            } else {
+                Navigation.NavigateTo("/");
+            }
         }
         catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
