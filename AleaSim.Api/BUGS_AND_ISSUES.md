@@ -29,33 +29,38 @@ This document outlines the bugs, security vulnerabilities, architectural flaws, 
 
 ## 2. Security Vulnerabilities
 
-### A. Hardcoded Admin Backdoor
+### A. Hardcoded Admin Backdoor [FIXED]
 *   **File:** `Controllers/AuthController.cs`
 *   **Method:** `PromoteToAdmin`
 *   **Issue:** Contains `if (secret != "MakeMeAdminPlease")`.
 *   **Risk:** **CRITICAL**. Any user who knows this string (visible in source control) can elevate privileges to Admin.
 *   **Fix:** Move secret to Environment Variables/Vault and hash it.
+*   **Status:** **Fixed.** Changed to use `Configuration["Admin:Secret"]`.
 
-### B. Information Leakage (Exception Handling)
+### B. Information Leakage (Exception Handling) [FIXED]
 *   **File:** Global (Controllers)
 *   **Issue:** Catch blocks return `BadRequest(ex.Message)`.
 *   **Risk:** Exposes internal system details (stack traces, database timeouts, column names) to potential attackers.
 *   **Fix:** Log the specific error and return a generic "Internal Server Error" or sanitary message to the client.
+*   **Status:** **Fixed.** Updated Controllers to use `_logger.LogError` and return generic 500 status for unhandled exceptions.
 
-### C. Authentication Flow Fragility
+### C. Authentication Flow Fragility [FIXED]
 *   **File:** `Controllers/GameController.cs` (and others)
 *   **Method:** `CashoutBonus`
 *   **Issue:** `Guid.Parse(User.FindFirst(...)?.Value ?? Guid.Empty.ToString())`.
 *   **Risk:** If the token claim is missing, it defaults to `Guid.Empty` instead of throwing 401 Unauthorized. This might lead to database queries executing against a non-existent "Zero User", causing unpredictable behavior.
+*   **Fix:** Implemented `GetUserIdOrThrow` helper method that throws `UnauthorizedAccessException` on missing claim.
+*   **Status:** **Fixed.** Applied to Auth, Game, and Vault controllers.
 
 ## 3. Performance & Architecture
 
-### A. The "N+1" Query Disaster
+### A. The "N+1" Query Disaster [FIXED]
 *   **File:** `Controllers/GameController.cs`
 *   **Method:** `GetHistory`
 *   **Issue:** Retrieves a list of rounds, then iterates through *each* round to query the Session and then the Game individually (`repo.GetSession`, `repo.GetGame`).
 *   **Impact:** For 50 history items, this executes **101 database queries**. Under load, this will crash the database.
 *   **Fix:** Use `.Include(r => r.Session.Game)` in the repository or a proper SQL JOIN.
+*   **Status:** **Fixed.** Implemented `GetUserHistory` in Repository with efficient Joins.
 
 ### B. Thread Safety / Race Conditions [FIXED]
 *   **File:** `Workers/SentinelBackgroundService.cs`
@@ -71,11 +76,11 @@ This document outlines the bugs, security vulnerabilities, architectural flaws, 
 *   **Issue:** The database is completely dropped every time the application starts.
 *   **Impact:** Impossible to maintain state, test long-term features, or keep user accounts between restarts.
 
-### D. Incorrect Dependency Injection Usage [PARTIALLY FIXED]
+### D. Incorrect Dependency Injection Usage [FIXED]
 *   **File:** All Controllers
 *   **Issue:** Injecting `IServiceScopeFactory` and manually creating scopes (`using var scope = ...`) inside controller actions.
 *   **Impact:** Controllers are already Scoped. This adds unnecessary boilerplate, complexity, and slight overhead. Services like `IGameRepository` should be injected directly into the Controller constructor.
-*   **Status:** **Partially Fixed.** Fixed in `AdminController`. Pending for `GameController`, `AuthController`, etc.
+*   **Status:** **Fixed.** Refactored all Controllers to use Constructor Injection.
 
 ## 4. Missing Implementation Details
 

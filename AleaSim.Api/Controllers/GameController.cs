@@ -1,11 +1,10 @@
-using AleaSim.Shared.Models; // Changed
+using AleaSim.Shared.Models;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace AleaSim.Api.Controllers;
 
@@ -15,43 +14,63 @@ namespace AleaSim.Api.Controllers;
 public class GameController : ControllerBase {
     private readonly IGameDirector _gameDirector;
     private readonly IVaultService _vaultService;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IGameRepository _repo;
+    private readonly ITournamentService _tournamentService;
+    private readonly ILeaderboardService _leaderboardService;
+    private readonly IPromotionService _promotionService;
+    private readonly IVoucherService _voucherService;
+    private readonly ILevelService _levelService;
+    private readonly ILogger<GameController> _logger;
 
-    public GameController(IGameDirector gameDirector, IVaultService vaultService, IServiceScopeFactory scopeFactory) {
+    public GameController(
+        IGameDirector gameDirector, 
+        IVaultService vaultService, 
+        IGameRepository repo,
+        ITournamentService tournamentService,
+        ILeaderboardService leaderboardService,
+        IPromotionService promotionService,
+        IVoucherService voucherService,
+        ILevelService levelService,
+        ILogger<GameController> logger) 
+    {
         _gameDirector = gameDirector;
         _vaultService = vaultService;
-        _scopeFactory = scopeFactory;
+        _repo = repo;
+        _tournamentService = tournamentService;
+        _leaderboardService = leaderboardService;
+        _promotionService = promotionService;
+        _voucherService = voucherService;
+        _levelService = levelService;
+        _logger = logger;
     }
 
     [HttpPost("bonus/cashout")]
     public IActionResult CashoutBonus() {
         try {
-            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
-            
-            using var scope = _scopeFactory.CreateScope();
-            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-            
-            bool result = _vaultService.CashoutBonus(userId, repo);
+            var userId = GetUserIdOrThrow();
+            bool result = _vaultService.CashoutBonus(userId, _repo);
             
             if (result) return Ok("Bonus processed (Cashed out or Forfeited).");
             return BadRequest("No active bonus to cash out.");
         }
+        catch (UnauthorizedAccessException) { return Unauthorized(); }
         catch (Exception ex) {
-            return BadRequest(ex.Message);
+            _logger.LogError(ex, "Error in CashoutBonus");
+            return StatusCode(500, "Internal Server Error");
         }
     }
 
     [HttpPost("{gameType}/session")]
     public async Task<IActionResult> StartSession(string gameType, [FromBody] StartSessionRequest request) {
         try {
-            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
-            
+            var userId = GetUserIdOrThrow();
             var session = await _gameDirector.StartSession(gameType, userId, request.ClientSeed);
-            
             return Ok(new StartSessionResponse(session.Id, session.GameId, session.StartedAt, session.ClientSeed, session.ServerSeedHash));
         }
+        catch (UnauthorizedAccessException) { return Unauthorized(); }
         catch (Exception ex) {
-            return BadRequest(ex.Message);
+            _logger.LogError(ex, "Error in StartSession");
+            return BadRequest(ex.Message); // Keeping message for game logic errors (e.g. invalid game type)
         }
     }
 
@@ -60,9 +79,25 @@ public class GameController : ControllerBase {
         try {
             var round = await _gameDirector.PlayRound(gameType, sessionId, request.Amount, request.BetData);
 
-            return Ok(new PlaceBetResponse(round.Id, round.TotalWinAmount, round.RandomResult, false)); 
+            var session = _repo.GetSession(sessionId);
+            var profile = session != null ? _repo.GetPlayerProfile(session.UserId) : null;
+
+            float flowIntensity = 0f;
+            if (profile != null) {
+                if (profile.AvgSpinInterval < 2.5) flowIntensity = 1.0f; // High Flow
+                else if (profile.AvgSpinInterval < 4.0) flowIntensity = 0.6f; // Medium Flow
+                else if (profile.AvgSpinInterval < 6.0) flowIntensity = 0.3f; // Warming up
+            }
+
+            bool isNearMiss = round.DecisionType == "CoolDown";
+
+            return Ok(new PlaceBetResponse(round.Id, round.TotalWinAmount, round.RandomResult, false) {
+                FlowStateIntensity = flowIntensity,
+                IsNearMiss = isNearMiss
+            }); 
         }
         catch (Exception ex) {
+            _logger.LogError(ex, "Error in PlaceBet");
             return BadRequest(ex.Message);
         }
     }
@@ -71,1305 +106,108 @@ public class GameController : ControllerBase {
     public async Task<IActionResult> PerformAction(string gameType, Guid sessionId, [FromBody] GameActionRequest request) {
         try {
              var newState = await _gameDirector.ProcessAction(gameType, sessionId, request.Action, request.ActionData);
-             
-             // Serialize object to string for DTO
              string stateJson = JsonSerializer.Serialize(newState);
              return Ok(new GameActionResponse(true, "Action processed", stateJson));
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
+            _logger.LogError(ex, "Error in PerformAction");
             return BadRequest(ex.Message);
         }
     }
 
-            [HttpGet("leaderboard/{name}")]
-
-            public async Task<IActionResult> GetLeaderboard(string name) {
-
-                if (name.ToLower() == "tournament") {
-
-                    using var scope = _scopeFactory.CreateScope();
-
-                    var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-
-                    var tournament = scope.ServiceProvider.GetRequiredService<ITournamentService>();
-
-                    return Ok(await tournament.GetCurrentRankings(repo));
-
-                }
-
-                
-
-                        var service = HttpContext.RequestServices.GetService<ILeaderboardService>();
-
-                
-
-                        if (service == null) return BadRequest("Leaderboard service unavailable");
-
-                
-
-                        return Ok(service.GetLeaderboard(name));
-
-                
-
-                    }
-
-                
-
-                
-
-                
-
-                    [HttpGet("leaderboard/history")]
-
-                
-
-                    public IActionResult GetTournamentHistory() {
-
-                
-
-                        using var scope = _scopeFactory.CreateScope();
-
-                
-
-                        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-
-                
-
-                        
-
-                
-
-                        var history = repo.GetTournamentHistory(6); // Last 6 months
-
-                
-
-                        var result = history.Select(h => new TournamentHistoryDto {
-
-                
-
-                            MonthName = h.Month.ToString("MMMM yyyy"),
-
-                
-
-                            WinnerName = h.Username,
-
-                
-
-                            AvatarUrl = h.AvatarUrl,
-
-                
-
-                            Prize = h.PrizeAmount,
-
-                
-
-                            Multiplier = h.Score
-
-                
-
-                        });
-
-                
-
-                
-
-                
-
-                        return Ok(result);
-
-                
-
-                    }
-
-                
-
-                
-
-        
-
-    
-
-                [HttpGet("quests")]
-
-    
-
-                public IActionResult GetQuests() {
-
-    
-
-                    var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
-
-    
-
-                    using var scope = _scopeFactory.CreateScope();
-
-    
-
-                    var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-
-    
-
-                    return Ok(repo.GetActiveQuests(userId));
-
-    
-
-                }
-
-    
-
-            
-
-    
-
-                                [HttpGet("history")]
-
-    
-
-            
-
-    
-
-                                public IActionResult GetHistory() {
-
-    
-
-            
-
-    
-
-                                    var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
-
-    
-
-            
-
-    
-
-                                    using var scope = _scopeFactory.CreateScope();
-
-    
-
-            
-
-    
-
-                                    var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-
-    
-
-            
-
-    
-
-                                    
-
-    
-
-            
-
-    
-
-                                    var rounds = repo.GetUserRounds(userId, 50);
-
-    
-
-            
-
-    
-
-                                    var result = rounds.Select(r => {
-
-    
-
-            
-
-    
-
-                                        // Need GameName. Usually we'd join but for now we infer from session
-
-    
-
-            
-
-    
-
-                                        var session = repo.GetSession(r.GameSessionId);
-
-    
-
-            
-
-    
-
-                                        var game = session != null ? repo.GetGame(session.GameId) : null;
-
-    
-
-            
-
-    
-
-                                        
-
-    
-
-            
-
-    
-
-                                        return new GameRoundDto {
-
-    
-
-            
-
-    
-
-                                            Id = r.Id,
-
-    
-
-            
-
-    
-
-                                            GameName = game?.Name ?? "Unknown Game",
-
-    
-
-            
-
-    
-
-                                            BetAmount = r.TotalBetAmount,
-
-    
-
-            
-
-    
-
-                                            WinAmount = r.TotalWinAmount,
-
-    
-
-            
-
-    
-
-                                            PlayedAt = r.ExecutedAt,
-
-    
-
-            
-
-    
-
-                                            ResultSummary = r.DecisionType,
-
-    
-
-            
-
-    
-
-                                            FullResultJson = r.RandomResult // Pass the raw grid/wheel data
-
-    
-
-            
-
-    
-
-                                        };
-
-    
-
-            
-
-    
-
-                                    }).ToList(); // Materialize here!
-
-    
-
-            
-
-    
-
-                            
-
-    
-
-            
-
-    
-
-                                    return Ok(result);
-
-    
-
-            
-
-    
-
-                                }
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                    [HttpPost("daily-spin")]
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                    public async Task<IActionResult> DailySpin() {
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        try {
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            using var scope = _scopeFactory.CreateScope();
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var promo = scope.ServiceProvider.GetRequiredService<IPromotionService>();
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var result = await promo.SpinBonusWheel(userId, repo);
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            return Ok(result);
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        }
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        catch (Exception ex) {
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            return BadRequest(ex.Message);
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        }
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                    }
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                    [HttpPost("streak/claim")]
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                    public async Task<IActionResult> ClaimStreakReward() {
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        try {
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            using var scope = _scopeFactory.CreateScope();
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var promo = scope.ServiceProvider.GetRequiredService<IPromotionService>();
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var result = await promo.ClaimDailyStreakReward(userId, repo);
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            return Ok(result);
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        }
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        catch (Exception ex) {
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            return BadRequest(ex.Message);
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        }
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                    }
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                    [HttpPost("vouchers/redeem/{code}")]
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                    public async Task<IActionResult> RedeemVoucher(string code) {
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        try {
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            using var scope = _scopeFactory.CreateScope();
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var vault = scope.ServiceProvider.GetRequiredService<IVaultService>();
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var voucherService = scope.ServiceProvider.GetRequiredService<IVoucherService>();
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            decimal amount = await voucherService.RedeemVoucher(userId, code, repo, vault);
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            return Ok(new { Message = "Voucher redeemed successfully!", Amount = amount });
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        }
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        catch (Exception ex) {
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            return BadRequest(ex.Message);
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        }
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                    }
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                    [HttpPost("skills/upgrade/{name}")]
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                    public async Task<IActionResult> UpgradeSkill(string name) {
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        try {
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            using var scope = _scopeFactory.CreateScope();
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            var levelService = scope.ServiceProvider.GetRequiredService<ILevelService>();
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            bool success = await levelService.UpgradeSkill(userId, name, repo);
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            if (success) return Ok(new { Message = $"Skill {name} upgraded!" });
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            return BadRequest("Insufficient skill points or invalid skill.");
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        }
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        catch (Exception ex) {
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                            return BadRequest(ex.Message);
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                        }
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                    }
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                }
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
-
-                
-
-    
-
-        
-
-    
-
-            
-
-    
-
-        
-
-    
+    [HttpGet("leaderboard/{name}")]
+    public async Task<IActionResult> GetLeaderboard(string name) {
+        if (name.ToLower() == "tournament") {
+            return Ok(await _tournamentService.GetCurrentRankings(_repo));
+        }
+        return Ok(_leaderboardService.GetLeaderboard(name));
+    }
+
+    [HttpGet("leaderboard/history")]
+    public IActionResult GetTournamentHistory() {
+        var history = _repo.GetTournamentHistory(6); // Last 6 months
+        var result = history.Select(h => new TournamentHistoryDto {
+            MonthName = h.Month.ToString("MMMM yyyy"),
+            WinnerName = h.Username,
+            AvatarUrl = h.AvatarUrl,
+            Prize = h.PrizeAmount,
+            Multiplier = h.Score
+        });
+        return Ok(result);
+    }
+
+    [HttpGet("quests")]
+    public IActionResult GetQuests() {
+        var userId = GetUserIdOrThrow();
+        return Ok(_repo.GetActiveQuests(userId));
+    }
+
+    [HttpGet("history")]
+    public IActionResult GetHistory() {
+        var userId = GetUserIdOrThrow();
+        // Uses the optimized N+1 fix
+        var result = _repo.GetUserHistory(userId, 50);
+        return Ok(result);
+    }
+
+    [HttpPost("daily-spin")]
+    public async Task<IActionResult> DailySpin() {
+        try {
+            var userId = GetUserIdOrThrow();
+            var result = await _promotionService.SpinBonusWheel(userId, _repo);
+            return Ok(result);
+        }
+        catch (Exception ex) {
+            _logger.LogError(ex, "Error in DailySpin");
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPost("streak/claim")]
+    public async Task<IActionResult> ClaimStreakReward() {
+        try {
+            var userId = GetUserIdOrThrow();
+            var result = await _promotionService.ClaimDailyStreakReward(userId, _repo);
+            return Ok(result);
+        }
+        catch (Exception ex) {
+            _logger.LogError(ex, "Error in ClaimStreakReward");
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPost("vouchers/redeem/{code}")]
+    public async Task<IActionResult> RedeemVoucher(string code) {
+        try {
+            var userId = GetUserIdOrThrow();
+            decimal amount = await _voucherService.RedeemVoucher(userId, code, _repo, _vaultService);
+            return Ok(new { Message = "Voucher redeemed successfully!", Amount = amount });
+        }
+        catch (Exception ex) {
+            _logger.LogError(ex, "Error in RedeemVoucher");
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPost("skills/upgrade/{name}")]
+    public async Task<IActionResult> UpgradeSkill(string name) {
+        try {
+            var userId = GetUserIdOrThrow();
+            bool success = await _levelService.UpgradeSkill(userId, name, _repo);
+            if (success) return Ok(new { Message = $"Skill {name} upgraded!" });
+            return BadRequest("Insufficient skill points or invalid skill.");
+        }
+        catch (Exception ex) {
+            _logger.LogError(ex, "Error in UpgradeSkill");
+            return BadRequest(ex.Message);
+        }
+    }
+
+    private Guid GetUserIdOrThrow() {
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (idClaim == null || !Guid.TryParse(idClaim.Value, out var id)) {
+            throw new UnauthorizedAccessException("Invalid User Token");
+        }
+        return id;
+    }
+}

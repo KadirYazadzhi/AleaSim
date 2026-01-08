@@ -23,41 +23,55 @@ public class VaultController : ControllerBase {
     public IActionResult Deposit([FromBody] decimal amount) {
         if (amount <= 0) return BadRequest("Invalid amount");
         
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
-        var user = _repo.GetUser(userId);
-        if (user == null) return NotFound();
+        try {
+            var userId = GetUserIdOrThrow();
+            var user = _repo.GetUser(userId);
+            if (user == null) return NotFound();
 
-        user.Balance += amount;
-        _repo.UpdateUser(user);
+            user.Balance += amount;
+            _repo.UpdateUser(user);
 
-        var tx = new Transaction {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            Amount = amount,
-            Type = TransactionType.Deposit,
-            Description = "Instant Deposit",
-            Timestamp = DateTime.UtcNow,
-            ResultingBalance = user.Balance
-        };
-        _repo.SaveTransaction(tx);
+            var tx = new Transaction {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Amount = amount,
+                Type = TransactionType.Deposit,
+                Description = "Instant Deposit",
+                Timestamp = DateTime.UtcNow,
+                ResultingBalance = user.Balance
+            };
+            _repo.SaveTransaction(tx);
 
-        return Ok(new { NewBalance = user.Balance });
+            return Ok(new { NewBalance = user.Balance });
+        }
+        catch (UnauthorizedAccessException) { return Unauthorized(); }
     }
 
     [HttpGet("transactions")]
     public IActionResult GetTransactions() {
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
-        var txs = _repo.GetUserTransactions(userId, 50);
-        
-        var result = txs.Select(t => new TransactionDto {
-            Id = t.Id,
-            Amount = t.Amount,
-            Type = t.Type.ToString(),
-            Description = t.Description,
-            Timestamp = t.Timestamp,
-            ResultingBalance = t.ResultingBalance
-        });
+        try {
+            var userId = GetUserIdOrThrow();
+            var txs = _repo.GetUserTransactions(userId, 50);
+            
+            var result = txs.Select(t => new TransactionDto {
+                Id = t.Id,
+                Amount = t.Amount,
+                Type = t.Type.ToString(),
+                Description = t.Description,
+                Timestamp = t.Timestamp,
+                ResultingBalance = t.ResultingBalance
+            });
 
-        return Ok(result);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException) { return Unauthorized(); }
+    }
+
+    private Guid GetUserIdOrThrow() {
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (idClaim == null || !Guid.TryParse(idClaim.Value, out var id)) {
+            throw new UnauthorizedAccessException("Invalid User Token");
+        }
+        return id;
     }
 }

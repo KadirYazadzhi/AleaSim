@@ -256,6 +256,26 @@ public class EfGameRepository : IGameRepository {
             .ToList();
     }
 
+    
+    public IEnumerable<GameRoundDto> GetUserHistory(Guid userId, int count) {
+        return _context.GameRounds
+            .Join(_context.GameSessions, r => r.GameSessionId, s => s.Id, (r, s) => new { r, s })
+            .Where(x => x.s.UserId == userId)
+            .Join(_context.Games, x => x.s.GameId, g => g.Id, (x, g) => new { x.r, x.s, g })
+            .OrderByDescending(x => x.r.ExecutedAt)
+            .Take(count)
+            .Select(x => new GameRoundDto {
+                Id = x.r.Id,
+                GameName = x.g.Name,
+                BetAmount = x.r.TotalBetAmount,
+                WinAmount = x.r.TotalWinAmount,
+                ResultSummary = x.r.DecisionType,
+                FullResultJson = x.r.RandomResult,
+                PlayedAt = x.r.ExecutedAt
+            })
+            .ToList();
+    }
+
     public void SaveOutcome(Outcome outcome) {
         _context.Outcomes.Add(outcome);
         _context.SaveChanges();
