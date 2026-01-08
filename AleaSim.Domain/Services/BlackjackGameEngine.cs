@@ -141,5 +141,11 @@ public class BlackjackGameEngine : BaseGameEngine {
         return value;
     }
     public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome());
-    public override Task<object?> GetCurrentState(Guid sessionId) => Task.FromResult<object?>(null);
+    public override async Task<object?> GetCurrentState(Guid sessionId) {
+        return await ExecuteScopedAsync(async (repo, questService) => {
+            var round = repo.GetLastRound(sessionId);
+            if (round == null) return null;
+            return JsonSerializer.Deserialize<BlackjackState>(round.RandomResult);
+        });
+    }
 }

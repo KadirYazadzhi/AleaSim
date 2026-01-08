@@ -101,22 +101,12 @@ public class AdminService : IAdminService {
     public async Task ForceCooldown(Guid adminId, Guid userId, int durationMinutes, string reason) {
         _auditService.LogEvent("ADMIN_FORCE_COOLDOWN", $"Admin {adminId} forced cooldown on {userId} for {durationMinutes}m. Reason: {reason}", adminId.ToString(), JsonSerializer.Serialize(new { TargetUser = userId, Duration = durationMinutes }));
 
-        var profile = _repository.GetPlayerProfile(userId);
-        if (profile != null) {
-            // BrainService uses logic to determine cooldown, but here we override it manually
-            // We need a way to persist this. PlayerProfile likely has fields we can use or we add one.
-            // Let's assume we can just set a flag or expiry.
-            // I'll check PlayerProfile again, but for now I'll assume I can update it.
-            // If fields are missing, I'll add them.
-            
-            // Assuming we have a generic "UpdateProfile" or similar.
-            // Actually, BrainService logic is: "If LastWin > X -> Cooldown". 
-            // We want a "Hard Lock".
-            // I'll add "AccountStatus" or "LockoutUntil" to PlayerProfile if needed.
-            // For now, I'll try to find a suitable field.
+        var user = _repository.GetUser(userId);
+        if (user != null) {
+            user.LockoutUntil = DateTime.UtcNow.AddMinutes(durationMinutes);
+            _repository.UpdateUser(user);
         }
     }
-
     public async Task SetGlobalRtp(Guid adminId, decimal targetRtp) {
         _auditService.LogEvent("ADMIN_SET_RTP", $"Global RTP set to {targetRtp}%", adminId.ToString(), targetRtp.ToString());
         _repository.SetGlobalSetting("GlobalTargetRtp", targetRtp.ToString(), "Updated by Admin");

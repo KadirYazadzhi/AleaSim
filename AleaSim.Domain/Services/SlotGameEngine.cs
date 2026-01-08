@@ -137,6 +137,19 @@ public class SlotGameEngine : BaseGameEngine {
             } while (attempts < 50);
 
             if (totalWin > 0) {
+                // If ending a bonus, actually claim the jackpots from the pool
+                if (state.BonusBells.Any(b => b.Type != BellType.Cash) && !state.IsBonusActive) {
+                    foreach(var b in state.BonusBells.Where(x => x.Type != BellType.Cash)) {
+                        var tier = b.Type switch {
+                            BellType.Major => JackpotTier.Spades,
+                            BellType.Minor => JackpotTier.Hearts,
+                            BellType.Mini => JackpotTier.Clubs,
+                            _ => JackpotTier.Clubs
+                        };
+                        JackpotService.ClaimJackpot(tier, repo);
+                    }
+                }
+
                 VaultService.ProcessWin(session.UserId, totalWin, repo);
                 questService.UpdateProgress(session.UserId, "WinAmount", (int)totalWin, repo, VaultService);
             }
@@ -241,15 +254,15 @@ public class SlotGameEngine : BaseGameEngine {
                     // FIXED: Fetch REAL progressive value from JackpotService AND CLAIM IT (Resetting the pool)
                     if (tr < 0.001) { 
                         bell.Type = BellType.Major; // Spades
-                        bell.Value = JackpotService.ClaimJackpot(JackpotTier.Spades, repo);
+                        bell.Value = JackpotService.GetTierValue(JackpotTier.Spades, repo);
                     }
                     else if (tr < 0.011 && minors < 3) { 
                         bell.Type = BellType.Minor; // Hearts/Diamonds
-                        bell.Value = JackpotService.ClaimJackpot(JackpotTier.Hearts, repo);
+                        bell.Value = JackpotService.GetTierValue(JackpotTier.Hearts, repo);
                     }
                     else if (tr < 0.06 && minis < 5) { 
                         bell.Type = BellType.Mini; // Clubs
-                        bell.Value = JackpotService.ClaimJackpot(JackpotTier.Clubs, repo);
+                        bell.Value = JackpotService.GetTierValue(JackpotTier.Clubs, repo);
                     }
                     else { 
                         bell.Type = BellType.Cash; 

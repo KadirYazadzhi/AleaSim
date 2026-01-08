@@ -28,6 +28,11 @@ public class GameDirector : IGameDirector {
     }
 
     public async Task<GameRound> PlayRound(string gameType, Guid sessionId, decimal amount, object betData) {
+        var session = _repo.GetSession(sessionId);
+        var user = session != null ? _repo.GetUser(session.UserId) : null;
+        if (user != null && user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.UtcNow) {
+            throw new Exception($"Account is in cooldown until {user.LockoutUntil.Value:HH:mm:ss} UTC.");
+        }
         if (amount <= 0) throw new ArgumentException("Bet amount must be positive.");
         var gameEngine = _gameResolver(gameType);
         
