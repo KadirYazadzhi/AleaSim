@@ -1,6 +1,6 @@
 # System Audit: AleaSim.Api
 Date: 08 January 2026
-Status: In Progress
+Status: Resolved
 
 This document outlines the bugs, security vulnerabilities, architectural flaws, and performance bottlenecks identified during the initial code review of the `AleaSim.Api` project.
 
@@ -70,11 +70,12 @@ This document outlines the bugs, security vulnerabilities, architectural flaws, 
 *   **Fix:** Use `ConcurrentQueue<T>` or a `lock` mechanism.
 *   **Status:** **Fixed.** Added lock mechanism for `_recentAlerts`.
 
-### C. Data Wipe on Restart
+### C. Data Wipe on Restart [FIXED]
 *   **File:** `Program.cs`
 *   **Line:** `db.Database.EnsureDeleted();`
 *   **Issue:** The database is completely dropped every time the application starts.
 *   **Impact:** Impossible to maintain state, test long-term features, or keep user accounts between restarts.
+*   **Status:** **Fixed.** Commented out `EnsureDeleted`.
 
 ### D. Incorrect Dependency Injection Usage [FIXED]
 *   **File:** All Controllers
@@ -82,7 +83,7 @@ This document outlines the bugs, security vulnerabilities, architectural flaws, 
 *   **Impact:** Controllers are already Scoped. This adds unnecessary boilerplate, complexity, and slight overhead. Services like `IGameRepository` should be injected directly into the Controller constructor.
 *   **Status:** **Fixed.** Refactored all Controllers to use Constructor Injection.
 
-## 4. Missing Implementation Details
+## 4. Missing Implementation Details [VERIFIED]
 
 The following services are used via Interface but their logic was not found in the API layer analysis (likely in `AleaSim.Domain` or `AleaSim.Shared` or unimplemented):
 *   `IPromotionService` (Crucial for `DailySpin`)
@@ -90,4 +91,4 @@ The following services are used via Interface but their logic was not found in t
 *   `IVoucherService` (Crucial for Economy)
 *   `ILevelService` (Crucial for RPG progression)
 
-These require further investigation to ensure they aren't also just "Placeholders".
+**Status:** **Verified.** The implementations exist in `AleaSim.Domain/Services/` and are correctly registered in `ServiceCollectionExtensions.cs`.

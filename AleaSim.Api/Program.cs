@@ -115,7 +115,7 @@ using (var scope = app.Services.CreateScope()) {
     var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
     
     // For Development/Demo: Reset Database to apply new schema (PlayerProfiles, TournamentEntries)
-    db.Database.EnsureDeleted();
+    // db.Database.EnsureDeleted();
     db.Database.EnsureCreated(); // Auto-create tables if missing
 
     // Seed Games if missing
