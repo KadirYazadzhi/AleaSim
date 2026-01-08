@@ -73,7 +73,7 @@ public class BlackjackGameEngine : BaseGameEngine {
                     state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
                     state.Sequence = seq;
                     await FinishRoundAsync(session, round, state, repo, questService);
-                } else throw new Exception("Insufficient funds for Double Down")
+                } else throw new Exception("Insufficient funds for Double Down");
             } else if (action.ToLower() == "split" && state.PlayerHand.Count == 2 && state.SplitHand == null) {
                 // Check if cards are same rank
                 string r1 = state.PlayerHand[0].Substring(0, state.PlayerHand[0].Length - 1);
@@ -86,7 +86,7 @@ public class BlackjackGameEngine : BaseGameEngine {
                         state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
                         state.SplitHand.Add(DrawCard(session.Seed, ref seq));
                         state.Sequence = seq;
-                    } else throw new Exception("Insufficient funds for Split")
+                    } else throw new Exception("Insufficient funds for Split");
                 }
             } else if (action.ToLower() == "hit") {
                 int seq = state.Sequence;

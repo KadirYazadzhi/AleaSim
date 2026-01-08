@@ -35,13 +35,13 @@ public class GameHub : Hub {
     }
 
     public async Task LeaveGame(string gameType) {
- 
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, gameType);
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception) {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Slot");
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Roulette");
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Blackjack");
         await base.OnDisconnectedAsync(exception);
-    }
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, gameType);
     }
 }

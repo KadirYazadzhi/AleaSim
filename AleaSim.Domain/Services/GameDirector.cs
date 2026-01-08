@@ -36,7 +36,6 @@ public class GameDirector : IGameDirector {
         if (amount <= 0) throw new ArgumentException("Bet amount must be positive.");
         var gameEngine = _gameResolver(gameType);
         
-        var session = _repo.GetSession(sessionId);
         
         SpinProfile profile = SpinProfile.Standard;
 

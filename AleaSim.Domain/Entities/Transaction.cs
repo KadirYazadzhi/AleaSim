@@ -5,7 +5,10 @@ public enum TransactionType {
     Withdrawal,
     BonusAwarded,
     BonusConverted,
-    WageringRequirementMet
+    WageringRequirementMet,
+    Bet,
+    Win,
+    Bonus
 }
 
 public class Transaction {
