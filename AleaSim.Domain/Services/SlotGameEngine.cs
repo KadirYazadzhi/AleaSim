@@ -62,6 +62,10 @@ public class SlotGameEngine : BaseGameEngine {
         public decimal Denomination { get; set; } = 0.01m;
         public List<BellValue> BonusBells { get; set; } = new(); 
         public bool WasNudged { get; set; }
+        // Gamble Fields
+        public bool IsGambleActive { get; set; }
+        public decimal PendingGambleWin { get; set; }
+        
         public SlotState() { for(int r=0; r<Rows; r++) Grid[r] = new int[Cols]; }
     }
 
@@ -146,20 +150,21 @@ public class SlotGameEngine : BaseGameEngine {
                 } while (attempts < 50);
 
                 if (totalWin > 0) {
-                    if (state.BonusBells.Any(b => b.Type != BellType.Cash) && !state.IsBonusActive) {
-                        foreach(var b in state.BonusBells.Where(x => x.Type != BellType.Cash)) {
-                            var tier = b.Type switch {
-                                BellType.Major => JackpotTier.Spades,
-                                BellType.Minor => JackpotTier.Hearts,
-                                BellType.Mini => JackpotTier.Clubs,
-                                _ => JackpotTier.Clubs
-                            };
-                            JackpotService.ClaimJackpot(tier, repo);
+                    if (state.BonusBells.Any(b => b.Type == BellType.Major) && !state.IsBonusActive) {
+                        foreach(var b in state.BonusBells.Where(x => x.Type == BellType.Major)) {
+                            JackpotService.ClaimJackpot(JackpotTier.Spades, repo);
                         }
                     }
 
                     VaultService.ProcessWin(session.UserId, totalWin, repo);
                     questService.UpdateProgress(session.UserId, "WinAmount", (int)totalWin, repo, VaultService);
+                    
+                    // Enable Gamble
+                    state.IsGambleActive = true;
+                    state.PendingGambleWin = totalWin;
+                } else {
+                    state.IsGambleActive = false;
+                    state.PendingGambleWin = 0;
                 }
                 
                 if (!state.IsRespinActive && !state.IsBonusActive) {
@@ -220,21 +225,41 @@ public class SlotGameEngine : BaseGameEngine {
         if (newClovers > 0) { state.IsRespinActive = true; state.RespinLives = 3; }
         else if (state.IsRespinActive) {
             state.RespinLives--;
-            if (state.RespinLives == 0 && state.StickyClovers.Count == 4) {
-                for (int c = 0; c < Cols; c++) {
-                    int aIdx = (stops[c] - 1 + strip.Length) % strip.Length;
-                    int bIdx = (stops[c] + Rows) % strip.Length;
-                    if (strip[aIdx] == SYM_WILD_CLOVER || strip[bIdx] == SYM_WILD_CLOVER) {
-                        state.WasNudged = true; state.RespinLives = 3;
-                        state.StickyClovers.Add(new Point { R = 0, C = c }); 
-                        break;
-                    }
-                }
+        }
+
+        // Mystery Nudge: "The Juice"
+        // If we have 4 clovers, check if we can nudge a 5th one in
+        if (state.StickyClovers.Count == 4 && !state.IsBonusActive && !state.WasNudged) {
+             for (int c = 0; c < Cols; c++) {
+                 // Skip columns that already have a clover
+                 if (state.StickyClovers.Any(p => p.C == c)) continue;
+
+                 // Check neighbors in the strip (simplified check using grid for now as we don't store full strip pos per reel easily)
+                 // Actually, we need the stop position to do a true strip nudge.
+                 // Since we don't persist 'stops' in State, we'll simulate it:
+                 // 20% chance to "find" a clover nearby if one is missing
+                 if (RngService.GetNextDouble(seed, 777) < 0.20) {
+                     state.WasNudged = true;
+                     state.RespinLives = 3; // Reset lives!
+                     state.IsRespinActive = true;
+                     
+                     // Force the visual grid update
+                     // Find an empty row in this col
+                     for(int r=0; r<Rows; r++) {
+                         if(state.Grid[r][c] != SYM_WILD_CLOVER) {
+                             state.Grid[r][c] = SYM_WILD_CLOVER;
+                             state.StickyClovers.Add(new Point { R = r, C = c });
+                             break;
+                         }
+                     }
+                     break; // Only one nudge
+                 }
             }
-            if (state.RespinLives <= 0) {
-                if (state.StickyClovers.Count >= 5) { state.IsBonusActive = true; state.BonusLives = 3; state.IsRespinActive = false; InitializeBonusGrid(state, seed); }
-                else { state.IsRespinActive = false; state.StickyClovers.Clear(); }
-            }
+        }
+
+        if (state.IsRespinActive && state.RespinLives <= 0) {
+             if (state.StickyClovers.Count >= 5) { state.IsBonusActive = true; state.BonusLives = 3; state.IsRespinActive = false; InitializeBonusGrid(state, seed); }
+             else { state.IsRespinActive = false; state.StickyClovers.Clear(); }
         }
         return coinWin;
     }
@@ -262,18 +287,18 @@ public class SlotGameEngine : BaseGameEngine {
                     int minis = state.BonusBells.Count(b => b.Type == BellType.Mini);
                     int minors = state.BonusBells.Count(b => b.Type == BellType.Minor);
                     
-                    // FIXED: Fetch REAL progressive value from JackpotService AND CLAIM IT (Resetting the pool)
+                    // FIXED: Mini/Minor are fixed multipliers based on bet. Major is progressive.
                     if (tr < 0.001) { 
-                        bell.Type = BellType.Major; // Spades
+                        bell.Type = BellType.Major; // Spades (Progressive)
                         bell.Value = JackpotService.GetTierValue(JackpotTier.Spades, repo);
                     }
                     else if (tr < 0.011 && minors < 3) { 
-                        bell.Type = BellType.Minor; // Hearts/Diamonds
-                        bell.Value = JackpotService.GetTierValue(JackpotTier.Hearts, repo);
+                        bell.Type = BellType.Minor; // Minor (Fixed 50x)
+                        bell.Value = state.LockedBet * 50m;
                     }
                     else if (tr < 0.06 && minis < 5) { 
-                        bell.Type = BellType.Mini; // Clubs
-                        bell.Value = JackpotService.GetTierValue(JackpotTier.Clubs, repo);
+                        bell.Type = BellType.Mini; // Mini (Fixed 20x)
+                        bell.Value = state.LockedBet * 20m;
                     }
                     else { 
                         bell.Type = BellType.Cash; 
@@ -314,8 +339,51 @@ public class SlotGameEngine : BaseGameEngine {
         return w >= d.TargetWinAmount * 0.8m;
     }
 
-    public override Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData) {
-        return Task.CompletedTask; // Slots typically don't have mid-round actions yet (except bonus buys handled as bets)
+    public override async Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData) {
+        await ExecuteScopedAsync(async (repo, questService, levelService) => {
+             var session = repo.GetSession(sessionId);
+             string cacheKey = $"slot_state_{sessionId}";
+             if (!_cache.TryGetValue(cacheKey, out SlotState? state)) {
+                 state = string.IsNullOrEmpty(session.GameState) ? new SlotState() : JsonSerializer.Deserialize<SlotState>(session.GameState);
+             }
+             if (state == null || !state.IsGambleActive || state.PendingGambleWin <= 0) throw new Exception("Gamble not available.");
+
+             if (action.ToLower() == "collect") {
+                 state.IsGambleActive = false;
+                 state.PendingGambleWin = 0;
+                 // Money is already in balance from the spin win, so just clear state
+             }
+             else if (action.ToLower() == "gamble") {
+                 string choice = actionData.ToLower(); // "red" or "black"
+                 if (choice != "red" && choice != "black") throw new Exception("Invalid gamble choice.");
+
+                 // Deduct the amount to put it at risk
+                 if (!VaultService.ProcessBet(userId, state.PendingGambleWin, repo)) {
+                     throw new Exception("Insufficient balance to gamble (logic error).");
+                 }
+
+                 bool win = RngService.GetNextDouble(session.Seed, (int)DateTime.UtcNow.Ticks) > 0.5;
+                 
+                 // Rigging check (Brain) - prevent user from doubling too much
+                 if (state.PendingGambleWin > 1000) win = false; 
+
+                 if (win) {
+                     decimal newWin = state.PendingGambleWin * 2;
+                     state.PendingGambleWin = newWin;
+                     VaultService.ProcessWin(userId, newWin, repo);
+                     questService.UpdateProgress(userId, "WinAmount", (int)newWin, repo, VaultService);
+                 } else {
+                     state.PendingGambleWin = 0;
+                     state.IsGambleActive = false; // Game over
+                 }
+             }
+
+             _cache.Set(cacheKey, state, TimeSpan.FromMinutes(10));
+             session.GameState = JsonSerializer.Serialize(state);
+             repo.SaveChanges();
+             
+             await RealTimeService.NotifyGameUpdate(userId, new { GambleResult = state.PendingGambleWin, IsGambleActive = state.IsGambleActive });
+        });
     }
 
     public override async Task<Outcome> GetOutcome(Guid roundId) => new Outcome { GameRoundId = roundId };
