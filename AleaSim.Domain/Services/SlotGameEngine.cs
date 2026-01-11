@@ -80,10 +80,17 @@ public class SlotGameEngine : BaseGameEngine {
 
                 string cacheKey = $"slot_state_{sessionId}";
                 if (!_cache.TryGetValue(cacheKey, out SlotState? state)) {
-                    state = string.IsNullOrEmpty(session.GameState) 
-                        ? new SlotState() 
-                        : JsonSerializer.Deserialize<SlotState>(session.GameState) ?? new SlotState();
+                    try {
+                        state = string.IsNullOrEmpty(session.GameState) 
+                            ? new SlotState() 
+                            : JsonSerializer.Deserialize<SlotState>(session.GameState);
+                    } catch (JsonException ex) {
+                        // CRITICAL: Prevent silent data loss (e.g. losing a bonus round)
+                        throw new Exception($"Game State Corruption detected for Session {sessionId}. Please contact support.", ex);
+                    }
                 }
+                
+                if (state == null) state = new SlotState(); // Fallback only if null but valid JSON (e.g. "null")
 
                 state!.WasNudged = false;
                 var lastBet = repo.GetLastBet(sessionId);
@@ -344,7 +351,11 @@ public class SlotGameEngine : BaseGameEngine {
              var session = repo.GetSession(sessionId);
              string cacheKey = $"slot_state_{sessionId}";
              if (!_cache.TryGetValue(cacheKey, out SlotState? state)) {
-                 state = string.IsNullOrEmpty(session.GameState) ? new SlotState() : JsonSerializer.Deserialize<SlotState>(session.GameState);
+                 try {
+                    state = string.IsNullOrEmpty(session.GameState) ? new SlotState() : JsonSerializer.Deserialize<SlotState>(session.GameState);
+                 } catch {
+                    throw new Exception("State corruption in Action processing.");
+                 }
              }
              if (state == null || !state.IsGambleActive || state.PendingGambleWin <= 0) throw new Exception("Gamble not available.");
 

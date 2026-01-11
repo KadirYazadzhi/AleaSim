@@ -102,7 +102,14 @@ public abstract class BaseGameEngine : IGame {
     protected async Task ExecuteScopedAsync(Func<IGameRepository, Task> action) {
         using var scope = ScopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-        await action(repo);
+        using var tx = repo.BeginTransaction();
+        try {
+            await action(repo);
+            tx.Commit();
+        } catch {
+            tx.Rollback();
+            throw;
+        }
     }
 
     protected async Task ExecuteScopedAsync(Func<IGameRepository, IQuestService, ILevelService, Task> action) {
@@ -110,13 +117,28 @@ public abstract class BaseGameEngine : IGame {
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         var questService = scope.ServiceProvider.GetRequiredService<IQuestService>();
         var levelService = scope.ServiceProvider.GetRequiredService<ILevelService>();
-        await action(repo, questService, levelService);
+        using var tx = repo.BeginTransaction();
+        try {
+            await action(repo, questService, levelService);
+            tx.Commit();
+        } catch {
+            tx.Rollback();
+            throw;
+        }
     }
 
     protected async Task<T> ExecuteScopedAsync<T>(Func<IGameRepository, Task<T>> action) {
         using var scope = ScopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-        return await action(repo);
+        using var tx = repo.BeginTransaction();
+        try {
+            var result = await action(repo);
+            tx.Commit();
+            return result;
+        } catch {
+            tx.Rollback();
+            throw;
+        }
     }
     
     protected async Task<T> ExecuteScopedAsync<T>(Func<IGameRepository, IQuestService, ILevelService, Task<T>> action) {
@@ -124,12 +146,28 @@ public abstract class BaseGameEngine : IGame {
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         var questService = scope.ServiceProvider.GetRequiredService<IQuestService>();
         var levelService = scope.ServiceProvider.GetRequiredService<ILevelService>();
-        return await action(repo, questService, levelService);
+        using var tx = repo.BeginTransaction();
+        try {
+            var result = await action(repo, questService, levelService);
+            tx.Commit();
+            return result;
+        } catch {
+            tx.Rollback();
+            throw;
+        }
     }
     
     protected T ExecuteScoped<T>(Func<IGameRepository, T> action) {
         using var scope = ScopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-        return action(repo);
+        using var tx = repo.BeginTransaction();
+        try {
+            var result = action(repo);
+            tx.Commit();
+            return result;
+        } catch {
+            tx.Rollback();
+            throw;
+        }
     }
 }
