@@ -42,68 +42,74 @@ public class DailyBonusBackgroundService : BackgroundService {
         var realTime = scope.ServiceProvider.GetRequiredService<IRealTimeService>();
         var tournament = scope.ServiceProvider.GetRequiredService<ITournamentService>();
 
-        // 1. Process Tournament (If yesterday was 30th)
-        var yesterday = DateTime.UtcNow.AddDays(-1);
-        if (yesterday.Day == 30) {
-            await tournament.ProcessMonthlyPayout(repo, vault, realTime);
-        }
-
-        // 2. Daily Bonuses (Cashback / Loyalty)
-        // Using CalculateDailyNet which returns (UserId, NetResult) tuple
-        var dailyStats = repo.CalculateDailyNet(yesterday);
-        
-        foreach (var stat in dailyStats) {
-            decimal bonusAmount = 0;
-            string type = "";
-
-            if (stat.NetResult < 0) {
-                // LOSS: Base Cashback 10% + Perk Level %
-                var profile = repo.GetPlayerProfile(stat.UserId);
-                decimal cashbackPercent = 0.10m + ((profile?.CashbackLevel ?? 0) * 0.01m);
-                
-                decimal loss = Math.Abs(stat.NetResult);
-                bonusAmount = loss * cashbackPercent;
-                type = "Cashback";
-            }
-            else if (stat.NetResult > 0) {
-                // WIN: Loyalty 5%
-                bonusAmount = stat.NetResult * 0.05m;
-                type = "Loyalty Reward";
+        // Wrap everything in a transaction because VaultService no longer commits internally
+        using var tx = repo.BeginTransaction();
+        try {
+            // 1. Process Tournament (If first day of new month)
+            var today = DateTime.UtcNow;
+            if (today.Day == 1) {
+                await tournament.ProcessMonthlyPayout(repo, vault, realTime);
             }
 
-            if (bonusAmount > 0.01m) { // Ignore tiny amounts
-                vault.CreditBonus(stat.UserId, bonusAmount, bonusAmount, repo); // 1x wagering
-                
-                _logger.LogInformation("Awarded {Type}: {Amount} to User {UserId}", type, bonusAmount, stat.UserId);
+            // 2. Daily Bonuses (Cashback / Loyalty)
+            var yesterday = DateTime.UtcNow.AddDays(-1);
+            var dailyStats = repo.CalculateDailyNet(yesterday);
+            
+            foreach (var stat in dailyStats) {
+                decimal bonusAmount = 0;
+                string type = "";
 
-                // Notify if online
-                // Note: RealTimeService might need error handling if user is offline, usually handled internally
-                _ = realTime.NotifyGameUpdate(stat.UserId, new { 
-                    Type = "DailyBonus", 
-                    BonusType = type, 
-                    Amount = bonusAmount,
-                    Message = $"You received a {type} of {bonusAmount:C}!"
+                if (stat.NetResult < 0) {
+                    var profile = repo.GetPlayerProfile(stat.UserId);
+                    decimal cashbackPercent = 0.10m + ((profile?.CashbackLevel ?? 0) * 0.01m);
+                    decimal loss = Math.Abs(stat.NetResult);
+                    bonusAmount = loss * cashbackPercent;
+                    type = "Cashback";
+                }
+                else if (stat.NetResult > 0) {
+                    bonusAmount = stat.NetResult * 0.05m;
+                    type = "Loyalty Reward";
+                }
+
+                if (bonusAmount > 0.01m) {
+                    vault.CreditBonus(stat.UserId, bonusAmount, bonusAmount, repo); 
+                    
+                    _logger.LogInformation("Awarded {Type}: {Amount} to User {UserId}", type, bonusAmount, stat.UserId);
+
+                    _ = realTime.NotifyGameUpdate(stat.UserId, new { 
+                        Type = "DailyBonus", 
+                        BonusType = type, 
+                        Amount = bonusAmount,
+                        Message = $"You received a {type} of {bonusAmount:C}!"
+                    });
+                }
+            }
+
+            // 3. Bonus Expiry (7 Days)
+            var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
+            var expiredUsers = repo.GetUsersWithExpiredBonuses(sevenDaysAgo);
+            
+            foreach (var user in expiredUsers) {
+                _logger.LogInformation("Expiring bonus for User {UserId}: {Amount}", user.Id, user.BonusBalance);
+                user.BonusBalance = 0;
+                user.WageringRequirement = 0;
+                user.WageringProgress = 0;
+                user.BonusLastUpdated = null;
+                repo.UpdateUser(user);
+                
+                await realTime.NotifyGameUpdate(user.Id, new { 
+                    Type = "BonusExpired", 
+                    Message = "Your unused bonus has expired."
                 });
             }
+
+            // Commit all changes (Tournament payouts, Daily Bonuses, Expirations)
+            tx.Commit();
+            _logger.LogInformation("Daily Processing Complete & Committed.");
         }
-        // 3. Bonus Expiry (7 Days)
-        var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
-        var expiredUsers = repo.GetUsersWithExpiredBonuses(sevenDaysAgo);
-        
-        foreach (var user in expiredUsers) {
-            _logger.LogInformation("Expiring bonus for User {UserId}: {Amount}", user.Id, user.BonusBalance);
-            user.BonusBalance = 0;
-            user.WageringRequirement = 0;
-            user.WageringProgress = 0;
-            user.BonusLastUpdated = null;
-            repo.UpdateUser(user);
-            
-            await realTime.NotifyGameUpdate(user.Id, new { 
-                Type = "BonusExpired", 
-                Message = "Your unused bonus has expired."
-            });
+        catch (Exception ex) {
+            tx.Rollback();
+            _logger.LogError(ex, "Transaction Failed during Daily Processing");
         }
-        
-        _logger.LogInformation("Daily Processing Complete.");
     }
 }

@@ -7,10 +7,12 @@ namespace AleaSim.Domain.Services;
 public class PromotionService : IPromotionService {
     private readonly IRealTimeService _realTimeService;
     private readonly IVaultService _vaultService;
+    private readonly IRngService _rngService;
 
-    public PromotionService(IRealTimeService realTimeService, IVaultService vaultService) {
+    public PromotionService(IRealTimeService realTimeService, IVaultService vaultService, IRngService rngService) {
         _realTimeService = realTimeService;
         _vaultService = vaultService;
+        _rngService = rngService;
     }
 
     public void ProcessBetActivity(Guid userId, decimal betAmount, IGameRepository repo) {
@@ -27,20 +29,18 @@ public class PromotionService : IPromotionService {
             repo.UpdateUser(user);
         }
 
-        if (DateTime.UtcNow.Day == 30) {
-            var entry = repo.GetOrCreateTournamentEntry(userId, DateTime.UtcNow);
-            entry.TotalWagered += betAmount;
-            entry.RoundCount++;
-            repo.UpdateTournamentEntry(entry);
-        }
+        // Always update tournament stats for today
+        var entry = repo.GetOrCreateTournamentEntry(userId, DateTime.UtcNow);
+        entry.TotalWagered += betAmount;
+        entry.RoundCount++;
+        repo.UpdateTournamentEntry(entry);
     }
     
     public void ProcessWinActivity(Guid userId, decimal winAmount, IGameRepository repo) {
-        if (DateTime.UtcNow.Day == 30) {
-            var entry = repo.GetOrCreateTournamentEntry(userId, DateTime.UtcNow);
-            entry.TotalPayout += winAmount;
-            repo.UpdateTournamentEntry(entry);
-        }
+        // Always update tournament stats
+        var entry = repo.GetOrCreateTournamentEntry(userId, DateTime.UtcNow);
+        entry.TotalPayout += winAmount;
+        repo.UpdateTournamentEntry(entry);
     }
 
     public bool IsUserActive(Guid userId, IGameRepository repo) {
@@ -91,8 +91,7 @@ public class PromotionService : IPromotionService {
         }
 
         user.LastDailySpin = DateTime.UtcNow;
-        var rnd = new Random();
-        int roll = rnd.Next(1, 101);
+        int roll = _rngService.GetNextInt((int)DateTime.UtcNow.Ticks, 100, 1, 101);
         
         string type; decimal value; string message;
 
@@ -151,9 +150,9 @@ public class PromotionService : IPromotionService {
         if (!profileList.Any()) return Guid.Empty;
 
         decimal totalTickets = profileList.Sum(p => Math.Floor(p.MonthlyWagered / 50m));
-        if (totalTickets <= 0) return profileList[new Random().Next(profileList.Count)].UserId;
+        if (totalTickets <= 0) return profileList[_rngService.GetNextInt((int)DateTime.UtcNow.Ticks, 0, 0, profileList.Count)].UserId;
 
-        decimal winningTicket = (decimal)new Random().NextDouble() * totalTickets;
+        decimal winningTicket = (decimal)_rngService.GetNextDouble((int)DateTime.UtcNow.Ticks, 1) * totalTickets;
         decimal currentTicketCount = 0;
         foreach (var p in profileList) {
             decimal tickets = Math.Floor(p.MonthlyWagered / 50m);
