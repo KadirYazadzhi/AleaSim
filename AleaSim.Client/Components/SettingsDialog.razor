@@ -1,6 +1,14 @@
 @using AleaSim.Client.Services
+@using AleaSim.Shared.Models
+@using Blazored.LocalStorage
+@using Microsoft.AspNetCore.Components.Authorization
+
 @inject AudioService Audio
 @inject ISnackbar Snackbar
+@inject HttpClient Http
+@inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
 
 <MudDialog>
     <TitleContent>
@@ -33,6 +41,10 @@
                     <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="UpdateSeed">Update</MudButton>
                 </div>
             </MudListItem>
+
+             <MudDivider Class="my-4" />
+             <MudButton Variant="Variant.Text" Color="Color.Error" FullWidth="true" OnClick="UnlockAdmin">UNLOCK ADMIN MODE (DEV)</MudButton>
+
         </MudList>
     </DialogContent>
     <DialogActions>
@@ -51,5 +63,21 @@
 
     private void UpdateSeed() {
         Snackbar.Add("Client seed updated for next session!", Severity.Success);
+    }
+
+    private async Task UnlockAdmin() {
+        var response = await Http.PostAsJsonAsync("api/Auth/dev/promote", "MakeMeAdminPlease");
+        if (response.IsSuccessStatusCode) {
+             var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+             if (result != null) {
+                await LocalStorage.SetItemAsync("authToken", result.Token);
+                ((CustomAuthStateProvider)AuthStateProvider).NotifyUserAuthentication(result.Token);
+                Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("bearer", result.Token);
+                Snackbar.Add("Admin Mode Unlocked! Refreshing...", Severity.Success);
+                Nav.NavigateTo("/dashboard", true);
+             }
+        } else {
+            Snackbar.Add("Failed to unlock admin.", Severity.Error);
+        }
     }
 }

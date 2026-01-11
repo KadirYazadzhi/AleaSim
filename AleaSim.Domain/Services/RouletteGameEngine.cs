@@ -41,6 +41,11 @@ public class RouletteGameEngine : BaseGameEngine {
                 }
             } catch { }
 
+            
+            decimal totalBet = bets.Sum(x => x.Amount);
+            if (totalBet > 4000) throw new Exception("Total table bet exceeds 4000 limit.");
+            if (bets.Any(x => x.Type == "number" && x.Amount > 100)) throw new Exception("Single number bet exceeds 100 limit.");
+
             var decision = BrainService.DecideOutcome(session.UserId, GameId, betAmount, repo);
             
             int number = 0;

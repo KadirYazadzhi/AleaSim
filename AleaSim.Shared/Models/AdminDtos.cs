@@ -28,4 +28,13 @@ public class PlayerSearchResultDto {
     public string Email { get; set; } = string.Empty;
     public decimal Balance { get; set; }
     public string Role { get; set; } = string.Empty;
+
+public class UpdateBalanceDto {
+    public decimal NewBalance { get; set; }
+}
+
+public class ToggleStatusDto {
+    public bool IsActive { get; set; }
+}
+
 }

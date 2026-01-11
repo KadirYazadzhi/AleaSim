@@ -27,6 +27,7 @@ public interface IGameRepository {
     IEnumerable<User> SearchUsers(string query);
     void CreateUser(User user);
     void UpdateUser(User user); // Added generic update
+    void DeleteUser(Guid userId);
     void UpdateUserBalance(Guid userId, decimal amountToAdd); // Positive to add, negative to subtract
     IEnumerable<User> GetUsersWithExpiredBonuses(DateTime cutoff);
 

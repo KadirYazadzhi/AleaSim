@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "LpiW1weWbDt/+UrX7ZmegTxQGixuOQwe7yMC48vlXPw=",
+  "Hash": "vLgLu5kfFUfO39alaXHgPMiPlSjTsTsD1W6ppRZkv74=",
   "Source": "AleaSim.Client",
   "BasePath": "/",
   "Mode": "Root",
@@ -8679,6 +8679,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot/js/audio.js"
+    },
+    {
+      "Identity": "/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/wwwroot/js/slotEngine.js",
+      "SourceId": "AleaSim.Client",
+      "SourceType": "Discovered",
+      "ContentRoot": "/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/wwwroot/",
+      "BasePath": "/",
+      "RelativePath": "js/slotEngine.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/js/slotEngine.js"
     },
     {
       "Identity": "/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/wwwroot/sample-data/weather.json",

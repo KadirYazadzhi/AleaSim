@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Services;
 using AleaSim.Domain.Extensions;
@@ -9,6 +10,7 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // Add Services
 builder.Services.AddControllers();
@@ -121,9 +123,9 @@ using (var scope = app.Services.CreateScope()) {
     // Seed Games if missing
     if (!db.Games.Any()) {
         db.Games.AddRange(
-            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000001"), Name = "Slot Machine", Type = "Slot", MinBet = 1, MaxBet = 100, TargetRTP = 0.95, IsActive = true },
-            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = "European Roulette", Type = "Roulette", MinBet = 1, MaxBet = 500, TargetRTP = 0.97, IsActive = true },
-            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000003"), Name = "Blackjack", Type = "Blackjack", MinBet = 5, MaxBet = 200, TargetRTP = 0.99, IsActive = true }
+            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000001"), Name = "Slot Machine", Type = "Slot", MinBet = 1, MaxBet = 1000, TargetRTP = 0.95, IsActive = true, PoolBalance = 1000000m },
+            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = "European Roulette", Type = "Roulette", MinBet = 1, MaxBet = 100000, TargetRTP = 0.97, IsActive = true, PoolBalance = 1000000m },
+            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000003"), Name = "Blackjack", Type = "Blackjack", MinBet = 5, MaxBet = 1000, TargetRTP = 0.99, IsActive = true }
         );
         db.SaveChanges();
     }

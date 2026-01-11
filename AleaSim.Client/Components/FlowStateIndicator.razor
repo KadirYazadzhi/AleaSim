@@ -1,0 +1,54 @@
+@using MudBlazor
+
+@if (Intensity > 0)
+{
+    <div class="flow-state-container @(Intensity > 0.8 ? "zone-active" : "")">
+        <MudProgressLinear Color="@(Intensity > 0.8 ? Color.Error : Color.Warning)" 
+                          Value="@(Intensity * 100)" 
+                          Class="flow-bar" 
+                          Striped="true" />
+        
+        @if (Intensity > 0.8)
+        {
+            <div class="zone-text">🔥 ZONE ACTIVE 🔥</div>
+        }
+    </div>
+
+    <style>
+        .flow-state-container {
+            position: fixed;
+            top: 70px; /* Below TopBar */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            z-index: 2000;
+            pointer-events: none;
+            opacity: 0.8;
+            transition: opacity 0.5s;
+        }
+
+        .zone-active {
+            opacity: 1;
+            animation: pulse-red 1s infinite;
+        }
+
+        .zone-text {
+            text-align: center;
+            color: #ff4081;
+            font-weight: bold;
+            text-shadow: 0 0 10px #ff4081;
+            margin-top: 5px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        @@keyframes pulse-red {
+            0% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.05); }
+            100% { transform: translateX(-50%) scale(1); }
+        }
+    </style>
+}
+
+@code {
+    [Parameter] public float Intensity { get; set; }
+}

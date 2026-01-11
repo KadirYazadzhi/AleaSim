@@ -1,202 +1,129 @@
 @page "/dashboard"
 @using AleaSim.Shared.Models
+@using AleaSim.Client.Services
 @using Microsoft.AspNetCore.Authorization
 @layout AleaSim.Client.Layout.AdminLayout
 @attribute [Authorize(Roles = "Admin")]
-@inject HttpClient Http
+@implements IAsyncDisposable
+@inject IAdminService AdminService
+@inject RealTimeClient RealTime
 @inject ISnackbar Snackbar
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
-    <MudText Typo="Typo.h3" Class="mb-6">Casino Command Center</MudText>
+    <MudText Typo="Typo.h3" Class="mb-6" Style="font-weight: 900;">BACKOFFICE HUB</MudText>
 
-    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
-        <MudTabPanel Text="Overview" Icon="@Icons.Material.Filled.Dashboard">
+    <MudTabs Elevation="4" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="Color.Dark">
+        <MudTabPanel Text="Real-time Stats" Icon="@Icons.Material.Filled.Speed">
             <MudGrid>
-                <!-- KPI Cards -->
                 <MudItem xs="12" sm="6" md="3">
-                    <MudPaper Class="pa-4" Elevation="2">
-                        <MudText Typo="Typo.h6">Daily GGR</MudText>
-                        <MudText Typo="Typo.h4" Color="Color.Success">$@stats.Ggr.ToString("N2")</MudText>
+                    <MudPaper Class="pa-6 mud-theme-dark" Elevation="2" Style="border-left: 6px solid #4caf50;">
+                        <MudText Typo="Typo.subtitle2">EST. GGR (Today)</MudText>
+                        <MudText Typo="Typo.h4">$@stats.Ggr.ToString("N2")</MudText>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
-                    <MudPaper Class="pa-4" Elevation="2">
-                        <MudText Typo="Typo.h6">Active Players</MudText>
+                    <MudPaper Class="pa-6 mud-theme-dark" Elevation="2" Style="border-left: 6px solid #2196f3;">
+                        <MudText Typo="Typo.subtitle2">ACTIVE PLAYERS</MudText>
                         <MudText Typo="Typo.h4">@stats.ActivePlayerCount</MudText>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
-                    <MudPaper Class="pa-4" Elevation="2">
-                        <MudText Typo="Typo.h6">Current RTP</MudText>
-                        <MudText Typo="Typo.h4" Color="@(stats.CurrentRtp > 98 ? Color.Error : Color.Default)">@stats.CurrentRtp.ToString("F1")%</MudText>
+                    <MudPaper Class="pa-6 mud-theme-dark" Elevation="2" Style="border-left: 6px solid #ff9800;">
+                        <MudText Typo="Typo.subtitle2">GLOBAL RTP</MudText>
+                        <MudText Typo="Typo.h4">@stats.CurrentRtp.ToString("F1")%</MudText>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
-                    <MudPaper Class="pa-4" Elevation="2">
-                        <MudText Typo="Typo.h6">System Status</MudText>
-                        <MudChip T="string" Color="@(stats.IsEmergencyStopActive ? Color.Error : Color.Success)">
-                            @(stats.IsEmergencyStopActive ? "PAUSED" : "OPERATIONAL")
-                        </MudChip>
+                    <MudPaper Class="pa-6 mud-theme-dark" Elevation="2" Style="border-left: 6px solid #f44336;">
+                        <MudText Typo="Typo.subtitle2">EMERGENCY STOP</MudText>
+                        <MudSwitch @bind-Value="_emergencyStop" Color="Color.Error" UncheckedColor="Color.Success" Label="@(_emergencyStop ? "STOPPED" : "ACTIVE")" T="bool" @onclick="ToggleStop" />
                     </MudPaper>
                 </MudItem>
 
-                <!-- Charts -->
-                <MudItem xs="12" md="8">
-                    <MudPaper Class="pa-4 mb-4" Elevation="2" Style="height: 400px;">
-                        <MudText Typo="Typo.h6" Class="mb-4">RTP Trend (Last 24h)</MudText>
-                        <MudChart ChartType="ChartType.Line" ChartSeries="@Series" XAxisLabels="@XAxisLabels" Width="100%" Height="300px" />
-                    </MudPaper>
-
-                    <!-- Shadow Mode Analysis -->
-                    <MudPaper Class="pa-4" Elevation="2">
-                        <MudText Typo="Typo.h6" Class="mb-4">AI Shadow Mode Analysis</MudText>
-                        @if (shadowStats != null)
-                        {
-                            <MudGrid>
-                                <MudItem xs="6">
-                                    <MudPaper Class="pa-4 text-center" Style="background: #222; border-left: 5px solid #ffD700;">
-                                        <MudText Typo="Typo.subtitle2">REAL RTP</MudText>
-                                        <MudText Typo="Typo.h4">@shadowStats.RealRtp.ToString("F1")%</MudText>
-                                    </MudPaper>
-                                </MudItem>
-                                <MudItem xs="6">
-                                    <MudPaper Class="pa-4 text-center" Style="background: #222; border-left: 5px solid #4caf50;">
-                                        <MudText Typo="Typo.subtitle2">SHADOW RTP</MudText>
-                                        <MudText Typo="Typo.h4" Color="Color.Success">@shadowStats.ShadowRtp.ToString("F1")%</MudText>
-                                    </MudPaper>
-                                </MudItem>
-                            </MudGrid>
-                        }
-                    </MudPaper>
-                </MudItem>
-
-                <!-- Controls -->
-                <MudItem xs="12" md="4">
-                    <MudPaper Class="pa-4" Elevation="2">
-                        <MudText Typo="Typo.h6" Class="mb-4">System Integrity</MudText>
-                        @if (integrityResult == null) {
-                            <MudButton Variant="Variant.Outlined" Color="Color.Info" OnClick="VerifyIntegrity" FullWidth="true">Run Security Scan</MudButton>
-                        } else {
-                            <MudAlert Severity="@(integrityResult.IsValid ? Severity.Success : Severity.Error)" Variant="Variant.Filled">@integrityResult.Message</MudAlert>
-                        }
-                        <MudDivider Class="my-6" />
-                        <MudText Typo="Typo.h6" Class="mb-4">Global Controls</MudText>
-                        <MudSlider T="decimal" @bind-Value="targetRtp" Min="80" Max="99" Step="0.1m" Color="Color.Primary">Target RTP: @targetRtp.ToString("F1")%</MudSlider>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="UpdateRtp" FullWidth="true" Class="mt-2">Apply RTP</MudButton>
-                        <MudDivider Class="my-6" />
-                        <MudButton Variant="Variant.Filled" Color="@(stats.IsEmergencyStopActive ? Color.Success : Color.Error)" OnClick="ToggleEmergencyStop" FullWidth="true" Style="height: 60px;">
-                            @(stats.IsEmergencyStopActive ? "RESUME SYSTEM" : "EMERGENCY STOP")
-                        </MudButton>
-                    </MudPaper>
-                </MudItem>
-
-                <!-- Simulation Lab -->
                 <MudItem xs="12">
-                    <MudExpansionPanels>
-                        <MudExpansionPanel Text="Simulation Lab">
-                            <MudGrid>
-                                <MudItem xs="12" md="4">
-                                    <MudNumericField @bind-Value="simIterations" Label="Iterations" Min="1000" Max="1000000" />
-                                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunSimulation" Class="mt-4">Start Simulation</MudButton>
-                                </MudItem>
-                                @if (isSimulating) {
-                                    <MudItem xs="12" md="8">
-                                        <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="my-7" />
-                                    </MudItem>
-                                }
-                                @if (simReport != null) {
-                                    <MudItem xs="12">
-                                        <MudAlert Severity="Severity.Info">Final RTP: @simReport.ActualRTP.ToString("F2")% | Max Win: $@simReport.MaxWin.ToString("N2")</MudAlert>
-                                    </MudItem>
-                                }
-                            </MudGrid>
-                        </MudExpansionPanel>
-                    </MudExpansionPanels>
+                    <MudPaper Class="pa-4" Elevation="2" Style="background: #111; height: 300px; overflow-y: auto;">
+                        <MudText Typo="Typo.h6" Class="mb-2" Color="Color.Primary">LIVE EVENT FEED</MudText>
+                        @foreach (var log in _liveLogs)
+                        {
+                            <div class="d-flex gap-4 py-1 border-bottom border-dark">
+                                <MudText Typo="Typo.caption" Style="color: #666;">@DateTime.Now.ToString("HH:mm:ss")</MudText>
+                                <MudText Typo="Typo.body2">@log</MudText>
+                            </div>
+                        }
+                    </MudPaper>
                 </MudItem>
             </MudGrid>
         </MudTabPanel>
 
-        <MudTabPanel Text="Live Sessions" Icon="@Icons.Material.Filled.Stream">
-            <MudTable Items="@activeSessions" Hover="true" FixedHeader="true" Height="500px">
-                <HeaderContent>
-                    <MudTh>User</MudTh>
-                    <MudTh>Game</MudTh>
-                    <MudTh Style="text-align: right;">Profit/Loss</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="User">@context.Username</MudTd>
-                    <MudTd DataLabel="Game">@context.GameName</MudTd>
-                    <MudTd DataLabel="Net" Style="text-align: right;">$@context.NetResult.ToString("N2")</MudTd>
-                </RowTemplate>
-            </MudTable>
-            <MudButton StartIcon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="LoadActiveSessions" Class="mt-4">Refresh</MudButton>
+        <MudTabPanel Text="Configuration" Icon="@Icons.Material.Filled.Settings">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-6">
+                        <MudText Typo="Typo.h6" Class="mb-4">Global RTP Settings</MudText>
+                        <MudSlider T="decimal" @bind-Value="_targetRtp" Min="80" Max="105" Step="0.5m" Color="Color.Primary">Target RTP: @_targetRtp%</MudSlider>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="UpdateRtp" Class="mt-4">Apply Global RTP</MudButton>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-6">
+                        <MudText Typo="Typo.h6" Class="mb-4">Simulation Test</MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" OnClick="RunQuickSimulation">Run 10,000 Spin Stress Test</MudButton>
+                        @if (_simInProgress) { <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="mt-2" /> }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
         </MudTabPanel>
     </MudTabs>
 </MudContainer>
 
 @code {
     private AdminDashboardStats stats = new();
-    private decimal targetRtp = 95.0m;
-    private int simIterations = 100000;
-    private bool isSimulating = false;
-    private SimulationReport? simReport;
-    private IntegrityResponse? integrityResult;
-    private ShadowCompareDto? shadowStats;
-    private List<ActiveSessionDto> activeSessions = new();
+    private decimal _targetRtp = 95.0m;
+    private bool _emergencyStop = false;
+    private List<string> _liveLogs = new();
+    private bool _simInProgress = false;
 
-    public List<ChartSeries> Series = new();
-    public string[] XAxisLabels = Array.Empty<string>();
-
-    protected override async Task OnInitializedAsync() {
+    protected override async Task OnInitializedAsync()
+    {
         await LoadStats();
-        await LoadTrendData();
-        await LoadShadowStats();
-        await LoadActiveSessions();
+        
+        RealTime.OnBigWinReceived += (args) => {
+            _liveLogs.Insert(0, $"🔥 BIG WIN: {args.Username} won {args.Amount:C} on {args.GameName} ({args.Multiplier}x)");
+            InvokeAsync(StateHasChanged);
+        };
     }
 
-    private async Task LoadStats() {
-        try { stats = await Http.GetFromJsonAsync<AdminDashboardStats>("api/Admin/dashboard") ?? new(); } catch { }
-    }
-
-    private async Task LoadTrendData() {
+    private async Task LoadStats()
+    {
         try {
-            var trend = await Http.GetFromJsonAsync<List<RtpTrendPoint>>("api/Admin/analytics/rtp-trend");
-            if (trend != null && trend.Any()) {
-                Series = new List<ChartSeries> { new ChartSeries { Name = "RTP %", Data = trend.Select(p => p.Rtp).ToArray() } };
-                XAxisLabels = trend.Select(p => p.Label).ToArray();
-            }
-        } catch { }
+            stats = await AdminService.GetDashboardStats();
+            _targetRtp = stats.CurrentRtp > 0 ? stats.CurrentRtp : 95.0m;
+            _emergencyStop = stats.IsEmergencyStopActive;
+        } catch {}
     }
 
-    private async Task LoadShadowStats() {
-        try { shadowStats = await Http.GetFromJsonAsync<ShadowCompareDto>("api/Admin/analytics/shadow-mode"); } catch { }
+    private async Task UpdateRtp()
+    {
+        await AdminService.UpdateRtp(_targetRtp);
+        Snackbar.Add("System-wide RTP updated.", Severity.Success);
     }
 
-    private async Task LoadActiveSessions() {
-        try { activeSessions = await Http.GetFromJsonAsync<List<ActiveSessionDto>>("api/Admin/sessions/active") ?? new(); } catch { }
+    private async Task ToggleStop()
+    {
+        await AdminService.ToggleEmergencyStop(!_emergencyStop);
+        Snackbar.Add("Emergency Stop Toggled.", Severity.Warning);
     }
 
-    private async Task UpdateRtp() {
-        await Http.PostAsJsonAsync("api/Admin/config/rtp", new SetRtpDto { TargetRtp = targetRtp });
-        Snackbar.Add("RTP Updated", Severity.Success);
+    private async Task RunQuickSimulation()
+    {
+        _simInProgress = true;
+        var report = await AdminService.RunSimulation(new SimulationRequest { GameType = "Slot", Iterations = 10000 });
+        _simInProgress = false;
+        if (report != null) {
+            _liveLogs.Insert(0, $"✅ SIMULATION COMPLETE: Slot RTP resulted in {report.ActualRTP}%");
+            Snackbar.Add("Stress test complete.", Severity.Info);
+        }
     }
 
-    private async Task ToggleEmergencyStop() {
-        await Http.PostAsJsonAsync("api/Admin/config/emergency-stop", new EmergencyStopDto { Enabled = !stats.IsEmergencyStopActive });
-        await LoadStats();
-    }
-
-    private async Task VerifyIntegrity() {
-        integrityResult = await Http.GetFromJsonAsync<IntegrityResponse>("api/Admin/audit/verify");
-    }
-
-    private async Task RunSimulation() {
-        isSimulating = true; simReport = null;
-        var request = new SimulationRequest { GameType = "slot", Iterations = simIterations, BetAmount = 1.0m };
-        var response = await Http.PostAsJsonAsync("api/Admin/simulation/run", request);
-        if (response.IsSuccessStatusCode) simReport = await response.Content.ReadFromJsonAsync<SimulationReport>();
-        isSimulating = false;
-    }
-
-    public class IntegrityResponse { public bool IsValid { get; set; } public string Message { get; set; } = ""; }
+    public async ValueTask DisposeAsync() { }
 }

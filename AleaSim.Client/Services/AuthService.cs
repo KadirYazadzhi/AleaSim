@@ -46,4 +46,24 @@ public class AuthService : IAuthService {
         ((CustomAuthStateProvider)_authStateProvider).NotifyUserLogout();
         _httpClient.DefaultRequestHeaders.Authorization = null;
     }
+
+    public async Task<UserDto?> GetMe() {
+        try {
+            return await _httpClient.GetFromJsonAsync<UserDto>("api/Auth/me");
+        } catch {
+            return null;
+        }
+    }
+
+    public async Task<string> GetAvatar() {
+        try {
+            var response = await _httpClient.GetAsync("api/Auth/avatar");
+            if (response.IsSuccessStatusCode) {
+                return await response.Content.ReadAsStringAsync();
+            }
+            return string.Empty;
+        } catch {
+            return string.Empty;
+        }
+    }
 }

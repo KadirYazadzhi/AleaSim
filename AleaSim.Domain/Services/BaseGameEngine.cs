@@ -29,6 +29,27 @@ public abstract class BaseGameEngine : IGame {
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
 
+            
+            decimal[] validDenoms = { 0.01m, 0.02m, 0.05m, 0.10m, 0.20m, 0.50m, 1.00m };
+            
+            
+            decimal denom = 0.01m; 
+            try { 
+                var json = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(betData);
+                if (json.TryGetProperty("Denomination", out var d)) denom = d.GetDecimal();
+            } catch {}
+
+            decimal dynamicMinBet = Math.Round(10 * denom, 2);
+            decimal dynamicMaxBet = Math.Round(100 * denom, 2);
+            decimal roundedAmount = Math.Round(amount, 2);
+
+            if (roundedAmount < dynamicMinBet || roundedAmount > dynamicMaxBet) 
+                throw new Exception($"Bet {roundedAmount:C} is invalid. For denomination {denom:C}, min is {dynamicMinBet:C} and max is {dynamicMaxBet:C}.");
+
+
+            
+            if (!validDenoms.Contains(denom)) throw new Exception("Invalid denomination.");
+
             if (VaultService.ProcessBet(session.UserId, amount, repo)) {
                 var bet = new Bet {
                     Id = Guid.NewGuid(),
@@ -60,7 +81,7 @@ public abstract class BaseGameEngine : IGame {
                 Id = Guid.NewGuid(),
                 UserId = userId,
                 GameId = Guid.Empty, // Overridden by sub-engine if needed
-                Seed = seed ?? new Random().Next(),
+                Seed = System.Security.Cryptography.RandomNumberGenerator.GetInt32(int.MaxValue),
                 StartedAt = DateTime.UtcNow,
                 IsActive = true
             };

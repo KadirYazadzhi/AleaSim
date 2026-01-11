@@ -4,13 +4,19 @@ using System.Net.Http.Json;
 namespace AleaSim.Client.Services;
 
 public interface IGameService {
+    event Action<float>? OnFlowStateChanged;
     Task<StartSessionResponse> StartSession(string gameType);
     Task<PlaceBetResponse> PlaceBet(string gameType, Guid sessionId, decimal amount, string betData = "{}");
     Task<GameActionResponse> PerformAction(string gameType, Guid sessionId, string action, string actionData = "{}");
+    Task<DailyBonusResponse> SpinDailyBonus();
+    Task<bool> RedeemVoucher(string code);
+    Task<List<LeaderboardEntry>> GetLeaderboard(string timeFrame = "daily");
+    Task<List<GameHistoryDto>> GetHistory(int count = 20);
 }
 
 public class GameService : IGameService {
     private readonly HttpClient _http;
+    public event Action<float>? OnFlowStateChanged;
 
     public GameService(HttpClient http) {
         _http = http;
@@ -28,10 +34,16 @@ public class GameService : IGameService {
         var request = new PlaceBetRequest { Amount = amount, BetData = betData };
         var response = await _http.PostAsJsonAsync($"api/Game/{gameType}/bet/{sessionId}", request);
         if (response.IsSuccessStatusCode) {
-            return await response.Content.ReadFromJsonAsync<PlaceBetResponse>() ?? throw new Exception("Invalid response");
+            var result = await response.Content.ReadFromJsonAsync<PlaceBetResponse>() ?? throw new Exception("Invalid response");
+            
+            // Trigger Flow State Update
+            OnFlowStateChanged?.Invoke(result.FlowStateIntensity);
+            
+            return result;
         }
         throw new Exception(await response.Content.ReadAsStringAsync());
     }
+
 
     public async Task<GameActionResponse> PerformAction(string gameType, Guid sessionId, string action, string actionData = "{}") {
         var request = new GameActionRequest { Action = action, ActionData = actionData };
@@ -40,5 +52,26 @@ public class GameService : IGameService {
             return await response.Content.ReadFromJsonAsync<GameActionResponse>() ?? throw new Exception("Invalid response");
         }
         throw new Exception(await response.Content.ReadAsStringAsync());
+    }
+
+    public async Task<DailyBonusResponse> SpinDailyBonus() {
+        var response = await _http.PostAsync("api/Game/daily-bonus", null);
+        if (response.IsSuccessStatusCode) {
+            return await response.Content.ReadFromJsonAsync<DailyBonusResponse>() ?? new DailyBonusResponse();
+        }
+        throw new Exception(await response.Content.ReadAsStringAsync());
+    }
+
+    public async Task<bool> RedeemVoucher(string code) {
+        var response = await _http.PostAsJsonAsync("api/Game/voucher/redeem", new { Code = code });
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<List<LeaderboardEntry>> GetLeaderboard(string timeFrame = "daily") {
+        return await _http.GetFromJsonAsync<List<LeaderboardEntry>>($"api/Game/leaderboard/{timeFrame}") ?? new();
+    }
+
+    public async Task<List<GameHistoryDto>> GetHistory(int count = 20) {
+         return await _http.GetFromJsonAsync<List<GameHistoryDto>>($"api/Game/history?count={count}") ?? new();
     }
 }

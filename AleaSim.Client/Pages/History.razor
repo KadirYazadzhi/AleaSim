@@ -15,7 +15,7 @@
             <MudTh>Game</MudTh>
             <MudTh Style="text-align: right;">Bet</MudTh>
             <MudTh Style="text-align: right;">Win</MudTh>
-            <MudTh>Type</MudTh>
+            <MudTh>Provably Fair (Hash / Nonce)</MudTh>
             <MudTh>Status</MudTh>
         </HeaderContent>
         <RowTemplate>
@@ -27,8 +27,12 @@
                     $@context.WinAmount.ToString("N2")
                 </MudText>
             </MudTd>
-            <MudTd DataLabel="Type">
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@context.ResultSummary</MudChip>
+            <MudTd DataLabel="PF">
+                <MudTooltip Text="@context.ServerSeedHash">
+                    <MudText Typo="Typo.caption" Style="font-family: monospace;">
+                        @(string.IsNullOrEmpty(context.ServerSeedHash) ? "N/A" : context.ServerSeedHash.Length > 8 ? context.ServerSeedHash.Substring(0, 8) : context.ServerSeedHash)... | Nonce: @context.Nonce
+                    </MudText>
+                </MudTooltip>
             </MudTd>
             <MudTd DataLabel="Status">
                 <div class="d-flex align-center gap-2">

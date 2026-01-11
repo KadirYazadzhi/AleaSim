@@ -162,4 +162,23 @@ public class AdminService : IAdminService {
             SampleSize = allRounds.Count()
         });
     }
+
+    public async Task UpdateUserBalance(Guid adminId, Guid userId, decimal newBalance) {
+        var user = _repository.GetUser(userId);
+        if (user != null) {
+            user.Balance = newBalance;
+            _repository.UpdateUser(user);
+            _auditService.LogEvent("ADMIN_EDIT_BALANCE", $"Admin {adminId} set balance to {newBalance} for {userId}", adminId.ToString(), newBalance.ToString());
+        }
+    }
+
+    public async Task ToggleUserStatus(Guid adminId, Guid userId, bool isActive) {
+        var user = _repository.GetUser(userId);
+        if (user != null) {
+            user.IsActive = isActive;
+            _repository.UpdateUser(user);
+            _auditService.LogEvent("ADMIN_USER_STATUS", $"Admin {adminId} set status to {isActive} for {userId}", adminId.ToString(), isActive.ToString());
+        }
+    }
+
 }

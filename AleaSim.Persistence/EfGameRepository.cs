@@ -271,7 +271,10 @@ public class EfGameRepository : IGameRepository {
                 WinAmount = x.r.TotalWinAmount,
                 ResultSummary = x.r.DecisionType,
                 FullResultJson = x.r.RandomResult,
-                PlayedAt = x.r.ExecutedAt
+                PlayedAt = x.r.ExecutedAt,
+                ServerSeedHash = x.s.ServerSeedHash,
+                ClientSeed = x.s.ClientSeed,
+                Nonce = x.r.RoundNumber
             })
             .ToList();
     }
@@ -567,4 +570,13 @@ public class EfGameRepository : IGameRepository {
         }
         _context.SaveChanges();
     }
+
+    public void DeleteUser(Guid userId) {
+        var user = _context.Users.Find(userId);
+        if (user != null) {
+            _context.Users.Remove(user);
+            _context.SaveChanges();
+        }
+    }
+
 }

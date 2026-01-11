@@ -17,4 +17,7 @@ public interface IAdminService {
     Task ToggleEmergencyStop(Guid adminId, bool enabled);
     Task SetVolatilityMode(Guid adminId, string mode);
     Task<ShadowCompareDto> GetShadowComparison(int sampleSize);
+    Task UpdateUserBalance(Guid adminId, Guid userId, decimal newBalance);
+    Task ToggleUserStatus(Guid adminId, Guid userId, bool isActive);
+
 }

@@ -6,4 +6,6 @@ public interface IAuthService {
     Task<LoginResponse> Login(LoginRequest request);
     Task Register(RegisterRequest request);
     Task Logout();
+    Task<UserDto?> GetMe();
+    Task<string> GetAvatar();
 }

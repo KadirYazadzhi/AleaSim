@@ -6,6 +6,7 @@
 @inject IAuthService AuthService
 @inject NavigationManager Navigation
 @inject HttpClient Http
+@inject IGameService GameService
 @inject RealTimeClient RealTime
 @inject ISnackbar Snackbar
 @inject ILocalStorageService LocalStorage
@@ -18,6 +19,7 @@
 <MudPopoverProvider />
 <MudSnackbarProvider />
 <CelebrationOverlay @ref="celebrationOverlay" />
+<FlowStateIndicator Intensity="@_flowIntensity" />
 
 <MudLayout>
     <MudAppBar Elevation="1">
@@ -28,9 +30,15 @@
         <AuthorizeView>
             <Authorized>
                 <div class="d-flex align-center gap-4">
+                    <!-- Flow State Debug/Visualizer -->
+                    @if (_flowIntensity > 0) {
+                        <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="@(_flowIntensity > 0.8 ? Color.Error : Color.Warning)" Class="mr-2 pulse-icon" />
+                    }
+
                     <div class="d-none d-md-flex align-center mr-2">
                         <MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment" Color="Color.Error" Size="Size.Small" />
-                        <MudText Typo="Typo.subtitle2" Style="color: #ff4500; font-weight: bold;">@userProfile?.CurrentStreak d</MudText>
+                        <!-- Assuming CurrentStreak is not in UserDto yet, fallback or handle gracefully -->
+                        <MudText Typo="Typo.subtitle2" Style="color: #ff4500; font-weight: bold;">@userProfile?.Progression?.CurrentLevel</MudText> 
                     </div>
 
                     <!-- Settings -->
@@ -100,8 +108,9 @@
     bool _drawerOpen = true;
     bool _chatOpen = false;
     bool _isDarkMode = true;
-    private UserProfileResponse? userProfile;
+    private UserDto? userProfile;
     private CelebrationOverlay celebrationOverlay = default!;
+    private float _flowIntensity = 0f;
 
     private MudTheme _theme = new MudTheme() {
         PaletteDark = new PaletteDark() {
@@ -117,7 +126,8 @@
 
     protected override async Task OnInitializedAsync() {
         NotifService.OnNotificationsChanged += StateHasChanged;
-        
+        GameService.OnFlowStateChanged += HandleFlowStateChange; // Subscribe
+
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true) {
             await LoadProfile();
@@ -129,6 +139,19 @@
                 RealTime.OnGameUpdateReceived += HandleGameUpdate;
                 RealTime.OnBalanceUpdated += HandleBalanceUpdate;
             }
+        }
+    }
+
+    private void HandleFlowStateChange(float intensity) {
+        _flowIntensity = intensity;
+        InvokeAsync(StateHasChanged);
+        
+        // Auto-decay after 5 seconds if no new spins come in
+        if (intensity > 0) {
+            _ = Task.Delay(5000).ContinueWith(_ => {
+                _flowIntensity = 0;
+                InvokeAsync(StateHasChanged);
+            });
         }
     }
 
@@ -162,7 +185,7 @@
 
     private async Task LoadProfile() {
         try {
-            userProfile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+            userProfile = await AuthService.GetMe();
         } catch { }
     }
 
@@ -194,6 +217,7 @@
         RealTime.OnBigWinReceived -= HandleBigWin;
         RealTime.OnGameUpdateReceived -= HandleGameUpdate;
         RealTime.OnBalanceUpdated -= HandleBalanceUpdate;
+        GameService.OnFlowStateChanged -= HandleFlowStateChange; // Unsubscribe
         await AuthService.Logout();
         Navigation.NavigateTo("/");
     }

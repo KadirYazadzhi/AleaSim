@@ -53,13 +53,11 @@ public class BrainService : IBrainService {
 
         // In Shadow Mode, we simulate a different "Generous" algorithm for testing
         if (isShadowMode) {
-            if (new Random().NextDouble() < 0.3) {
-                return new BrainDirective { 
-                    DecisionType = "Shadow_GenerousWin", 
-                    TargetWinAmount = betAmount * 5,
-                    Reason = "Testing Generous Algorithm" 
-                };
-            }
+        // Use secure random for probabilities
+        var rand = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100);
+        if (rand < 30) { // 30% chance
+            return new BrainDirective { DecisionType = "NearMiss", IsNearMiss = true, TargetWinAmount = 0 };
+        }
             return new BrainDirective { DecisionType = "Shadow_Random" };
         }
 
@@ -87,26 +85,10 @@ public class BrainService : IBrainService {
             }
         }
 
-        // --- RULE 2: The Cool Down ---
-        // Increased threshold to 250% RTP and added probability check to avoid constant killing of luck
-        if (profile.ActualRtp > 2.5 && profile.TotalWagered > 100 && new Random().NextDouble() < 0.4) {
-            // Find favorite symbol for Teaser from affinity data
-            int favoriteSymbol = 7; // Default to Seven
-            try {
-                var affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile.SymbolAffinityJson);
-                if (affinity != null && affinity.Any()) {
-                    favoriteSymbol = affinity.OrderByDescending(x => x.Value).First().Key;
-                }
-            } catch { }
-
-            return new BrainDirective {
-                DecisionType = "CoolDown",
-                TargetWinAmount = 0,
-                IsNearMiss = true,
-                PreferredNearMissSymbol = favoriteSymbol,
-                VolatilityModifier = volatility,
-                Reason = "pRTP normalization"
-            };
+        // Check for cooling if RTP is too high
+        var randHighRtp = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100);
+        if (profile.ActualRtp > 2.5 && profile.TotalWagered > 100 && randHighRtp < 40) { // 40% chance
+            return new BrainDirective { DecisionType = "Random", TargetWinAmount = 0, Reason = "Cooling Down High RTP" };
         }
 
         // Default with Volatility
@@ -143,7 +125,9 @@ public class BrainService : IBrainService {
 
         if (betAmount > 0 && winAmount > betAmount * 5) {
             var affinity = new Dictionary<int, double>();
-            try { affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile.SymbolAffinityJson ?? "{") ?? new(); } catch {}            int favoriteCandidate = (new Random().NextDouble() > 0.5) ? 7 : 8; 
+            // Simplified affinity update - we don't have session/round context here easily without heavier query
+            // Just assume a random 'lucky' symbol for now to simulate the feature
+            int favoriteCandidate = System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, 10); 
             if (!affinity.ContainsKey(favoriteCandidate)) affinity[favoriteCandidate] = 0;
             affinity[favoriteCandidate] += (double)winAmount / (double)betAmount;
             profile.SymbolAffinityJson = JsonSerializer.Serialize(affinity);

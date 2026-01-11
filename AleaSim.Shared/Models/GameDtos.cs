@@ -32,6 +32,10 @@ public class PlaceBetResponse {
     public decimal TotalWin { get; set; }
     public string RandomResultJson { get; set; } = string.Empty;
     public bool IsJackpotWin { get; set; }
+    
+    // New UX Properties
+    public float FlowStateIntensity { get; set; } // 0.0 to 1.0 (Based on spin speed)
+    public bool IsNearMiss { get; set; }
 
     public PlaceBetResponse() {}
     public PlaceBetResponse(Guid roundId, decimal totalWin, string randomResultJson, bool isJackpotWin) {
@@ -74,5 +78,26 @@ public class GameRoundDto {
     public string ResultSummary { get; set; } = string.Empty;
     public string FullResultJson { get; set; } = string.Empty; // Added for Replay
     public DateTime PlayedAt { get; set; }
+    public string? ServerSeedHash { get; set; }
+    public string? ClientSeed { get; set; }
+    public int Nonce { get; set; }
     public bool IsWin => WinAmount > 0;
 }
+
+public class GameHistoryDto : GameRoundDto {
+}
+
+public class LeaderboardEntry {
+    public string Username { get; set; } = "";
+    public decimal Score { get; set; }
+    public int Rank { get; set; }
+    public string AvatarUrl { get; set; } = "";
+}
+
+public class DailyBonusResponse {
+    public decimal PrizeAmount { get; set; }
+    public string PrizeType { get; set; } = "Cash"; // Cash, Spins, XP
+    public bool IsJackpot { get; set; }
+    public int SegmentIndex { get; set; }
+}
+

@@ -45,6 +45,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9DaGF0Um9vbS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
+[/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Components/FlowStateIndicator.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9GbG93U3RhdGVJbmRpY2F0b3IucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
 [/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Components/GambleDialog.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9HYW1ibGVEaWFsb2cucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 

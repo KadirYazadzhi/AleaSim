@@ -38,7 +38,7 @@ public class JackpotService : IJackpotService {
                 
                 bool shouldContribute = j.IsGlobal || (j.GameId == gameId);
                 
-                if (shouldContribute) {
+                if (shouldContribute && (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts)) {
                     j.CurrentValue += betAmount * j.ContributionRate;
                     j.LastUpdated = DateTime.UtcNow;
                     repo.UpdateJackpot(j);
