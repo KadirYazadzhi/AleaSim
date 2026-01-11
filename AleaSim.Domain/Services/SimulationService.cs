@@ -29,7 +29,7 @@ public class SimulationService : ISimulationService {
         var session = await engine.StartSession(dummyUserId);
 
         for (int i = 0; i < request.Iterations; i++) {
-            await engine.PlaceBet(session.Id, request.BetAmount, "{}");
+            await engine.PlaceBet(dummyUserId, session.Id, request.BetAmount, "{}");
             totalBet += request.BetAmount;
 
             var round = await engine.ResolveRound(session.Id);

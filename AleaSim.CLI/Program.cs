@@ -148,7 +148,7 @@ class Program {
                 }
 
                 Console.WriteLine($"Spinning {_currentGame} with {amount:C}...");
-                var round = await director.PlayRound(_currentGame, _currentSessionId.Value, amount, new { });
+                var round = await director.PlayRound(_currentGame, _currentUserId.Value, _currentSessionId.Value, amount, new { });
                 
                 Console.WriteLine($"Result: {round.DecisionType}");
                 if (round.TotalWinAmount > 0) {
@@ -181,7 +181,7 @@ class Program {
 
                 for(int i=0; i<count; i++) {
                     try {
-                        var res = await director.PlayRound(_currentGame, _currentSessionId.Value, bet, new { });
+                        var res = await director.PlayRound(_currentGame, _currentUserId.Value, _currentSessionId.Value, bet, new { });
                         totalIn += res.TotalBetAmount;
                         totalOut += res.TotalWinAmount;
                         if (i % 10 == 0) Console.Write(".");

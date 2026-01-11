@@ -314,24 +314,8 @@ public class SlotGameEngine : BaseGameEngine {
         return w >= d.TargetWinAmount * 0.8m;
     }
 
-    public override async Task ProcessAction(Guid sessionId, string action, string actionData) {
-        await ExecuteScopedAsync(async (repo, questService, levelService) => {
-            var session = repo.GetSession(sessionId);
-            if (session == null) return;
-            SlotState state = JsonSerializer.Deserialize<SlotState>(session.GameState) ?? new SlotState();
-            var lastRound = repo.GetLastRound(sessionId);
-            if (action.ToLower() == "gamble" && lastRound != null && lastRound.TotalWinAmount > 0) {
-                bool win = RngService.GetNextDouble(session.Seed, (int)DateTime.UtcNow.Ticks) > 0.5;
-                decimal oldWin = lastRound.TotalWinAmount;
-                lastRound.TotalWinAmount = win ? oldWin * 2 : 0;
-                lastRound.DecisionType = win ? "Gamble_Win" : "Gamble_Loss";
-                repo.SaveRound(lastRound);
-                if (win) VaultService.ProcessWin(session.UserId, oldWin, repo);
-                else repo.UpdateUserBalance(session.UserId, -oldWin);
-            }
-            session.GameState = JsonSerializer.Serialize(state);
-            repo.SaveChanges();
-        });
+    public override Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData) {
+        return Task.CompletedTask; // Slots typically don't have mid-round actions yet (except bonus buys handled as bets)
     }
 
     public override async Task<Outcome> GetOutcome(Guid roundId) => new Outcome { GameRoundId = roundId };

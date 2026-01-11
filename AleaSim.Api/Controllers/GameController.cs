@@ -77,7 +77,8 @@ public class GameController : ControllerBase {
     [HttpPost("{gameType}/bet/{sessionId}")]
     public async Task<IActionResult> PlaceBet(string gameType, Guid sessionId, [FromBody] PlaceBetRequest request) {
         try {
-            var round = await _gameDirector.PlayRound(gameType, sessionId, request.Amount, request.BetData);
+            var userId = GetUserIdOrThrow();
+            var round = await _gameDirector.PlayRound(gameType, userId, sessionId, request.Amount, request.BetData);
 
             var session = _repo.GetSession(sessionId);
             var profile = session != null ? _repo.GetPlayerProfile(session.UserId) : null;
@@ -105,7 +106,8 @@ public class GameController : ControllerBase {
     [HttpPost("{gameType}/action/{sessionId}")]
     public async Task<IActionResult> PerformAction(string gameType, Guid sessionId, [FromBody] GameActionRequest request) {
         try {
-             var newState = await _gameDirector.ProcessAction(gameType, sessionId, request.Action, request.ActionData);
+             var userId = GetUserIdOrThrow();
+             var newState = await _gameDirector.ProcessAction(gameType, userId, sessionId, request.Action, request.ActionData);
              string stateJson = JsonSerializer.Serialize(newState);
              return Ok(new GameActionResponse(true, "Action processed", stateJson));
         }

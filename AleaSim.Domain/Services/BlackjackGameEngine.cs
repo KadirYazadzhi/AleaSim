@@ -17,6 +17,7 @@ public class BlackjackGameEngine : BaseGameEngine {
         public List<string> PlayerHand { get; set; } = new();
         public List<string> DealerHand { get; set; } = new();
         public List<string>? SplitHand { get; set; } = null;
+        public int ActiveHandIndex { get; set; } = 0; // 0 = Main, 1 = Split
         public bool IsDoubleDown { get; set; }
         public decimal BetAmount { get; set; }
         public bool IsRoundOver { get; set; }
@@ -58,7 +59,7 @@ public class BlackjackGameEngine : BaseGameEngine {
         });
     }
 
-    public override async Task ProcessAction(Guid sessionId, string action, string actionData) {
+    public override async Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData) {
         await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
             var round = repo.GetLastRound(sessionId);
@@ -66,19 +67,30 @@ public class BlackjackGameEngine : BaseGameEngine {
             var state = JsonSerializer.Deserialize<BlackjackState>(round.RandomResult);
             if (state == null || state.IsRoundOver) return;
 
-            if (action.ToLower() == "double" && state.PlayerHand.Count == 2) {
+            var targetHand = (state.ActiveHandIndex == 1 && state.SplitHand != null) ? state.SplitHand : state.PlayerHand;
+
+            if (action.ToLower() == "double" && targetHand.Count == 2) {
                 if (VaultService.ProcessBet(session.UserId, state.BetAmount, repo)) {
                     state.IsDoubleDown = true;
                     int seq = state.Sequence;
-                    state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
+                    targetHand.Add(DrawCard(session.Seed, ref seq));
                     state.Sequence = seq;
-                    await FinishRoundAsync(session, round, state, repo, questService);
+                    
+                    if (state.SplitHand != null && state.ActiveHandIndex == 0) {
+                        state.ActiveHandIndex = 1; // Move to next hand
+                    } else {
+                        await FinishRoundAsync(session, round, state, repo, questService);
+                    }
                 } else throw new Exception("Insufficient funds for Double Down");
             } else if (action.ToLower() == "split" && state.PlayerHand.Count == 2 && state.SplitHand == null) {
-                // Check if cards are same rank
+                 // Check if cards are same rank
                 string r1 = state.PlayerHand[0].Substring(0, state.PlayerHand[0].Length - 1);
                 string r2 = state.PlayerHand[1].Substring(0, state.PlayerHand[1].Length - 1);
-                if (r1 == r2) {
+                // Allow splitting any 10-value card (e.g. J and K)
+                bool isTenValue1 = (r1 == "10" || r1 == "J" || r1 == "Q" || r1 == "K");
+                bool isTenValue2 = (r2 == "10" || r2 == "J" || r2 == "Q" || r2 == "K");
+                
+                if (r1 == r2 || (isTenValue1 && isTenValue2)) {
                     if (VaultService.ProcessBet(session.UserId, state.BetAmount, repo)) {
                         state.SplitHand = new List<string> { state.PlayerHand[1] };
                         state.PlayerHand.RemoveAt(1);
@@ -90,11 +102,21 @@ public class BlackjackGameEngine : BaseGameEngine {
                 }
             } else if (action.ToLower() == "hit") {
                 int seq = state.Sequence;
-                state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
+                targetHand.Add(DrawCard(session.Seed, ref seq));
                 state.Sequence = seq;
-                if (CalculateHandValue(state.PlayerHand) >= 21) await FinishRoundAsync(session, round, state, repo, questService);
+                if (CalculateHandValue(targetHand) >= 21) {
+                    if (state.SplitHand != null && state.ActiveHandIndex == 0) {
+                        state.ActiveHandIndex = 1; // Move to next hand on bust/21
+                    } else {
+                        await FinishRoundAsync(session, round, state, repo, questService);
+                    }
+                }
             } else if (action.ToLower() == "stand") {
-                await FinishRoundAsync(session, round, state, repo, questService);
+                if (state.SplitHand != null && state.ActiveHandIndex == 0) {
+                    state.ActiveHandIndex = 1; // Move to next hand
+                } else {
+                    await FinishRoundAsync(session, round, state, repo, questService);
+                }
             }
 
             round.RandomResult = JsonSerializer.Serialize(state);

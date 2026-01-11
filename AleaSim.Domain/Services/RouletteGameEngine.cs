@@ -46,6 +46,12 @@ public class RouletteGameEngine : BaseGameEngine {
             if (totalBet > 4000) throw new Exception("Total table bet exceeds 4000 limit.");
             if (bets.Any(x => x.Type == "number" && x.Amount > 100)) throw new Exception("Single number bet exceeds 100 limit.");
 
+            // SECURITY FIX: Exploit Prevention
+            // Ensure the detailed bets match the actual money deducted
+            if (Math.Abs(totalBet - betAmount) > 0.05m) { // 0.05 tolerance for floating point messiness
+                 throw new Exception($"Bet Integrity Error: Declared bets sum ({totalBet}) does not match wagered amount ({betAmount}).");
+            }
+
             var decision = BrainService.DecideOutcome(session.UserId, GameId, betAmount, repo);
             
             int number = 0;
@@ -140,7 +146,7 @@ public class RouletteGameEngine : BaseGameEngine {
         return total;
     }
 
-    public override Task ProcessAction(Guid sessionId, string action, string actionData) => Task.CompletedTask;
+    public override Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData) => Task.CompletedTask;
     public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome());
     public override Task<object?> GetCurrentState(Guid sessionId) => Task.FromResult<object?>(null);
 }

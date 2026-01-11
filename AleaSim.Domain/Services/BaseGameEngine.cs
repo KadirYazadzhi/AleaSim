@@ -24,11 +24,16 @@ public abstract class BaseGameEngine : IGame {
         ScopeFactory = scope;
     }
 
-    public virtual async Task PlaceBet(Guid sessionId, decimal amount, string betData) {
+    public virtual async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string betData) {
         await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
-
+            
+            // SECURITY CHECK: Session Hijacking Prevention
+            if (session.UserId != userId) {
+                // Log potentially malicious activity if possible
+                throw new UnauthorizedAccessException("Session does not belong to the calling user.");
+            }
             
             decimal[] validDenoms = { 0.01m, 0.02m, 0.05m, 0.10m, 0.20m, 0.50m, 1.00m };
             
@@ -90,7 +95,7 @@ public abstract class BaseGameEngine : IGame {
     }
 
     public abstract Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard);
-    public abstract Task ProcessAction(Guid sessionId, string action, string actionData);
+    public abstract Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData);
     public abstract Task<Outcome> GetOutcome(Guid roundId);
     public abstract Task<object?> GetCurrentState(Guid sessionId);
 
