@@ -61,6 +61,11 @@ public class GameDirector : IGameDirector {
         // 3. EXECUTE WITH INSTRUCTION
         var round = await gameEngine.ResolveRound(sessionId, profile);
 
+        // ANALYTICS: Update Real-Time RTP Stats
+        if (session != null) {
+            _repo.UpdateRtpStats(session.GameId, session.UserId, amount, round.TotalWinAmount);
+        }
+
         _auditService.LogEvent("ROUND_PLAYED", $"{gameType} Round {round.RoundNumber} | Profile: {profile}", 
             session?.UserId.ToString() ?? "Unknown", 
             JsonSerializer.Serialize(new { Win = round.TotalWinAmount, Result = round.RandomResult }));

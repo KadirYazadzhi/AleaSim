@@ -1,4 +1,5 @@
 using AleaSim.Domain.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace AleaSim.Domain.Entities;
 
@@ -28,4 +29,7 @@ public class User {
     public DateTime CreatedAt { get; set; }
     public bool IsActive { get; set; }
     public DateTime? LockoutUntil { get; set; }
+
+    [Timestamp]
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 }

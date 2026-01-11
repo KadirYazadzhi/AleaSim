@@ -3,31 +3,36 @@ using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Models;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
-using System.Collections.Concurrent; // Added
+using Microsoft.Extensions.Caching.Memory;
 
 namespace AleaSim.Domain.Services;
 
 public class BrainService : IBrainService {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IVaultService _vaultService;
-    private readonly ConcurrentDictionary<Guid, BrainDirective> _forcedDirectives = new(); 
-    private readonly ConcurrentDictionary<Guid, Queue<BrainDirective>> _directiveQueues = new(); // Added
+    private readonly IMemoryCache _cache; // Use Cache for auto-expiry
 
-    public BrainService(IServiceScopeFactory scopeFactory, IVaultService vaultService) {
+    public BrainService(IServiceScopeFactory scopeFactory, IVaultService vaultService, IMemoryCache cache) {
         _scopeFactory = scopeFactory;
         _vaultService = vaultService;
+        _cache = cache;
     }
 
     public BrainDirective GetNextDirective(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo) {
-        // 1. Admin Forced always wins
-        if (_forcedDirectives.TryRemove(userId, out var forced)) return forced;
+        string forceKey = $"brain_force_{userId}";
+        if (_cache.TryGetValue(forceKey, out BrainDirective? forced) && forced != null) {
+            _cache.Remove(forceKey);
+            return forced;
+        }
 
-        // 2. Get or Init Queue
-        var queue = _directiveQueues.GetOrAdd(userId, _ => new Queue<BrainDirective>());
+        string queueKey = $"brain_queue_{userId}";
+        var queue = _cache.GetOrCreate(queueKey, entry => {
+            entry.SlidingExpiration = TimeSpan.FromMinutes(20); // Cleanup inactive users
+            return new Queue<BrainDirective>();
+        });
 
-        lock (queue) {
+        lock (queue!) {
             if (queue.Count == 0) {
-                // Pre-calculate 5 steps
                 for (int i = 0; i < 5; i++) {
                     queue.Enqueue(DecideOutcome(userId, gameId, betAmount, repo));
                 }
@@ -37,12 +42,14 @@ public class BrainService : IBrainService {
     }
 
     public void SetForcedDirective(Guid userId, BrainDirective directive) {
-        _forcedDirectives[userId] = directive;
+        _cache.Set($"brain_force_{userId}", directive, TimeSpan.FromHours(1));
     }
 
     public BrainDirective DecideOutcome(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo, bool isShadowMode = false) {
         // 0. Admin Override
-        if (_forcedDirectives.TryRemove(userId, out var forced)) {
+        string forceKey = $"brain_force_{userId}";
+        if (_cache.TryGetValue(forceKey, out BrainDirective? forced) && forced != null) {
+            _cache.Remove(forceKey);
             return forced;
         }
 

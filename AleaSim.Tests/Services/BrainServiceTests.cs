@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
 
+using Microsoft.Extensions.Caching.Memory; // Added
+
 namespace AleaSim.Tests.Services;
 
 public class BrainServiceTests {
@@ -14,6 +16,7 @@ public class BrainServiceTests {
     private readonly Mock<IServiceProvider> _mockServiceProvider;
     private readonly Mock<IVaultService> _mockVault;
     private readonly Mock<IGameRepository> _mockRepo;
+    private readonly IMemoryCache _cache; // Use real MemoryCache for tests
     private readonly BrainService _brainService;
 
     public BrainServiceTests() {
@@ -29,7 +32,9 @@ public class BrainServiceTests {
         _mockScopeFactory = new Mock<IServiceScopeFactory>();
         _mockScopeFactory.Setup(x => x.CreateScope()).Returns(_mockScope.Object);
 
-        _brainService = new BrainService(_mockScopeFactory.Object, _mockVault.Object);
+        _cache = new MemoryCache(new MemoryCacheOptions()); // Use real in-memory cache
+
+        _brainService = new BrainService(_mockScopeFactory.Object, _mockVault.Object, _cache);
     }
 
     [Fact]
