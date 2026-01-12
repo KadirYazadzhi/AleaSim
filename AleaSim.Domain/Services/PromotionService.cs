@@ -73,7 +73,7 @@ public class PromotionService : IPromotionService {
         }
         
         if (winnerId != Guid.Empty) {
-            _vaultService.CreditBonus(winnerId, prizeAmount, prizeAmount, repo);
+            await _vaultService.CreditBonusAsync(winnerId, prizeAmount, prizeAmount, repo);
             await _realTimeService.NotifyGameUpdate(winnerId, new {
                 Type = "RaffleWin",
                 Amount = prizeAmount,
@@ -97,7 +97,7 @@ public class PromotionService : IPromotionService {
 
         if (roll <= 10) { 
             type = "BonusCash"; value = 50m;
-            _vaultService.CreditBonus(userId, value, value * 5, repo);
+            await _vaultService.CreditBonusAsync(userId, value, value * 5, repo);
             message = "$50.00 Bonus Credited!";
         }
         else if (roll <= 40) { 
@@ -106,7 +106,7 @@ public class PromotionService : IPromotionService {
         }
         else { 
             type = "BonusCash"; value = 5m;
-            _vaultService.CreditBonus(userId, value, value, repo);
+            await _vaultService.CreditBonusAsync(userId, value, value, repo);
             message = "$5.00 Bonus Credited!";
         }
 
@@ -135,7 +135,7 @@ public class PromotionService : IPromotionService {
         // Reward: $1 * Streak (capped at $50)
         decimal reward = Math.Min(user.CurrentStreak * 1.0m, 50m);
         
-        _vaultService.CreditBonus(userId, reward, reward, repo); // 1x Wagering
+        await _vaultService.CreditBonusAsync(userId, reward, reward, repo); // 1x Wagering
         repo.UpdateUser(user);
 
         return await Task.FromResult(new { 

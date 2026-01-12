@@ -33,7 +33,7 @@ public class VoucherService : IVoucherService {
         });
 
         // 3. Credit Bonus
-        vault.CreditBonus(userId, voucher.Amount, voucher.Amount * 5, repo);
+        await vault.CreditBonusAsync(userId, voucher.Amount, voucher.Amount * 5, repo);
 
         return voucher.Amount;
     }

@@ -8,21 +8,28 @@ using System.Text.Json;
 namespace AleaSim.Domain.Services;
 
 public class RouletteGameEngine : BaseGameEngine {
+    private readonly ILockService _lockService;
     public class RouletteState { public int Nonce { get; set; } }
     private Guid GameId = Guid.Parse("00000000-0000-0000-0000-000000000002");
 
-    public RouletteGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope) 
-        : base(rng, vault, brain, promo, jackpot, realTime, scope) {   
+    public RouletteGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, ILockService lockService) 
+        : base(rng, vault, brain, promo, jackpot, realTime, scope) {
+        _lockService = lockService;
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
+        using var lockHandle = await _lockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
+
         return await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
+            if (session == null) throw new Exception("Session not found");
+
             var lastBet = repo.GetLastBet(sessionId);
             decimal betAmount = lastBet?.Amount ?? 1.0m;
             var game = repo.GetGame(GameId);
+            
             if (game != null && betAmount > (decimal)game.MaxBet) throw new Exception("Bet exceeds game maximum limit.");
-            // Use Ticks to ensure uniqueness even if DB is lagging
+            
             var state = string.IsNullOrEmpty(session.GameState) 
                 ? new RouletteState() 
                 : JsonSerializer.Deserialize<RouletteState>(session.GameState) ?? new RouletteState();
@@ -40,15 +47,14 @@ public class RouletteGameEngine : BaseGameEngine {
                     }
                 }
             } catch { }
-
             
             decimal totalBet = bets.Sum(x => x.Amount);
             if (totalBet > 4000) throw new Exception("Total table bet exceeds 4000 limit.");
             if (bets.Any(x => x.Type == "number" && x.Amount > 100)) throw new Exception("Single number bet exceeds 100 limit.");
 
-            // SECURITY FIX: Exploit Prevention
-            // Ensure the detailed bets match the actual money deducted
-            if (Math.Abs(totalBet - betAmount) > 0.05m) { // 0.05 tolerance for floating point messiness
+            // SECURITY FIX: Strict Validation
+            // Floating point comparison with very small epsilon, or simpler: round to 2 decimals
+            if (Math.Round(totalBet, 2) != Math.Round(betAmount, 2)) {
                  throw new Exception($"Bet Integrity Error: Declared bets sum ({totalBet}) does not match wagered amount ({betAmount}).");
             }
 
@@ -57,48 +63,42 @@ public class RouletteGameEngine : BaseGameEngine {
             int number = 0;
             var allNumbers = Enumerable.Range(0, 37).ToList();
 
-            // FIXED LOGIC: Handle "Random" correctly
             if (decision.DecisionType == "Random") {
-                // True RNG - Standard Casino Logic
                 number = RngService.GetNextInt(session.Seed, nonce, 0, 37);
             }
             else if (decision.TargetWinAmount > 0) {
-                // Force Win (Retention/Whale)
                 var winningCandidates = allNumbers.Where(n => CalculatePayout(n, bets) > 0).ToList();
                 if (winningCandidates.Any()) {
                     int idx = RngService.GetNextInt(session.Seed, nonce, 0, winningCandidates.Count);
                     number = winningCandidates[idx];
                 } else {
-                    number = RngService.GetNextInt(session.Seed, nonce, 0, 37); // Fallback
+                    number = RngService.GetNextInt(session.Seed, nonce, 0, 37); 
                 }
             } 
             else {
-                // Force Loss (Cooldown/Teaser)
                 var losingCandidates = allNumbers.Where(n => CalculatePayout(n, bets) == 0).ToList();
                 if (losingCandidates.Any()) {
                     int idx = RngService.GetNextInt(session.Seed, nonce, 0, losingCandidates.Count);
                     number = losingCandidates[idx];
                 } else {
-                    number = RngService.GetNextInt(session.Seed, nonce, 0, 37); // Fallback
+                    number = RngService.GetNextInt(session.Seed, nonce, 0, 37); 
                 }
             }
             
             decimal actualWin = CalculatePayout(number, bets);
 
-            // Important: Check if vault can pay.
-            // For "Random" decisions, we bypass the strict Shadow Wallet check to allow luck.
             bool isRandom = decision.DecisionType == "Random";
             
-            if (actualWin > 0 && !VaultService.CanAffordWin(session.UserId, GameId, actualWin, repo, strictShadowCheck: !isRandom)) {
-                // Emergency Reroll to Loss
+            // Async Call
+            if (actualWin > 0 && !await VaultService.CanAffordWinAsync(session.UserId, GameId, actualWin, repo, strictShadowCheck: !isRandom)) {
                 var losingCandidates = allNumbers.Where(n => CalculatePayout(n, bets) == 0).ToList();
                 if (losingCandidates.Any()) number = losingCandidates[RngService.GetNextInt(session.Seed, nonce+99, 0, losingCandidates.Count)];
                 actualWin = CalculatePayout(number, bets);
             }
 
             if (actualWin > 0) {
-                VaultService.ProcessWin(session.UserId, actualWin, repo);
-                questService.UpdateProgress(session.UserId, "WinAmount", (int)actualWin, repo, VaultService);
+                await VaultService.ProcessWinAsync(session.UserId, actualWin, repo);
+                await questService.UpdateProgressAsync(session.UserId, "WinAmount", (int)actualWin, repo, VaultService);
             }
             
             BrainService.UpdateProfile(session.UserId, betAmount, actualWin);
@@ -148,5 +148,14 @@ public class RouletteGameEngine : BaseGameEngine {
 
     public override Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData) => Task.CompletedTask;
     public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome());
-    public override Task<object?> GetCurrentState(Guid sessionId) => Task.FromResult<object?>(null);
+    
+    // Implemented Recovery!
+    public override async Task<object?> GetCurrentState(Guid sessionId) {
+         return await ExecuteScopedAsync(async (repo, _, _) => {
+            var round = repo.GetLastRound(sessionId);
+            if (round == null) return null;
+            // For Roulette, previous state is just the last result (number)
+            return JsonSerializer.Deserialize<object>(round.RandomResult);
+        });
+    }
 }

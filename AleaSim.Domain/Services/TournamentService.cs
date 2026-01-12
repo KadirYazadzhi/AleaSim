@@ -43,7 +43,7 @@ public class TournamentService : ITournamentService {
             decimal prize = prizes[winner.Rank - 1];
             var user = repo.GetUser(winner.UserId);
             
-            vault.CreditBonus(winner.UserId, prize, prize, repo); 
+            await vault.CreditBonusAsync(winner.UserId, prize, prize, repo); 
             
             winnersToArchive.Add(new TournamentWinner {
                 Id = Guid.NewGuid(),

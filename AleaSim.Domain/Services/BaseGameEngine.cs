@@ -55,7 +55,7 @@ public abstract class BaseGameEngine : IGame {
             
             if (!validDenoms.Contains(denom)) throw new Exception("Invalid denomination.");
 
-            if (VaultService.ProcessBet(session.UserId, amount, repo)) {
+            if (await VaultService.ProcessBetAsync(session.UserId, amount, repo)) {
                 var bet = new Bet {
                     Id = Guid.NewGuid(),
                     GameSessionId = sessionId,
@@ -72,8 +72,8 @@ public abstract class BaseGameEngine : IGame {
                 
                 // Quest Integration
                 questService.GenerateDailyQuests(session.UserId, repo);
-                questService.UpdateProgress(session.UserId, "SpinCount", 1, repo, VaultService);
-                levelService.AddExperience(session.UserId, amount, repo, RealTimeService);
+                await questService.UpdateProgressAsync(session.UserId, "SpinCount", 1, repo, VaultService);
+                await levelService.AddExperience(session.UserId, amount, repo, RealTimeService);
             } else {
                 throw new Exception("Insufficient funds");
             }

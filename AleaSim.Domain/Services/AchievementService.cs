@@ -35,7 +35,7 @@ public class AchievementService : IAchievementService {
 
                 // 3. Award Prize
                 if (ach.RewardAmount > 0) {
-                    _vaultService.CreditBonus(userId, ach.RewardAmount, ach.RewardAmount, repo);
+                    await _vaultService.CreditBonusAsync(userId, ach.RewardAmount, ach.RewardAmount, repo);
                 }
 
                 // Notify User

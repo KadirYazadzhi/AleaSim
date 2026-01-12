@@ -82,7 +82,7 @@ public class BrainService : IBrainService {
             decimal multiplier = isBored ? (decimal)(new Random().Next(2, 5)) : (decimal)(new Random().Next(10, 25));
             decimal targetWin = betAmount * multiplier;
             
-            if (_vaultService.CanAffordWin(userId, gameId, targetWin, repo)) {
+            if (_vaultService.CanAffordWinCheck(userId, gameId, targetWin, repo)) {
                 return new BrainDirective {
                     DecisionType = "RetentionHook",
                     TargetWinAmount = targetWin,

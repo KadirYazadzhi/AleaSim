@@ -4,7 +4,7 @@ using AleaSim.Domain.Interfaces;
 namespace AleaSim.Domain.Services;
 
 public class LevelService : ILevelService {
-    private const decimal XP_PER_CURRENCY_UNIT = 10m; // Bet $1 -> 10 XP
+    private const decimal XP_PER_CURRENCY_UNIT = 10m; 
     private readonly IAchievementService _achievementService;
     private readonly IVaultService _vaultService;
 
@@ -23,7 +23,7 @@ public class LevelService : ILevelService {
         return prog;
     }
 
-    public void AddExperience(Guid userId, decimal betAmount, IGameRepository repo, IRealTimeService realTime) {
+    public async Task AddExperience(Guid userId, decimal betAmount, IGameRepository repo, IRealTimeService realTime) {
         var prog = GetProgression(userId, repo);
         var profile = repo.GetPlayerProfile(userId);
         
@@ -33,8 +33,6 @@ public class LevelService : ILevelService {
         prog.CurrentXP += xpGained;
         prog.LifetimeXP += xpGained;
 
-        // Check for Level Up
-        // Formula: Next Level XP = CurrentLevel * 1000
         decimal requiredXP = prog.CurrentLevel * 1000;
 
         bool leveledUp = false;
@@ -43,19 +41,17 @@ public class LevelService : ILevelService {
             prog.CurrentLevel++;
             prog.SkillPoints++;
             leveledUp = true;
-            requiredXP = prog.CurrentLevel * 1000; // Recalculate for next level if multiple levels gained
+            requiredXP = prog.CurrentLevel * 1000; 
         }
 
         repo.UpdateUserProgression(prog);
 
         if (leveledUp) {
-            // Check for Level Achievements
             _ = _achievementService.CheckAchievements(userId, "LevelReached", prog.CurrentLevel, repo);
 
-            // Milestone Reward (Every 5 levels)
             if (prog.CurrentLevel % 5 == 0) {
-                decimal milestonePrize = prog.CurrentLevel * 10m; // e.g. $50 at Level 5
-                _vaultService.CreditBonus(userId, milestonePrize, milestonePrize, repo);
+                decimal milestonePrize = prog.CurrentLevel * 10m; 
+                await _vaultService.CreditBonusAsync(userId, milestonePrize, milestonePrize, repo);
             }
 
             _ = realTime.NotifyGameUpdate(userId, new {

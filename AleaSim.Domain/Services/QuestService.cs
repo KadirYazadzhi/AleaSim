@@ -10,7 +10,6 @@ public class QuestService : IQuestService {
     }
 
     public void GenerateDailyQuests(Guid userId, IGameRepository repo) {
-        // If user already has active quests for today, skip
         var existing = repo.GetActiveQuests(userId).Any(q => q.CreatedAt.Date == DateTime.UtcNow.Date);
         if (existing) return;
 
@@ -46,7 +45,7 @@ public class QuestService : IQuestService {
         }
     }
 
-    public void UpdateProgress(Guid userId, string type, int amount, IGameRepository repo, IVaultService vault) {
+    public async Task UpdateProgressAsync(Guid userId, string type, int amount, IGameRepository repo, IVaultService vault) {
         var quests = repo.GetActiveQuests(userId).Where(q => q.Type == type && q.Status == QuestStatus.Active).ToList();
         
         foreach (var quest in quests) {
@@ -56,22 +55,20 @@ public class QuestService : IQuestService {
                 quest.CurrentProgress = quest.TargetValue;
                 quest.Status = QuestStatus.Completed;
                 
-                // Auto-claim for better UX, or leave for manual claim. Let's auto-claim for simplicity now.
-                ClaimReward(quest.Id, repo, vault);
+                await ClaimRewardAsync(quest.Id, repo, vault);
             }
             
             repo.UpdateQuest(quest);
         }
     }
 
-    public bool ClaimReward(Guid questId, IGameRepository repo, IVaultService vault) {
+    public async Task<bool> ClaimRewardAsync(Guid questId, IGameRepository repo, IVaultService vault) {
         var quest = repo.GetQuest(questId);
         if (quest == null || (quest.Status != QuestStatus.Completed && quest.Status != QuestStatus.Active)) return false; 
-        // Note: Allowing claim if completed logic is handled here, but UpdateProgress calls it when Active->Completed.
         
         if (quest.Status == QuestStatus.Completed) {
             quest.Status = QuestStatus.Claimed;
-            vault.CreditBonus(quest.UserId, quest.RewardAmount, quest.RewardAmount * 5, repo);
+            await vault.CreditBonusAsync(quest.UserId, quest.RewardAmount, quest.RewardAmount * 5, repo);
             repo.UpdateQuest(quest);
             return true;
         }

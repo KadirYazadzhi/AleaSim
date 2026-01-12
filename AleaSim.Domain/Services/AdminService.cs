@@ -95,7 +95,7 @@ public class AdminService : IAdminService {
         // It takes (Guid userId, decimal amount, decimal wageringReq, IGameRepository repo).
         
         // So we need to pass the repository we have.
-        _vaultService.CreditBonus(userId, amount, amount * 10, _repository); // 10x wagering default
+        await _vaultService.CreditBonusAsync(userId, amount, amount * 10, _repository); // 10x wagering default
     }
 
     public async Task ForceCooldown(Guid adminId, Guid userId, int durationMinutes, string reason) {

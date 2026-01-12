@@ -8,6 +8,7 @@ public static class ServiceCollectionExtensions {
     public static IServiceCollection AddAleaSimCore(this IServiceCollection services) {
         
         services.AddMemoryCache(); // Added
+        services.AddSingleton<ILockService, InMemoryLockService>(); // Added Lock Service
 
         // Core Engines & Logic
         services.AddSingleton<IRngService, DeterministicRngService>();
