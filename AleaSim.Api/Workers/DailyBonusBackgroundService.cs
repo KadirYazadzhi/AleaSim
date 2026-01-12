@@ -72,7 +72,7 @@ public class DailyBonusBackgroundService : BackgroundService {
                 }
 
                 if (bonusAmount > 0.01m) {
-                    vault.CreditBonus(stat.UserId, bonusAmount, bonusAmount, repo); 
+                    await vault.CreditBonusAsync(stat.UserId, bonusAmount, bonusAmount, repo); 
                     
                     _logger.LogInformation("Awarded {Type}: {Amount} to User {UserId}", type, bonusAmount, stat.UserId);
 

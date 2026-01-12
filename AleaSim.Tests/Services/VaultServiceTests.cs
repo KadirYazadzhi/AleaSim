@@ -9,23 +9,30 @@ namespace AleaSim.Tests.Services;
 public class VaultServiceTests {
     private readonly Mock<IRealTimeService> _mockRealTime;
     private readonly Mock<IGameRepository> _mockRepo;
+    private readonly Mock<ILockService> _mockLock;
     private readonly VaultService _vaultService;
 
     public VaultServiceTests() {
         _mockRealTime = new Mock<IRealTimeService>();
         _mockRepo = new Mock<IGameRepository>();
-        _vaultService = new VaultService(_mockRealTime.Object);
+        _mockLock = new Mock<ILockService>();
+
+        // Setup lock to return a disposable
+        _mockLock.Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
+                 .ReturnsAsync(new Mock<IDisposable>().Object);
+
+        _vaultService = new VaultService(_mockRealTime.Object, _mockLock.Object);
     }
 
     [Fact]
-    public void ProcessBet_ShouldDeductFromRealBalance_WhenNoBonus() {
+    public async Task ProcessBet_ShouldDeductFromRealBalance_WhenNoBonus() {
         // Arrange
         var userId = Guid.NewGuid();
         var user = new User { Id = userId, Balance = 100m, BonusBalance = 0m };
         _mockRepo.Setup(r => r.GetUser(userId)).Returns(user);
 
         // Act
-        bool result = _vaultService.ProcessBet(userId, 10m, _mockRepo.Object);
+        bool result = await _vaultService.ProcessBetAsync(userId, 10m, _mockRepo.Object);
 
         // Assert
         Assert.True(result);
@@ -34,7 +41,7 @@ public class VaultServiceTests {
     }
 
     [Fact]
-    public void ProcessBet_ShouldDeductFromBonus_WhenBonusAvailable() {
+    public async Task ProcessBet_ShouldDeductFromBonus_WhenBonusAvailable() {
         // Arrange
         var userId = Guid.NewGuid();
         var user = new User { 
@@ -47,7 +54,7 @@ public class VaultServiceTests {
         _mockRepo.Setup(r => r.GetUser(userId)).Returns(user);
 
         // Act
-        bool result = _vaultService.ProcessBet(userId, 10m, _mockRepo.Object);
+        bool result = await _vaultService.ProcessBetAsync(userId, 10m, _mockRepo.Object);
 
         // Assert
         Assert.True(result);
@@ -57,7 +64,7 @@ public class VaultServiceTests {
     }
 
     [Fact]
-    public void ProcessBet_ShouldSplitDeduction_WhenBonusInsufficient() {
+    public async Task ProcessBet_ShouldSplitDeduction_WhenBonusInsufficient() {
         // Arrange
         var userId = Guid.NewGuid();
         var user = new User { 
@@ -71,25 +78,24 @@ public class VaultServiceTests {
 
         // Act
         // Bet 10 (5 from Bonus, 5 from Real)
-        bool result = _vaultService.ProcessBet(userId, 10m, _mockRepo.Object);
+        bool result = await _vaultService.ProcessBetAsync(userId, 10m, _mockRepo.Object);
 
         // Assert
         Assert.True(result);
         Assert.Equal(0m, user.BonusBalance);
         Assert.Equal(95m, user.Balance);
-        Assert.Equal(5m, user.WageringProgress); // Only bonus part counts to wagering usually, or mixed? 
-        // Logic in VaultService: "user.WageringProgress += bonusPart;" -> Correct.
+        Assert.Equal(5m, user.WageringProgress); 
     }
 
     [Fact]
-    public void ProcessBet_ShouldFail_WhenTotalInsufficient() {
+    public async Task ProcessBet_ShouldFail_WhenTotalInsufficient() {
         // Arrange
         var userId = Guid.NewGuid();
         var user = new User { Id = userId, Balance = 5m, BonusBalance = 0m };
         _mockRepo.Setup(r => r.GetUser(userId)).Returns(user);
 
         // Act
-        bool result = _vaultService.ProcessBet(userId, 10m, _mockRepo.Object);
+        bool result = await _vaultService.ProcessBetAsync(userId, 10m, _mockRepo.Object);
 
         // Assert
         Assert.False(result);
@@ -98,14 +104,14 @@ public class VaultServiceTests {
     }
 
     [Fact]
-    public void ProcessWin_ShouldCreditToReal_WhenNoBonusActive() {
+    public async Task ProcessWin_ShouldCreditToReal_WhenNoBonusActive() {
         // Arrange
         var userId = Guid.NewGuid();
         var user = new User { Id = userId, Balance = 100m, BonusBalance = 0m };
         _mockRepo.Setup(r => r.GetUser(userId)).Returns(user);
 
         // Act
-        _vaultService.ProcessWin(userId, 50m, _mockRepo.Object);
+        await _vaultService.ProcessWinAsync(userId, 50m, _mockRepo.Object);
 
         // Assert
         Assert.Equal(150m, user.Balance);
@@ -113,7 +119,7 @@ public class VaultServiceTests {
     }
 
     [Fact]
-    public void ProcessWin_ShouldCreditToBonus_WhenBonusActive() {
+    public async Task ProcessWin_ShouldCreditToBonus_WhenBonusActive() {
         // Arrange
         var userId = Guid.NewGuid();
         var user = new User { 
@@ -126,7 +132,7 @@ public class VaultServiceTests {
         _mockRepo.Setup(r => r.GetUser(userId)).Returns(user);
 
         // Act
-        _vaultService.ProcessWin(userId, 50m, _mockRepo.Object);
+        await _vaultService.ProcessWinAsync(userId, 50m, _mockRepo.Object);
 
         // Assert
         Assert.Equal(100m, user.Balance); // Real untouched
@@ -134,7 +140,7 @@ public class VaultServiceTests {
     }
 
     [Fact]
-    public void CheckWageringCompletion_ShouldConvertBonusToReal() {
+    public async Task CheckWageringCompletion_ShouldConvertBonusToReal() {
         // Arrange
         var userId = Guid.NewGuid();
         // Setup a user who is 10 units away from completion
@@ -149,7 +155,7 @@ public class VaultServiceTests {
 
         // Act
         // Process a bet of 10. This logic is inside ProcessBet -> CheckWageringCompletion
-        _vaultService.ProcessBet(userId, 10m, _mockRepo.Object);
+        await _vaultService.ProcessBetAsync(userId, 10m, _mockRepo.Object);
 
         // Assert
         // 1. Bet 10 deducted from Bonus (50 -> 40)

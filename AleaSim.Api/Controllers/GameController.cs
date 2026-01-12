@@ -45,10 +45,10 @@ public class GameController : ControllerBase {
     }
 
     [HttpPost("bonus/cashout")]
-    public IActionResult CashoutBonus() {
+    public async Task<IActionResult> CashoutBonus() {
         try {
             var userId = GetUserIdOrThrow();
-            bool result = _vaultService.CashoutBonus(userId, _repo);
+            bool result = await _vaultService.CashoutBonusAsync(userId, _repo);
             
             if (result) return Ok("Bonus processed (Cashed out or Forfeited).");
             return BadRequest("No active bonus to cash out.");
