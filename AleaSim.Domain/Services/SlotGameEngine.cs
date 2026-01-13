@@ -75,6 +75,29 @@ public class SlotGameEngine : BaseGameEngine {
         }
     }
 
+    public override async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string betData) {
+        decimal[] validDenoms = { 0.01m, 0.02m, 0.05m, 0.10m, 0.20m, 0.50m, 1.00m };
+        decimal denom = 0.01m; 
+        try { 
+            var json = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(betData);
+            if (json.TryGetProperty("Denomination", out var d)) denom = d.GetDecimal();
+        } catch {}
+
+        decimal dynamicMinBet = Math.Round(10 * denom, 2);
+        decimal dynamicMaxBet = Math.Round(100 * denom, 2);
+        decimal roundedAmount = Math.Round(amount, 2);
+
+        // Allow 0 amount for respin/bonus triggers handled internally, but PlaceBet usually carries value
+        if (amount > 0) {
+            if (roundedAmount < dynamicMinBet || roundedAmount > dynamicMaxBet) 
+                throw new Exception($"Bet {roundedAmount:C} is invalid. For denomination {denom:C}, min is {dynamicMinBet:C} and max is {dynamicMaxBet:C}.");
+            
+            if (!validDenoms.Contains(denom)) throw new Exception("Invalid denomination.");
+        }
+
+        await base.PlaceBet(userId, sessionId, amount, betData);
+    }
+
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
         using var lockHandle = await _lockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
         
