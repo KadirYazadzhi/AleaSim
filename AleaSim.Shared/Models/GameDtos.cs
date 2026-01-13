@@ -11,6 +11,7 @@ public class StartSessionResponse {
     public DateTime StartedAt { get; set; }
     public string ClientSeed { get; set; } = string.Empty;
     public string ServerSeedHash { get; set; } = string.Empty;
+    public object? GameState { get; set; } // Added for Resume Session
     
     public StartSessionResponse() {}
     public StartSessionResponse(Guid sessionId, Guid gameId, DateTime startedAt, string clientSeed, string serverSeedHash) {
@@ -100,4 +101,3 @@ public class DailyBonusResponse {
     public bool IsJackpot { get; set; }
     public int SegmentIndex { get; set; }
 }
-

@@ -63,17 +63,17 @@
             <MudPaper Class="pa-6" Style="background: #222; color: white; height: 100%; border-left: 4px solid #444;">
                 <div class="credits-display mb-6">
                     <MudText Typo="Typo.h5" Align="Align.Center" Style="color: #ffeb3b; font-weight: 900; font-family: monospace;">
-                        CREDITS: @((balance / denomination).ToString("N0"))
+                        CREDITS: @((balance / (denomination > 0 ? denomination : 0.01m)).ToString("N0"))
                     </MudText>
                 </div>
 
                 <MudSelect T="decimal" Label="Denomination" @bind-Value="denomination" Variant="Variant.Filled" Class="mb-4" 
                            Disabled="@(isSpinning || gameState.IsBonusActive || gameState.IsRespinActive || gameState.IsGambleActive)">
-                    <MudSelectItem Value="0.01m">$0.01</MudSelectItem>
-                    <MudSelectItem Value="0.05m">$0.05</MudSelectItem>
-                    <MudSelectItem Value="0.10m">$0.10</MudSelectItem>
-                    <MudSelectItem Value="0.50m">$0.50</MudSelectItem>
-                    <MudSelectItem Value="1.00m">$1.00</MudSelectItem>
+                    <MudSelectItem Value="@(0.01m)">$0.01</MudSelectItem>
+                    <MudSelectItem Value="@(0.05m)">$0.05</MudSelectItem>
+                    <MudSelectItem Value="@(0.10m)">$0.10</MudSelectItem>
+                    <MudSelectItem Value="@(0.50m)">$0.50</MudSelectItem>
+                    <MudSelectItem Value="@(1.00m)">$1.00</MudSelectItem>
                 </MudSelect>
 
                 <MudNumericField @bind-Value="creditsBet" Label="Bet (Credits)" Variant="Variant.Filled" Min="10" Max="100" Step="10" 
@@ -136,14 +136,16 @@
             var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
             if (profile != null) balance = profile.Balance;
 
-            // Resume Logic
             var session = await GameService.ResumeSession("slot");
             if (session != null) {
                 sessionId = session.SessionId;
-                if (session.GameState is JsonElement json) {
-                    gameState = JsonSerializer.Deserialize<SlotState>(json.GetRawText()) ?? new();
-                    // Restore denomination if saved in state (Engine saves it)
+                if (session.GameState != null) {
+                    string json = session.GameState.ToString() ?? "{}";
+                    gameState = JsonSerializer.Deserialize<SlotState>(json) ?? new();
+                    
                     if (gameState.Denomination > 0) denomination = gameState.Denomination;
+                    
+                    if (gameState.IsGambleActive) lastWin = gameState.PendingGambleWin;
                 }
                 Snackbar.Add("Session Resumed!", Severity.Info);
             } else {
@@ -164,32 +166,25 @@
         try {
             await Audio.PlaySpin();
             
-            // If respin/bonus, amount is 0 (or strictly controlled by backend based on LockedBet)
-            // But we send the visual amount anyway, Engine ignores it for locked states.
             var betAmount = creditsBet * denomination;
+            var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount, $"{{\"Denomination\":{denomination}}}");
             
-            var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount, $"{{"Denomination":{denomination}}}");
-            
-            // Pixi Animation
             await JSRuntime.InvokeVoidAsync("slotEngine.spin", result.RandomResultJson);
             
-            // Better UX: Wait for animation + small buffer. Ideally, Pixi calls back C# via JSInterop.
             await Task.Delay(3500); 
 
             lastWin = result.TotalWin;
             balance += lastWin - (gameState.IsBonusActive || gameState.IsRespinActive ? 0 : betAmount);
             
-            // Parse State
             var gridData = JsonSerializer.Deserialize<SlotStateResponse>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (gridData != null) {
                 gameState.IsBonusActive = gridData.IsBonusActive;
                 gameState.IsRespinActive = gridData.IsRespinActive;
-                gameState.BonusLives = 0; // Info not always in base response, need state update
-                gameState.IsGambleActive = lastWin > 0 && !gameState.IsBonusActive && !gameState.IsRespinActive; // Logic check
+                gameState.IsGambleActive = lastWin > 0 && !gameState.IsBonusActive && !gameState.IsRespinActive; 
                 gameState.PendingGambleWin = lastWin;
                 wasNudged = gridData.WasNudged;
                 
-                if (wasNudged) await Audio.PlayBonus(); // Reuse sound
+                if (wasNudged) await Audio.PlayBonus(); 
             }
 
             StateHasChanged();
@@ -204,19 +199,14 @@
 
     private async Task OpenGamble() {
         var parameters = new DialogParameters { ["Amount"] = gameState.PendingGambleWin, ["SessionId"] = sessionId };
-        var dialog = DialogService.Show<GambleDialog>("Double or Nothing", parameters);
+        var dialog = await DialogService.ShowAsync<GambleDialog>("Double or Nothing", parameters);
         var result = await dialog.Result;
 
         if (!result.Canceled) {
-            // Player Won and Continued or Collected?
-            // If dialog closed with OK, it means they might want to gamble again or just finished?
-            // Actually dialog handles the gamble logic. We just need to refresh balance/state.
-            // For now, let's just refresh balance.
             var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
             if (profile != null) balance = profile.Balance;
-            gameState.IsGambleActive = false; // Close for now, require manual re-open if multi-gamble supported
+            gameState.IsGambleActive = false; 
         } else {
-            // Collected or Lost
             gameState.IsGambleActive = false;
             var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
             if (profile != null) balance = profile.Balance;

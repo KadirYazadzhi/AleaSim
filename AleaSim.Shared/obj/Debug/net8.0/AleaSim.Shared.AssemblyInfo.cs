@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AleaSim.Shared")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6f15287782e26eb77287d407fd7f17e7db1580c9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ddfde562e96f2a6faabf5e4668c5685b2eef06c9")]
 [assembly: System.Reflection.AssemblyProductAttribute("AleaSim.Shared")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AleaSim.Shared")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
