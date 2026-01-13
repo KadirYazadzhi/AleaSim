@@ -9,6 +9,7 @@ public interface IGameDirector {
     Task<GameSession> StartSession(string gameType, Guid userId, string? clientSeed = null);
     Task<GameRound> PlayRound(string gameType, Guid userId, Guid sessionId, decimal amount, object betData);
     Task<object> ProcessAction(string gameType, Guid userId, Guid sessionId, string action, string actionData);
+    Task<object?> GetCurrentState(string gameType, Guid sessionId);
 }
 
 public class GameDirector : IGameDirector {
@@ -20,6 +21,11 @@ public class GameDirector : IGameDirector {
         _gameResolver = gameResolver;
         _repo = repo;
         _auditService = auditService;
+    }
+
+    public async Task<object?> GetCurrentState(string gameType, Guid sessionId) {
+        var engine = _gameResolver(gameType);
+        return await engine.GetCurrentState(sessionId);
     }
 
     public async Task<GameSession> StartSession(string gameType, Guid userId, string? clientSeed = null) {

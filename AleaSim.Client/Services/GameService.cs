@@ -6,6 +6,7 @@ namespace AleaSim.Client.Services;
 public interface IGameService {
     event Action<float>? OnFlowStateChanged;
     Task<StartSessionResponse> StartSession(string gameType);
+    Task<StartSessionResponse?> ResumeSession(string gameType); // Added
     Task<PlaceBetResponse> PlaceBet(string gameType, Guid sessionId, decimal amount, string betData = "{}");
     Task<GameActionResponse> PerformAction(string gameType, Guid sessionId, string action, string actionData = "{}");
     Task<DailyBonusResponse> SpinDailyBonus();
@@ -20,6 +21,15 @@ public class GameService : IGameService {
 
     public GameService(HttpClient http) {
         _http = http;
+    }
+
+    public async Task<StartSessionResponse?> ResumeSession(string gameType) {
+        var response = await _http.GetAsync($"api/Game/{gameType}/session");
+        if (response.StatusCode == System.Net.HttpStatusCode.NoContent) return null;
+        if (response.IsSuccessStatusCode) {
+            return await response.Content.ReadFromJsonAsync<StartSessionResponse>();
+        }
+        return null;
     }
 
     public async Task<StartSessionResponse> StartSession(string gameType) {

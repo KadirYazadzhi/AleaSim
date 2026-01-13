@@ -10,6 +10,7 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IJSRuntime JSRuntime
+@inject IDialogService DialogService
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudGrid>
@@ -24,6 +25,13 @@
                     <!-- Canvas will be injected here by PixiJS -->
                 </div>
                 <div class="win-light @(lastWin > 0 ? "active" : "")"></div>
+                
+                @if (gameState.IsRespinActive) {
+                    <div class="overlay-text" style="top: 20px;">RESPIN ACTIVE!</div>
+                }
+                @if (wasNudged) {
+                    <div class="overlay-text nudged" style="bottom: 20px;">MYSTERY NUDGE!</div>
+                }
             </MudPaper>
 
             <!-- Status Bar -->
@@ -36,6 +44,10 @@
                 <div class="d-flex gap-4">
                     @if (gameState.IsBonusActive) {
                         <div class="feature-badge bonus">BELL BONUS: @gameState.BonusLives LIVES</div>
+                    }
+                    @if (gameState.IsGambleActive) {
+                        <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="OpenGamble">GAMBLE @gameState.PendingGambleWin.ToString("C2")</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Success" OnClick="CollectWin">COLLECT</MudButton>
                     }
                 </div>
 
@@ -55,7 +67,8 @@
                     </MudText>
                 </div>
 
-                <MudSelect T="decimal" Label="Denomination" @bind-Value="denomination" Variant="Variant.Filled" Class="mb-4" Disabled="isSpinning">
+                <MudSelect T="decimal" Label="Denomination" @bind-Value="denomination" Variant="Variant.Filled" Class="mb-4" 
+                           Disabled="@(isSpinning || gameState.IsBonusActive || gameState.IsRespinActive || gameState.IsGambleActive)">
                     <MudSelectItem Value="0.01m">$0.01</MudSelectItem>
                     <MudSelectItem Value="0.05m">$0.05</MudSelectItem>
                     <MudSelectItem Value="0.10m">$0.10</MudSelectItem>
@@ -63,19 +76,24 @@
                     <MudSelectItem Value="1.00m">$1.00</MudSelectItem>
                 </MudSelect>
 
-                <MudNumericField @bind-Value="creditsBet" Label="Bet (Credits)" Variant="Variant.Filled" Min="10" Max="100" Step="10" Disabled="isSpinning" />
+                <MudNumericField @bind-Value="creditsBet" Label="Bet (Credits)" Variant="Variant.Filled" Min="10" Max="100" Step="10" 
+                                 Disabled="@(isSpinning || gameState.IsBonusActive || gameState.IsRespinActive)" />
+                
                 <div class="mt-2 text-center">
                     <MudText Typo="Typo.subtitle1" Style="color: #aaa;">Total Stake: <b>@((creditsBet * denomination).ToString("C2"))</b></MudText>
                 </div>
 
                 <MudButton Variant="Variant.Filled" 
-                           Color="@(gameState.IsBonusActive ? Color.Error : Color.Primary)" 
+                           Color="@(gameState.IsBonusActive ? Color.Error : (gameState.IsRespinActive ? Color.Warning : Color.Primary))" 
                            OnClick="OnSpin" 
-                           Disabled="@(isSpinning || balance < (creditsBet * denomination))" 
+                           Disabled="@(isSpinning || (balance < (creditsBet * denomination) && !gameState.IsRespinActive && !gameState.IsBonusActive))" 
                            FullWidth="true" 
                            Class="mt-8 spin-button"
                            Style="height: 100px; font-size: 2rem; font-weight: 900;">
-                    @(isSpinning ? "WAIT" : "SPIN")
+                    @if (gameState.IsBonusActive) { <text>BONUS</text> }
+                    else if (gameState.IsRespinActive) { <text>RESPIN</text> }
+                    else if (isSpinning) { <text>WAIT</text> }
+                    else { <text>SPIN</text> }
                 </MudButton>
             </MudPaper>
         </MudItem>
@@ -83,17 +101,14 @@
 </MudContainer>
 
 <style>
-    .spin-button {
-        box-shadow: 0 8px 0 #1565c0, 0 15px 20px rgba(0,0,0,.35);
-        transition: all .1s;
-    }
-    .spin-button:active {
-        transform: translateY(4px);
-        box-shadow: 0 4px 0 #1565c0, 0 8px 10px rgba(0,0,0,.3);
-    }
+    .spin-button { box-shadow: 0 8px 0 #1565c0, 0 15px 20px rgba(0,0,0,.35); transition: all .1s; }
+    .spin-button:active { transform: translateY(4px); box-shadow: 0 4px 0 #1565c0, 0 8px 10px rgba(0,0,0,.3); }
     .feature-badge { padding: 8px 20px; border-radius: 4px; font-weight: 900; border: 2px solid white; box-shadow: 0 0 15px rgba(255,255,255,0.5); }
     .bonus { background: #d32f2f; color: white; animation: pulse 1s infinite; }
+    .overlay-text { position: absolute; left: 50%; transform: translateX(-50%); font-size: 3rem; color: #ffeb3b; font-weight: 900; text-shadow: 0 0 20px black; z-index: 100; pointer-events: none; }
+    .nudged { color: #e91e63; animation: bounce 0.5s; }
     @@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+    @@keyframes bounce { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-20px); } }
 </style>
 
 @code {
@@ -103,7 +118,8 @@
     private decimal denomination = 0.01m;
     private int creditsBet = 10;
     private Guid? sessionId;
-    private SlotGameStateUI gameState = new();
+    private SlotState gameState = new();
+    private bool wasNudged = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -117,41 +133,120 @@
     private async Task LoadData()
     {
         try {
-            var resp = await GameService.StartSession("slot");
-            sessionId = resp.SessionId;
             var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
             if (profile != null) balance = profile.Balance;
-        } catch {}
+
+            // Resume Logic
+            var session = await GameService.ResumeSession("slot");
+            if (session != null) {
+                sessionId = session.SessionId;
+                if (session.GameState is JsonElement json) {
+                    gameState = JsonSerializer.Deserialize<SlotState>(json.GetRawText()) ?? new();
+                    // Restore denomination if saved in state (Engine saves it)
+                    if (gameState.Denomination > 0) denomination = gameState.Denomination;
+                }
+                Snackbar.Add("Session Resumed!", Severity.Info);
+            } else {
+                var newSession = await GameService.StartSession("slot");
+                sessionId = newSession.SessionId;
+            }
+        } catch (Exception ex) {
+            Snackbar.Add("Error loading game: " + ex.Message, Severity.Error);
+        }
     }
 
     private async Task OnSpin()
     {
         if (isSpinning || sessionId == null) return;
         isSpinning = true;
+        wasNudged = false;
         
         try {
             await Audio.PlaySpin();
+            
+            // If respin/bonus, amount is 0 (or strictly controlled by backend based on LockedBet)
+            // But we send the visual amount anyway, Engine ignores it for locked states.
             var betAmount = creditsBet * denomination;
-            var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount, $"{{\"Denomination\":{denomination}}}");
             
-            // Start Pixi Animation
-            await JSRuntime.InvokeVoidAsync("slotEngine.spin", (object?)null);
+            var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount, $"{{"Denomination":{denomination}}}");
             
-            await Task.Delay(3500); // Pixi Duration match
+            // Pixi Animation
+            await JSRuntime.InvokeVoidAsync("slotEngine.spin", result.RandomResultJson);
+            
+            // Better UX: Wait for animation + small buffer. Ideally, Pixi calls back C# via JSInterop.
+            await Task.Delay(3500); 
 
             lastWin = result.TotalWin;
-            balance += lastWin - betAmount;
+            balance += lastWin - (gameState.IsBonusActive || gameState.IsRespinActive ? 0 : betAmount);
+            
+            // Parse State
+            var gridData = JsonSerializer.Deserialize<SlotStateResponse>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (gridData != null) {
+                gameState.IsBonusActive = gridData.IsBonusActive;
+                gameState.IsRespinActive = gridData.IsRespinActive;
+                gameState.BonusLives = 0; // Info not always in base response, need state update
+                gameState.IsGambleActive = lastWin > 0 && !gameState.IsBonusActive && !gameState.IsRespinActive; // Logic check
+                gameState.PendingGambleWin = lastWin;
+                wasNudged = gridData.WasNudged;
+                
+                if (wasNudged) await Audio.PlayBonus(); // Reuse sound
+            }
+
             StateHasChanged();
 
-            var gridData = JsonSerializer.Deserialize<SlotResultGrid>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (gridData != null) gameState.IsBonusActive = gridData.IsBonusActive;
+            if (gameState.IsGambleActive) {
+                await OpenGamble();
+            }
 
         } catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { isSpinning = false; StateHasChanged(); }
     }
 
+    private async Task OpenGamble() {
+        var parameters = new DialogParameters { ["Amount"] = gameState.PendingGambleWin, ["SessionId"] = sessionId };
+        var dialog = DialogService.Show<GambleDialog>("Double or Nothing", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled) {
+            // Player Won and Continued or Collected?
+            // If dialog closed with OK, it means they might want to gamble again or just finished?
+            // Actually dialog handles the gamble logic. We just need to refresh balance/state.
+            // For now, let's just refresh balance.
+            var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+            if (profile != null) balance = profile.Balance;
+            gameState.IsGambleActive = false; // Close for now, require manual re-open if multi-gamble supported
+        } else {
+            // Collected or Lost
+            gameState.IsGambleActive = false;
+            var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+            if (profile != null) balance = profile.Balance;
+        }
+        StateHasChanged();
+    }
+
+    private async Task CollectWin() {
+        if (sessionId == null) return;
+        await GameService.PerformAction("slot", sessionId.Value, "collect", "{}");
+        gameState.IsGambleActive = false;
+        var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+        if (profile != null) balance = profile.Balance;
+        StateHasChanged();
+    }
+
     public async ValueTask DisposeAsync() { }
 
-    public class SlotGameStateUI { public bool IsBonusActive { get; set; } public int BonusLives { get; set; } }
-    public class SlotResultGrid { public bool IsBonusActive { get; set; } }
+    public class SlotState {
+        public bool IsBonusActive { get; set; }
+        public int BonusLives { get; set; }
+        public bool IsRespinActive { get; set; }
+        public bool IsGambleActive { get; set; }
+        public decimal PendingGambleWin { get; set; }
+        public decimal Denomination { get; set; } = 0.01m;
+    }
+    
+    public class SlotStateResponse {
+        public bool IsBonusActive { get; set; }
+        public bool IsRespinActive { get; set; }
+        public bool WasNudged { get; set; }
+    }
 }

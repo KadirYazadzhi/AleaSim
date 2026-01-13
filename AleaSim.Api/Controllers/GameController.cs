@@ -60,6 +60,33 @@ public class GameController : ControllerBase {
         }
     }
 
+    [HttpGet("{gameType}/session")]
+    public async Task<IActionResult> ResumeSession(string gameType) {
+        try {
+            var userId = GetUserIdOrThrow();
+            var game = _repo.GetGameByType(gameType);
+            if (game == null) return NotFound("Game type not found");
+
+            var session = _repo.GetAllActiveSessions()
+                .FirstOrDefault(s => s.UserId == userId && s.GameId == game.Id);
+
+            if (session == null) return NoContent();
+
+            var state = await _gameDirector.GetCurrentState(gameType, session.Id);
+
+            return Ok(new {
+                SessionId = session.Id,
+                GameId = session.GameId,
+                StartedAt = session.StartedAt,
+                GameState = state
+            });
+        }
+        catch (Exception ex) {
+            _logger.LogError(ex, "Error in ResumeSession");
+            return StatusCode(500, "Internal Server Error");
+        }
+    }
+
     [HttpPost("{gameType}/session")]
     public async Task<IActionResult> StartSession(string gameType, [FromBody] StartSessionRequest request) {
         try {
