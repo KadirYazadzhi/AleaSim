@@ -233,7 +233,7 @@ public class SlotGameEngine : BaseGameEngine {
             }
             
             if (!state.IsRespinActive && !state.IsBonusActive) {
-                BrainService.UpdateProfile(session.UserId, 0, totalWin);
+                BrainService.UpdateProfile(session.UserId, 0, totalWin, repo);
             }
 
             _cache.Set(cacheKey, state, TimeSpan.FromMinutes(10));

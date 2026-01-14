@@ -101,7 +101,7 @@ public class RouletteGameEngine : BaseGameEngine {
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", (int)actualWin, repo, VaultService);
             }
             
-            BrainService.UpdateProfile(session.UserId, betAmount, actualWin);
+            BrainService.UpdateProfile(session.UserId, betAmount, actualWin, repo);
 
             var round = new GameRound {
                 Id = Guid.NewGuid(),

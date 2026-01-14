@@ -181,7 +181,7 @@ public class BlackjackGameEngine : BaseGameEngine {
             repo.UpdateRtpStats(GameId, session.UserId, 0, win);
             await questService.UpdateProgressAsync(session.UserId, "WinAmount", (int)win, repo, VaultService);
         }
-        BrainService.UpdateProfile(session.UserId, state.BetAmount, win);
+        BrainService.UpdateProfile(session.UserId, state.BetAmount, win, repo);
     }
 
     private decimal CalculateWin(BlackjackState state) {

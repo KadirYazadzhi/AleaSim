@@ -46,7 +46,7 @@ public abstract class BaseGameEngine : IGame {
                 };
                 repo.SaveBet(bet);
                 
-                BrainService.UpdateProfile(session.UserId, amount, 0);
+                BrainService.UpdateProfile(session.UserId, amount, 0, repo);
                 PromotionService.ProcessBetActivity(session.UserId, amount, repo);
                 await JackpotService.Contribute(session.GameId, amount, repo);
                 

@@ -10,7 +10,7 @@ namespace AleaSim.Domain.Services;
 public class BrainService : IBrainService {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IVaultService _vaultService;
-    private readonly IMemoryCache _cache; // Use Cache for auto-expiry
+    private readonly IMemoryCache _cache; 
 
     public BrainService(IServiceScopeFactory scopeFactory, IVaultService vaultService, IMemoryCache cache) {
         _scopeFactory = scopeFactory;
@@ -27,7 +27,7 @@ public class BrainService : IBrainService {
 
         string queueKey = $"brain_queue_{userId}";
         var queue = _cache.GetOrCreate(queueKey, entry => {
-            entry.SlidingExpiration = TimeSpan.FromMinutes(20); // Cleanup inactive users
+            entry.SlidingExpiration = TimeSpan.FromMinutes(20); 
             return new Queue<BrainDirective>();
         });
 
@@ -46,7 +46,6 @@ public class BrainService : IBrainService {
     }
 
     public BrainDirective DecideOutcome(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo, bool isShadowMode = false) {
-        // 0. Admin Override
         string forceKey = $"brain_force_{userId}";
         if (_cache.TryGetValue(forceKey, out BrainDirective? forced) && forced != null) {
             _cache.Remove(forceKey);
@@ -58,13 +57,11 @@ public class BrainService : IBrainService {
             return new BrainDirective { DecisionType = "Random" };
         }
 
-        // In Shadow Mode, we simulate a different "Generous" algorithm for testing
         if (isShadowMode) {
-        // Use secure random for probabilities
-        var rand = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100);
-        if (rand < 30) { // 30% chance
-            return new BrainDirective { DecisionType = "NearMiss", IsNearMiss = true, TargetWinAmount = 0 };
-        }
+            var rand = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100);
+            if (rand < 30) { 
+                return new BrainDirective { DecisionType = "NearMiss", IsNearMiss = true, TargetWinAmount = 0 };
+            }
             return new BrainDirective { DecisionType = "Shadow_Random" };
         }
 
@@ -74,7 +71,6 @@ public class BrainService : IBrainService {
         double volatility = isInFlow ? 2.0 : (isBored ? 0.5 : 1.0);
 
         // --- RULE 1: The Retention Hook ---
-        // Adjusted by Flow: If bored, trigger hook earlier
         int skillOffset = profile.LuckyCloverLevel;
         int retentionThreshold = Math.Max(2, (isBored ? 4 : 8) - skillOffset);
         
@@ -92,22 +88,28 @@ public class BrainService : IBrainService {
             }
         }
 
-        // Check for cooling if RTP is too high
         var randHighRtp = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100);
-        if (profile.ActualRtp > 2.5 && profile.TotalWagered > 100 && randHighRtp < 40) { // 40% chance
+        if (profile.ActualRtp > 2.5 && profile.TotalWagered > 100 && randHighRtp < 40) { 
             return new BrainDirective { DecisionType = "Random", TargetWinAmount = 0, Reason = "Cooling Down High RTP" };
         }
 
-        // Default with Volatility
         return new BrainDirective { 
             DecisionType = "Random", 
             VolatilityModifier = volatility 
         };
     }
 
-    public void UpdateProfile(Guid userId, decimal betAmount, decimal winAmount) {
-        using var scope = _scopeFactory.CreateScope();
-        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+    public void UpdateProfile(Guid userId, decimal betAmount, decimal winAmount, IGameRepository? repo = null) {
+        if (repo != null) {
+            UpdateProfileLogic(userId, betAmount, winAmount, repo);
+        } else {
+            using var scope = _scopeFactory.CreateScope();
+            var scopedRepo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+            UpdateProfileLogic(userId, betAmount, winAmount, scopedRepo);
+        }
+    }
+
+    private void UpdateProfileLogic(Guid userId, decimal betAmount, decimal winAmount, IGameRepository repo) {
         var profile = repo.GetPlayerProfile(userId);
 
         if (profile == null) {
@@ -132,8 +134,6 @@ public class BrainService : IBrainService {
 
         if (betAmount > 0 && winAmount > betAmount * 5) {
             var affinity = new Dictionary<int, double>();
-            // Simplified affinity update - we don't have session/round context here easily without heavier query
-            // Just assume a random 'lucky' symbol for now to simulate the feature
             int favoriteCandidate = System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, 10); 
             if (!affinity.ContainsKey(favoriteCandidate)) affinity[favoriteCandidate] = 0;
             affinity[favoriteCandidate] += (double)winAmount / (double)betAmount;
