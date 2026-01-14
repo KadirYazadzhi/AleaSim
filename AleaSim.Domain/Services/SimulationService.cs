@@ -63,8 +63,8 @@ public class SimulationService : ISimulationService {
 
                 if (round.TotalWinAmount > maxWin) maxWin = round.TotalWinAmount;
 
-                if (round.RandomResult.Contains("IsBonusActive":true)) bonusCount++;
-                if (round.RandomResult.Contains("IsRespinActive":true)) respinCount++;
+                if (round.RandomResult.Contains("\"IsBonusActive\":true")) bonusCount++;
+                if (round.RandomResult.Contains("\"IsRespinActive\":true")) respinCount++;
 
                 string dType = round.DecisionType ?? "Unknown";
                 if (!distribution.ContainsKey(dType)) distribution[dType] = 0;
@@ -89,15 +89,9 @@ public class SimulationService : ISimulationService {
             };
         }
         finally {
-            // Cleanup
-            // We might want to keep simulation logs, but delete the user to avoid clutter
             try {
-                // If transactions/rounds are linked via FK, deleting user might fail or cascade.
-                // Assuming EF Core Cascade Delete is on, or we just leave it for now (it's a dev tool).
-                // Actually, let's keep it safe: Don't delete, just mark inactive.
-                // Or better: Delete if possible.
-                // repo.DeleteUser(dummyUser.Id); 
-            } catch {} // Ignore cleanup errors
+                // Cleanup handled or ignored
+            } catch {} 
         }
     }
 }
