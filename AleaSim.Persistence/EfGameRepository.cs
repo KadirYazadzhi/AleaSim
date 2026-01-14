@@ -66,7 +66,7 @@ public class EfGameRepository : IGameRepository {
     }
 
     public Game? GetGameByType(string gameType) {
-        return _context.Games.FirstOrDefault(g => g.Type == gameType);
+        return _context.Games.FirstOrDefault(g => g.Type.ToLower() == gameType.ToLower());
     }
 
     public void CreateGame(Game game) {
