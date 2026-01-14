@@ -164,7 +164,7 @@
             await Task.Delay(2000);
 
             var resultData = JsonSerializer.Deserialize<RouletteResult>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            winningNumber = resultData?.WinningNumber;
+            winningNumber = resultData?.Number;
             
             if (result.TotalWin > 0) {
                 Snackbar.Add($"WINNER! Number {winningNumber} paid ${result.TotalWin:N2}", Severity.Success);
@@ -205,5 +205,5 @@
     public async ValueTask DisposeAsync() { }
 
     public class UserDto { public decimal Balance { get; set; } }
-    public class RouletteResult { public int WinningNumber { get; set; } }
+    public class RouletteResult { public int Number { get; set; } }
 }
