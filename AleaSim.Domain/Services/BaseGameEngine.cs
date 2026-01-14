@@ -67,7 +67,7 @@ public abstract class BaseGameEngine : IGame {
                 UserId = userId,
                 GameId = gameId,
                 Seed = System.Security.Cryptography.RandomNumberGenerator.GetInt32(int.MaxValue),
-                ClientSeed = clientSeed,
+                ClientSeed = clientSeed ?? Guid.NewGuid().ToString("N").Substring(0, 8),
                 StartedAt = DateTime.UtcNow,
                 IsActive = true
             };
