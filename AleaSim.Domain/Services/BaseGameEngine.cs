@@ -60,13 +60,14 @@ public abstract class BaseGameEngine : IGame {
         });
     }
 
-    public virtual async Task<GameSession> StartSession(Guid userId, int? seed = null, string? metadata = null) {
+    public virtual async Task<GameSession> StartSession(Guid userId, Guid gameId, int? seed = null, string? clientSeed = null) {
         return await ExecuteScopedAsync(async repo => {
             var session = new GameSession {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                GameId = Guid.Empty, // Overridden by sub-engine if needed
+                GameId = gameId,
                 Seed = System.Security.Cryptography.RandomNumberGenerator.GetInt32(int.MaxValue),
+                ClientSeed = clientSeed,
                 StartedAt = DateTime.UtcNow,
                 IsActive = true
             };

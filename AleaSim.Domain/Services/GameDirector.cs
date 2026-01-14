@@ -29,8 +29,11 @@ public class GameDirector : IGameDirector {
     }
 
     public async Task<GameSession> StartSession(string gameType, Guid userId, string? clientSeed = null) {
+        var game = _repo.GetGameByType(gameType);
+        if (game == null) throw new Exception("Invalid game type");
+
         var engine = _gameResolver(gameType);
-        return await engine.StartSession(userId, clientSeed: clientSeed);
+        return await engine.StartSession(userId, game.Id, clientSeed: clientSeed);
     }
 
     public async Task<GameRound> PlayRound(string gameType, Guid userId, Guid sessionId, decimal amount, object betData) {
