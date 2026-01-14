@@ -127,7 +127,7 @@
         try {
             var sessionResponse = await GameService.StartSession("roulette");
             sessionId = sessionResponse.SessionId;
-            var user = await Http.GetFromJsonAsync<UserDto>("api/Auth/me");
+            var user = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
             if (user != null) balance = user.Balance;
         } catch { }
     }
@@ -172,7 +172,7 @@
             }
             
             // Refresh balance
-            var user = await Http.GetFromJsonAsync<UserDto>("api/Auth/me");
+            var user = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
             if (user != null) balance = user.Balance;
             currentBets.Clear();
         }
@@ -204,6 +204,5 @@
 
     public async ValueTask DisposeAsync() { }
 
-    public class UserDto { public decimal Balance { get; set; } }
     public class RouletteResult { public int Number { get; set; } }
 }
