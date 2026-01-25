@@ -133,6 +133,3 @@ The project includes a comprehensive Test Suite (`AleaSim.Tests`) covering:
 ```bash
 dotnet test
 ```
-
----
-*License: MIT | Created by an AI-Augmented Engineering Team*
