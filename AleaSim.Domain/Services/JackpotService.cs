@@ -138,20 +138,19 @@ public class JackpotService : IJackpotService {
     // but use the sync-over-async wrapper to avoid changing the interface/consumers immediately.
     // This is the safest atomic step.
     
-    public decimal ClaimJackpot(JackpotTier tier, IGameRepository repo) {
-         return Task.Run(async () => {
-             using var lockHandle = await _lockService.AcquireLockAsync("global_jackpots", TimeSpan.FromSeconds(5));
-             var jackpot = repo.GetJackpots().FirstOrDefault(j => j.Tier == tier);
-             if (jackpot == null) return 0m;
+    public async Task<decimal> ClaimJackpot(JackpotTier tier, IGameRepository repo) {
+        using var lockHandle = await _lockService.AcquireLockAsync("global_jackpots", TimeSpan.FromSeconds(5));
+        var jackpot = repo.GetJackpots().FirstOrDefault(j => j.Tier == tier);
+        if (jackpot == null) return 0m;
 
-             decimal win = jackpot.CurrentValue;
-             jackpot.CurrentValue = GetResetValue(tier);
-             jackpot.LastUpdated = DateTime.UtcNow;
+        decimal win = jackpot.CurrentValue;
+        jackpot.CurrentValue = GetResetValue(tier);
+        jackpot.LastUpdated = DateTime.UtcNow;
             
-             repo.UpdateJackpot(jackpot);
-             _ = _realTimeService.NotifyJackpotUpdate(jackpot);
-             return win;
-         }).GetAwaiter().GetResult();
+        repo.UpdateJackpot(jackpot);
+        _ = _realTimeService.NotifyJackpotUpdate(jackpot);
+            
+        return win;
     }
     
     public decimal GetTierValue(JackpotTier tier, IGameRepository repo) {
