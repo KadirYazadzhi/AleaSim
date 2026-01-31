@@ -7,10 +7,12 @@ public class LevelService : ILevelService {
     private const decimal XP_PER_CURRENCY_UNIT = 10m; 
     private readonly IAchievementService _achievementService;
     private readonly IVaultService _vaultService;
+    private readonly ILockService _lockService;
 
-    public LevelService(IAchievementService achievementService, IVaultService vaultService) {
+    public LevelService(IAchievementService achievementService, IVaultService vaultService, ILockService lockService) {
         _achievementService = achievementService;
         _vaultService = vaultService;
+        _lockService = lockService;
     }
 
     public UserProgression GetProgression(Guid userId, IGameRepository repo) {
@@ -24,6 +26,8 @@ public class LevelService : ILevelService {
     }
 
     public async Task AddExperience(Guid userId, decimal betAmount, IGameRepository repo, IRealTimeService realTime) {
+        using var lockHandle = await _lockService.AcquireLockAsync($"progression_{userId}", TimeSpan.FromSeconds(5));
+        
         var prog = GetProgression(userId, repo);
         var profile = repo.GetPlayerProfile(userId);
         
@@ -64,6 +68,8 @@ public class LevelService : ILevelService {
     }
 
     public async Task<bool> UpgradeSkill(Guid userId, string skillName, IGameRepository repo) {
+        using var lockHandle = await _lockService.AcquireLockAsync($"progression_{userId}", TimeSpan.FromSeconds(5));
+        
         var prog = repo.GetUserProgression(userId);
         var profile = repo.GetPlayerProfile(userId);
 
