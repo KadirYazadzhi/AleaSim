@@ -123,18 +123,7 @@ public class AdminService : IAdminService {
     }
 
     public async Task<ShadowCompareDto> GetShadowComparison(int sampleSize) {
-        var rounds = _repository.GetAllAuditLogs() // Hacky access to history via logs or direct rounds
-            .OrderByDescending(a => a.Timestamp)
-            .Take(sampleSize)
-            .ToList();
-            
-        // Direct access to repository rounds is better. Assuming GetUserRounds exists for all.
-        // Let's use a specialized query if possible.
-        // For now, I'll assume we iterate the last X rounds from the DB.
-        
-        // BETTER: Use Repo.GetUserRounds with a generic user or new method.
-        // I will use the GetUserRounds logic but for all users.
-        var allRounds = _repository.GetUserRounds(Guid.Empty, sampleSize); // Assume Guid.Empty returns all or we add method.
+        var allRounds = _repository.GetGlobalRecentRounds(sampleSize);
         
         decimal realTotalBet = 0;
         decimal realTotalWin = 0;
