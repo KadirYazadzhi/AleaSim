@@ -7,9 +7,11 @@ namespace AleaSim.Domain.Services;
 
 public class TournamentService : ITournamentService {
     private readonly ILogger<TournamentService> _logger;
+    private readonly ILockService _lockService;
 
-    public TournamentService(ILogger<TournamentService> logger) {
+    public TournamentService(ILogger<TournamentService> logger, ILockService lockService) {
         _logger = logger;
+        _lockService = lockService;
     }
 
     public async Task<IEnumerable<TournamentRankDto>> GetCurrentRankings(IGameRepository repo) {
@@ -33,6 +35,8 @@ public class TournamentService : ITournamentService {
     }
 
     public async Task ProcessMonthlyPayout(IGameRepository repo, IVaultService vault, IRealTimeService realTime) {
+        using var lockHandle = await _lockService.AcquireLockAsync("tournament_payout", TimeSpan.FromMinutes(1));
+        
         _logger.LogInformation("Processing Monthly Tournament Payouts...");
         
         var rankings = (await GetCurrentRankings(repo)).Take(10).ToList();
