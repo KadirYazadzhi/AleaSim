@@ -16,13 +16,24 @@ public class BlackjackGameEngine : BaseGameEngine {
         _lockService = lockService;
     }
 
+    public class BlackjackHand {
+        public List<Card> Cards { get; set; } = new();
+        public decimal Bet { get; set; }
+        public bool IsDoubled { get; set; }
+        public bool IsStand { get; set; }
+        public bool IsBusted { get; set; }
+        public bool IsBlackjack { get; set; }
+        public bool IsSplitAces { get; set; } // Added restriction flag
+    }
+
     public class BlackjackState {
         public List<string> PlayerHand { get; set; } = new();
         public List<string> DealerHand { get; set; } = new();
         public List<string>? SplitHand { get; set; } = null;
-        public int ActiveHandIndex { get; set; } = 0; // 0 = Main, 1 = Split
+        public int ActiveHandIndex { get; set; } = 0; // 0 = Main = 1 = Split
         public bool IsDoubleDown { get; set; } // Tracks main hand double
         public bool IsSplitDoubleDown { get; set; } // Tracks split hand double
+        public bool IsSplitAces { get; set; } // Added: Tracks if split was on Aces
         public decimal BetAmount { get; set; }
         public bool IsRoundOver { get; set; }
         public int Sequence { get; set; }
@@ -110,6 +121,7 @@ public class BlackjackGameEngine : BaseGameEngine {
                         repo.UpdateRtpStats(GameId, session.UserId, state.BetAmount, 0);
                         state.SplitHand = new List<string> { state.PlayerHand[1] };
                         state.PlayerHand.RemoveAt(1);
+                        if (r1 == "A") state.IsSplitAces = true;
                         int seq = state.Sequence;
                         state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
                         state.SplitHand.Add(DrawCard(session.Seed, ref seq));
@@ -118,6 +130,7 @@ public class BlackjackGameEngine : BaseGameEngine {
                 }
             } 
             else if (action.ToLower() == "hit") {
+                if (state.IsSplitAces && targetHand.Count >= 2) throw new Exception("Cannot hit on split Aces.");
                 int seq = state.Sequence;
                 targetHand.Add(DrawCard(session.Seed, ref seq));
                 state.Sequence = seq;
