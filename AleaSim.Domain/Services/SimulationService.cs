@@ -90,7 +90,7 @@ public class SimulationService : ISimulationService {
         }
         finally {
             try {
-                // Cleanup handled or ignored
+                repo.DeleteUser(dummyUser.Id);
             } catch {} 
         }
     }
