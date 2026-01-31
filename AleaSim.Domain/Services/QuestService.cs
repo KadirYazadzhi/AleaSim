@@ -4,6 +4,11 @@ using AleaSim.Domain.Interfaces;
 namespace AleaSim.Domain.Services;
 
 public class QuestService : IQuestService {
+    private readonly ILockService _lockService;
+
+    public QuestService(ILockService lockService) {
+        _lockService = lockService;
+    }
     
     public IEnumerable<Quest> GetActiveQuests(Guid userId, IGameRepository repo) {
         return repo.GetActiveQuests(userId);
@@ -63,13 +68,15 @@ public class QuestService : IQuestService {
     }
 
     public async Task<bool> ClaimRewardAsync(Guid questId, IGameRepository repo, IVaultService vault) {
+        using var lockHandle = await _lockService.AcquireLockAsync($"quest_{questId}", TimeSpan.FromSeconds(5));
+        
         var quest = repo.GetQuest(questId);
         if (quest == null || (quest.Status != QuestStatus.Completed && quest.Status != QuestStatus.Active)) return false; 
         
         if (quest.Status == QuestStatus.Completed) {
             quest.Status = QuestStatus.Claimed;
+            repo.UpdateQuest(quest); // Mark claimed immediately
             await vault.CreditBonusAsync(quest.UserId, quest.RewardAmount, quest.RewardAmount * 5, repo);
-            repo.UpdateQuest(quest);
             return true;
         }
         return false;
