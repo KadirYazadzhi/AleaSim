@@ -10,32 +10,39 @@ public class VoucherService : IVoucherService {
         return new Voucher { Code = code.ToUpper(), Amount = amount, MaxUses = maxUses, ExpiresAt = expiry };
     }
 
-    public async Task<decimal> RedeemVoucher(Guid userId, string code, IGameRepository repo, IVaultService vault) {
-        var voucher = repo.GetVoucherByCode(code.ToUpper());
+    public async Task<decimal> RedeemVoucher(Guid userId, string code, IGameRepository repo, IVaultService vaultService) {
+        var voucher = repo.GetVoucherByCode(code);
+        if (voucher == null) throw new Exception("Invalid voucher code.");
+        if (voucher.ExpiresAt < DateTime.UtcNow) throw new Exception("Voucher expired.");
+        if (voucher.CurrentRedemptions >= voucher.MaxRedemptions) throw new Exception("Voucher fully redeemed.");
         
-        if (voucher == null || !voucher.IsActive) throw new Exception("Invalid or inactive voucher code.");
-        if (voucher.ExpiresAt.HasValue && voucher.ExpiresAt < DateTime.UtcNow) throw new Exception("Voucher has expired.");
-        if (voucher.CurrentUses >= voucher.MaxUses) throw new Exception("Voucher usage limit reached.");
-        
-        // Check if user already used this specific voucher
         if (repo.HasUserRedeemedVoucher(userId, voucher.Id)) throw new Exception("You have already redeemed this voucher.");
 
-        // 1. Mark as used
-        voucher.CurrentUses++;
-        repo.UpdateVoucher(voucher);
+        using var transaction = repo.BeginTransaction();
+        try {
+            voucher.CurrentRedemptions++;
+            repo.UpdateVoucher(voucher);
 
-        // 2. Record redemption
-        repo.SaveUserVoucher(new UserVoucher {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            VoucherId = voucher.Id,
-            RedeemedAt = DateTime.UtcNow
-        });
+            var userVoucher = new UserVoucher {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                VoucherId = voucher.Id,
+                RedeemedAt = DateTime.UtcNow
+            };
+            repo.SaveUserVoucher(userVoucher);
 
-        // 3. Credit Bonus
-        await vault.CreditBonusAsync(userId, voucher.Amount, voucher.Amount * 5, repo);
-
-        return voucher.Amount;
+            // Vault service usually saves changes, but we are inside a transaction scope now.
+            await vaultService.CreditBonusAsync(userId, voucher.Amount, voucher.Amount * 5, repo); 
+            
+            repo.SaveChanges();
+            transaction.Commit();
+            
+            return voucher.Amount;
+        }
+        catch {
+            transaction.Rollback();
+            throw;
+        }
     }
 
     public async Task<IEnumerable<Voucher>> GetAllVouchers(IGameRepository repo) {
