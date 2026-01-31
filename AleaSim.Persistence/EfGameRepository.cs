@@ -37,7 +37,7 @@ public class EfGameRepository : IGameRepository {
 
     
     public IEnumerable<ActiveSessionDto> GetActiveSessionsDetails() {
-        return _context.GameSessions
+        var sessions = _context.GameSessions
             .Where(s => s.IsActive)
             .Join(_context.Users, s => s.UserId, u => u.Id, (s, u) => new { s, u })
             .Join(_context.Games, x => x.s.GameId, g => g.Id, (x, g) => new { x.s, x.u, g })
@@ -45,11 +45,30 @@ public class EfGameRepository : IGameRepository {
                 SessionId = x.s.Id,
                 Username = x.u.Username,
                 GameName = x.g.Name,
-                StartedAt = x.s.StartedAt,
-                TotalWagered = _context.GameRounds.Where(r => r.GameSessionId == x.s.Id).Sum(r => r.TotalBetAmount),
-                TotalWon = _context.GameRounds.Where(r => r.GameSessionId == x.s.Id).Sum(r => r.TotalWinAmount)
+                StartedAt = x.s.StartedAt
             })
             .ToList();
+
+        var sessionIds = sessions.Select(s => s.SessionId).ToList();
+
+        var stats = _context.GameRounds
+            .Where(r => sessionIds.Contains(r.GameSessionId))
+            .GroupBy(r => r.GameSessionId)
+            .Select(g => new { 
+                SessionId = g.Key, 
+                TotalBet = g.Sum(r => r.TotalBetAmount), 
+                TotalWin = g.Sum(r => r.TotalWinAmount) 
+            })
+            .ToDictionary(k => k.SessionId, v => v);
+
+        foreach (var session in sessions) {
+            if (stats.TryGetValue(session.SessionId, out var stat)) {
+                session.TotalWagered = stat.TotalBet;
+                session.TotalWon = stat.TotalWin;
+            }
+        }
+
+        return sessions;
     }
 
     public void EndSession(Guid sessionId) {
