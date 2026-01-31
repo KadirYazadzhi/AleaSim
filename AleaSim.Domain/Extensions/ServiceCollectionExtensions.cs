@@ -13,7 +13,6 @@ public static class ServiceCollectionExtensions {
         // Core Engines & Logic
         services.AddSingleton<IRngService, DeterministicRngService>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
-        services.AddSingleton<IRtpEngine, RtpEngine>();
         services.AddSingleton<IVaultService, VaultService>();
         services.AddSingleton<IBrainService, BrainService>();
         services.AddSingleton<IJackpotService, JackpotService>();
