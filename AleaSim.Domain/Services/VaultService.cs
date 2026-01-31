@@ -59,8 +59,42 @@ public class VaultService : IVaultService {
 
         if (success) {
             if (profile != null && !isAdmin) {
-                profile.ShadowBalance += amount * 0.95m;
-                repo.UpdatePlayerProfile(profile);
+                // Only contribute to Shadow Balance if playing with Real Money
+                // If BonusBalance was used (partially or fully), we skip contribution to avoid skewing Real RTP with Bonus Wagering
+                bool isRealMoneyBet = user.BonusBalance == 0 || (user.BonusBalance > 0 && user.BonusBalance < amount); // Simplified: If any bonus used, treat as bonus? Or proportional?
+                // Strict approach: If ANY bonus money used, don't accure Shadow.
+                // However, the original code deduction logic was:
+                // if (user.BonusBalance >= amount) -> Pure Bonus
+                // else -> Mixed or Pure Real.
+                
+                // Let's rely on the state BEFORE deduction. We've already deducted.
+                // Re-evaluating:
+                // If we deducted from BonusBalance, we shouldn't add to ShadowBalance.
+                // If we deducted from Balance, we SHOULD add.
+                // But `ProcessBetAsync` modifies `user` object in place.
+                
+                // Better Logic:
+                // We know `amount`. We know if we touched `Balance`.
+                // The deduction logic above did:
+                // if (Bonus >= amount) -> Bonus paid all.
+                // else -> Bonus paid some, Balance paid remainder.
+                
+                // We should only credit Shadow for the portion paid by Real Balance.
+                // BUT, `ProcessWinAsync` doesn't know the split.
+                // To keep it symmetrical with the proposed `ProcessWinAsync` fix (checking BonusBalance > 0),
+                // we will stick to: Only add to Shadow if NO bonus balance existed or was used.
+                
+                // Actually, simplest and safest given the instructions:
+                // "If Bonus money was used ... DO NOT add".
+                // We can check if `user.BonusBalance` was involved.
+                // Since we already modified `user`, we can't check previous state easily without tracking it.
+                // But we can check `transaction` log or just use the logic:
+                // If `user.WageringRequirement > 0`, they are in bonus mode.
+                
+                if (user.WageringRequirement == 0) {
+                     profile.ShadowBalance += amount * 0.95m;
+                     repo.UpdatePlayerProfile(profile);
+                }
             }
             
             if (!isAdmin) {
@@ -91,7 +125,7 @@ public class VaultService : IVaultService {
         var profile = repo.GetPlayerProfile(userId);
         if (user == null) return;
 
-        if (profile != null) {
+        if (profile != null && user.WageringRequirement == 0) {
             profile.ShadowBalance -= amount;
             repo.UpdatePlayerProfile(profile);
         }
