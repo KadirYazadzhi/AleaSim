@@ -218,7 +218,7 @@ public class SlotGameEngine : BaseGameEngine {
             if (totalWin > 0) {
                 if (state.BonusBells.Any(b => b.Type == BellType.Major) && !state.IsBonusActive) {
                     foreach(var b in state.BonusBells.Where(x => x.Type == BellType.Major)) {
-                        JackpotService.ClaimJackpot(JackpotTier.Spades, repo);
+                        await JackpotService.ClaimJackpot(JackpotTier.Spades, repo);
                     }
                 }
 
