@@ -17,7 +17,7 @@ public class BlackjackGameEngine : BaseGameEngine {
     }
 
     public class BlackjackHand {
-        public List<Card> Cards { get; set; } = new();
+        public List<string> Cards { get; set; } = new();
         public decimal Bet { get; set; }
         public bool IsDoubled { get; set; }
         public bool IsStand { get; set; }
