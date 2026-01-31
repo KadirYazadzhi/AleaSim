@@ -14,13 +14,13 @@ public class VoucherService : IVoucherService {
         var voucher = repo.GetVoucherByCode(code);
         if (voucher == null) throw new Exception("Invalid voucher code.");
         if (voucher.ExpiresAt < DateTime.UtcNow) throw new Exception("Voucher expired.");
-        if (voucher.CurrentRedemptions >= voucher.MaxRedemptions) throw new Exception("Voucher fully redeemed.");
+        if (voucher.CurrentUses >= voucher.MaxUses) throw new Exception("Voucher fully redeemed.");
         
         if (repo.HasUserRedeemedVoucher(userId, voucher.Id)) throw new Exception("You have already redeemed this voucher.");
 
         using var transaction = repo.BeginTransaction();
         try {
-            voucher.CurrentRedemptions++;
+            voucher.CurrentUses++;
             repo.UpdateVoucher(voucher);
 
             var userVoucher = new UserVoucher {
