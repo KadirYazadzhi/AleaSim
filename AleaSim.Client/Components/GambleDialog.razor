@@ -1,4 +1,5 @@
 @using AleaSim.Client.Services
+@using System.Text.Json.Nodes
 @inject IGameService GameService
 @inject AudioService Audio
 @inject ISnackbar Snackbar
@@ -57,15 +58,15 @@
             var response = await GameService.PerformAction("slot", SessionId, "gamble", choice);
             
             if (response.Success) {
-                // Check new state or balance to see if won
-                // For simplicity, we assume if action succeeded without error, we check result via UI update
-                // Ideally response should contain result.
-                // We'll close and let parent refresh.
-                
-                // Hack: Check if we won by querying state or assuming win if balance up?
-                // Actually, backend saves round decision.
-                // Let's just close and let main UI update.
-                MudDialog.Close(DialogResult.Ok(true));
+                var state = JsonNode.Parse(response.UpdatedStateJson);
+                decimal pendingWin = (decimal?)state?["PendingGambleWin"] ?? 0;
+
+                if (pendingWin > Amount) {
+                    MudDialog.Close(DialogResult.Ok(true));
+                } else {
+                    Snackbar.Add("Better luck next time.", Severity.Info);
+                    MudDialog.Close(DialogResult.Cancel());
+                }
             } else {
                 Snackbar.Add("Gamble failed.", Severity.Error);
                 MudDialog.Close(DialogResult.Cancel());
