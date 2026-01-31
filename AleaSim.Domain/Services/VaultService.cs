@@ -23,13 +23,13 @@ public class VaultService : IVaultService {
         var profile = repo.GetPlayerProfile(userId);
         if (user == null) return false;
 
-        if (user.Role == Role.Admin) {
-                _ = _realTime.NotifyBalanceUpdate(userId, user.Balance + user.BonusBalance);
-            return true;
-        }
-
+        bool isAdmin = user.Role == Role.Admin;
         bool success = false;
-        if (user.BonusBalance > 0) {
+
+        if (isAdmin) {
+            success = true;
+        }
+        else if (user.BonusBalance > 0) {
             if (user.BonusBalance >= amount) {
                 user.BonusBalance -= amount;
                 if (user.WageringRequirement > 0) {
@@ -58,15 +58,23 @@ public class VaultService : IVaultService {
         }
 
         if (success) {
-            if (profile != null) {
+            if (profile != null && !isAdmin) {
                 profile.ShadowBalance += amount * 0.95m;
                 repo.UpdatePlayerProfile(profile);
             }
-            repo.UpdateUser(user);
+            
+            if (!isAdmin) {
+                repo.UpdateUser(user);
+            }
             
             repo.SaveTransaction(new Transaction {
-                Id = Guid.NewGuid(), UserId = userId, Amount = -amount, Type = TransactionType.Bet, 
-                Description = "Game Bet", Timestamp = DateTime.UtcNow, ResultingBalance = user.Balance
+                Id = Guid.NewGuid(), 
+                UserId = userId, 
+                Amount = isAdmin ? 0 : -amount, 
+                Type = TransactionType.Bet, 
+                Description = isAdmin ? "Admin Bet (Free)" : "Game Bet", 
+                Timestamp = DateTime.UtcNow, 
+                ResultingBalance = user.Balance
             });
 
             _ = _realTime.NotifyBalanceUpdate(userId, user.Balance + user.BonusBalance);
