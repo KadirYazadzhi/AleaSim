@@ -15,13 +15,15 @@ public class RealTimeClient : IAsyncDisposable {
     public event Action<string, string, DateTime, string>? OnChatMessageReceived; // Added avatar
 
     public async Task StartAsync(string token) {
-        if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected) return;
+        if (_hubConnection != null) {
+            await _hubConnection.DisposeAsync();
+        }
 
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(_hubUrl, options => {
                 options.AccessTokenProvider = () => Task.FromResult<string?>(token);
             })
-            .WithAutomaticReconnect()
+            .WithAutomaticReconnect(new[] { TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30) })
             .Build();
 
         _hubConnection.On<JackpotDto>("ReceiveJackpotUpdate", (dto) => {
