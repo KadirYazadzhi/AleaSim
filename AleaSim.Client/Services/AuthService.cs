@@ -49,7 +49,15 @@ public class AuthService : IAuthService {
 
     public async Task<UserDto?> GetMe() {
         try {
-            return await _httpClient.GetFromJsonAsync<UserDto>("api/Auth/me");
+            var response = await _httpClient.GetAsync("api/Auth/me");
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized) {
+                await Logout();
+                return null;
+            }
+            if (response.IsSuccessStatusCode) {
+                return await response.Content.ReadFromJsonAsync<UserDto>();
+            }
+            return null;
         } catch {
             return null;
         }
