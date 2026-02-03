@@ -69,7 +69,14 @@ public class SlotGameEngine : BaseGameEngine {
         if (gameEntity == null || string.IsNullOrWhiteSpace(gameEntity.ConfigurationJson)) return _defaultConfig;
         try {
             var config = JsonSerializer.Deserialize<SlotGameConfig>(gameEntity.ConfigurationJson);
-            return config ?? _defaultConfig;
+            if (config == null) return _defaultConfig;
+            
+            // Merge defaults if specific sections are missing
+            if (config.Paylines == null || config.Paylines.Length == 0) config.Paylines = _defaultConfig.Paylines;
+            if (config.Paytable == null || config.Paytable.Count == 0) config.Paytable = _defaultConfig.Paytable;
+            if (config.BaseStrip == null || config.BaseStrip.Length == 0) config.BaseStrip = _defaultConfig.BaseStrip;
+            
+            return config;
         } catch {
             return _defaultConfig;
         }
