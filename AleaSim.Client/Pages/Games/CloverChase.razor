@@ -193,7 +193,13 @@
                 await OpenGamble();
             }
 
-        } catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        } catch (Exception ex) { 
+            if (ex.Message.Contains("402") || ex.Message.Contains("Insufficient")) {
+                Snackbar.Add("Insufficient Funds! Please Deposit.", Severity.Warning);
+            } else {
+                Snackbar.Add(ex.Message, Severity.Error); 
+            }
+        }
         finally { isSpinning = false; StateHasChanged(); }
     }
 
