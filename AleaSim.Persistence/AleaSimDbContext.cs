@@ -42,6 +42,11 @@ public class AleaSimDbContext : DbContext {
         modelBuilder.ApplyConfiguration(new Configurations.JackpotConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.AuditEventConfiguration());
 
+        // Enforce Cascade Delete for cleanup
+        modelBuilder.Entity<User>().HasMany(u => u.GameSessions).WithOne().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<User>().HasMany(u => u.Transactions).WithOne().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<User>().HasOne(u => u.Profile).WithOne(p => p.User).HasForeignKey<PlayerProfile>(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
+
         modelBuilder.Entity<GlobalSetting>(entity => {
             entity.HasKey(e => e.Key);
             entity.Property(e => e.Key).HasMaxLength(100);
