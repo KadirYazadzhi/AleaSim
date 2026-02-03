@@ -28,8 +28,10 @@ public class User {
     public Role Role { get; set; }
     public DateTime CreatedAt { get; set; }
     public bool IsActive { get; set; }
-    public DateTime? LockoutUntil { get; set; }
+    public DateTime? LockoutUntil { get; set; } // For cool-down periods
 
-    [Timestamp]
-    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+    // Navigation Properties
+    public virtual PlayerProfile? Profile { get; set; }
+    public virtual ICollection<GameSession> GameSessions { get; set; } = new List<GameSession>();
+    public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
 }
