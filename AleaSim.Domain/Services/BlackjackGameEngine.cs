@@ -9,7 +9,6 @@ namespace AleaSim.Domain.Services;
 
 public class BlackjackGameEngine : BaseGameEngine {
     private readonly ILockService _lockService;
-    private Guid GameId = Guid.Parse("00000000-0000-0000-0000-000000000003");
 
     public BlackjackGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, ILockService lockService) 
         : base(rng, vault, brain, promo, jackpot, realTime, scope) {   
