@@ -128,6 +128,9 @@ public class GameController : ControllerBase {
         }
         catch (Exception ex) {
             _logger.LogError(ex, "Error in PlaceBet");
+            if (ex.Message.Contains("Insufficient", StringComparison.OrdinalIgnoreCase)) {
+                return StatusCode(402, ex.Message);
+            }
             return BadRequest(ex.Message);
         }
     }
@@ -142,6 +145,9 @@ public class GameController : ControllerBase {
         }
         catch (Exception ex) {
             _logger.LogError(ex, "Error in PerformAction");
+            if (ex.Message.Contains("Insufficient", StringComparison.OrdinalIgnoreCase)) {
+                return StatusCode(402, ex.Message);
+            }
             return BadRequest(ex.Message);
         }
     }
