@@ -11,11 +11,13 @@ public class BrainService : IBrainService {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IVaultService _vaultService;
     private readonly IMemoryCache _cache; 
+    private readonly IRngService _rngService;
 
-    public BrainService(IServiceScopeFactory scopeFactory, IVaultService vaultService, IMemoryCache cache) {
+    public BrainService(IServiceScopeFactory scopeFactory, IVaultService vaultService, IMemoryCache cache, IRngService rngService) {
         _scopeFactory = scopeFactory;
         _vaultService = vaultService;
         _cache = cache;
+        _rngService = rngService;
     }
 
     public BrainDirective GetNextDirective(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo) {
@@ -58,7 +60,8 @@ public class BrainService : IBrainService {
         }
 
         if (isShadowMode) {
-            var rand = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100);
+            int seed = HashCode.Combine(userId, gameId, betAmount, DateTime.UtcNow.Ticks);
+            var rand = _rngService.GetNextInt(seed, 1, 0, 100);
             if (rand < 30) { 
                 return new BrainDirective { DecisionType = "NearMiss", IsNearMiss = true, TargetWinAmount = 0 };
             }
@@ -70,12 +73,14 @@ public class BrainService : IBrainService {
         bool isBored = profile.AvgSpinInterval > 7.0;
         double volatility = isInFlow ? 2.0 : (isBored ? 0.5 : 1.0);
 
+        int seedMain = HashCode.Combine(userId, gameId, betAmount, DateTime.UtcNow.Ticks);
+
         // --- RULE 1: The Retention Hook ---
         int skillOffset = profile.LuckyCloverLevel;
         int retentionThreshold = Math.Max(2, (isBored ? 4 : 8) - skillOffset);
         
         if (profile.LossStreak >= retentionThreshold || (profile.CurrentSessionRtp < 0.5m && profile.TotalWagered > 50)) {
-            decimal multiplier = isBored ? (decimal)(new Random().Next(2, 5)) : (decimal)(new Random().Next(10, 25));
+            decimal multiplier = isBored ? (decimal)_rngService.GetNextInt(seedMain, 2, 2, 5) : (decimal)_rngService.GetNextInt(seedMain, 2, 10, 25);
             decimal targetWin = betAmount * multiplier;
             
             if (_vaultService.CanAffordWinCheck(userId, gameId, targetWin, repo)) {
@@ -88,7 +93,7 @@ public class BrainService : IBrainService {
             }
         }
 
-        var randHighRtp = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100);
+        var randHighRtp = _rngService.GetNextInt(seedMain, 3, 0, 100);
         if (profile.ActualRtp > 2.5 && profile.TotalWagered > 100 && randHighRtp < 40) { 
             return new BrainDirective { DecisionType = "Random", TargetWinAmount = 0, Reason = "Cooling Down High RTP" };
         }
@@ -134,7 +139,8 @@ public class BrainService : IBrainService {
 
         if (betAmount > 0 && winAmount > betAmount * 5) {
             var affinity = new Dictionary<int, double>();
-            int favoriteCandidate = System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, 10); 
+            int seed = HashCode.Combine(userId, betAmount, winAmount, DateTime.UtcNow.Ticks);
+            int favoriteCandidate = _rngService.GetNextInt(seed, 4, 1, 10); 
             if (!affinity.ContainsKey(favoriteCandidate)) affinity[favoriteCandidate] = 0;
             affinity[favoriteCandidate] += (double)winAmount / (double)betAmount;
             profile.SymbolAffinityJson = JsonSerializer.Serialize(affinity);
