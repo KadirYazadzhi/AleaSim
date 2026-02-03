@@ -93,7 +93,7 @@ public class BlackjackGameEngine : BaseGameEngine {
 
             if (action.ToLower() == "double" && targetHand.Count == 2) {
                 if (await VaultService.ProcessBetAsync(session.UserId, state.BetAmount, repo)) {
-                    repo.UpdateRtpStats(GameId, session.UserId, state.BetAmount, 0); 
+                    repo.UpdateRtpStats(session.GameId, session.UserId, state.BetAmount, 0); 
                     
                     if (state.ActiveHandIndex == 1) state.IsSplitDoubleDown = true;
                     else state.IsDoubleDown = true;
@@ -117,7 +117,7 @@ public class BlackjackGameEngine : BaseGameEngine {
                 
                 if (r1 == r2 || (isTenValue1 && isTenValue2)) {
                     if (await VaultService.ProcessBetAsync(session.UserId, state.BetAmount, repo)) {
-                        repo.UpdateRtpStats(GameId, session.UserId, state.BetAmount, 0);
+                        repo.UpdateRtpStats(session.GameId, session.UserId, state.BetAmount, 0);
                         state.SplitHand = new List<string> { state.PlayerHand[1] };
                         state.PlayerHand.RemoveAt(1);
                         if (r1 == "A") state.IsSplitAces = true;
@@ -190,7 +190,7 @@ public class BlackjackGameEngine : BaseGameEngine {
 
         if (win > 0) {
             await VaultService.ProcessWinAsync(session.UserId, win, repo);
-            repo.UpdateRtpStats(GameId, session.UserId, 0, win);
+            repo.UpdateRtpStats(session.GameId, session.UserId, 0, win);
             await questService.UpdateProgressAsync(session.UserId, "WinAmount", (int)win, repo, VaultService);
         }
         BrainService.UpdateProfile(session.UserId, state.BetAmount, win, repo);
