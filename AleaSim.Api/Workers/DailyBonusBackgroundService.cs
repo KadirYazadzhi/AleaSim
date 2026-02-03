@@ -104,6 +104,7 @@ public class DailyBonusBackgroundService : BackgroundService {
             }
 
             // Commit all changes (Tournament payouts, Daily Bonuses, Expirations)
+            repo.SaveChanges();
             tx.Commit();
             _logger.LogInformation("Daily Processing Complete & Committed.");
         }
