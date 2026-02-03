@@ -72,7 +72,7 @@ public class BrainServiceTests {
         var gameId = Guid.NewGuid();
         var profile = new PlayerProfile { 
             UserId = userId, 
-            ActualRtp = 2.5, // 250% RTP!
+            ActualRtp = 3.0, // 300% RTP!
             TotalWagered = 500,
             SymbolAffinityJson = "{}"
         };
