@@ -8,7 +8,8 @@ public enum TransactionType {
     WageringRequirementMet,
     Bet,
     Win,
-    Bonus
+    Bonus,
+    Faucet
 }
 
 public class Transaction {
