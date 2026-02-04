@@ -1,10 +1,18 @@
+using MudBlazor;
+
 namespace AleaSim.Client.Services;
 
 public class NotificationService {
+    private readonly ISnackbar _snackbar;
+
     public List<NotificationItem> History { get; } = new();
     public int UnreadCount => History.Count(x => !x.IsRead);
 
     public event Action? OnNotificationsChanged;
+
+    public NotificationService(ISnackbar snackbar) {
+        _snackbar = snackbar;
+    }
 
     public void Add(string title, string message, string type = "Info") {
         History.Insert(0, new NotificationItem {
@@ -13,6 +21,15 @@ public class NotificationService {
             Type = type,
             Timestamp = DateTime.Now
         });
+        
+        Severity severity = type switch {
+            "Success" => Severity.Success,
+            "Error" => Severity.Error,
+            "Warning" => Severity.Warning,
+            _ => Severity.Info
+        };
+        _snackbar.Add(message, severity);
+
         OnNotificationsChanged?.Invoke();
     }
 
