@@ -19,6 +19,7 @@ public class VaultController : ControllerBase {
         _vault = vault;
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost("deposit")]
     public IActionResult Deposit([FromBody] decimal amount) {
         if (amount <= 0) return BadRequest("Invalid amount");
@@ -37,6 +38,47 @@ public class VaultController : ControllerBase {
                 Amount = amount,
                 Type = TransactionType.Deposit,
                 Description = "Instant Deposit",
+                Timestamp = DateTime.UtcNow,
+                ResultingBalance = user.Balance
+            };
+            _repo.SaveTransaction(tx);
+
+            return Ok(new { NewBalance = user.Balance });
+        }
+        catch (UnauthorizedAccessException) { return Unauthorized(); }
+    }
+
+    [HttpPost("faucet")]
+    public IActionResult ClaimFaucet() {
+        try {
+            var userId = GetUserIdOrThrow();
+            var user = _repo.GetUser(userId);
+            if (user == null) return NotFound();
+
+            if (user.Balance >= 10) {
+                return BadRequest("Balance too high for faucet.");
+            }
+
+            var lastFaucet = _repo.GetUserTransactions(userId, 50)
+                                  .Where(t => t.Type == TransactionType.Faucet)
+                                  .OrderByDescending(t => t.Timestamp)
+                                  .FirstOrDefault();
+
+            if (lastFaucet != null && (DateTime.UtcNow - lastFaucet.Timestamp).TotalHours < 1) {
+                var remainingMinutes = 60 - (int)(DateTime.UtcNow - lastFaucet.Timestamp).TotalMinutes;
+                return BadRequest($"Faucet is cooling down. Try again in {remainingMinutes} minutes.");
+            }
+
+            decimal reliefAmount = 100;
+            user.Balance += reliefAmount;
+            _repo.UpdateUser(user);
+
+            var tx = new Transaction {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Amount = reliefAmount,
+                Type = TransactionType.Faucet,
+                Description = "Bankruptcy Relief",
                 Timestamp = DateTime.UtcNow,
                 ResultingBalance = user.Balance
             };
