@@ -113,6 +113,7 @@ public class SlotGameEngine : BaseGameEngine {
             if (session == null) throw new Exception("Session not found");
 
             var gameEntity = repo.GetGame(session.GameId);
+            if (gameEntity == null) throw new Exception("Game configuration not found.");
             var config = LoadConfig(gameEntity);
 
             // 1. Restore State

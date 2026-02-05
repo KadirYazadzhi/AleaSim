@@ -92,6 +92,8 @@ public class BlackjackGameEngine : BaseGameEngine {
             var targetHand = (state.ActiveHandIndex == 1 && state.SplitHand != null) ? state.SplitHand : state.PlayerHand;
 
             if (action.ToLower() == "double" && targetHand.Count == 2) {
+                if (session.UserId == Guid.Empty) throw new Exception("Invalid User ID in session.");
+
                 if (await VaultService.ProcessBetAsync(session.UserId, state.BetAmount, repo)) {
                     repo.UpdateRtpStats(session.GameId, session.UserId, state.BetAmount, 0); 
                     
