@@ -13,15 +13,22 @@ public class LoginRequest {
 
 public class LoginResponse {
     public string Token { get; set; } = string.Empty;
+    public string RefreshToken { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
 
     public LoginResponse() {}
-    public LoginResponse(string token, string username, string role) {
+    public LoginResponse(string token, string refreshToken, string username, string role) {
         Token = token;
+        RefreshToken = refreshToken;
         Username = username;
         Role = role;
     }
+}
+
+public class RefreshTokenRequest {
+    public string Token { get; set; } = string.Empty;
+    public string RefreshToken { get; set; } = string.Empty;
 }
 
 public class RegisterRequest {

@@ -30,6 +30,10 @@ public class User {
     public bool IsActive { get; set; }
     public DateTime? LockoutUntil { get; set; } // For cool-down periods
 
+    // --- Authentication ---
+    public string? RefreshToken { get; set; }
+    public DateTime? RefreshTokenExpiry { get; set; }
+
     // Navigation Properties
     public virtual PlayerProfile? Profile { get; set; }
     public virtual ICollection<GameSession> GameSessions { get; set; } = new List<GameSession>();
