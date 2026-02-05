@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
+using System.Security.Cryptography;
 
 namespace AleaSim.Api.Controllers;
 
@@ -35,10 +35,64 @@ public class AuthController : ControllerBase {
         var user = _repository.GetUserByUsername(request.Username);
         
         if (user != null && _passwordHasher.VerifyPassword(user.PasswordHash, request.Password)) {
-            return Ok(GenerateToken(user.Username, user.Id, user.Role));
+            var response = GenerateToken(user.Username, user.Id, user.Role);
+            
+            // Save Refresh Token to DB
+            user.RefreshToken = response.RefreshToken;
+            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+            _repository.UpdateUser(user);
+
+            return Ok(response);
         }
         
         return Unauthorized("Invalid credentials.");
+    }
+
+    [AllowAnonymous]
+    [HttpPost("refresh")]
+    public IActionResult Refresh([FromBody] RefreshTokenRequest request) {
+        var principal = GetPrincipalFromExpiredToken(request.Token);
+        if (principal == null) return BadRequest("Invalid Token");
+
+        var userIdClaim = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId)) return BadRequest("Invalid Token Claims");
+
+        var user = _repository.GetUser(userId);
+        if (user == null || user.RefreshToken != request.RefreshToken || user.RefreshTokenExpiry < DateTime.UtcNow) {
+            return BadRequest("Invalid or Expired Refresh Token");
+        }
+
+        var newTokens = GenerateToken(user.Username, user.Id, user.Role);
+        
+        // Rotate Refresh Token
+        user.RefreshToken = newTokens.RefreshToken;
+        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+        _repository.UpdateUser(user);
+
+        return Ok(newTokens);
+    }
+
+    private ClaimsPrincipal? GetPrincipalFromExpiredToken(string? token) {
+        var secretKey = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key missing");
+        var tokenValidationParameters = new TokenValidationParameters {
+            ValidateAudience = false,
+            ValidateIssuer = false,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey)),
+            ValidateLifetime = false // Ignore expiration for validation
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        try {
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+            if (securityToken is not JwtSecurityToken jwtSecurityToken || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+                throw new SecurityTokenException("Invalid token");
+
+            return principal;
+        }
+        catch {
+            return null;
+        }
     }
 
     [Authorize]
@@ -150,13 +204,20 @@ public class AuthController : ControllerBase {
                 new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim(ClaimTypes.Role, role.ToString()), new Claim("role", role.ToString()), new Claim("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", role.ToString())
             }),
-            Expires = DateTime.UtcNow.AddDays(7),
+            Expires = DateTime.UtcNow.AddMinutes(15), // Short-lived Access Token
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
         var token = tokenHandler.CreateToken(tokenDescriptor);
         
+        // Generate Cryptographically Secure Refresh Token
+        var randomNumber = new byte[32];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        var refreshToken = Convert.ToBase64String(randomNumber);
+
         return new LoginResponse { 
             Token = tokenHandler.WriteToken(token), 
+            RefreshToken = refreshToken,
             Username = username, 
             Role = role.ToString() 
         };
