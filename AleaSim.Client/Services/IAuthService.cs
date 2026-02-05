@@ -8,4 +8,5 @@ public interface IAuthService {
     Task Logout();
     Task<UserDto?> GetMe();
     Task<string> GetAvatar();
+    Task<string> RefreshToken();
 }

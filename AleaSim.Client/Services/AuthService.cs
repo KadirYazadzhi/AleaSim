@@ -24,6 +24,8 @@ public class AuthService : IAuthService {
             var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
             if (result != null) {
                 await _localStorage.SetItemAsync("authToken", result.Token);
+                await _localStorage.SetItemAsync("refreshToken", result.RefreshToken);
+
                 ((CustomAuthStateProvider)_authStateProvider).NotifyUserAuthentication(result.Token);
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", result.Token);
                 return result;
@@ -31,6 +33,33 @@ public class AuthService : IAuthService {
         }
         
         throw new Exception("Login failed. Check credentials.");
+    }
+
+    public async Task<string> RefreshToken() {
+        var token = await _localStorage.GetItemAsync<string>("authToken");
+        var refreshToken = await _localStorage.GetItemAsync<string>("refreshToken");
+
+        var response = await _httpClient.PostAsJsonAsync("api/Auth/refresh", new RefreshTokenRequest { 
+            Token = token, 
+            RefreshToken = refreshToken 
+        });
+
+        if (!response.IsSuccessStatusCode) {
+            await Logout();
+            return string.Empty;
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+        if (result == null) {
+            await Logout();
+            return string.Empty;
+        }
+
+        await _localStorage.SetItemAsync("authToken", result.Token);
+        await _localStorage.SetItemAsync("refreshToken", result.RefreshToken);
+
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", result.Token);
+        return result.Token;
     }
 
     public async Task Register(RegisterRequest request) {
@@ -43,6 +72,7 @@ public class AuthService : IAuthService {
 
     public async Task Logout() {
         await _localStorage.RemoveItemAsync("authToken");
+        await _localStorage.RemoveItemAsync("refreshToken");
         ((CustomAuthStateProvider)_authStateProvider).NotifyUserLogout();
         _httpClient.DefaultRequestHeaders.Authorization = null;
     }
