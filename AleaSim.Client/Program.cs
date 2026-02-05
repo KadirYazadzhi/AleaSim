@@ -11,8 +11,15 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// Configure HttpClient to talk to AleaSim.Api
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://localhost:5286") });
+// Configure HttpClient with RefreshTokenHandler
+builder.Services.AddTransient<RefreshTokenHandler>();
+
+builder.Services.AddHttpClient("AleaSim.Api", client => {
+    client.BaseAddress = new Uri("http://localhost:5286");
+})
+.AddHttpMessageHandler<RefreshTokenHandler>();
+
+builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("AleaSim.Api"));
 
 builder.Services.AddMudServices();
 builder.Services.AddBlazoredLocalStorage();
