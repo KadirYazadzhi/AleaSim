@@ -151,7 +151,7 @@
             
             var result = await GameService.PlaceBet("blackjack", sessionId.Value, betAmount);
             var state = JsonSerializer.Deserialize<BlackjackStateUI>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (state != null) UpdateUI(state);
+            if (state != null) await UpdateUI(state);
             
             await RefreshBalance(); // Sync exact balance
         } catch (Exception ex) {
@@ -169,14 +169,14 @@
             var response = await GameService.PerformAction("blackjack", sessionId.Value, action);
             if (response.Success) {
                 var state = JsonSerializer.Deserialize<BlackjackStateUI>(response.UpdatedStateJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                if (state != null) UpdateUI(state);
+                if (state != null) await UpdateUI(state);
             }
         } catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
         }
     }
 
-    private void UpdateUI(BlackjackStateUI state) {
+    private async Task UpdateUI(BlackjackStateUI state) {
         playerHand = state.PlayerHand;
         dealerHand = state.DealerHand;
         isRoundOver = state.IsRoundOver;
@@ -193,7 +193,8 @@
             if (gameResult.Contains("WIN") || gameResult == "PUSH") {
                 if (gameResult.Contains("WIN")) Audio.PlayWin();
                 // Delay refresh to allow animation to finish visually, then sync money
-                Task.Delay(1000).ContinueWith(_ => InvokeAsync(RefreshBalance));
+                await Task.Delay(1000);
+                await RefreshBalance();
             }
         }
         StateHasChanged();
@@ -218,6 +219,6 @@
         return value;
     }
 
-    public async ValueTask DisposeAsync() { }
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     public class BlackjackStateUI { public List<string> PlayerHand { get; set; } = new(); public List<string> DealerHand { get; set; } = new(); public bool IsRoundOver { get; set; } }
 }

@@ -202,7 +202,7 @@
         };
     }
 
-    public async ValueTask DisposeAsync() { }
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     public class RouletteResult { public int Number { get; set; } }
 }

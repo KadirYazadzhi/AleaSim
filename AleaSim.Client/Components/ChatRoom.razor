@@ -27,7 +27,7 @@
                       Placeholder="Type a message..." 
                       Variant="Variant.Outlined" 
                       Margin="Margin.Dense"
-                      OnKeyDown="@(e => { if(e.Key == "Enter") Send(); })"
+                      OnKeyDown="@(async (e) => { if(e.Key == "Enter") await Send(); })"
                       Style="background: #222; color: white;" />
         <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Primary" OnClick="Send" />
     </div>
