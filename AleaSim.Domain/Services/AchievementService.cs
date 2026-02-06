@@ -50,7 +50,7 @@ public class AchievementService : IAchievementService {
         }
     }
 
-    public async Task<IEnumerable<UserAchievement>> GetUserAchievements(Guid userId, IGameRepository repo) {
-        return repo.GetUserAchievements(userId);
+    public Task<IEnumerable<UserAchievement>> GetUserAchievements(Guid userId, IGameRepository repo) {
+        return Task.FromResult(repo.GetUserAchievements(userId));
     }
 }

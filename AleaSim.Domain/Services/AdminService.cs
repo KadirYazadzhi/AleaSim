@@ -23,26 +23,7 @@ public class AdminService : IAdminService {
         _brainService = brainService;
     }
 
-    public async Task<AdminDashboardStats> GetLiveStats() {
-        // In a real high-load system, these would be cached or pre-calculated queries.
-        // For this prototype, we query the repo directly.
-        
-        // We need direct access to DbContext features for complex aggregations if Repository doesn't expose them.
-        // Assuming we can add specific query methods to Repo or use what we have.
-        // Since I can't easily change Repo interface right now without touching other files, 
-        // I'll rely on fetching data via Repo or assume Repo has a "GetRtpStats" equivalent.
-        // Actually, let's use the AuditLogs or specific aggregations if possible.
-        // Wait, EfGameRepository has `_context`. 
-        // To do this cleanly, I will implement a specialized method in AdminService 
-        // that assumes it can run scoped queries if I had the context, 
-        // but since I only have IGameRepository, I should add a method to IGameRepository 
-        // OR (hacky) cast it if I know the implementation.
-        // BETTER: Use `ExecuteScoped` pattern if I had one, or just add `GetDailyStats` to Repo.
-        // I will add `GetDailyFinancials` to IGameRepository to keep it clean.
-        
-        // Let's defer the "Write to Repo" for a second and assume we have the data.
-        // I will add the method to Repo in the next step.
-        
+    public Task<AdminDashboardStats> GetLiveStats() {
         var financials = _repository.GetDailyFinancials(DateTime.UtcNow.Date);
         var activeCount = _repository.GetActivePlayerCount(10); // Active in last 10 mins
         
@@ -56,19 +37,15 @@ public class AdminService : IAdminService {
             TopWinners = _repository.GetTopWinners(DateTime.UtcNow.Date, 5).Select(u => $"{u.Username} (${u.TotalWin})").ToList()
         };
 
-        return await Task.FromResult(stats);
+        return Task.FromResult(stats);
     }
 
-    public async Task<PlayerDossier?> GetPlayerDossier(Guid userId) {
+    public Task<PlayerDossier?> GetPlayerDossier(Guid userId) {
         var profile = _repository.GetPlayerProfile(userId);
-        if (profile == null) return null;
+        if (profile == null) return Task.FromResult<PlayerDossier?>(null);
 
-        // We need to fetch the user entity too to get username/balance
-        // Repo.GetUser is not strictly in the interface I saw earlier, let's check.
-        // IGameRepository usually has GetUser(id).
-        // I'll assume GetUser exists or add it.
         var user = _repository.GetUser(userId); 
-        if (user == null) return null;
+        if (user == null) return Task.FromResult<PlayerDossier?>(null);
 
         var dossier = new PlayerDossier {
             User = user,
@@ -82,7 +59,7 @@ public class AdminService : IAdminService {
                 .ToList()
         };
 
-        return await Task.FromResult(dossier);
+        return Task.FromResult<PlayerDossier?>(dossier);
     }
 
     public async Task InjectBonus(Guid adminId, Guid userId, decimal amount, string reason) {
@@ -98,7 +75,7 @@ public class AdminService : IAdminService {
         await _vaultService.CreditBonusAsync(userId, amount, amount * 10, _repository); // 10x wagering default
     }
 
-    public async Task ForceCooldown(Guid adminId, Guid userId, int durationMinutes, string reason) {
+    public Task ForceCooldown(Guid adminId, Guid userId, int durationMinutes, string reason) {
         _auditService.LogEvent("ADMIN_FORCE_COOLDOWN", $"Admin {adminId} forced cooldown on {userId} for {durationMinutes}m. Reason: {reason}", adminId.ToString(), JsonSerializer.Serialize(new { TargetUser = userId, Duration = durationMinutes }));
 
         var user = _repository.GetUser(userId);
@@ -106,23 +83,28 @@ public class AdminService : IAdminService {
             user.LockoutUntil = DateTime.UtcNow.AddMinutes(durationMinutes);
             _repository.UpdateUser(user);
         }
+        return Task.CompletedTask;
     }
-    public async Task SetGlobalRtp(Guid adminId, decimal targetRtp) {
+
+    public Task SetGlobalRtp(Guid adminId, decimal targetRtp) {
         _auditService.LogEvent("ADMIN_SET_RTP", $"Global RTP set to {targetRtp}%", adminId.ToString(), targetRtp.ToString());
         _repository.SetGlobalSetting("GlobalTargetRtp", targetRtp.ToString(), "Updated by Admin");
+        return Task.CompletedTask;
     }
 
-    public async Task ToggleEmergencyStop(Guid adminId, bool enabled) {
+    public Task ToggleEmergencyStop(Guid adminId, bool enabled) {
         _auditService.LogEvent("ADMIN_EMERGENCY_STOP", $"Emergency Stop set to {enabled}", adminId.ToString(), enabled.ToString());
         _repository.SetGlobalSetting("EmergencyStop", enabled.ToString().ToLower(), "Emergency Switch");
+        return Task.CompletedTask;
     }
 
-    public async Task SetVolatilityMode(Guid adminId, string mode) {
+    public Task SetVolatilityMode(Guid adminId, string mode) {
         _auditService.LogEvent("ADMIN_SET_VOLATILITY", $"Volatility set to {mode}", adminId.ToString(), mode);
         _repository.SetGlobalSetting("VolatilityMode", mode, "Updated by Admin");
+        return Task.CompletedTask;
     }
 
-    public async Task<ShadowCompareDto> GetShadowComparison(int sampleSize) {
+    public Task<ShadowCompareDto> GetShadowComparison(int sampleSize) {
         var allRounds = _repository.GetGlobalRecentRounds(sampleSize);
         
         decimal realTotalBet = 0;
@@ -143,7 +125,7 @@ public class AdminService : IAdminService {
             }
         }
 
-        return await Task.FromResult(new ShadowCompareDto {
+        return Task.FromResult(new ShadowCompareDto {
             RealTotalWin = realTotalWin,
             ShadowTotalWin = shadowTotalWin,
             RealRtp = (double)(realTotalBet > 0 ? (realTotalWin / realTotalBet) * 100 : 0),
@@ -152,22 +134,24 @@ public class AdminService : IAdminService {
         });
     }
 
-    public async Task UpdateUserBalance(Guid adminId, Guid userId, decimal newBalance) {
+    public Task UpdateUserBalance(Guid adminId, Guid userId, decimal newBalance) {
         var user = _repository.GetUser(userId);
         if (user != null) {
             user.Balance = newBalance;
             _repository.UpdateUser(user);
             _auditService.LogEvent("ADMIN_EDIT_BALANCE", $"Admin {adminId} set balance to {newBalance} for {userId}", adminId.ToString(), newBalance.ToString());
         }
+        return Task.CompletedTask;
     }
 
-    public async Task ToggleUserStatus(Guid adminId, Guid userId, bool isActive) {
+    public Task ToggleUserStatus(Guid adminId, Guid userId, bool isActive) {
         var user = _repository.GetUser(userId);
         if (user != null) {
             user.IsActive = isActive;
             _repository.UpdateUser(user);
             _auditService.LogEvent("ADMIN_USER_STATUS", $"Admin {adminId} set status to {isActive} for {userId}", adminId.ToString(), isActive.ToString());
         }
+        return Task.CompletedTask;
     }
 
 }

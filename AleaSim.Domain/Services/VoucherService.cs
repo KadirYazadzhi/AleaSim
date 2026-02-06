@@ -45,7 +45,7 @@ public class VoucherService : IVoucherService {
         }
     }
 
-    public async Task<IEnumerable<Voucher>> GetAllVouchers(IGameRepository repo) {
-        return repo.GetAllVouchers();
+    public Task<IEnumerable<Voucher>> GetAllVouchers(IGameRepository repo) {
+        return Task.FromResult(repo.GetAllVouchers());
     }
 }
