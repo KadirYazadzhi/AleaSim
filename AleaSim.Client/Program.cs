@@ -4,6 +4,8 @@ using AleaSim.Client;
 using MudBlazor.Services;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.DependencyInjection;
+using System.Net.Http;
 
 using AleaSim.Client.Services; // Added
 

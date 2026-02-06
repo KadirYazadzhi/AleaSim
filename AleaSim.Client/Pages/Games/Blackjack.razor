@@ -191,7 +191,7 @@
             else gameResult = "DEALER WINS";
 
             if (gameResult.Contains("WIN") || gameResult == "PUSH") {
-                if (gameResult.Contains("WIN")) Audio.PlayWin();
+                if (gameResult.Contains("WIN")) await Audio.PlayWin();
                 // Delay refresh to allow animation to finish visually, then sync money
                 await Task.Delay(1000);
                 await RefreshBalance();

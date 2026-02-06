@@ -132,9 +132,9 @@
         } catch { }
     }
 
-    private void AddBet(string type, string value) {
+    private async Task AddBet(string type, string value) {
         if (isSpinning) return;
-        Audio.PlayClick();
+        await Audio.PlayClick();
         var existing = currentBets.FirstOrDefault(b => b.Type == type && b.Value == value);
         if (existing != null) existing.Amount += chipValue;
         else currentBets.Add(new RouletteBetDto { Type = type, Value = value, Amount = chipValue });
