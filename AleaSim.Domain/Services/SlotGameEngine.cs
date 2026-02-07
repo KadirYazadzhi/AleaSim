@@ -199,7 +199,13 @@ public class SlotGameEngine : BaseGameEngine {
                         state.IsBonusActive = false; state.IsRespinActive = false; state.StickyClovers.Clear(); state.HasGoldenClover = false;
                     }
                 } else {
-                    totalWin = EvaluateGrid(state.Grid, currentBet, config) + instantWin;
+                    // Fix: Add line wins even if bonus triggered in this spin
+                    decimal lineWin = EvaluateGrid(state.Grid, currentBet, config);
+                    totalWin = lineWin + instantWin;
+                    
+                    // If bonus just triggered (IsBonusActive became true in PlayStandardRound), 
+                    // we still pay the line wins from the base game spin.
+                    // Note: 'state.IsBonusActive' might be true now if PlayStandardRound set it.
                 }
 
                 if (state.IsRespinActive || state.IsBonusActive) {

@@ -130,14 +130,24 @@ public class RouletteGameEngine : BaseGameEngine {
             }
             else if (bet.Type == "color") {
                 bool isRed = new[] { 1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36 }.Contains(number);
-                if ((bet.Value == "red" && isRed) || (bet.Value == "black" && !isRed && number != 0)) {
+                if (number == 0) {
+                    // La Partage Rule: Return half bet
+                    total += bet.Amount * 0.5m;
+                }
+                else if ((bet.Value == "red" && isRed) || (bet.Value == "black" && !isRed)) {
                     win = true; mult = 2m;
                 }
             }
-            else if (bet.Type == "evenodd" && number != 0) {
-                bool isEven = number % 2 == 0;
-                if ((bet.Value == "even" && isEven) || (bet.Value == "odd" && !isEven)) {
-                    win = true; mult = 2m;
+            else if (bet.Type == "evenodd") {
+                if (number == 0) {
+                    // La Partage Rule: Return half bet
+                    total += bet.Amount * 0.5m;
+                }
+                else {
+                    bool isEven = number % 2 == 0;
+                    if ((bet.Value == "even" && isEven) || (bet.Value == "odd" && !isEven)) {
+                        win = true; mult = 2m;
+                    }
                 }
             }
 

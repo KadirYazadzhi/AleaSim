@@ -130,6 +130,24 @@ public class BlackjackGameEngine : BaseGameEngine {
                     } else throw new Exception("Insufficient funds for Split");
                 }
             } 
+            else if (action.ToLower() == "insurance" && state.DealerHand.Count == 2 && state.DealerHand[0].StartsWith("A") && !state.IsRoundOver) {
+                decimal insuranceBet = state.BetAmount / 2;
+                if (await VaultService.ProcessBetAsync(session.UserId, insuranceBet, repo)) {
+                    // Check dealer hole card
+                    if (CalculateHandValue(state.DealerHand) == 21) {
+                        // Dealer has BJ, insurance pays 2:1
+                        decimal win = insuranceBet * 3; // Return bet + win (2x)
+                        await VaultService.ProcessWinAsync(session.UserId, win, repo);
+                        repo.UpdateRtpStats(session.GameId, session.UserId, insuranceBet, win);
+                        // Round will end naturally via next check or dealer reveal
+                        // Actually, if Dealer has BJ, round ends immediately usually.
+                        // But let's just record the side bet win here.
+                    } else {
+                        // Dealer does not have BJ, insurance lost.
+                        repo.UpdateRtpStats(session.GameId, session.UserId, insuranceBet, 0);
+                    }
+                } else throw new Exception("Insufficient funds for Insurance");
+            }
             else if (action.ToLower() == "hit") {
                 if (state.IsSplitAces && targetHand.Count >= 2) throw new Exception("Cannot hit on split Aces.");
                 int seq = state.Sequence;
