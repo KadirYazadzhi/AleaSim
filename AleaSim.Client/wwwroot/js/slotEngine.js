@@ -9,7 +9,7 @@ window.slotEngine = {
     cols: 5,
     running: false,
 
-    init: (containerId) => {
+    init: async (containerId) => {
         const el = document.getElementById(containerId);
         if (!el) return;
         el.innerHTML = '';
@@ -22,23 +22,27 @@ window.slotEngine = {
         });
         el.appendChild(window.slotEngine.app.view);
 
-        // Load Textures
-        const loader = PIXI.Loader.shared;
+        // Load Textures using PIXI.Assets (v7+)
         for (let i = 1; i <= 12; i++) {
-            if (i === 9) continue; // Skip 9 if missing
-            loader.add(`sym${i}`, `images/slots/${i}.png`);
+            if (i === 9) continue; 
+            PIXI.Assets.add(`sym${i}`, `images/slots/${i}.png`);
         }
 
-        loader.load((loader, resources) => {
-            window.slotEngine.textures = resources;
+        const keys = [];
+        for(let i=1; i<=12; i++) { if(i!==9) keys.push(`sym${i}`); }
+        
+        try {
+            window.slotEngine.textures = await PIXI.Assets.load(keys);
             window.slotEngine.buildGrid();
-        });
+        } catch (e) {
+            console.error("Failed to load assets", e);
+        }
     },
 
     buildGrid: () => {
         const { app, cols, reelWidth, symbolSize } = window.slotEngine;
         const container = new PIXI.Container();
-        container.x = 40; // Padding
+        container.x = 40; 
         container.y = 40;
         app.stage.addChild(container);
 
@@ -54,10 +58,20 @@ window.slotEngine = {
                 speed: 0
             };
 
-            // Init Random Symbols
-            for (let r = 0; r < 5; r++) { // 4 visible + 1 buffer
+            for (let r = 0; r < 5; r++) { 
                 const id = Math.floor(Math.random() * 8) + 1;
-                const sprite = new PIXI.Sprite(window.slotEngine.textures[`sym${id}`].texture);
+                const tex = window.slotEngine.textures[`sym${id}`];
+                
+                // Fallback graphic if texture fails
+                let sprite;
+                if (tex) {
+                    sprite = new PIXI.Sprite(tex);
+                } else {
+                    sprite = new PIXI.Graphics();
+                    sprite.beginFill(0xFF0000);
+                    sprite.drawRect(0,0,symbolSize, symbolSize);
+                }
+
                 sprite.width = symbolSize;
                 sprite.height = symbolSize;
                 sprite.x = (reelWidth - symbolSize) / 2;
@@ -70,7 +84,6 @@ window.slotEngine = {
             window.slotEngine.reels.push(reel);
         }
         
-        // Render Loop
         app.ticker.add((delta) => window.slotEngine.update(delta));
     },
 
@@ -79,9 +92,8 @@ window.slotEngine = {
         window.slotEngine.running = true;
         
         const data = JSON.parse(resultJson);
-        const grid = data.Grid; // Expected [[r0c0, r0c1...], [r1c0...]] - Server is Row-Major
+        const grid = data.Grid; 
         
-        // Convert Server Row-Major to Reel-Major for animation
         const finalSymbols = [];
         for(let c=0; c < 5; c++) {
             const colSyms = [];
@@ -91,13 +103,11 @@ window.slotEngine = {
             finalSymbols.push(colSyms);
         }
 
-        // Start Spin
         window.slotEngine.reels.forEach((reel, i) => {
             reel.speed = 20 + i * 2;
             reel.targetSymbols = finalSymbols[i];
             reel.stopping = false;
             
-            // Trigger stop sequence with delays
             setTimeout(() => {
                 reel.stopping = true;
             }, 1500 + i * 300);
@@ -116,42 +126,36 @@ window.slotEngine = {
                     s.sprite.y += reel.speed * delta;
                 });
 
-                // Wrap around
                 const limit = 4 * 100;
                 reel.symbols.forEach(s => {
                     if (s.sprite.y >= limit) {
-                        s.sprite.y -= 500; // Move to top (-100)
-                        // Swap texture
+                        s.sprite.y -= 500; 
+                        
+                        let nextId;
                         if (reel.stopping) {
-                            // Inject target symbol
-                            const targetIndex = 4 - Math.round(s.sprite.y / 100); // Rough logic
-                            // Simplified: Just randomize until very last frame or implement strict stack
-                            // For prototype: Just random while spinning
-                            const rnd = Math.floor(Math.random() * 8) + 1;
-                            s.id = rnd;
-                            s.sprite.texture = window.slotEngine.textures[`sym${rnd}`].texture;
+                            const targetIndex = 4 - Math.round(s.sprite.y / 100); 
+                            // Simplified random fill until exact snap
+                            nextId = Math.floor(Math.random() * 8) + 1;
                         } else {
-                            const rnd = Math.floor(Math.random() * 8) + 1;
-                            s.sprite.texture = window.slotEngine.textures[`sym${rnd}`].texture;
+                            nextId = Math.floor(Math.random() * 8) + 1;
                         }
+                        
+                        s.id = nextId;
+                        const tex = window.slotEngine.textures[`sym${nextId}`];
+                        if (tex && s.sprite instanceof PIXI.Sprite) s.sprite.texture = tex;
                     }
                 });
                 
                 if (reel.stopping) {
-                    // Snap logic - Simplified for prototype
-                    // In a real engine, we calculate exact distance. 
-                    // Here we just stop and force set textures for instant visual fix (cheat)
                     if (reel.speed > 0) reel.speed -= 0.5 * delta;
                     if (reel.speed <= 0) {
                         reel.speed = 0;
-                        // Force snap
                         reel.symbols.forEach((s, idx) => {
                             s.sprite.y = idx * 100;
-                            // Set Final Texture
                             if (idx < 4 && reel.targetSymbols) {
                                 const finalId = reel.targetSymbols[idx];
                                 const tex = window.slotEngine.textures[`sym${finalId}`];
-                                if (tex) s.sprite.texture = tex.texture;
+                                if (tex && s.sprite instanceof PIXI.Sprite) s.sprite.texture = tex;
                             }
                         });
                     }
