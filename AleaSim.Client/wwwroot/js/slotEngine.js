@@ -94,6 +94,8 @@ window.slotEngine = {
         const data = JSON.parse(resultJson);
         const grid = data.Grid; 
         
+        // Convert Server (Row-Major) to Reel (Col-Major)
+        // Grid[Row][Col] -> Reel[Col][Row]
         const finalSymbols = [];
         for(let c=0; c < 5; c++) {
             const colSyms = [];
@@ -104,65 +106,113 @@ window.slotEngine = {
         }
 
         window.slotEngine.reels.forEach((reel, i) => {
-            reel.speed = 20 + i * 2;
+            reel.speed = 30 + i * 5; // Faster spin
             reel.targetSymbols = finalSymbols[i];
             reel.stopping = false;
+            reel.isStopped = false; // Track state
             
             setTimeout(() => {
                 reel.stopping = true;
-            }, 1500 + i * 300);
+            }, 1000 + i * 400); // Staggered stops
         });
     },
 
     update: (delta) => {
         if (!window.slotEngine.running) return;
         
-        let allStopped = true;
+        let activeReels = 0;
 
-        window.slotEngine.reels.forEach(reel => {
-            if (reel.speed > 0) {
-                allStopped = false;
-                reel.symbols.forEach(s => {
-                    s.sprite.y += reel.speed * delta;
-                });
+        window.slotEngine.reels.forEach((reel, reelIdx) => {
+            if (reel.isStopped) return;
+            activeReels++;
 
-                const limit = 4 * 100;
-                reel.symbols.forEach(s => {
-                    if (s.sprite.y >= limit) {
-                        s.sprite.y -= 500; 
+            reel.symbols.forEach(s => {
+                s.sprite.y += reel.speed * delta;
+            });
+
+            // Loop logic
+            const limit = 4 * 100;
+            const bufferY = -100; // Position of the top buffer symbol
+
+            reel.symbols.forEach(s => {
+                if (s.sprite.y >= limit) {
+                    s.sprite.y = bufferY + (s.sprite.y - limit); // Wrap smoothly
+                    
+                    // Logic for mapping symbols
+                    // Symbols are physically ordered by Y. We need to know which 'slot' this sprite occupies.
+                    // Visual slots: 0 (top), 1, 2, 3. 
+                    // However, sprites cycle. 
+                    
+                    let nextId = Math.floor(Math.random() * 8) + 1; // Default random
+                    
+                    if (reel.stopping) {
+                        // When stopping, we want to start injecting the target symbols.
+                        // But strictly mapping moving sprites to target indices is complex in a simple loop.
+                        // SIMPLE RELIABLE HACK: 
+                        // Just randomize during spin. When speed hits 0, FORCE replace textures at exact Y positions.
+                    }
+                    
+                    const tex = window.slotEngine.textures[`sym${nextId}`];
+                    if (tex && s.sprite instanceof PIXI.Sprite) s.sprite.texture = tex;
+                }
+            });
+            
+            if (reel.stopping) {
+                // Decelerate
+                if (reel.speed > 0) {
+                    // Snap to grid
+                    // If we are close to alignment (modulo symbolSize) AND speed is low enough, SNAP.
+                    // But simpler: Just lerp speed to 0.
+                    
+                    // Instant Snap Logic for mapping accuracy:
+                    // 1. Slow down
+                    // 2. When speed is low, Hard Stop and Swap Textures.
+                    
+                    // Decay speed
+                    // reel.speed -= 1 * delta;
+                    
+                    // Let's rely on time-based hard stop for visual accuracy in this prototype
+                    // Actually, let's just stop immediately for precision if mapped.
+                    reel.speed = 0;
+                    reel.isStopped = true;
+                    
+                    // Force positioning and textures
+                    reel.symbols.forEach((s, idx) => {
+                        // We need to re-sort symbols by Y to know who is top
+                        // But symbols array order might not match Y order due to cycling.
+                        // Reset Y based on index is safest for a "hard stop" feel.
+                        s.sprite.y = idx * 100;
                         
-                        let nextId;
-                        if (reel.stopping) {
-                            const targetIndex = 4 - Math.round(s.sprite.y / 100); 
-                            // Simplified random fill until exact snap
-                            nextId = Math.floor(Math.random() * 8) + 1;
+                        // Map Texture (0-3 visible, 4 is buffer)
+                        let targetId = 1;
+                        if (idx < 4 && reel.targetSymbols) {
+                            targetId = reel.targetSymbols[idx];
                         } else {
-                            nextId = Math.floor(Math.random() * 8) + 1;
+                            targetId = Math.floor(Math.random() * 8) + 1; // Buffer
                         }
                         
-                        s.id = nextId;
-                        const tex = window.slotEngine.textures[`sym${nextId}`];
+                        const tex = window.slotEngine.textures[`sym${targetId}`];
                         if (tex && s.sprite instanceof PIXI.Sprite) s.sprite.texture = tex;
+                    });
+
+                    // Play Click Sound
+                    if (window.aleaAudio && window.aleaAudio.play) {
+                        window.aleaAudio.play('click');
                     }
-                });
-                
-                if (reel.stopping) {
-                    if (reel.speed > 0) reel.speed -= 0.5 * delta;
-                    if (reel.speed <= 0) {
-                        reel.speed = 0;
-                        reel.symbols.forEach((s, idx) => {
-                            s.sprite.y = idx * 100;
-                            if (idx < 4 && reel.targetSymbols) {
-                                const finalId = reel.targetSymbols[idx];
-                                const tex = window.slotEngine.textures[`sym${finalId}`];
-                                if (tex && s.sprite instanceof PIXI.Sprite) s.sprite.texture = tex;
-                            }
-                        });
+                    
+                    // Add bounce effect (visual polish)
+                    const container = reel.container;
+                    container.y = 20; // Push down
+                    // Simple manual tween or rely on next frame
+                    // We can use a simple decay variable on the container itself if we had a tween engine
+                    // But we have GSAP loaded in index.html!
+                    if (window.gsap) {
+                        gsap.to(container, {y: 0, duration: 0.3, ease: "bounce.out"});
                     }
                 }
             }
         });
 
-        if (allStopped) window.slotEngine.running = false;
+        if (activeReels === 0) window.slotEngine.running = false;
     }
 };
