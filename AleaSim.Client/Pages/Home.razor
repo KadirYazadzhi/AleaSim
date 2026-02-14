@@ -313,96 +313,102 @@
 
         <MudContainer MaxWidth="MaxWidth.Large" Class="mt-n16 position-relative z-20 pb-16">
             <!-- Features Grid -->
-            <MudGrid Class="mb-24">
-                <MudItem xs="12" md="4">
-                    <div class="feature-card glass-panel pa-8 rounded-xl h-100">
-                        <div class="icon-box bg-primary-transparent mb-6">
-                            <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" Size="Size.Large" />
+            <div style="margin-bottom: 100px;">
+                <MudGrid Spacing="6">
+                    <MudItem xs="12" md="4">
+                        <div class="feature-card glass-panel pa-8 rounded-xl h-100 hover-scale">
+                            <div class="icon-box bg-primary-transparent mb-6">
+                                <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" Size="Size.Large" />
+                            </div>
+                            <MudText Typo="Typo.h5" Class="fw-bold text-white mb-4">Provably Fair</MudText>
+                            <MudText Typo="Typo.body1" Class="text-gray-400">
+                                Cryptographic verification for every single spin. You don't have to trust us—verify it yourself on the blockchain.
+                            </MudText>
                         </div>
-                        <MudText Typo="Typo.h5" Class="fw-bold text-white mb-4">Provably Fair</MudText>
-                        <MudText Typo="Typo.body1" Class="text-gray-400">
-                            Cryptographic verification for every single spin. You don't have to trust us—verify it yourself on the blockchain.
-                        </MudText>
-                    </div>
-                </MudItem>
-                <MudItem xs="12" md="4">
-                    <div class="feature-card glass-panel pa-8 rounded-xl h-100">
-                        <div class="icon-box bg-secondary-transparent mb-6">
-                            <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Secondary" Size="Size.Large" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <div class="feature-card glass-panel pa-8 rounded-xl h-100 hover-scale">
+                            <div class="icon-box bg-secondary-transparent mb-6">
+                                <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Secondary" Size="Size.Large" />
+                            </div>
+                            <MudText Typo="Typo.h5" Class="fw-bold text-white mb-4">Instant Withdrawals</MudText>
+                            <MudText Typo="Typo.body1" Class="text-gray-400">
+                                Our automated vault system processes payouts in milliseconds. Your winnings are yours, instantly.
+                            </MudText>
                         </div>
-                        <MudText Typo="Typo.h5" Class="fw-bold text-white mb-4">Instant Withdrawals</MudText>
-                        <MudText Typo="Typo.body1" Class="text-gray-400">
-                            Our automated vault system processes payouts in milliseconds. Your winnings are yours, instantly.
-                        </MudText>
-                    </div>
-                </MudItem>
-                <MudItem xs="12" md="4">
-                    <div class="feature-card glass-panel pa-8 rounded-xl h-100">
-                        <div class="icon-box bg-info-transparent mb-6">
-                            <MudIcon Icon="@Icons.Material.Filled.Psychology" Color="Color.Info" Size="Size.Large" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <div class="feature-card glass-panel pa-8 rounded-xl h-100 hover-scale">
+                            <div class="icon-box bg-info-transparent mb-6">
+                                <MudIcon Icon="@Icons.Material.Filled.Psychology" Color="Color.Info" Size="Size.Large" />
+                            </div>
+                            <MudText Typo="Typo.h5" Class="fw-bold text-white mb-4">AI "Brain" Engine</MudText>
+                            <MudText Typo="Typo.body1" Class="text-gray-400">
+                                AleaSim adapts to your playstyle, offering dynamic missions and difficulty adjustments to keep you in the flow.
+                            </MudText>
                         </div>
-                        <MudText Typo="Typo.h5" Class="fw-bold text-white mb-4">AI "Brain" Engine</MudText>
-                        <MudText Typo="Typo.body1" Class="text-gray-400">
-                            AleaSim adapts to your playstyle, offering dynamic missions and difficulty adjustments to keep you in the flow.
-                        </MudText>
-                    </div>
-                </MudItem>
-            </MudGrid>
+                    </MudItem>
+                </MudGrid>
+            </div>
 
             <!-- About Us / The Brain -->
-            <div class="glass-panel pa-8 rounded-xl mb-24 d-flex align-center gap-8 animate-fade-in">
+            <div class="glass-panel pa-12 rounded-xl d-flex align-center gap-12 animate-fade-in" style="margin-bottom: 100px;">
                 <div class="d-none d-md-block">
-                    <MudIcon Icon="@Icons.Material.Filled.Psychology" Style="font-size: 8rem; color: rgba(124, 58, 237, 0.2);" />
+                    <MudIcon Icon="@Icons.Material.Filled.Psychology" Style="font-size: 12rem; color: rgba(124, 58, 237, 0.2);" />
                 </div>
                 <div>
-                    <MudText Typo="Typo.h4" Class="text-white fw-black mb-2">POWERED BY <span class="text-gradient">THE BRAIN</span></MudText>
-                    <MudText Typo="Typo.body1" Class="text-gray-400 mb-4" Style="line-height: 1.6;">
+                    <MudText Typo="Typo.h3" Class="text-white fw-black mb-4">POWERED BY <span class="text-gradient">THE BRAIN</span></MudText>
+                    <MudText Typo="Typo.h6" Class="text-gray-400 mb-6" Style="line-height: 1.6; font-weight: 400;">
                         AleaSim isn't just a casino; it's an intelligent gaming platform. Our proprietary AI engine adapts to your playstyle, 
                         ensuring fair odds and dynamic challenges that keep you in the flow state.
                     </MudText>
-                    <div class="d-flex gap-4">
-                        <div class="d-flex align-center text-gray-400">
-                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="mr-2" />
-                            <span>Provably Fair</span>
+                    <div class="d-flex gap-8">
+                        <div class="d-flex align-center text-gray-300">
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Medium" Class="mr-3" />
+                            <MudText Typo="Typo.body1" Class="fw-bold">Provably Fair</MudText>
                         </div>
-                        <div class="d-flex align-center text-gray-400">
-                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="mr-2" />
-                            <span>Instant Payouts</span>
+                        <div class="d-flex align-center text-gray-300">
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Medium" Class="mr-3" />
+                            <MudText Typo="Typo.body1" Class="fw-bold">Instant Payouts</MudText>
+                        </div>
+                        <div class="d-flex align-center text-gray-300">
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Medium" Class="mr-3" />
+                            <MudText Typo="Typo.body1" Class="fw-bold">Dynamic RTP</MudText>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Stats Section -->
-            <div class="mb-24 animate-fade-in">
-                <MudText Typo="Typo.h4" Class="text-white fw-black mb-8 text-center">LIVE PLATFORM STATS</MudText>
-                <MudGrid Justify="Justify.Center">
+            <div class="animate-fade-in" style="margin-bottom: 100px;">
+                <MudText Typo="Typo.h3" Class="text-white fw-black mb-12 text-center">LIVE PLATFORM STATS</MudText>
+                <MudGrid Justify="Justify.Center" Spacing="6">
                     <MudItem xs="12" sm="4">
-                        <div class="glass-panel pa-6 rounded-xl text-center hover-scale">
-                            <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" Size="Size.Large" Class="mb-2" />
-                            <MudText Typo="Typo.h3" Class="text-gradient fw-black">150K+</MudText>
-                            <MudText Typo="Typo.body1" Class="text-gray-400">Registered Players</MudText>
+                        <div class="glass-panel pa-8 rounded-xl text-center hover-scale">
+                            <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" Style="font-size: 4rem;" Class="mb-4" />
+                            <MudText Typo="Typo.h2" Class="text-gradient fw-black mb-2">150K+</MudText>
+                            <MudText Typo="Typo.h6" Class="text-gray-400">Registered Players</MudText>
                         </div>
                     </MudItem>
                     <MudItem xs="12" sm="4">
-                        <div class="glass-panel pa-6 rounded-xl text-center hover-scale">
-                            <MudIcon Icon="@Icons.Material.Filled.Percent" Color="Color.Secondary" Size="Size.Large" Class="mb-2" />
-                            <MudText Typo="Typo.h3" Class="text-gradient fw-black">98.4%</MudText>
-                            <MudText Typo="Typo.body1" Class="text-gray-400">Average Return to Player</MudText>
+                        <div class="glass-panel pa-8 rounded-xl text-center hover-scale">
+                            <MudIcon Icon="@Icons.Material.Filled.Percent" Color="Color.Secondary" Style="font-size: 4rem;" Class="mb-4" />
+                            <MudText Typo="Typo.h2" Class="text-gradient fw-black mb-2">98.4%</MudText>
+                            <MudText Typo="Typo.h6" Class="text-gray-400">Average Return to Player</MudText>
                         </div>
                     </MudItem>
                     <MudItem xs="12" sm="4">
-                        <div class="glass-panel pa-6 rounded-xl text-center hover-scale">
-                            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Color="Color.Warning" Size="Size.Large" Class="mb-2" />
-                            <MudText Typo="Typo.h3" Class="text-gradient fw-black">$4.2M+</MudText>
-                            <MudText Typo="Typo.body1" Class="text-gray-400">Total Winnings Paid</MudText>
+                        <div class="glass-panel pa-8 rounded-xl text-center hover-scale">
+                            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Color="Color.Warning" Style="font-size: 4rem;" Class="mb-4" />
+                            <MudText Typo="Typo.h2" Class="text-gradient fw-black mb-2">$4.2M+</MudText>
+                            <MudText Typo="Typo.h6" Class="text-gray-400">Total Winnings Paid</MudText>
                         </div>
                     </MudItem>
                 </MudGrid>
             </div>
 
             <!-- Game Showcase -->
-            <div class="mb-24">
+            <div style="margin-bottom: 100px;">
                 <div class="text-center mb-12">
                     <MudText Typo="Typo.h3" Class="fw-black text-white mb-2">Original Games</MudText>
                     <MudText Typo="Typo.subtitle1" Class="text-gray-400">Hand-crafted for the ultimate experience.</MudText>
@@ -431,63 +437,66 @@
             </div>
 
             <!-- Testimonials -->
-            <div class="mb-24 animate-fade-in">
-                <MudText Typo="Typo.h4" Class="text-white fw-black mb-8 text-center">PLAYER FEEDBACK</MudText>
-                <MudGrid>
+            <div class="animate-fade-in" style="margin-bottom: 100px;">
+                <MudText Typo="Typo.h3" Class="text-white fw-black mb-12 text-center">PLAYER FEEDBACK</MudText>
+                <MudGrid Spacing="6">
                     <MudItem xs="12" md="4">
-                        <div class="glass-panel pa-6 rounded-xl h-100">
-                            <div class="d-flex align-center mb-4">
-                                <MudAvatar Color="Color.Primary" Size="Size.Medium" Class="mr-3">A</MudAvatar>
+                        <div class="glass-panel pa-8 rounded-xl h-100 hover-scale">
+                            <div class="d-flex align-center mb-6">
+                                <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mr-4">A</MudAvatar>
                                 <div>
-                                    <MudText Typo="Typo.subtitle2" Class="text-white fw-bold">Alex_W</MudText>
+                                    <MudText Typo="Typo.h6" Class="text-white fw-bold">Alex_W</MudText>
                                     <MudRating ReadOnly="true" SelectedValue="5" Size="Size.Small" />
                                 </div>
                             </div>
-                            <MudText Typo="Typo.body2" Class="text-gray-400">"The withdrawal speed is insane. I hit a jackpot on Clover Chase and had the funds in my wallet in seconds."</MudText>
+                            <MudText Typo="Typo.body1" Class="text-gray-400" Style="font-style: italic;">"The withdrawal speed is insane. I hit a jackpot on Clover Chase and had the funds in my wallet in seconds. Absolutely unmatched."</MudText>
                         </div>
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <div class="glass-panel pa-6 rounded-xl h-100">
-                            <div class="d-flex align-center mb-4">
-                                <MudAvatar Color="Color.Secondary" Size="Size.Medium" Class="mr-3">K</MudAvatar>
+                        <div class="glass-panel pa-8 rounded-xl h-100 hover-scale">
+                            <div class="d-flex align-center mb-6">
+                                <MudAvatar Color="Color.Secondary" Size="Size.Large" Class="mr-4">K</MudAvatar>
                                 <div>
-                                    <MudText Typo="Typo.subtitle2" Class="text-white fw-bold">CryptoKing</MudText>
+                                    <MudText Typo="Typo.h6" Class="text-white fw-bold">CryptoKing</MudText>
                                     <MudRating ReadOnly="true" SelectedValue="5" Size="Size.Small" />
                                 </div>
                             </div>
-                            <MudText Typo="Typo.body2" Class="text-gray-400">"Finally, a casino that feels fair. The stats dashboard lets me verify everything. Totally transparent."</MudText>
+                            <MudText Typo="Typo.body1" Class="text-gray-400" Style="font-style: italic;">"Finally, a casino that feels fair. The stats dashboard lets me verify everything. Totally transparent and the community is great."</MudText>
                         </div>
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <div class="glass-panel pa-6 rounded-xl h-100">
-                            <div class="d-flex align-center mb-4">
-                                <MudAvatar Color="Color.Warning" Size="Size.Medium" Class="mr-3">S</MudAvatar>
+                        <div class="glass-panel pa-8 rounded-xl h-100 hover-scale">
+                            <div class="d-flex align-center mb-6">
+                                <MudAvatar Color="Color.Warning" Size="Size.Large" Class="mr-4">S</MudAvatar>
                                 <div>
-                                    <MudText Typo="Typo.subtitle2" Class="text-white fw-bold">SarahJ</MudText>
+                                    <MudText Typo="Typo.h6" Class="text-white fw-bold">SarahJ</MudText>
                                     <MudRating ReadOnly="true" SelectedValue="4" Size="Size.Small" />
                                 </div>
                             </div>
-                            <MudText Typo="Typo.body2" Class="text-gray-400">"Love the daily missions. It adds a whole new layer to the slot games. Can't wait for the new RPG features!"</MudText>
+                            <MudText Typo="Typo.body1" Class="text-gray-400" Style="font-style: italic;">"Love the daily missions. It adds a whole new layer to the slot games. Can't wait for the new RPG features to drop!"</MudText>
                         </div>
                     </MudItem>
                 </MudGrid>
             </div>
 
             <!-- Contact / Support -->
-            <div class="mb-24 text-center">
-                <MudText Typo="Typo.h5" Class="text-white fw-bold mb-4">Need Help?</MudText>
-                <MudText Typo="Typo.body1" Class="text-gray-400 mb-6">Our support team is available 24/7 to assist you with any questions.</MudText>
-                <div class="d-flex justify-center gap-4">
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Email">Email Us</MudButton>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Custom.Brands.Discord">Join Discord</MudButton>
+            <div class="text-center" style="margin-bottom: 80px; padding: 60px 0;">
+                <MudText Typo="Typo.h4" Class="text-white fw-black mb-4">NEED HELP?</MudText>
+                <MudText Typo="Typo.h6" Class="text-gray-400 mb-8" Style="max-width: 600px; margin-left: auto; margin-right: auto;">
+                    Our support team is available 24/7 to assist you with any questions, issues, or feedback you might have.
+                </MudText>
+                <div class="d-flex justify-center gap-6">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Email" Class="px-8 py-3 rounded-lg fw-bold hover-scale">Email Us</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Large" StartIcon="@Icons.Custom.Brands.Discord" Class="px-8 py-3 rounded-lg fw-bold hover-scale border-2">Join Discord</MudButton>
                 </div>
             </div>
 
             <!-- CTA -->
-            <MudPaper Class="pa-16 rounded-xxl text-center position-relative overflow-hidden" Style="background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);">
+            <MudPaper Class="pa-16 rounded-xxl text-center position-relative overflow-hidden shadow-2xl" Style="background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);">
                 <div style="position: relative; z-index: 2;">
-                    <MudText Typo="Typo.h3" Class="fw-black text-white mb-6">Ready to Win Big?</MudText>
-                    <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Warning" Size="Size.Large" Class="px-12 py-4 rounded-xl fw-black shadow-lg hover-scale" Style="font-size: 1.2rem;">CREATE ACCOUNT</MudButton>
+                    <MudText Typo="Typo.h3" Class="fw-black text-white mb-6">READY TO WIN BIG?</MudText>
+                    <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Warning" Size="Size.Large" Class="px-16 py-5 rounded-xl fw-black shadow-lg hover-scale pulse-neon" Style="font-size: 1.4rem;">CREATE FREE ACCOUNT</MudButton>
+                    <MudText Typo="Typo.body2" Class="mt-6 text-white opacity-80 fw-bold">NO DEPOSIT REQUIRED • INSTANT SETUP</MudText>
                 </div>
                 <!-- Abstract shapes -->
                 <div style="position: absolute; top: -50px; left: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
