@@ -103,7 +103,7 @@
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <NavMenu />
     </MudDrawer>
-    <MudDrawer @bind-Open="_chatOpen" Anchor="Anchor.End" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Persistent" Style="background: var(--mud-palette-drawer-background);">
+    <MudDrawer @bind-Open="_chatOpen" Anchor="Anchor.End" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Persistent">
         <ChatRoom />
     </MudDrawer>
     <MudMainContent>
