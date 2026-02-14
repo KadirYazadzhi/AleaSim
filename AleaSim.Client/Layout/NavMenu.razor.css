@@ -1,30 +1,36 @@
-/* Custom styles for NavMenu to give it a more premium feel */
 ::deep .mud-nav-link {
-    border-radius: 0 25px 25px 0;
-    margin-right: 8px;
-    padding-left: 24px;
-    transition: all 0.2s ease-in-out !important;
-    cursor: pointer !important;
+    padding: 10px 16px;
+    margin-bottom: 4px;
+    border-radius: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: #94a3b8; /* Slate 400 */
+    font-weight: 500;
 }
 
 ::deep .mud-nav-link:hover {
-    background-color: rgba(255, 255, 255, 0.05) !important;
-    padding-left: 30px !important;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    padding-left: 20px;
 }
 
 ::deep .mud-nav-link.active {
-    background: linear-gradient(90deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0) 100%) !important;
-    color: var(--mud-palette-primary) !important;
-    font-weight: 900 !important;
-    border-left: 4px solid var(--mud-palette-primary);
-    padding-left: 20px !important;
+    background: linear-gradient(90deg, rgba(124, 58, 237, 0.15) 0%, rgba(124, 58, 237, 0) 100%);
+    color: var(--mud-palette-primary);
+    font-weight: 700;
+    border-left: 3px solid var(--mud-palette-primary);
 }
 
-::deep .mud-nav-group .mud-nav-group-button {
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--mud-palette-primary);
-    font-weight: bold;
-    cursor: pointer !important;
+::deep .mud-nav-link .mud-nav-link-icon {
+    color: inherit;
+    min-width: 24px;
+    margin-right: 12px;
 }
+
+::deep .mud-nav-link.active .mud-nav-link-icon {
+    color: var(--mud-palette-primary);
+}
+
+.text-gray-500 { color: #64748b; }
+.uppercase { text-transform: uppercase; }
+.tracking-wider { letter-spacing: 0.05em; }
+.fw-bold { font-weight: 700; }
