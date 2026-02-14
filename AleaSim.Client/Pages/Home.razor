@@ -407,6 +407,18 @@
                 </MudGrid>
             </div>
 
+            <!-- CTA -->
+            <MudPaper Class="pa-16 rounded-xxl text-center position-relative overflow-hidden shadow-2xl" Style="background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%); margin-bottom: 100px;">
+                <div style="position: relative; z-index: 2;">
+                    <MudText Typo="Typo.h3" Class="fw-black text-white mb-6">READY TO WIN BIG?</MudText>
+                    <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Warning" Size="Size.Large" Class="px-16 py-5 rounded-xl fw-black shadow-lg hover-scale pulse-neon" Style="font-size: 1.4rem;">CREATE FREE ACCOUNT</MudButton>
+                    <MudText Typo="Typo.body2" Class="mt-6 text-white opacity-80 fw-bold">NO DEPOSIT REQUIRED • INSTANT SETUP</MudText>
+                </div>
+                <!-- Abstract shapes -->
+                <div style="position: absolute; top: -50px; left: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+                <div style="position: absolute; bottom: -50px; right: -50px; width: 300px; height: 300px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+            </MudPaper>
+
             <!-- Game Showcase -->
             <div style="margin-bottom: 100px;">
                 <div class="text-center mb-12">
@@ -431,6 +443,12 @@
                         <div class="game-card-inner">
                             <img src="https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=600&q=80" class="game-img" />
                             <div class="game-overlay"><span class="game-title">Blackjack</span></div>
+                        </div>
+                    </a>
+                    <a href="/register" class="game-card">
+                        <div class="game-card-inner">
+                            <img src="https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=600&q=80" class="game-img" />
+                            <div class="game-overlay"><span class="game-title">Other</span></div>
                         </div>
                     </a>
                 </div>
@@ -480,7 +498,7 @@
             </div>
 
             <!-- Contact / Support -->
-            <div class="text-center" style="margin-bottom: 80px; padding: 60px 0;">
+            <div class="text-center" style="padding: 60px 0;">
                 <MudText Typo="Typo.h4" Class="text-white fw-black mb-4">NEED HELP?</MudText>
                 <MudText Typo="Typo.h6" Class="text-gray-400 mb-8" Style="max-width: 600px; margin-left: auto; margin-right: auto;">
                     Our support team is available 24/7 to assist you with any questions, issues, or feedback you might have.
@@ -490,18 +508,6 @@
                     <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Large" StartIcon="@Icons.Custom.Brands.Discord" Class="px-8 py-3 rounded-lg fw-bold hover-scale border-2">Join Discord</MudButton>
                 </div>
             </div>
-
-            <!-- CTA -->
-            <MudPaper Class="pa-16 rounded-xxl text-center position-relative overflow-hidden shadow-2xl" Style="background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);">
-                <div style="position: relative; z-index: 2;">
-                    <MudText Typo="Typo.h3" Class="fw-black text-white mb-6">READY TO WIN BIG?</MudText>
-                    <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Warning" Size="Size.Large" Class="px-16 py-5 rounded-xl fw-black shadow-lg hover-scale pulse-neon" Style="font-size: 1.4rem;">CREATE FREE ACCOUNT</MudButton>
-                    <MudText Typo="Typo.body2" Class="mt-6 text-white opacity-80 fw-bold">NO DEPOSIT REQUIRED • INSTANT SETUP</MudText>
-                </div>
-                <!-- Abstract shapes -->
-                <div style="position: absolute; top: -50px; left: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
-                <div style="position: absolute; bottom: -50px; right: -50px; width: 300px; height: 300px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
-            </MudPaper>
 
         </MudContainer>
     </NotAuthorized>
