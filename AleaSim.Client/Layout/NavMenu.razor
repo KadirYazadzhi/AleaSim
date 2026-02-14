@@ -1,25 +1,38 @@
 <MudNavMenu>
-    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
-    
-    <AuthorizeView>
-        <Authorized>
-            <MudNavLink Href="game/cloverchase" Icon="@Icons.Material.Filled.Casino">Clover Chase</MudNavLink>
-            <MudNavLink Href="game/roulette" Icon="@Icons.Material.Filled.Lens">Roulette Royale</MudNavLink>
-            <MudNavLink Href="game/blackjack" Icon="@Icons.Material.Filled.ViewStream">Blackjack Royale</MudNavLink>
-            <MudNavLink Href="wallet" Icon="@Icons.Material.Filled.AccountBalanceWallet">My Wallet</MudNavLink>
-            <MudNavLink Href="history" Icon="@Icons.Material.Filled.History">Bet History</MudNavLink>
-            <MudNavLink Href="fairness" Icon="@Icons.Material.Filled.VerifiedUser">Fairness</MudNavLink>
-            
-            @if (context.User.IsInRole("Admin"))
-            {
-                <MudNavLink Href="dashboard" Icon="@Icons.Material.Filled.Dashboard">Admin Dashboard</MudNavLink>
-                <MudNavLink Href="admin/players" Icon="@Icons.Material.Filled.PersonSearch">Player Inspector</MudNavLink>
-                <MudNavLink Href="admin/vouchers" Icon="@Icons.Material.Filled.ConfirmationNumber">Vouchers</MudNavLink>
-            }
-            
-            <MudNavLink OnClick="Logout" Icon="@Icons.Material.Filled.Logout">Logout</MudNavLink>
-        </Authorized>
+    <div class="pa-4 mb-2 d-flex flex-column align-center">
+        <MudIcon Icon="@Icons.Material.Filled.Casino" Size="Size.Large" Color="Color.Primary" Class="mb-2" />
+        <MudText Typo="Typo.h6" Style="font-weight: 900; color: var(--mud-palette-primary);">ALEASIM</MudText>
+    </div>
+
+    <MudNavGroup Title="Lobby" Icon="@Icons.Material.Filled.Games" Expanded="true">
+        <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+        <MudNavLink Href="game/cloverchase" Icon="@Icons.Material.Filled.SlotMachine">
+            Clover Chase
+            <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Text" Class="ml-auto" Style="font-weight: bold;">HOT</MudChip>
+        </MudNavLink>
+        <MudNavLink Href="game/roulette" Icon="@Icons.Material.Filled.RotateRight">Roulette Royale</MudNavLink>
+        <MudNavLink Href="game/blackjack" Icon="@Icons.Material.Filled.Style">Blackjack Royale</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Account" Icon="@Icons.Material.Filled.AccountCircle" Expanded="false">
+        <MudNavLink Href="wallet" Icon="@Icons.Material.Filled.AccountBalanceWallet">My Wallet</MudNavLink>
+        <MudNavLink Href="history" Icon="@Icons.Material.Filled.History">Bet History</MudNavLink>
+        <MudNavLink Href="profile" Icon="@Icons.Material.Filled.Person">Profile</MudNavLink>
+        <MudNavLink Href="fairness" Icon="@Icons.Material.Filled.VerifiedUser">Fairness</MudNavLink>
+    </MudNavGroup>
+
+    <AuthorizeView Roles="Admin">
+        <MudNavGroup Title="Administration" Icon="@Icons.Material.Filled.Security" Expanded="false">
+            <MudNavLink Href="dashboard" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+            <MudNavLink Href="admin/players" Icon="@Icons.Material.Filled.PersonSearch">Players</MudNavLink>
+            <MudNavLink Href="admin/vouchers" Icon="@Icons.Material.Filled.ConfirmationNumber">Vouchers</MudNavLink>
+        </MudNavGroup>
     </AuthorizeView>
+
+    <div class="mt-auto pa-4">
+        <MudDivider Class="mb-4" />
+        <MudNavLink OnClick="Logout" Icon="@Icons.Material.Filled.Logout" IconColor="Color.Error">Logout</MudNavLink>
+    </div>
 </MudNavMenu>
 
 @code {
