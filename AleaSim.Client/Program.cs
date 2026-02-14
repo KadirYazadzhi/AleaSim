@@ -35,5 +35,6 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<AudioService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<RealTimeClient>();
+builder.Services.AddScoped<LayoutService>();
 
 await builder.Build().RunAsync();

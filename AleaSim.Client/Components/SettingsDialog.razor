@@ -9,6 +9,9 @@
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
+@implements IDisposable
+
+@inject LayoutService LayoutService
 
 <MudDialog>
     <TitleContent>
@@ -26,9 +29,9 @@
             <MudListItem>
                 <div class="d-flex justify-space-between align-center">
                     <MudText>Dark Mode</MudText>
-                    <MudToggleIconButton @bind-Toggled="@isDarkMode"
-                                         Icon="@Icons.Material.Filled.LightMode" Color="@Color.Warning" Title="Switch to Light Mode"
-                                         ToggledIcon="@Icons.Material.Filled.DarkMode" ToggledColor="@Color.Inherit" ToggledTitle="Switch to Dark Mode" />
+                    <MudIconButton Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
+                                   Color="Color.Inherit" 
+                                   OnClick="@(() => LayoutService.ToggleDarkMode())" />
                 </div>
             </MudListItem>
 
@@ -55,9 +58,17 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     
-    // This should ideally be synced with a ThemeProvider, for now we mock the state
-    private bool isDarkMode = true;
     private string clientSeed = "a8b3c9d2";
+
+    protected override void OnInitialized()
+    {
+        LayoutService.OnMajorUpdate += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        LayoutService.OnMajorUpdate -= StateHasChanged;
+    }
 
     private void Close() => MudDialog.Close();
 

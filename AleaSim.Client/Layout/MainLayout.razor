@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @using Blazored.LocalStorage
 @using AleaSim.Client.Services
 @using AleaSim.Client.Components
@@ -13,8 +14,9 @@
 @inject NotificationService NotifService
 @inject IDialogService DialogService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject LayoutService LayoutService
 
-<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
+<MudThemeProvider IsDarkMode="@LayoutService.IsDarkMode" Theme="_theme" />
 <MudDialogProvider />
 <MudPopoverProvider />
 <MudSnackbarProvider />
@@ -24,12 +26,17 @@
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">AleaSim Casino</MudText>
+        <MudText Typo="Typo.h5" Class="ml-3" Style="font-weight: 900; letter-spacing: 1px;">ALEASIM</MudText>
         <MudSpacer />
         
         <AuthorizeView>
             <Authorized>
-                <div class="d-flex align-center gap-4">
+                <div class="d-flex align-center gap-2">
+                    <!-- Theme Toggle -->
+                    <MudIconButton Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
+                                   Color="Color.Inherit" 
+                                   OnClick="@(() => LayoutService.ToggleDarkMode())" />
+
                     <!-- Flow State Debug/Visualizer -->
                     @if (_flowIntensity > 0) {
                         <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="@(_flowIntensity > 0.8 ? Color.Error : Color.Warning)" Class="mr-2 pulse-icon" />
@@ -37,7 +44,6 @@
 
                     <div class="d-none d-md-flex align-center mr-2">
                         <MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment" Color="Color.Error" Size="Size.Small" />
-                        <!-- Assuming CurrentStreak is not in UserDto yet, fallback or handle gracefully -->
                         <MudText Typo="Typo.subtitle2" Style="color: #ff4500; font-weight: bold;">@userProfile?.Progression?.CurrentLevel</MudText> 
                     </div>
 
@@ -72,7 +78,7 @@
                         <MudChip T="string" Icon="@GetTierIcon(userProfile.Progression.Tier)" Color="@GetTierColor(userProfile.Progression.Tier)" Variant="Variant.Filled">
                             @userProfile.Progression.TierName (Lv. @userProfile.Progression.CurrentLevel)
                         </MudChip>
-                        <MudText Typo="Typo.h6" Color="Color.Success">$@userProfile.Balance.ToString("N2")</MudText>
+                        <MudText Typo="Typo.h6" Color="Color.Success" Style="font-weight: bold;">$@userProfile.Balance.ToString("N2")</MudText>
                     }
                     <MudMenu AnchorOrigin="Origin.BottomRight">
                         <ActivatorContent>
@@ -86,6 +92,9 @@
                 </div>
             </Authorized>
             <NotAuthorized>
+                <MudIconButton Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
+                               Color="Color.Inherit" 
+                               OnClick="@(() => LayoutService.ToggleDarkMode())" />
                 <MudButton Href="/login" Color="Color.Inherit">Login</MudButton>
                 <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Secondary" Class="ml-2">Register</MudButton>
             </NotAuthorized>
@@ -94,7 +103,7 @@
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <NavMenu />
     </MudDrawer>
-    <MudDrawer @bind-Open="_chatOpen" Anchor="Anchor.End" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Persistent" Style="background: #111;">
+    <MudDrawer @bind-Open="_chatOpen" Anchor="Anchor.End" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Persistent" Style="background: var(--mud-palette-drawer-background);">
         <ChatRoom />
     </MudDrawer>
     <MudMainContent>
@@ -107,26 +116,53 @@
 @code {
     bool _drawerOpen = false;
     bool _chatOpen = false;
-    bool _isDarkMode = true;
     private UserDto? userProfile;
     private CelebrationOverlay celebrationOverlay = default!;
     private float _flowIntensity = 0f;
 
     private MudTheme _theme = new MudTheme() {
+        PaletteLight = new PaletteLight() {
+            Primary = "#D4AF37", // Rich Gold
+            Secondary = "#1B5E20", // Casino Green
+            Info = "#1976D2",
+            Success = "#2E7D32",
+            Warning = "#EF6C00",
+            Error = "#C62828",
+            AppbarBackground = "#ffffff",
+            Background = "#f5f5f5",
+            Surface = "#ffffff",
+            DrawerBackground = "#ffffff",
+            TextPrimary = "#212121",
+            TextSecondary = "#757575"
+        },
         PaletteDark = new PaletteDark() {
-            Primary = "#ffD700",
-            Secondary = "#4caf50",
-            Background = "#0f0f0f",
-            Surface = "#1a1a1a",
-            AppbarBackground = "#1a1a1a",
-            DrawerBackground = "#111",
-            TextPrimary = "#ffffff"
+            Primary = "#FFD700", // Gold
+            Secondary = "#00C853", // Vibrant Casino Green
+            Info = "#2196F3",
+            Success = "#00E676",
+            Warning = "#FF9100",
+            Error = "#FF1744",
+            Background = "#0B0E11", // Deep Midnight
+            Surface = "#15191C", // Slightly lighter
+            AppbarBackground = "#15191C",
+            DrawerBackground = "#0B0E11",
+            TextPrimary = "#ffffff",
+            TextSecondary = "#B0B0B0"
+        },
+        Typography = new Typography() {
+            Default = new Default() {
+                FontFamily = new[] { "Montserrat", "Helvetica", "Arial", "sans-serif" }
+            },
+            H1 = new H1() { FontWeight = 900 },
+            H2 = new H2() { FontWeight = 900 },
+            H3 = new H3() { FontWeight = 900 }
         }
     };
 
     protected override async Task OnInitializedAsync() {
         NotifService.OnNotificationsChanged += StateHasChanged;
         GameService.OnFlowStateChanged += HandleFlowStateChange; // Subscribe
+        LayoutService.OnMajorUpdate += StateHasChanged;
 
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true) {
@@ -140,6 +176,13 @@
                 RealTime.OnBalanceUpdated += HandleBalanceUpdate;
             }
         }
+    }
+
+    public void Dispose()
+    {
+        NotifService.OnNotificationsChanged -= StateHasChanged;
+        GameService.OnFlowStateChanged -= HandleFlowStateChange;
+        LayoutService.OnMajorUpdate -= StateHasChanged;
     }
 
     private void HandleFlowStateChange(float intensity) {
