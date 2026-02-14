@@ -110,6 +110,67 @@
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="my-4 pt-4">
             @Body
         </MudContainer>
+
+        <!-- Footer -->
+        <MudPaper Class="mt-16 pa-12" Elevation="0" Square="true" Style="border-top: 1px solid var(--mud-palette-divider); background: var(--mud-palette-surface);">
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+                <MudGrid>
+                    <MudItem xs="12" md="4">
+                        <div class="d-flex align-center mb-4">
+                            <MudIcon Icon="@Icons.Material.Filled.Casino" Color="Color.Primary" Size="Size.Large" Class="mr-2" />
+                            <MudText Typo="Typo.h5" Style="font-weight: 900;">ALEASIM</MudText>
+                        </div>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4" Style="max-width: 300px;">
+                            The world's first AI-driven, provably fair gaming simulator. Experience the future of entertainment with cryptographically secure algorithms.
+                        </MudText>
+                        <div class="d-flex gap-4">
+                            <MudIconButton Icon="@Icons.Custom.Brands.Twitter" Color="Color.Inherit" Size="Size.Small" />
+                            <MudIconButton Icon="@Icons.Custom.Brands.Telegram" Color="Color.Inherit" Size="Size.Small" />
+                            <MudIconButton Icon="@Icons.Custom.Brands.Discord" Color="Color.Inherit" Size="Size.Small" />
+                        </div>
+                    </MudItem>
+                    
+                    <MudItem xs="6" md="2">
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: bold;" Class="mb-4">GAMES</MudText>
+                        <MudLink Href="game/cloverchase" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2">Clover Chase</MudLink>
+                        <MudLink Href="game/roulette" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2">Roulette Royale</MudLink>
+                        <MudLink Href="game/blackjack" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2">Blackjack Royale</MudLink>
+                    </MudItem>
+
+                    <MudItem xs="6" md="2">
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: bold;" Class="mb-4">PLATFORM</MudText>
+                        <MudLink Href="/fairness" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2">Fairness</MudLink>
+                        <MudLink Href="/leaderboard" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2">Leaderboard</MudLink>
+                        <MudLink Href="/history" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2">Live Wins</MudLink>
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: bold;" Class="mb-4">NEWSLETTER</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Get the latest updates on new games and tournaments.</MudText>
+                        <div class="d-flex gap-2">
+                            <MudTextField T="string" Placeholder="Email Address" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary">Join</MudButton>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="my-8" />
+
+                <div class="d-flex flex-wrap justify-space-between align-center gap-4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        © 2026 ALEASIM. All rights reserved. 
+                    </MudText>
+                    
+                    <div class="d-flex align-center gap-4 opacity-50">
+                        <MudText Typo="Typo.caption" Style="border: 1px solid currentColor; padding: 2px 6px; border-radius: 4px; font-weight: bold;">18+</MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.Verified" Size="Size.Small" />
+                        <MudText Typo="Typo.caption">PROVABLY FAIR</MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" />
+                        <MudText Typo="Typo.caption">SSL SECURE</MudText>
+                    </div>
+                </div>
+            </MudContainer>
+        </MudPaper>
     </MudMainContent>
 </MudLayout>
 
