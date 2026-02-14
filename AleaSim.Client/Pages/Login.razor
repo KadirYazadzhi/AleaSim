@@ -3,34 +3,82 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
-    <MudCard>
-        <MudCardHeader>
-            <CardHeaderContent>
-                <MudText Typo="Typo.h5" Align="Align.Center">AleaSim Login</MudText>
-            </CardHeaderContent>
-        </MudCardHeader>
-        <MudCardContent>
-            <MudForm @bind-IsValid="@success" @bind-Errors="@errors">
-                <MudTextField T="string" Label="Username" Required="true" RequiredError="Username is required!" @bind-Value="model.Username" />
-                <MudTextField T="string" Label="Password" InputType="InputType.Password" Required="true" RequiredError="Password is required!" @bind-Value="model.Password" />
-            </MudForm>
-        </MudCardContent>
-        <MudCardActions>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!success)" OnClick="OnLogin" Class="ml-auto">Login</MudButton>
-        </MudCardActions>
-    </MudCard>
-    <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
-        Don't have an account? <MudLink Href="/register">Register here</MudLink>
-    </MudText>
-</MudContainer>
+<div class="d-flex justify-center align-center" style="min-height: 80vh; position: relative;">
+    <!-- Background Decor -->
+    <div style="position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: -1;"></div>
+
+    <div class="glass-panel pa-8 pa-md-12 rounded-xl" style="width: 100%; max-width: 480px; position: relative; z-index: 1;">
+        <div class="text-center mb-8">
+            <MudIcon Icon="@Icons.Material.Filled.Casino" Style="font-size: 4rem;" Color="Color.Primary" Class="mb-4 spin-hover" />
+            <MudText Typo="Typo.h4" Class="text-white fw-black">WELCOME BACK</MudText>
+            <MudText Typo="Typo.body1" Class="text-gray-400 mt-2">Sign in to continue your winning streak.</MudText>
+        </div>
+
+        <MudForm @bind-IsValid="@success" @bind-Errors="@errors">
+            <MudTextField T="string" 
+                          Label="Username" 
+                          Variant="Variant.Outlined" 
+                          Class="mb-4 glass-input"
+                          Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Person"
+                          Required="true" 
+                          RequiredError="Username is required!" 
+                          @bind-Value="model.Username" 
+                          OnKeyDown="HandleEnter" />
+                          
+            <MudTextField T="string" 
+                          Label="Password" 
+                          Variant="Variant.Outlined" 
+                          InputType="InputType.Password" 
+                          Class="mb-6 glass-input"
+                          Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Lock"
+                          Required="true" 
+                          RequiredError="Password is required!" 
+                          @bind-Value="model.Password" 
+                          OnKeyDown="HandleEnter" />
+
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       Size="Size.Large" 
+                       FullWidth="true" 
+                       Disabled="@(!success || _loading)" 
+                       OnClick="OnLogin" 
+                       Class="py-3 rounded-lg fw-black hover-scale pulse-neon"
+                       Style="font-size: 1.1rem;">
+                @if (_loading) {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                    <MudText Class="ms-2">LOGGING IN...</MudText>
+                } else {
+                    <MudText>LOGIN</MudText>
+                }
+            </MudButton>
+        </MudForm>
+
+        <div class="text-center mt-6">
+            <MudText Typo="Typo.body2" Class="text-gray-400">
+                Don't have an account? 
+                <MudLink Href="/register" Color="Color.Secondary" Underline="Underline.Hover" Class="fw-bold ml-1">Create Account</MudLink>
+            </MudText>
+        </div>
+    </div>
+</div>
 
 @code {
     LoginRequest model = new LoginRequest("", "");
     bool success;
+    bool _loading = false;
     string[] errors = { };
 
+    private async Task HandleEnter(KeyboardEventArgs e) {
+        if (e.Key == "Enter" && success) {
+            await OnLogin();
+        }
+    }
+
     private async Task OnLogin() {
+        if (_loading) return;
+        _loading = true;
         try {
             var response = await AuthService.Login(model);
             Snackbar.Add("Login successful!", Severity.Success);
@@ -43,6 +91,9 @@
         }
         catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally {
+            _loading = false;
         }
     }
 }
