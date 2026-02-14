@@ -3,19 +3,28 @@
     border-radius: 0 25px 25px 0;
     margin-right: 8px;
     padding-left: 24px;
+    transition: all 0.2s ease-in-out !important;
+    cursor: pointer !important;
+}
+
+::deep .mud-nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    padding-left: 30px !important;
 }
 
 ::deep .mud-nav-link.active {
-    background-color: rgba(212, 175, 55, 0.1) !important; /* Gold tint */
+    background: linear-gradient(90deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0) 100%) !important;
     color: var(--mud-palette-primary) !important;
-    font-weight: bold;
+    font-weight: 900 !important;
     border-left: 4px solid var(--mud-palette-primary);
-    padding-left: 20px;
+    padding-left: 20px !important;
 }
 
 ::deep .mud-nav-group .mud-nav-group-button {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--mud-palette-text-secondary);
+    letter-spacing: 1.5px;
+    color: var(--mud-palette-primary);
+    font-weight: bold;
+    cursor: pointer !important;
 }

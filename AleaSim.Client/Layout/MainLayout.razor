@@ -24,9 +24,9 @@
 <FlowStateIndicator Intensity="@_flowIntensity" />
 
 <MudLayout>
-    <MudAppBar Elevation="1">
+    <MudAppBar Elevation="0" Class="glass-panel" Style="border-bottom: 1px solid rgba(255,255,255,0.1);">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3" Style="font-weight: 900; letter-spacing: 1px;">ALEASIM</MudText>
+        <MudText Typo="Typo.h5" Class="ml-3 text-gradient" Style="font-weight: 900; letter-spacing: 2px;">ALEASIM</MudText>
         <MudSpacer />
         
         <AuthorizeView>
@@ -132,16 +132,16 @@
                     
                     <MudItem xs="6" md="2">
                         <MudText Typo="Typo.subtitle1" Style="font-weight: bold;" Class="mb-4">GAMES</MudText>
-                        <MudLink Href="game/cloverchase" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2">Clover Chase</MudLink>
-                        <MudLink Href="game/roulette" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2">Roulette Royale</MudLink>
-                        <MudLink Href="game/blackjack" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2">Blackjack Royale</MudLink>
+                        <MudLink Href="game/cloverchase" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2 footer-link">Clover Chase</MudLink>
+                        <MudLink Href="game/roulette" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2 footer-link">Roulette Royale</MudLink>
+                        <MudLink Href="game/blackjack" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2 footer-link">Blackjack Royale</MudLink>
                     </MudItem>
 
                     <MudItem xs="6" md="2">
                         <MudText Typo="Typo.subtitle1" Style="font-weight: bold;" Class="mb-4">PLATFORM</MudText>
-                        <MudLink Href="/fairness" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2">Fairness</MudLink>
-                        <MudLink Href="/leaderboard" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2">Leaderboard</MudLink>
-                        <MudLink Href="/history" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2">Live Wins</MudLink>
+                        <MudLink Href="/fairness" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2 footer-link">Fairness</MudLink>
+                        <MudLink Href="/leaderboard" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2 footer-link">Leaderboard</MudLink>
+                        <MudLink Href="/history" Color="Color.Secondary" Underline="Underline.None" Class="d-block mb-2 footer-link">Live Wins</MudLink>
                     </MudItem>
 
                     <MudItem xs="12" md="4">
@@ -183,32 +183,34 @@
 
     private MudTheme _theme = new MudTheme() {
         PaletteLight = new PaletteLight() {
-            Primary = "#D4AF37", // Rich Gold
-            Secondary = "#1B5E20", // Casino Green
+            Primary = "#D4AF37", // Royal Gold
+            Secondary = "#00897B", // Deep Emerald
             Info = "#1976D2",
-            Success = "#2E7D32",
-            Warning = "#EF6C00",
-            Error = "#C62828",
-            AppbarBackground = "#ffffff",
-            Background = "#f5f5f5",
-            Surface = "#ffffff",
-            DrawerBackground = "#ffffff",
-            TextPrimary = "#212121",
-            TextSecondary = "#757575"
+            Success = "#43A047",
+            Warning = "#FB8C00",
+            Error = "#E53935",
+            AppbarBackground = "rgba(255,255,255,0.8)",
+            Background = "#FAFAFA",
+            Surface = "#FFFFFF",
+            DrawerBackground = "#FFFFFF",
+            TextPrimary = "#1A1A1A",
+            TextSecondary = "#424242",
+            ActionDefault = "#D4AF37"
         },
         PaletteDark = new PaletteDark() {
-            Primary = "#FFD700", // Gold
-            Secondary = "#00C853", // Vibrant Casino Green
-            Info = "#2196F3",
-            Success = "#00E676",
-            Warning = "#FF9100",
-            Error = "#FF1744",
-            Background = "#0B0E11", // Deep Midnight
-            Surface = "#15191C", // Slightly lighter
-            AppbarBackground = "#15191C",
-            DrawerBackground = "#0B0E11",
-            TextPrimary = "#ffffff",
-            TextSecondary = "#B0B0B0"
+            Primary = "#FFD700", // Bright Gold
+            Secondary = "#00E676", // Neon Green
+            Info = "#00B0FF",
+            Success = "#00C853",
+            Warning = "#FFAB00",
+            Error = "#FF3D00",
+            Background = "#05070A", // Deeper Black
+            Surface = "#0F1217", // Dark blue-grey
+            AppbarBackground = "rgba(15, 18, 23, 0.8)",
+            DrawerBackground = "#05070A",
+            TextPrimary = "#F5F5F5",
+            TextSecondary = "#B0BEC5",
+            ActionDefault = "#FFD700"
         },
         Typography = new Typography() {
             Default = new DefaultTypography() {

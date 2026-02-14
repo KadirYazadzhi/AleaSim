@@ -20,27 +20,27 @@
                 <!-- Main Lobby Content -->
                 <MudItem xs="12" md="8" lg="9">
                     <!-- Tournament Banner -->
-                    <MudPaper Class="pa-8 mb-8" Style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; border-radius: 20px; position: relative; overflow: hidden;" Elevation="6">
-                        <div style="position: absolute; right: -20px; top: -20px; opacity: 0.1;">
-                            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Large" Style="font-size: 15rem;" />
+                    <MudPaper Class="pa-8 mb-8 pulse-gold" Style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); color: white; border-radius: 24px; position: relative; overflow: hidden; border: 1px solid rgba(212, 175, 55, 0.3);" Elevation="6">
+                        <div style="position: absolute; right: -40px; top: -40px; opacity: 0.15; transform: rotate(15deg);">
+                            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Large" Style="font-size: 18rem; color: #D4AF37;" />
                         </div>
-                        <div class="d-flex justify-space-between align-center" style="position: relative; z-index: 1;">
+                        <div class="d-flex justify-space-between align-center flex-wrap gap-6" style="position: relative; z-index: 1;">
                             <div>
-                                <MudChip T="string" Color="Color.Warning" Variant="Variant.Filled" Size="Size.Small" Class="mb-2">LIVE EVENT</MudChip>
-                                <MudText Typo="Typo.h3" Style="font-weight: 900; letter-spacing: -1px;">MONTHLY GRAND TOURNAMENT</MudText>
-                                <MudText Typo="Typo.h5">Current Prize Pool: <span style="color: #ffD700; font-weight: bold; font-size: 2rem;">$25,450.00</span></MudText>
+                                <MudChip T="string" Color="Color.Warning" Variant="Variant.Filled" Size="Size.Small" Class="mb-3" Style="font-weight: 900;">LIVE EVENT</MudChip>
+                                <MudText Typo="Typo.h3" Style="font-weight: 900; letter-spacing: -1px;" Class="text-gradient">GRAND TOURNAMENT</MudText>
+                                <MudText Typo="Typo.h5" Style="color: #eee;">Prize Pool: <span style="color: #00E676; font-weight: 900; font-size: 2.2rem;">$25,450.00</span></MudText>
                                 <div class="d-flex align-center mt-4">
-                                    <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Class="mr-2" />
-                                    <MudText Typo="Typo.body1">Ends in: <b>14 Days, 05:22:10</b></MudText>
+                                    <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Class="mr-2" Color="Color.Warning" />
+                                    <MudText Typo="Typo.body1" Style="opacity: 0.9;">Ends in: <b>14 Days, 05:22:10</b></MudText>
                                 </div>
                             </div>
-                            <MudButton Variant="Variant.Filled" Color="Color.Warning" Size="Size.Large" Href="/leaderboard" Style="height: 60px; font-weight: bold; padding: 0 40px;">ENTER NOW</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/leaderboard" Style="height: 64px; font-weight: 900; padding: 0 50px; font-size: 1.2rem; border-radius: 12px;">ENTER NOW</MudButton>
                         </div>
                     </MudPaper>
 
                     <div class="d-flex justify-space-between align-end mb-6">
-                        <MudText Typo="Typo.h4" Style="font-weight: 800;">EXPLORE GAMES</MudText>
-                        <MudButton Variant="Variant.Text" Color="Color.Primary" EndIcon="@Icons.Material.Filled.FilterList">Filter</MudButton>
+                        <MudText Typo="Typo.h4" Style="font-weight: 900;" Class="text-gradient">EXPLORE GAMES</MudText>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" EndIcon="@Icons.Material.Filled.FilterList" Style="font-weight: bold;">Filter Games</MudButton>
                     </div>
                     
                     <MudGrid>
@@ -50,13 +50,13 @@
                                 <MudCardMedia Image="https://images.unsplash.com/photo-1596838132731-3301c3fd4317?auto=format&fit=crop&w=600&q=80" Height="220" />
                                 <MudCardContent>
                                     <div class="d-flex justify-space-between align-center mb-1">
-                                        <MudText Typo="Typo.h5" Style="font-weight: 700;">Clover Chase</MudText>
-                                        <MudIcon Icon="@Icons.Material.Filled.FavoriteBorder" Color="Color.Default" Size="Size.Small" />
+                                        <MudText Typo="Typo.h5" Style="font-weight: 900;">Clover Chase</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.FavoriteBorder" Color="Color.Default" Size="Size.Small" />
                                     </div>
                                     <MudText Typo="Typo.body2" Color="Color.Secondary">Hold & Win, Free Spins, and Lucky Nudges!</MudText>
                                 </MudCardContent>
                                 <MudCardActions>
-                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Href="/game/cloverchase" Style="font-weight: bold;">PLAY NOW</MudButton>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Href="/game/cloverchase" Style="font-weight: 900; height: 48px;">PLAY NOW</MudButton>
                                 </MudCardActions>
                             </MudCard>
                         </MudItem>
@@ -67,13 +67,13 @@
                                 <MudCardMedia Image="https://images.unsplash.com/photo-1518893063934-f7142c22732b?auto=format&fit=crop&w=600&q=80" Height="220" />
                                 <MudCardContent>
                                     <div class="d-flex justify-space-between align-center mb-1">
-                                        <MudText Typo="Typo.h5" Style="font-weight: 700;">Roulette Royale</MudText>
-                                        <MudIcon Icon="@Icons.Material.Filled.FavoriteBorder" Color="Color.Default" Size="Size.Small" />
+                                        <MudText Typo="Typo.h5" Style="font-weight: 900;">Roulette Royale</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.FavoriteBorder" Color="Color.Default" Size="Size.Small" />
                                     </div>
                                     <MudText Typo="Typo.body2" Color="Color.Secondary">Classic European rules with high stakes.</MudText>
                                 </MudCardContent>
                                 <MudCardActions>
-                                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" Href="/game/roulette" Style="font-weight: bold;">PLAY NOW</MudButton>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" Href="/game/roulette" Style="font-weight: 900; height: 48px;">PLAY NOW</MudButton>
                                 </MudCardActions>
                             </MudCard>
                         </MudItem>
@@ -84,13 +84,13 @@
                                 <MudCardMedia Image="https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=600&q=80" Height="220" />
                                 <MudCardContent>
                                     <div class="d-flex justify-space-between align-center mb-1">
-                                        <MudText Typo="Typo.h5" Style="font-weight: 700;">Blackjack Royale</MudText>
-                                        <MudIcon Icon="@Icons.Material.Filled.FavoriteBorder" Color="Color.Default" Size="Size.Small" />
+                                        <MudText Typo="Typo.h5" Style="font-weight: 900;">Blackjack Royale</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.FavoriteBorder" Color="Color.Default" Size="Size.Small" />
                                     </div>
                                     <MudText Typo="Typo.body2" Color="Color.Secondary">Classic 21 with strategic Hit or Stand choices.</MudText>
                                 </MudCardContent>
                                 <MudCardActions>
-                                    <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" Href="/game/blackjack" Style="font-weight: bold;">PLAY NOW</MudButton>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" Href="/game/blackjack" Style="font-weight: 900; height: 48px;">PLAY NOW</MudButton>
                                 </MudCardActions>
                             </MudCard>
                         </MudItem>
@@ -100,16 +100,22 @@
                 <!-- Sidebar Content -->
                 <MudItem xs="12" md="4" lg="3">
                     <MudStack Spacing="4">
-                        <MultiJackpotWidget />
+                        <div class="glass-panel pa-1 rounded-lg">
+                            <MultiJackpotWidget />
+                        </div>
                         
-                        <LeaderboardWidget />
+                        <div class="glass-panel rounded-lg overflow-hidden">
+                            <LeaderboardWidget />
+                        </div>
 
-                        <LiveWinnersFeed />
+                        <div class="glass-panel rounded-lg overflow-hidden">
+                            <LiveWinnersFeed />
+                        </div>
                         
-                        <MudPaper Class="pa-4" Elevation="2">
-                            <MudText Typo="Typo.h6">Your Activity</MudText>
-                            <MudAlert Severity="Severity.Info" Class="mt-2" Dense="true">10% Cashback Active</MudAlert>
-                            <MudButton Variant="Variant.Outlined" FullWidth="true" Href="/history" Class="mt-2" Size="Size.Small">View History</MudButton>
+                        <MudPaper Class="pa-6 glass-panel" Elevation="0" Style="border-left: 4px solid var(--mud-palette-info);">
+                            <MudText Typo="Typo.h6" Style="font-weight: 900;">Your Activity</MudText>
+                            <MudAlert Severity="Severity.Info" Class="mt-3" Dense="true" Variant="Variant.Outlined">10% Cashback Active</MudAlert>
+                            <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Href="/history" Class="mt-4" Size="Size.Small" Style="font-weight: bold;">View History</MudButton>
                         </MudPaper>
                     </MudStack>
                 </MudItem>
@@ -119,12 +125,12 @@
     <NotAuthorized>
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-0 pa-0">
             <!-- Hero Section -->
-            <div style="background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1596838132731-3301c3fd4317?auto=format&fit=crop&w=1920&q=80'); background-size: cover; background-position: center; min-height: 60vh;" class="d-flex flex-column align-center justify-center px-4">
-                <MudText Typo="Typo.h1" Style="font-weight: 900; color: white; text-align: center; text-shadow: 2px 2px 10px rgba(0,0,0,0.5);" Class="mb-4">ALEASIM CASINO</MudText>
-                <MudText Typo="Typo.h4" Style="color: #ffD700; text-align: center; font-weight: 700;" Class="mb-8">THE FUTURE OF PROVABLY FAIR GAMING</MudText>
-                <div class="d-flex gap-4 flex-wrap justify-center">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/register" Style="min-width: 200px; height: 56px; font-weight: bold;">START PLAYING</MudButton>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Surface" Size="Size.Large" Href="/fairness" Style="min-width: 200px; height: 56px; font-weight: bold; border-color: white; color: white;">LEARN FAIRNESS</MudButton>
+            <div style="background: linear-gradient(rgba(5,7,10,0.8), rgba(5,7,10,0.8)), url('https://images.unsplash.com/photo-1596838132731-3301c3fd4317?auto=format&fit=crop&w=1920&q=80'); background-size: cover; background-position: center; min-height: 70vh;" class="d-flex flex-column align-center justify-center px-4">
+                <MudText Typo="Typo.h1" Class="mb-4 text-gradient" Style="font-weight: 900; text-align: center; text-shadow: 0 10px 20px rgba(0,0,0,0.5);">ALEASIM CASINO</MudText>
+                <MudText Typo="Typo.h4" Style="color: #00E676; text-align: center; font-weight: 700; letter-spacing: 4px;" Class="mb-12">THE FUTURE OF PROVABLY FAIR GAMING</MudText>
+                <div class="d-flex gap-6 flex-wrap justify-center">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/register" Style="min-width: 240px; height: 64px; font-weight: 900; font-size: 1.2rem; border-radius: 12px;" Class="pulse-gold">START PLAYING</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Surface" Size="Size.Large" Href="/fairness" Style="min-width: 240px; height: 64px; font-weight: 900; font-size: 1.2rem; border-radius: 12px; border: 2px solid white; color: white;">LEARN FAIRNESS</MudButton>
                 </div>
             </div>
 
@@ -132,23 +138,23 @@
                 <!-- Features / Why Us -->
                 <MudGrid Justify="Justify.Center" Class="mb-16">
                     <MudItem xs="12" md="4">
-                        <MudPaper Elevation="4" Class="pa-8 text-center h-100 hover-card" Style="border-bottom: 4px solid var(--mud-palette-primary);">
+                        <MudPaper Elevation="0" Class="pa-8 text-center h-100 hover-card glass-panel" Style="border-top: 4px solid var(--mud-palette-primary);">
                             <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Large" Color="Color.Primary" Class="mb-4" />
-                            <MudText Typo="Typo.h5" Class="mb-2">Provably Fair</MudText>
+                            <MudText Typo="Typo.h5" Class="mb-2" Style="font-weight: bold;">Provably Fair</MudText>
                             <MudText Typo="Typo.body1" Color="Color.Secondary">Every spin, hand, and roll is cryptographically verifiable. We use advanced RNG algorithms that you can check yourself.</MudText>
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudPaper Elevation="4" Class="pa-8 text-center h-100 hover-card" Style="border-bottom: 4px solid var(--mud-palette-secondary);">
+                        <MudPaper Elevation="0" Class="pa-8 text-center h-100 hover-card glass-panel" Style="border-top: 4px solid var(--mud-palette-secondary);">
                             <MudIcon Icon="@Icons.Material.Filled.FlashOn" Size="Size.Large" Color="Color.Secondary" Class="mb-4" />
-                            <MudText Typo="Typo.h5" Class="mb-2">Instant Payouts</MudText>
+                            <MudText Typo="Typo.h5" Class="mb-2" Style="font-weight: bold;">Instant Payouts</MudText>
                             <MudText Typo="Typo.body1" Color="Color.Secondary">No more waiting for days. Our automated vault system processes your withdrawals in minutes, not days.</MudText>
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudPaper Elevation="4" Class="pa-8 text-center h-100 hover-card" Style="border-bottom: 4px solid var(--mud-palette-warning);">
+                        <MudPaper Elevation="0" Class="pa-8 text-center h-100 hover-card glass-panel" Style="border-top: 4px solid var(--mud-palette-warning);">
                             <MudIcon Icon="@Icons.Material.Filled.AutoFixHigh" Size="Size.Large" Color="Color.Warning" Class="mb-4" />
-                            <MudText Typo="Typo.h5" Class="mb-2">AI-Driven RPG</MudText>
+                            <MudText Typo="Typo.h5" Class="mb-2" Style="font-weight: bold;">AI-Driven RPG</MudText>
                             <MudText Typo="Typo.body1" Color="Color.Secondary">Experience a unique RPG layer where your playstyle unlocks skills, perks, and personalized quests.</MudText>
                         </MudPaper>
                     </MudItem>
@@ -158,55 +164,55 @@
                 <div class="mb-16">
                     <div class="d-flex justify-space-between align-end mb-8">
                         <div>
-                            <MudText Typo="Typo.h3" Style="font-weight: 800;">OUR GAMES</MudText>
+                            <MudText Typo="Typo.h3" Style="font-weight: 900;" Class="text-gradient">OUR GAMES</MudText>
                             <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Premium quality, house-made originals.</MudText>
                         </div>
-                        <MudButton Variant="Variant.Text" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward" Href="/register">See All Games</MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward" Href="/register" Style="font-weight: bold;">EXPLORE ALL</MudButton>
                     </div>
 
                     <MudGrid>
                         <MudItem xs="12" sm="6" md="4">
-                            <MudCard Elevation="4" Class="game-showcase-card">
+                            <MudCard Elevation="0" Class="game-showcase-card">
                                 <MudCardMedia Image="https://images.unsplash.com/photo-1596838132731-3301c3fd4317?auto=format&fit=crop&w=600&q=80" Height="250" />
                                 <MudCardContent>
                                     <div class="d-flex justify-space-between align-center mb-2">
-                                        <MudText Typo="Typo.h5">Clover Chase</MudText>
-                                        <MudChip T="string" Color="Color.Success" Size="Size.Small">97.5% RTP</MudChip>
+                                        <MudText Typo="Typo.h5" Style="font-weight: bold;">Clover Chase</MudText>
+                                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="pulse-gold">HOT</MudChip>
                                     </div>
-                                    <MudText Typo="Typo.body2">Classic 5x3 slot with Lucky Nudges and Global Multipliers.</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Classic 5x3 slot with Lucky Nudges and Global Multipliers.</MudText>
                                 </MudCardContent>
                                 <MudCardActions>
-                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Href="/register">PLAY NOW</MudButton>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Href="/register" Style="font-weight: 900;">PLAY NOW</MudButton>
                                 </MudCardActions>
                             </MudCard>
                         </MudItem>
                         <MudItem xs="12" sm="6" md="4">
-                            <MudCard Elevation="4" Class="game-showcase-card">
+                            <MudCard Elevation="0" Class="game-showcase-card">
                                 <MudCardMedia Image="https://images.unsplash.com/photo-1518893063934-f7142c22732b?auto=format&fit=crop&w=600&q=80" Height="250" />
                                 <MudCardContent>
                                     <div class="d-flex justify-space-between align-center mb-2">
-                                        <MudText Typo="Typo.h5">Roulette Royale</MudText>
-                                        <MudChip T="string" Color="Color.Primary" Size="Size.Small">Classic</MudChip>
+                                        <MudText Typo="Typo.h5" Style="font-weight: bold;">Roulette Royale</MudText>
+                                        <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Outlined">POPULAR</MudChip>
                                     </div>
-                                    <MudText Typo="Typo.body2">European rules with a modern, sleek interface and fast results.</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">European rules with a modern, sleek interface and fast results.</MudText>
                                 </MudCardContent>
                                 <MudCardActions>
-                                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" Href="/register">PLAY NOW</MudButton>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" Href="/register" Style="font-weight: 900;">PLAY NOW</MudButton>
                                 </MudCardActions>
                             </MudCard>
                         </MudItem>
                         <MudItem xs="12" sm="6" md="4">
-                            <MudCard Elevation="4" Class="game-showcase-card">
+                            <MudCard Elevation="0" Class="game-showcase-card">
                                 <MudCardMedia Image="https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=600&q=80" Height="250" />
                                 <MudCardContent>
                                     <div class="d-flex justify-space-between align-center mb-2">
-                                        <MudText Typo="Typo.h5">Blackjack</MudText>
-                                        <MudChip T="string" Color="Color.Info" Size="Size.Small">High Stakes</MudChip>
+                                        <MudText Typo="Typo.h5" Style="font-weight: bold;">Blackjack</MudText>
+                                        <MudChip T="string" Color="Color.Info" Size="Size.Small">CLASSIC</MudChip>
                                     </div>
-                                    <MudText Typo="Typo.body2">Beat the dealer in our provably fair Blackjack implementation.</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Beat the dealer in our provably fair Blackjack implementation.</MudText>
                                 </MudCardContent>
                                 <MudCardActions>
-                                    <MudButton Variant="Variant.Filled" Color="Color.Surface" FullWidth="true" Href="/register">PLAY NOW</MudButton>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Surface" FullWidth="true" Href="/register" Style="font-weight: 900;">PLAY NOW</MudButton>
                                 </MudCardActions>
                             </MudCard>
                         </MudItem>
@@ -214,23 +220,23 @@
                 </div>
 
                 <!-- Stats Section -->
-                <MudPaper Class="pa-12 mb-16" Style="background: #1a1a2e; color: white; border-radius: 20px;" Elevation="8">
+                <MudPaper Class="pa-12 mb-16" Style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1);" Elevation="12">
                     <MudGrid Justify="Justify.Center">
                         <MudItem xs="6" md="3" Class="text-center">
-                            <MudText Typo="Typo.h3" Style="color: #4f46e5; font-weight: 900;">$2.4M+</MudText>
-                            <MudText Typo="Typo.subtitle1">Total Paid Out</MudText>
+                            <MudText Typo="Typo.h3" Style="color: #FFD700; font-weight: 900;">$2.4M+</MudText>
+                            <MudText Typo="Typo.subtitle1" Style="opacity: 0.8;">Total Paid Out</MudText>
                         </MudItem>
                         <MudItem xs="6" md="3" Class="text-center">
                             <MudText Typo="Typo.h3" Style="color: #ec4899; font-weight: 900;">150K+</MudText>
-                            <MudText Typo="Typo.subtitle1">Active Players</MudText>
+                            <MudText Typo="Typo.subtitle1" Style="opacity: 0.8;">Active Players</MudText>
                         </MudItem>
                         <MudItem xs="6" md="3" Class="text-center">
                             <MudText Typo="Typo.h3" Style="color: #10b981; font-weight: 900;">12ms</MudText>
-                            <MudText Typo="Typo.subtitle1">Avg. Payout Time</MudText>
+                            <MudText Typo="Typo.subtitle1" Style="opacity: 0.8;">Avg. Payout Time</MudText>
                         </MudItem>
                         <MudItem xs="6" md="3" Class="text-center">
-                            <MudText Typo="Typo.h3" Style="color: #f59e0b; font-weight: 900;">100%</MudText>
-                            <MudText Typo="Typo.subtitle1">Verifiable Fair</MudText>
+                            <MudText Typo="Typo.h3" Style="color: #3b82f6; font-weight: 900;">100%</MudText>
+                            <MudText Typo="Typo.subtitle1" Style="opacity: 0.8;">Verifiable Fair</MudText>
                         </MudItem>
                     </MudGrid>
                 </MudPaper>
@@ -238,23 +244,23 @@
                 <!-- About Us / Brain Section -->
                 <MudGrid Class="mb-16 align-center">
                     <MudItem xs="12" md="6">
-                        <MudImage Src="https://images.unsplash.com/photo-1620712943543-bcc4638d9980?auto=format&fit=crop&w=800&q=80" Alt="AI Brain" Elevation="8" Class="rounded-lg mud-width-full" />
+                        <MudImage Src="https://images.unsplash.com/photo-1620712943543-bcc4638d9980?auto=format&fit=crop&w=800&q=80" Alt="AI Brain" Elevation="12" Class="rounded-lg mud-width-full pulse-gold" Style="border: 2px solid var(--mud-palette-primary);" />
                     </MudItem>
                     <MudItem xs="12" md="6" Class="pa-8">
-                        <MudText Typo="Typo.h3" Style="font-weight: 800;" Class="mb-4">The AleaSim "Brain"</MudText>
-                        <MudText Typo="Typo.body1" Class="mb-4" Style="font-size: 1.2rem; line-height: 1.8;">
+                        <MudText Typo="Typo.h3" Style="font-weight: 900;" Class="mb-4 text-gradient">The AleaSim "Brain"</MudText>
+                        <MudText Typo="Typo.body1" Class="mb-6" Style="font-size: 1.25rem; line-height: 1.8; opacity: 0.9;">
                             Unlike traditional casinos, AleaSim is powered by a sophisticated AI engine we call the <b>"Brain"</b>. 
-                            It doesn't just generate numbers; it creates an experience.
+                            It doesn't just generate numbers; it creates a personalized journey.
                         </MudText>
                         <MudList T="string">
-                            <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
-                                <b>Dynamic Difficulty:</b> Matches your flow state for maximum fun.
+                            <MudListItem Icon="@Icons.Material.Filled.AutoGraph" IconColor="Color.Primary">
+                                <MudText Typo="Typo.body1"><b>Dynamic Difficulty:</b> Matches your flow state for maximum engagement.</MudText>
                             </MudListItem>
-                            <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
-                                <b>Personalized Missions:</b> Quests tailored to how you play.
+                            <MudListItem Icon="@Icons.Material.Filled.AdsClick" IconColor="Color.Primary">
+                                <MudText Typo="Typo.body1"><b>Personalized Missions:</b> Quests tailored to how YOU play.</MudText>
                             </MudListItem>
-                            <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
-                                <b>Anti-Frustration:</b> Smarter math to prevent long "dry" spells.
+                            <MudListItem Icon="@Icons.Material.Filled.Balance" IconColor="Color.Primary">
+                                <MudText Typo="Typo.body1"><b>Mathematical Fairness:</b> Smarter math to prevent long "dry" spells.</MudText>
                             </MudListItem>
                         </MudList>
                     </MudItem>
@@ -262,53 +268,53 @@
 
                 <!-- Testimonials -->
                 <div class="mb-16">
-                    <MudText Typo="Typo.h3" Style="font-weight: 800; text-align: center;" Class="mb-12">WHAT OUR PLAYERS SAY</MudText>
+                    <MudText Typo="Typo.h3" Style="font-weight: 900; text-align: center;" Class="mb-12 text-gradient">WHAT OUR PLAYERS SAY</MudText>
                     <MudGrid>
                         <MudItem xs="12" md="4">
-                            <MudPaper Class="pa-6 h-100" Elevation="2">
-                                <div class="d-flex align-center mb-4">
-                                    <MudAvatar Color="Color.Primary" Class="mr-4">JD</MudAvatar>
+                            <MudPaper Class="pa-8 h-100 hover-card glass-panel" Elevation="0" Style="border-bottom: 4px solid var(--mud-palette-primary);">
+                                <div class="d-flex align-center mb-6">
+                                    <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Class="mr-4">JD</MudAvatar>
                                     <div>
-                                        <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">John D.</MudText>
-                                        <MudRating ReadOnly="true" SelectedValue="5" Size="Size.Small" />
+                                        <MudText Typo="Typo.subtitle1" Style="font-weight: 900;">John D.</MudText>
+                                        <MudRating ReadOnly="true" SelectedValue="5" Size="Size.Small" Color="Color.Warning" />
                                     </div>
                                 </div>
-                                <MudText Typo="Typo.body2" Style="font-style: italic;">"The instant payouts are real. I won a $2,000 jackpot on Clover Chase and it was in my wallet in 5 minutes. Best casino experience ever."</MudText>
+                                <MudText Typo="Typo.body1" Style="font-style: italic; line-height: 1.6; opacity: 0.8;">"The instant payouts are real. I won a $2,000 jackpot on Clover Chase and it was in my wallet in 5 minutes. Best experience ever."</MudText>
                             </MudPaper>
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudPaper Class="pa-6 h-100" Elevation="2">
-                                <div class="d-flex align-center mb-4">
-                                    <MudAvatar Color="Color.Secondary" Class="mr-4">SK</MudAvatar>
+                            <MudPaper Class="pa-8 h-100 hover-card glass-panel" Elevation="0" Style="border-bottom: 4px solid var(--mud-palette-secondary);">
+                                <div class="d-flex align-center mb-6">
+                                    <MudAvatar Color="Color.Secondary" Variant="Variant.Filled" Class="mr-4">SK</MudAvatar>
                                     <div>
-                                        <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">Sarah K.</MudText>
-                                        <MudRating ReadOnly="true" SelectedValue="5" Size="Size.Small" />
+                                        <MudText Typo="Typo.subtitle1" Style="font-weight: 900;">Sarah K.</MudText>
+                                        <MudRating ReadOnly="true" SelectedValue="5" Size="Size.Small" Color="Color.Warning" />
                                     </div>
                                 </div>
-                                <MudText Typo="Typo.body2" Style="font-style: italic;">"I love the RPG elements. Leveling up my 'Luck' skill actually feels rewarding. It's more than just gambling, it's a game."</MudText>
+                                <MudText Typo="Typo.body1" Style="font-style: italic; line-height: 1.6; opacity: 0.8;">"I love the RPG elements. Leveling up my 'Luck' skill actually feels rewarding. It's more than just gambling, it's a real game."</MudText>
                             </MudPaper>
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudPaper Class="pa-6 h-100" Elevation="2">
-                                <div class="d-flex align-center mb-4">
-                                    <MudAvatar Color="Color.Warning" Class="mr-4">MX</MudAvatar>
+                            <MudPaper Class="pa-8 h-100 hover-card glass-panel" Elevation="0" Style="border-bottom: 4px solid var(--mud-palette-info);">
+                                <div class="d-flex align-center mb-6">
+                                    <MudAvatar Color="Color.Info" Variant="Variant.Filled" Class="mr-4">MX</MudAvatar>
                                     <div>
-                                        <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">Mike X.</MudText>
-                                        <MudRating ReadOnly="true" SelectedValue="4" Size="Size.Small" />
+                                        <MudText Typo="Typo.subtitle1" Style="font-weight: 900;">Mike X.</MudText>
+                                        <MudRating ReadOnly="true" SelectedValue="4" Size="Size.Small" Color="Color.Warning" />
                                     </div>
                                 </div>
-                                <MudText Typo="Typo.body2" Style="font-style: italic;">"Provably fair is the only way I play now. Being able to verify every seed gives me the peace of mind that it's all legit."</MudText>
+                                <MudText Typo="Typo.body1" Style="font-style: italic; line-height: 1.6; opacity: 0.8;">"Provably fair is the only way I play now. Being able to verify every seed gives me the peace of mind that it's all legit."</MudText>
                             </MudPaper>
                         </MudItem>
                     </MudGrid>
                 </div>
 
                 <!-- Final CTA -->
-                <MudPaper Class="pa-16 mb-16 text-center" Style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; border-radius: 30px;" Elevation="12">
-                    <MudText Typo="Typo.h2" Style="font-weight: 900;" Class="mb-4">READY TO WIN?</MudText>
-                    <MudText Typo="Typo.h5" Class="mb-8" Style="opacity: 0.9;">Join thousands of players and start your journey today.</MudText>
-                    <MudButton Variant="Variant.Filled" Color="Color.Warning" Size="Size.Large" Href="/register" Style="height: 64px; min-width: 250px; font-weight: 900; font-size: 1.2rem;">CREATE FREE ACCOUNT</MudButton>
-                    <MudText Typo="Typo.body2" Class="mt-4" Style="opacity: 0.7;">No deposit required to explore. 18+ Only.</MudText>
+                <MudPaper Class="pa-16 mb-16 text-center shadow-lg" Style="background: linear-gradient(135deg, #4338ca 0%, #7e22ce 100%); color: white; border-radius: 32px; border: 1px solid rgba(255,255,255,0.1);" Elevation="24">
+                    <MudText Typo="Typo.h2" Style="font-weight: 900; text-shadow: 0 4px 12px rgba(0,0,0,0.3);" Class="mb-4">READY TO WIN?</MudText>
+                    <MudText Typo="Typo.h5" Class="mb-10" Style="opacity: 0.9; font-weight: 500;">Join 150,000+ players and start your journey today.</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Warning" Size="Size.Large" Href="/register" Style="height: 72px; min-width: 300px; font-weight: 900; font-size: 1.4rem; border-radius: 16px; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">CREATE FREE ACCOUNT</MudButton>
+                    <MudText Typo="Typo.body2" Class="mt-6" Style="opacity: 0.7; letter-spacing: 1px;">NO DEPOSIT REQUIRED • 18+ ONLY</MudText>
                 </MudPaper>
             </MudContainer>
         </MudContainer>
