@@ -104,6 +104,9 @@
                             <MudMenuItem Href="/profile" Icon="@Icons.Material.Filled.Person">Profile</MudMenuItem>
                             <MudMenuItem Href="/wallet" Icon="@Icons.Material.Filled.AccountBalanceWallet">Wallet</MudMenuItem>
                             <MudMenuItem Href="/settings" Icon="@Icons.Material.Filled.Settings" OnClick="OpenSettings">Settings</MudMenuItem>
+                            <MudMenuItem Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" OnClick="@(() => LayoutService.ToggleDarkMode())">
+                                @(LayoutService.IsDarkMode ? "Light Mode" : "Dark Mode")
+                            </MudMenuItem>
                             <MudDivider />
                             <MudMenuItem OnClick="Logout" Icon="@Icons.Material.Filled.Logout" IconColor="Color.Error">Logout</MudMenuItem>
                         </ChildContent>
@@ -221,55 +224,53 @@
 <style>
     /* Global Overrides for Premium Feel */
     :root {
-        --mud-palette-background: #0f172a;
-        --mud-palette-surface: #1e293b;
         --mud-drawer-width-left: 260px;
     }
 
     .glass-appbar {
-        background: rgba(15, 23, 42, 0.8) !important;
+        background-color: var(--mud-palette-appbar-background) !important;
         backdrop-filter: blur(12px);
-        border-bottom: 1px solid rgba(255,255,255,0.05);
+        border-bottom: 1px solid var(--mud-palette-divider);
         transition: all 0.3s ease;
     }
     
     .sidebar-blur {
-        background: rgba(15, 23, 42, 0.95) !important;
-        border-right: 1px solid rgba(255,255,255,0.05);
+        background-color: var(--mud-palette-drawer-background) !important;
+        border-right: 1px solid var(--mud-palette-divider);
     }
 
     .glass-panel {
-        background: rgba(255, 255, 255, 0.03);
+        background-color: @(LayoutService.IsDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.05)");
         backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--mud-palette-divider);
     }
     
     .wallet-pill {
-        background: rgba(21, 28, 48, 0.6);
-        border: 1px solid rgba(74, 222, 128, 0.2);
+        background-color: @(LayoutService.IsDarkMode ? "rgba(21, 28, 48, 0.6)" : "rgba(255, 255, 255, 0.8)");
+        border: 1px solid var(--mud-palette-success-hover);
         cursor: pointer;
         transition: all 0.2s;
     }
     
     .wallet-pill:hover {
-        background: rgba(21, 28, 48, 0.9);
-        border-color: rgba(74, 222, 128, 0.5);
+        background-color: @(LayoutService.IsDarkMode ? "rgba(21, 28, 48, 0.9)" : "#ffffff");
+        border-color: var(--mud-palette-success);
     }
 
     .border-glow {
-        border: 1px solid rgba(239, 68, 68, 0.3);
+        border: 1px solid var(--mud-palette-lines-default);
         box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
     }
 
     .footer-section {
-        background: #020617;
-        border-top: 1px solid rgba(255,255,255,0.05);
-        color: #94a3b8;
+        background-color: var(--mud-palette-surface);
+        border-top: 1px solid var(--mud-palette-divider);
+        color: var(--mud-palette-text-secondary);
     }
     
     .social-icon:hover {
-        color: var(--casino-purple);
-        border-color: var(--casino-purple);
+        color: var(--mud-palette-primary);
+        border-color: var(--mud-palette-primary);
     }
     
     .text-gradient {
@@ -308,12 +309,14 @@
             Success = "#10b981",
             Warning = "#f59e0b",
             Error = "#ef4444",
-            AppbarBackground = "#ffffff",
-            Background = "#f8fafc",
+            AppbarBackground = "rgba(255, 255, 255, 0.8)",
+            Background = "#f1f5f9", // Slate 100
             Surface = "#ffffff",
-            DrawerBackground = "#ffffff",
+            DrawerBackground = "rgba(255, 255, 255, 0.95)",
             TextPrimary = "#0f172a",
-            ActionDefault = "#7c3aed"
+            TextSecondary = "#64748b",
+            ActionDefault = "#7c3aed",
+            Divider = "rgba(0,0,0,0.1)"
         },
         PaletteDark = new PaletteDark() {
             Primary = "#a855f7", // Purple 500
@@ -324,8 +327,8 @@
             Error = "#f43f5e",
             Background = "#0f172a", // Slate 900
             Surface = "#1e293b", // Slate 800
-            AppbarBackground = "#0f172a",
-            DrawerBackground = "#0f172a",
+            AppbarBackground = "rgba(15, 23, 42, 0.8)",
+            DrawerBackground = "rgba(15, 23, 42, 0.95)",
             TextPrimary = "#f1f5f9",
             TextSecondary = "#94a3b8",
             ActionDefault = "#a855f7",
