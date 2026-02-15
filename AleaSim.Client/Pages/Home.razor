@@ -35,20 +35,20 @@
                 <MudItem xs="12" md="8" lg="9">
                     
                     <!-- Hero/Tournament Banner -->
-                    <div class="tournament-banner mb-10 p-relative overflow-hidden rounded-xl shadow-2xl animate-slide-up">
+                    <div class="@(LayoutService.IsDarkMode ? "tournament-banner" : "tournament-banner light-banner") mb-10 p-relative overflow-hidden rounded-xl shadow-2xl animate-slide-up">
                         <div class="banner-content d-flex justify-space-between align-center flex-wrap gap-6 pa-8" style="position: relative; z-index: 2;">
                             <div style="max-width: 600px;">
                                 <div class="d-flex align-center gap-2 mb-2">
                                     <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="fw-bold pulse-red">LIVE</MudChip>
                                     <MudText Typo="Typo.subtitle2" Class="text-warning fw-bold tracking-wide">SEASON 4</MudText>
                                 </div>
-                                <MudText Typo="Typo.h3" Class="text-white fw-black mb-2 text-shadow-lg">GRAND TOURNAMENT</MudText>
-                                <MudText Typo="Typo.h5" Class="text-green-400 fw-black mb-4">$25,450.00 <span class="text-white opacity-70 text-sm fw-normal">Prize Pool</span></MudText>
+                                <MudText Typo="Typo.h3" Class='@($"{(LayoutService.IsDarkMode ? "text-white" : "mud-text-primary")} fw-black mb-2 text-shadow-lg")'>GRAND TOURNAMENT</MudText>
+                                <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black mb-4">$25,450.00 <span class='@($"{(LayoutService.IsDarkMode ? "text-white opacity-70" : "mud-text-secondary")} text-sm fw-normal")'>Prize Pool</span></MudText>
                                 
                                 <div class="d-flex align-center gap-6">
                                     <div class="timer-badge glass-panel px-3 py-1 rounded">
                                         <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" Class="text-warning mr-2" />
-                                        <span class="text-white fw-bold">14d 05h 22m</span>
+                                        <span class='@($"{(LayoutService.IsDarkMode ? "text-white" : "mud-text-primary")} fw-bold")'>14d 05h 22m</span>
                                     </div>
                                     <MudAvatarGroup Max="3" Spacing="2" MaxColor="Color.Primary">
                                         <MudAvatar Image="https://i.pravatar.cc/150?u=1" />
@@ -538,6 +538,18 @@
         align-items: center;
         border: 1px solid rgba(255,255,255,0.1);
     }
+    
+    .tournament-banner.light-banner {
+        background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+        border: 1px solid var(--mud-palette-divider);
+    }
+    .light-banner .banner-icon-bg {
+        color: rgba(124, 58, 237, 0.05);
+    }
+    .light-banner .banner-bg-overlay {
+        background: radial-gradient(circle at top right, rgba(124, 58, 237, 0.1), transparent 40%);
+    }
+
     .banner-bg-overlay {
         position: absolute; inset: 0;
         background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.15), transparent 40%);
