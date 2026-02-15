@@ -264,14 +264,37 @@
     }
 
     .footer-section {
-        background-color: var(--mud-palette-surface);
+        background: linear-gradient(to bottom, var(--mud-palette-surface), var(--mud-palette-background));
         border-top: 1px solid var(--mud-palette-divider);
         color: var(--mud-palette-text-secondary);
+        position: relative;
     }
     
+    .footer-section::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--mud-palette-primary), transparent);
+        opacity: 0.5;
+    }
+    
+    .footer-link {
+        transition: color 0.2s ease;
+    }
+    .footer-link:hover {
+        color: var(--mud-palette-primary) !important;
+    }
+    
+    .social-icon {
+        transition: all 0.2s ease;
+        border-color: var(--mud-palette-divider) !important;
+    }
     .social-icon:hover {
-        color: var(--mud-palette-primary);
-        border-color: var(--mud-palette-primary);
+        color: white !important;
+        background-color: var(--mud-palette-primary) !important;
+        border-color: var(--mud-palette-primary) !important;
+        transform: translateY(-2px);
     }
     
     .text-gradient {
