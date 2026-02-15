@@ -10,8 +10,6 @@
 
 html, body {
     font-family: 'Montserrat', sans-serif;
-    background-color: var(--deep-bg);
-    color: #f8fafc;
     scroll-behavior: smooth;
 }
 
@@ -58,7 +56,7 @@ html, body {
 
 /* Modern Glass Panel */
 .glass-panel {
-    background: var(--glass-bg) !important;
+    background: var(--glass-bg);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid var(--glass-border) !important;
@@ -118,7 +116,7 @@ html, body {
     width: 8px;
 }
 ::-webkit-scrollbar-track {
-    background: var(--deep-bg);
+    background: var(--mud-palette-background);
 }
 ::-webkit-scrollbar-thumb {
     background: #1e293b;
