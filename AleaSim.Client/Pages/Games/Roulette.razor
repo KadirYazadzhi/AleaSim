@@ -38,9 +38,11 @@
         <!-- Betting Table -->
         <MudItem xs="12" lg="9">
             <MudPaper Class="pa-4" Style="background: #004d00; border: 10px solid #3d2b1f; border-radius: 10px;">
-                <div class="roulette-table">
+                <div class="roulette-table" @onmouseup="() => isMouseDown = false" @onmouseleave="() => isMouseDown = false">
                     <!-- Zero -->
-                    <div class="cell zero" @onclick='() => AddBet("number", "0")'>
+                    <div class='@($"cell zero {GetCursorClass("number", "0")}")' 
+                         @onmousedown='() => HandleMouseDown("number", "0")'
+                         @onmouseenter='() => HandleMouseEnter("number", "0")'>
                         0
                         @GetBetBadge("number", "0")
                     </div>
@@ -50,19 +52,31 @@
                         @for (int i = 1; i <= 36; i++)
                         {
                             var num = i;
-                            <div class="cell @GetNumberColor(num)" @onclick='() => AddBet("number", num.ToString())'>
+                            var type = "number";
+                            var val = num.ToString();
+                            <div class='@($"cell {GetNumberColor(num)} {GetCursorClass(type, val)}")' 
+                                 @onmousedown='() => HandleMouseDown(type, val)'
+                                 @onmouseenter='() => HandleMouseEnter(type, val)'>
                                 @num
-                                @GetBetBadge("number", num.ToString())
+                                @GetBetBadge(type, val)
                             </div>
                         }
                     </div>
 
                     <!-- Outside Bets -->
                     <div class="outside-bets">
-                        <div class="cell red" @onclick='() => AddBet("color", "red")'>RED @GetBetBadge("color", "red")</div>
-                        <div class="cell black" @onclick='() => AddBet("color", "black")'>BLACK @GetBetBadge("color", "black")</div>
-                        <div class="cell even" @onclick='() => AddBet("evenodd", "even")'>EVEN @GetBetBadge("evenodd", "even")</div>
-                        <div class="cell odd" @onclick='() => AddBet("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
+                        <div class='@($"cell red {GetCursorClass("color", "red")}")' 
+                             @onmousedown='() => HandleMouseDown("color", "red")'
+                             @onmouseenter='() => HandleMouseEnter("color", "red")'>RED @GetBetBadge("color", "red")</div>
+                        <div class='@($"cell black {GetCursorClass("color", "black")}")' 
+                             @onmousedown='() => HandleMouseDown("color", "black")'
+                             @onmouseenter='() => HandleMouseEnter("color", "black")'>BLACK @GetBetBadge("color", "black")</div>
+                        <div class='@($"cell even {GetCursorClass("evenodd", "even")}")' 
+                             @onmousedown='() => HandleMouseDown("evenodd", "even")'
+                             @onmouseenter='() => HandleMouseEnter("evenodd", "even")'>EVEN @GetBetBadge("evenodd", "even")</div>
+                        <div class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' 
+                             @onmousedown='() => HandleMouseDown("evenodd", "odd")'
+                             @onmouseenter='() => HandleMouseEnter("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
                     </div>
                 </div>
             </MudPaper>
@@ -100,6 +114,7 @@
     .numbers-grid { display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(3, 1fr); flex-grow: 1; grid-auto-flow: column; }
     .cell { height: 60px; border: 1px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; font-weight: bold; }
     .cell:hover { background: rgba(255,255,255,0.1); }
+    .limit-reached { cursor: not-allowed !important; opacity: 0.8; }
     .red { background: #b30000; }
     .black { background: #1a1a1a; }
     .even, .odd { background: #004d00; width: 100px; }
@@ -115,6 +130,7 @@
     private decimal chipValue = 5.0m;
     private int? winningNumber;
     private bool isSpinning = false;
+    private bool isMouseDown = false;
     private Guid? sessionId;
     private List<RouletteBetDto> currentBets = new();
 
@@ -132,12 +148,38 @@
         } catch { }
     }
 
+    private async Task HandleMouseDown(string type, string value) {
+        isMouseDown = true;
+        await AddBet(type, value);
+    }
+
+    private async Task HandleMouseEnter(string type, string value) {
+        if (isMouseDown) {
+            await AddBet(type, value);
+        }
+    }
+
+    private string GetCursorClass(string type, string value) {
+        var bet = currentBets.FirstOrDefault(b => b.Type == type && b.Value == value);
+        return (bet?.Amount >= 100) ? "limit-reached" : "";
+    }
+
     private async Task AddBet(string type, string value) {
         if (isSpinning) return;
-        await Audio.PlayClick();
+        
         var existing = currentBets.FirstOrDefault(b => b.Type == type && b.Value == value);
-        if (existing != null) existing.Amount += chipValue;
-        else currentBets.Add(new RouletteBetDto { Type = type, Value = value, Amount = chipValue });
+        decimal currentAmount = existing?.Amount ?? 0;
+
+        if (currentAmount >= 100) return;
+
+        // Ensure we don't exceed 100 even if chip value is large
+        decimal allowedToAdd = Math.Min(chipValue, 100 - currentAmount);
+        
+        await Audio.PlayClick();
+        if (existing != null) existing.Amount += allowedToAdd;
+        else currentBets.Add(new RouletteBetDto { Type = type, Value = value, Amount = allowedToAdd });
+        
+        StateHasChanged();
     }
 
     private void ClearBets() => currentBets.Clear();
