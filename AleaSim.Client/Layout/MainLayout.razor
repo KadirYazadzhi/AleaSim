@@ -104,7 +104,7 @@
                             <MudMenuItem Href="/profile" Icon="@Icons.Material.Filled.Person">Profile</MudMenuItem>
                             <MudMenuItem Href="/wallet" Icon="@Icons.Material.Filled.AccountBalanceWallet">Wallet</MudMenuItem>
                             <MudMenuItem Href="/settings" Icon="@Icons.Material.Filled.Settings" OnClick="OpenSettings">Settings</MudMenuItem>
-                            <MudMenuItem Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" OnClick="@(() => LayoutService.ToggleDarkMode())">
+                            <MudMenuItem Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" OnClick="@(async () => await LayoutService.ToggleDarkMode())">
                                 @(LayoutService.IsDarkMode ? "Light Mode" : "Dark Mode")
                             </MudMenuItem>
                             <MudDivider />
@@ -117,7 +117,7 @@
                 <div class="d-flex gap-3">
                     <MudIconButton Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
                                    Color="Color.Inherit" 
-                                   OnClick="@(() => LayoutService.ToggleDarkMode())" />
+                                   OnClick="@(async () => await LayoutService.ToggleDarkMode())" />
                     <MudButton Href="/login" Variant="Variant.Text" Color="Color.Inherit" Style="font-weight: bold;">Login</MudButton>
                     <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Primary" Class="rounded-lg px-6 fw-bold glow-effect">Register</MudButton>
                 </div>
@@ -350,6 +350,7 @@
     };
 
     protected override async Task OnInitializedAsync() {
+        await LayoutService.InitializeAsync();
         NotifService.OnNotificationsChanged += StateHasChanged;
         GameService.OnFlowStateChanged += HandleFlowStateChange; 
         LayoutService.OnMajorUpdate += StateHasChanged;
