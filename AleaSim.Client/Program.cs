@@ -43,5 +43,6 @@ builder.Services.AddScoped<AudioService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<RealTimeClient>();
 builder.Services.AddScoped<LayoutService>();
+builder.Services.AddScoped<PlatformStatsService>();
 
 await builder.Build().RunAsync();

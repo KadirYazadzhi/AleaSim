@@ -8,9 +8,6 @@
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/dotnet.js.map
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/dotnet.native.wasm
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/dotnet.runtime.js.map
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/icudt_CJK.dat
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/icudt_EFIGS.dat
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/icudt_no_CJK.dat
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/Microsoft.AspNetCore.Authorization.wasm
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/Microsoft.AspNetCore.Components.Forms.wasm
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/Microsoft.AspNetCore.Components.wasm
@@ -261,7 +258,6 @@
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/System.Formats.Tar.wasm.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/System.Net.Ping.wasm.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/System.Runtime.wasm.gz
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/icudt_no_CJK.dat.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/System.ComponentModel.EventBasedAsync.wasm.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/Microsoft.AspNetCore.Authorization.wasm.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/System.Net.WebClient.wasm.gz
@@ -323,7 +319,6 @@
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/System.Threading.Channels.wasm.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/System.Threading.Thread.wasm.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/System.Data.Common.wasm.gz
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/icudt_EFIGS.dat.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/Microsoft.AspNetCore.Metadata.wasm.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/Microsoft.AspNetCore.Connections.Abstractions.wasm.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/System.Threading.Tasks.wasm.gz
@@ -364,7 +359,6 @@
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/Microsoft.Extensions.Options.wasm.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/Microsoft.Extensions.DependencyInjection.wasm.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/System.Text.Encodings.Web.wasm.gz
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/icudt_CJK.dat.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/Microsoft.Win32.Registry.wasm.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/System.Net.Http.wasm.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/System.Security.Cryptography.Cng.wasm.gz
@@ -648,9 +642,6 @@
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/dotnet.native.wasm
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/dotnet.runtime.js
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/dotnet.runtime.js.map
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/icudt_CJK.dat
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/icudt_EFIGS.dat
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/icudt_no_CJK.dat
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/AleaSim.Shared.dll
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/AleaSim.Shared.pdb
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/AleaSim.Client.csproj.AssemblyReference.cache
@@ -1134,14 +1125,15 @@
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/j2btnr0z75-er8avzl4gu.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/qh66cimsnt-05k3ehe6n2.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/zpad7c6hyy-tyf228z45b.gz
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/sof8up55j5-tjcz0u77k5.gz
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/63wtsnkwvs-tptq2av103.gz
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/2lpqqci4q5-lfu7j35m59.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/lfi66xujub-oyz0vx2fzb.gz
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/staticwebassets.build.json.cache
 /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/staticwebassets.build.endpoints.json
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/002lld40a2-c70ia2pbgy.gz
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/a6hvg7ulvt-j93cow18ap.gz
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/lizdm9fmuk-icimavt4tq.gz
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/kz5vymki33-j8jrumr73p.gz
-/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/8xxw5fusus-ikpgvitpj3.gz
+/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/icudt.dat
+/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/wwwroot/_framework/icudt.dat.gz
+/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/bin/Debug/net8.0/icudt.dat
+/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/ebzfq2b3uk-oh1zvcfom8.gz
+/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/002lld40a2-pqgfblm5x0.gz
+/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/a6hvg7ulvt-m52h4hy70l.gz
+/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/lizdm9fmuk-zxsz7n0e3j.gz
+/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/kz5vymki33-kt64k4nv4s.gz
+/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/obj/Debug/net8.0/compressed/8xxw5fusus-9kwf8uplbt.gz

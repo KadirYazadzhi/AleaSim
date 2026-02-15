@@ -8,6 +8,7 @@
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthStateProvider
 @inject LayoutService LayoutService
+@inject PlatformStatsService PlatformStats
 
 <PageTitle>AleaSim | Premium Crypto Casino</PageTitle>
 
@@ -43,7 +44,7 @@
                                     <MudText Typo="Typo.subtitle2" Class="text-warning fw-bold tracking-wide">SEASON 4</MudText>
                                 </div>
                                 <MudText Typo="Typo.h3" Class='@($"{(LayoutService.IsDarkMode ? "text-white text-shadow-lg" : "mud-text-primary")} fw-black mb-2")'>GRAND TOURNAMENT</MudText>
-                                <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black mb-4">@platformStats.TournamentPrizePool.ToString("C2") <span class='@($"{(LayoutService.IsDarkMode ? "text-white opacity-70" : "mud-text-secondary")} text-sm fw-normal")'>Prize Pool</span></MudText>
+                                <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black mb-4">@PlatformStats.Stats.TournamentPrizePool.ToString("C2") <span class='@($"{(LayoutService.IsDarkMode ? "text-white opacity-70" : "mud-text-secondary")} text-sm fw-normal")'>Prize Pool</span></MudText>
                                 
                                 <div class="d-flex align-center gap-6">
                                     <div class="timer-badge glass-panel px-3 py-1 rounded">
@@ -144,21 +145,21 @@
                             <MudItem xs="12" sm="4">
                                 <div class="glass-panel pa-6 rounded-xl text-center hover-scale">
                                     <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" Size="Size.Large" Class="mb-2" />
-                                    <MudText Typo="Typo.h4" Class="text-gradient fw-black">@platformStats.ActivePlayers.ToString("N0")</MudText>
+                                    <MudText Typo="Typo.h4" Class="text-gradient fw-black">@PlatformStats.Stats.ActivePlayers.ToString("N0")</MudText>
                                     <MudText Typo="Typo.body2" Color="Color.Secondary">Active Players</MudText>
                                 </div>
                             </MudItem>
                             <MudItem xs="12" sm="4">
                                 <div class="glass-panel pa-6 rounded-xl text-center hover-scale">
                                     <MudIcon Icon="@Icons.Material.Filled.Percent" Color="Color.Secondary" Size="Size.Large" Class="mb-2" />
-                                    <MudText Typo="Typo.h4" Class="text-gradient fw-black">@platformStats.AverageRtp.ToString("F1")%</MudText>
+                                    <MudText Typo="Typo.h4" Class="text-gradient fw-black">@PlatformStats.Stats.AverageRtp.ToString("F1")%</MudText>
                                     <MudText Typo="Typo.body2" Color="Color.Secondary">Average RTP</MudText>
                                 </div>
                             </MudItem>
                             <MudItem xs="12" sm="4">
                                 <div class="glass-panel pa-6 rounded-xl text-center hover-scale">
                                     <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Color="Color.Warning" Size="Size.Large" Class="mb-2" />
-                                    <MudText Typo="Typo.h4" Class="text-gradient fw-black">@platformStats.TotalRewardsPaid.ToString("C0")+</MudText>
+                                    <MudText Typo="Typo.h4" Class="text-gradient fw-black">@PlatformStats.Stats.TotalRewardsPaid.ToString("C0")+</MudText>
                                     <MudText Typo="Typo.body2" Color="Color.Secondary">Total Rewards Paid</MudText>
                                 </div>
                             </MudItem>
@@ -782,8 +783,6 @@
 @code {
     private string selectedCategory = "Lobby";
     private string searchTerm = "";
-    private PlatformStatsDto platformStats = new() { ActivePlayers = 1204, AverageRtp = 98.4, TotalRewardsPaid = 4200000, TournamentPrizePool = 25450 };
-    private CancellationTokenSource? _cts;
 
     private List<GameItem> allGames = new() {
         new GameItem("Clover Chase", "AleaSim Originals", "Slots", "https://images.unsplash.com/photo-1596838132731-3301c3fd4317?auto=format&fit=crop&w=600&q=80", "/game/cloverchase", "HOT", 98.5),
@@ -800,10 +799,8 @@
     protected override async Task OnInitializedAsync()
     {
         LayoutService.OnMajorUpdate += StateHasChanged;
+        PlatformStats.OnStatsUpdated += StateHasChanged;
         
-        await LoadStats();
-        StartStatsPolling();
-
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true) {
             try {
@@ -827,32 +824,11 @@
         searchTerm = "";
         StateHasChanged();
     }
-
-    private async Task LoadStats() {
-        try {
-            var stats = await Http.GetFromJsonAsync<PlatformStatsDto>("api/Game/platform-stats");
-            if (stats != null) {
-                platformStats = stats;
-                StateHasChanged();
-            }
-        } catch { }
-    }
-
-    private void StartStatsPolling() {
-        _cts = new CancellationTokenSource();
-        _ = Task.Run(async () => {
-            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
-            while (await timer.WaitForNextTickAsync(_cts.Token)) {
-                await InvokeAsync(LoadStats);
-            }
-        });
-    }
     
     public void Dispose()
     {
         LayoutService.OnMajorUpdate -= StateHasChanged;
-        _cts?.Cancel();
-        _cts?.Dispose();
+        PlatformStats.OnStatsUpdated -= StateHasChanged;
     }
 
     private async Task OpenBonusWheel() {

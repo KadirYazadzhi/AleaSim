@@ -192,13 +192,20 @@ public class GameController : ControllerBase {
         var financials = _repo.GetDailyFinancials(DateTime.UtcNow.Date);
         var activeCount = _repo.GetActivePlayerCount(10);
         
-        // Dynamic Tournament Prize Pool simulation (e.g., base 20k + 1% of daily bets)
-        decimal tournamentPool = 20000m + (financials.TotalBets * 0.01m);
+        var jackpots = _repo.GetJackpots();
+        var spades = jackpots.FirstOrDefault(j => j.Tier == AleaSim.Domain.Entities.JackpotTier.Spades);
+        
+        // Simulated live growth based on current second to make it "tick"
+        decimal jitter = (decimal)(DateTime.UtcNow.Second + (DateTime.UtcNow.Millisecond / 1000.0)) * 0.1m;
+        
+        decimal weeklyJackpot = (spades?.CurrentValue ?? 10000m) + jitter;
+        decimal tournamentPool = 25000m + (financials.TotalBets * 0.05m); // Base 25k + 5% of daily volume
 
         var stats = new PlatformStatsDto {
-            ActivePlayers = activeCount + 1200, // Adding a base offset for "Live" feel if repo is empty
+            ActivePlayers = activeCount + 1200 + DateTime.UtcNow.Second % 50, 
             AverageRtp = financials.TotalBets > 0 ? (double)(financials.TotalWins / financials.TotalBets) * 100 : 98.4,
-            TotalRewardsPaid = financials.TotalWins + 4200000m, // Base offset for simulation
+            TotalRewardsPaid = 4200000m + financials.TotalWins + (jitter * 100),
+            WeeklyJackpot = weeklyJackpot,
             TournamentPrizePool = tournamentPool
         };
 

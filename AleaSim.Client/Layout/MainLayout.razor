@@ -15,6 +15,7 @@
 @inject IDialogService DialogService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject LayoutService LayoutService
+@inject PlatformStatsService PlatformStats
 
 <MudThemeProvider IsDarkMode="@LayoutService.IsDarkMode" Theme="_theme" />
 <MudDialogProvider />
@@ -130,7 +131,7 @@
         <div class="mt-auto pa-4">
              <MudCard Class="glass-panel pa-3 text-center mb-4">
                  <MudText Typo="Typo.caption" Class="d-block mb-1 mud-text-secondary">Weekly Jackpot</MudText>
-                 <MudText Typo="Typo.h6" Class="text-gradient font-black">@((14502.55m).ToString("C2"))</MudText>
+                 <MudText Typo="Typo.h6" Class="text-gradient font-black">@PlatformStats.Stats.WeeklyJackpot.ToString("C2")</MudText>
              </MudCard>
         </div>
     </MudDrawer>
@@ -387,6 +388,9 @@
         NotifService.OnNotificationsChanged += StateHasChanged;
         GameService.OnFlowStateChanged += HandleFlowStateChange; 
         LayoutService.OnMajorUpdate += StateHasChanged;
+        
+        PlatformStats.StartPolling();
+        PlatformStats.OnStatsUpdated += StateHasChanged;
 
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true) {
@@ -407,6 +411,7 @@
         NotifService.OnNotificationsChanged -= StateHasChanged;
         GameService.OnFlowStateChanged -= HandleFlowStateChange;
         LayoutService.OnMajorUpdate -= StateHasChanged;
+        PlatformStats.OnStatsUpdated -= StateHasChanged;
     }
 
     private void HandleFlowStateChange(float intensity) {

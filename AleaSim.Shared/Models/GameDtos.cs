@@ -103,6 +103,7 @@ public class DailyBonusResponse {
 }
 
 public class PlatformStatsDto {
+    public decimal WeeklyJackpot { get; set; }
     public decimal TournamentPrizePool { get; set; }
     public int ActivePlayers { get; set; }
     public double AverageRtp { get; set; }

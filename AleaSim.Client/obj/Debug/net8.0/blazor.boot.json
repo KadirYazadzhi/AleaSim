@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "AleaSim.Client",
   "resources": {
-    "hash": "sha256-0ce0CL+wJZmmHCegqv0YJHACFyyMwxJalaYNfPb9lYg=",
+    "hash": "sha256-0pJKLk6LWkTMK/UCfd8M0ud0vS26BO1YECRrOwpf4Uk=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-NljIbpK/1KCj0+knpX8U77Rbl5kTtfFIuFjK7AuczEw="
     },
@@ -12,9 +12,7 @@
       "dotnet.native.wasm": "sha256-2oXTIgIF6CRtacZxLfjueiJhJBKftH3jQkQwHv69Hjo="
     },
     "icu": {
-      "icudt_CJK.dat": "sha256-SZLtQnRc0JkwqHab0VUVP7T3uBPSeYzxzDnpxPpUnHk=",
-      "icudt_EFIGS.dat": "sha256-8fItetYY8kQ0ww6oxwTLiT3oXlBwHKumbeP2pRF4yTc=",
-      "icudt_no_CJK.dat": "sha256-L7sV7NEYP37/Qr2FPCePo5cJqRgTXRwGHuwF5Q+0Nfs="
+      "icudt.dat": "sha256-tO5O5YzMTVSaKBboxAqezOQL9ewmupzV2JrB5Rkc8a4="
     },
     "coreAssembly": {},
     "assembly": {
@@ -229,17 +227,17 @@
       "mscorlib.wasm": "sha256-RAf5jgXLg+06C4tJ3CabxAZaVjCN2/+E6fxRjRN8yHk=",
       "netstandard.wasm": "sha256-KCAE8RQwTurP5pGnGF819qf9sK++2O0rXzt6tOjlfi8=",
       "System.Private.CoreLib.wasm": "sha256-LQqLbHgeEX4HONx7GwIxGgmzIXP6n2OPxqnq+/4Tyqk=",
-      "AleaSim.Shared.wasm": "sha256-eEygKxCXfQLKqcFK25GcY+5Np37NveY5E6YLYhb0h38=",
-      "AleaSim.Client.wasm": "sha256-YvzMFkePjG520rKCDzYvmq/hrKdYNkyL52phRtJNXfo="
+      "AleaSim.Shared.wasm": "sha256-gQGYivn00ppHRHxTDmXjMAt3O0T8amfLDd4MV7rFCA8=",
+      "AleaSim.Client.wasm": "sha256-RyCIAZ82Ysk/gdI+f+3B2XyHAZQx+hHsAMpUaoIPYko="
     },
     "pdb": {
-      "AleaSim.Shared.pdb": "sha256-ebz891OR283fZL6dfBAUKtyKnB5MvwuKmafEJ7K9ozI=",
-      "AleaSim.Client.pdb": "sha256-3f8P2wmmvFjqFKVoRxSrP+vm/3XLyBQhPYjEocH2Ekk="
+      "AleaSim.Shared.pdb": "sha256-1pKw6IKjvdaNjWOokHFZZOSULPnQ5SNcysxFZuHbf68=",
+      "AleaSim.Client.pdb": "sha256-eLDZRarT8SKBTq1G4FmrQqtThP1K0QuvbPjGUnnZhRM="
     }
   },
   "cacheBootResources": true,
   "debugLevel": -1,
-  "globalizationMode": "sharded",
+  "globalizationMode": "all",
   "extensions": {
     "blazor": {}
   }
