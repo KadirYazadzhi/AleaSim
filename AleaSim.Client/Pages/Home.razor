@@ -85,13 +85,14 @@
                                    Class='@($"rounded-pill px-6 fw-bold {(selectedCategory == "Table" ? "" : "mud-text-secondary")}")'
                                    OnClick='() => SelectCategory("Table")'>Table Games</MudButton>
                         <MudSpacer />
-                        <MudTextField @bind-Value="searchTerm" 
+                        <MudTextField @ref="searchField"
+                                     @bind-Value="SearchTerm" 
                                      Placeholder="Search games..." 
                                      Variant="Variant.Outlined" 
                                      Margin="Margin.Dense" 
                                      Adornment="Adornment.Start" 
                                      AdornmentIcon="@Icons.Material.Filled.Search" 
-                                     OnAdornmentClick="StateHasChanged"
+                                     OnAdornmentClick="FocusSearch"
                                      Class="rounded-pill glass-input" 
                                      Style="max-width: 250px;" 
                                      Immediate="true" />
@@ -782,7 +783,18 @@
 
 @code {
     private string selectedCategory = "Lobby";
-    private string searchTerm = "";
+    private string _searchTerm = "";
+    private MudTextField<string>? searchField;
+
+    public string SearchTerm {
+        get => _searchTerm;
+        set {
+            if (_searchTerm != value) {
+                _searchTerm = value;
+                StateHasChanged();
+            }
+        }
+    }
 
     private List<GameItem> allGames = new() {
         new GameItem("Clover Chase", "AleaSim Originals", "Slots", "https://images.unsplash.com/photo-1596838132731-3301c3fd4317?auto=format&fit=crop&w=600&q=80", "/game/cloverchase", "HOT", 98.5),
@@ -794,7 +806,7 @@
 
     private IEnumerable<GameItem> FilteredGames => allGames
         .Where(g => (selectedCategory == "Lobby" || g.Category == selectedCategory))
-        .Where(g => string.IsNullOrWhiteSpace(searchTerm) || g.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || g.Provider.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        .Where(g => string.IsNullOrWhiteSpace(SearchTerm) || g.Title.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) || g.Provider.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
@@ -821,8 +833,14 @@
 
     private void ResetFilters() {
         selectedCategory = "Lobby";
-        searchTerm = "";
+        SearchTerm = "";
         StateHasChanged();
+    }
+
+    private async Task FocusSearch() {
+        if (searchField != null) {
+            await searchField.FocusAsync();
+        }
     }
 
     private string GetTimeLeft(DateTime endsAt) {
