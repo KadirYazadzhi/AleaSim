@@ -101,3 +101,10 @@ public class DailyBonusResponse {
     public bool IsJackpot { get; set; }
     public int SegmentIndex { get; set; }
 }
+
+public class PlatformStatsDto {
+    public decimal TournamentPrizePool { get; set; }
+    public int ActivePlayers { get; set; }
+    public double AverageRtp { get; set; }
+    public decimal TotalRewardsPaid { get; set; }
+}

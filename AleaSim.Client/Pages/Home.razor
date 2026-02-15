@@ -43,7 +43,7 @@
                                     <MudText Typo="Typo.subtitle2" Class="text-warning fw-bold tracking-wide">SEASON 4</MudText>
                                 </div>
                                 <MudText Typo="Typo.h3" Class='@($"{(LayoutService.IsDarkMode ? "text-white text-shadow-lg" : "mud-text-primary")} fw-black mb-2")'>GRAND TOURNAMENT</MudText>
-                                <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black mb-4">$25,450.00 <span class='@($"{(LayoutService.IsDarkMode ? "text-white opacity-70" : "mud-text-secondary")} text-sm fw-normal")'>Prize Pool</span></MudText>
+                                <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black mb-4">@platformStats.TournamentPrizePool.ToString("C2") <span class='@($"{(LayoutService.IsDarkMode ? "text-white opacity-70" : "mud-text-secondary")} text-sm fw-normal")'>Prize Pool</span></MudText>
                                 
                                 <div class="d-flex align-center gap-6">
                                     <div class="timer-badge glass-panel px-3 py-1 rounded">
@@ -67,99 +67,98 @@
 
                     <!-- Game Categories -->
                     <div class="d-flex align-center gap-4 mb-6 overflow-x-auto pb-2 hide-scrollbar">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="rounded-pill px-6 fw-bold">Lobby</MudButton>
-                        <MudButton Variant="Variant.Text" Color="Color.Inherit" Class="rounded-pill px-6 mud-text-secondary">Slots</MudButton>
-                        <MudButton Variant="Variant.Text" Color="Color.Inherit" Class="rounded-pill px-6 mud-text-secondary">Live Casino</MudButton>
-                        <MudButton Variant="Variant.Text" Color="Color.Inherit" Class="rounded-pill px-6 mud-text-secondary">Table Games</MudButton>
+                        <MudButton Variant="@(selectedCategory == "Lobby" ? Variant.Filled : Variant.Text)" 
+                                   Color="@(selectedCategory == "Lobby" ? Color.Primary : Color.Inherit)" 
+                                   Class='@($"rounded-pill px-6 fw-bold {(selectedCategory == "Lobby" ? "" : "mud-text-secondary")}")'
+                                   OnClick='() => SelectCategory("Lobby")'>Lobby</MudButton>
+                        <MudButton Variant="@(selectedCategory == "Slots" ? Variant.Filled : Variant.Text)" 
+                                   Color="@(selectedCategory == "Slots" ? Color.Primary : Color.Inherit)" 
+                                   Class='@($"rounded-pill px-6 fw-bold {(selectedCategory == "Slots" ? "" : "mud-text-secondary")}")'
+                                   OnClick='() => SelectCategory("Slots")'>Slots</MudButton>
+                        <MudButton Variant="@(selectedCategory == "Live" ? Variant.Filled : Variant.Text)" 
+                                   Color="@(selectedCategory == "Live" ? Color.Primary : Color.Inherit)" 
+                                   Class='@($"rounded-pill px-6 fw-bold {(selectedCategory == "Live" ? "" : "mud-text-secondary")}")'
+                                   OnClick='() => SelectCategory("Live")'>Live Casino</MudButton>
+                        <MudButton Variant="@(selectedCategory == "Table" ? Variant.Filled : Variant.Text)" 
+                                   Color="@(selectedCategory == "Table" ? Color.Primary : Color.Inherit)" 
+                                   Class='@($"rounded-pill px-6 fw-bold {(selectedCategory == "Table" ? "" : "mud-text-secondary")}")'
+                                   OnClick='() => SelectCategory("Table")'>Table Games</MudButton>
                         <MudSpacer />
-                        <MudTextField T="string" Placeholder="Search games..." Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="rounded-pill glass-input" Style="max-width: 250px;" />
+                        <MudTextField @bind-Value="searchTerm" 
+                                     Placeholder="Search games..." 
+                                     Variant="Variant.Outlined" 
+                                     Margin="Margin.Dense" 
+                                     Adornment="Adornment.Start" 
+                                     AdornmentIcon="@Icons.Material.Filled.Search" 
+                                     OnAdornmentClick="StateHasChanged"
+                                     Class="rounded-pill glass-input" 
+                                     Style="max-width: 250px;" 
+                                     Immediate="true" />
                     </div>
 
                     <!-- Games Grid -->
-                    <div class="games-grid">
-                        <!-- Clover Chase -->
-                        <a href="/game/cloverchase" class="game-card">
-                            <div class="game-card-inner">
-                                <img src="https://images.unsplash.com/photo-1596838132731-3301c3fd4317?auto=format&fit=crop&w=600&q=80" alt="Clover Chase" class="game-img" />
-                                <div class="game-overlay">
-                                    <div class="play-btn-wrapper">
-                                        <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Large" />
-                                    </div>
-                                    <div class="game-info">
-                                        <span class="game-title">Clover Chase</span>
-                                        <span class="game-provider">AleaSim Originals</span>
-                                    </div>
-                                </div>
-                                <div class="game-badge hot">HOT</div>
-                                <div class="rtp-badge">98.5% RTP</div>
-                            </div>
-                        </a>
-
-                        <!-- Roulette -->
-                        <a href="/game/roulette" class="game-card">
-                            <div class="game-card-inner">
-                                <img src="https://images.unsplash.com/photo-1518893063934-f7142c22732b?auto=format&fit=crop&w=600&q=80" alt="Roulette" class="game-img" />
-                                <div class="game-overlay">
-                                    <div class="play-btn-wrapper">
-                                        <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Large" />
-                                    </div>
-                                    <div class="game-info">
-                                        <span class="game-title">Roulette Royale</span>
-                                        <span class="game-provider">Table Games</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-
-                        <!-- Blackjack -->
-                        <a href="/game/blackjack" class="game-card">
-                            <div class="game-card-inner">
-                                <img src="https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=600&q=80" alt="Blackjack" class="game-img" />
-                                <div class="game-overlay">
-                                    <div class="play-btn-wrapper">
-                                        <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Large" />
-                                    </div>
-                                    <div class="game-info">
-                                        <span class="game-title">Blackjack</span>
-                                        <span class="game-provider">Card Games</span>
-                                    </div>
-                                </div>
-                                <div class="game-badge new">NEW</div>
-                            </div>
-                        </a>
-
-                         <!-- Coming Soon Placeholders -->
-                        <div class="game-card coming-soon">
-                             <div class="game-card-inner d-flex flex-column align-center justify-center glass-panel">
-                                 <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Class="mb-2 opacity-50" />
-                                 <span class="mud-text-secondary fw-bold">Crash</span>
-                                 <span class="text-xs mud-text-secondary mt-1">Coming Soon</span>
-                             </div>
+                    @if (!FilteredGames.Any())
+                    {
+                        <div class="d-flex flex-column align-center justify-center pa-12 glass-panel rounded-xl animate-fade-in">
+                            <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Class="mb-4 opacity-50" Style="font-size: 5rem;" />
+                            <MudText Typo="Typo.h5" Class="mud-text-secondary fw-bold">No Games Found</MudText>
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">Try adjusting your search or category.</MudText>
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" Class="mt-4" OnClick="ResetFilters">Reset Filters</MudButton>
                         </div>
-                    </div>
+                    }
+                    else
+                    {
+                        <div class="games-grid">
+                            @foreach (var game in FilteredGames)
+                            {
+                                <a href="@game.Href" class="game-card">
+                                    <div class="game-card-inner">
+                                        <img src="@game.ImageUrl" alt="@game.Title" class="game-img" />
+                                        <div class="game-overlay">
+                                            <div class="play-btn-wrapper">
+                                                <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Large" />
+                                            </div>
+                                            <div class="game-info">
+                                                <span class="game-title">@game.Title</span>
+                                                <span class="game-provider">@game.Provider</span>
+                                            </div>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(game.Badge))
+                                        {
+                                            <div class='@($"game-badge {game.Badge.ToLower()}")'>@game.Badge</div>
+                                        }
+                                        @if (game.Rtp > 0)
+                                        {
+                                            <div class="rtp-badge">@game.Rtp.ToString("F1")% RTP</div>
+                                        }
+                                    </div>
+                                </a>
+                            }
+                        </div>
+                    }
 
                     <!-- Stats Section -->
                     <div class="mt-12 mb-8 animate-fade-in" style="animation-delay: 0.3s;">
-                        <MudText Typo="Typo.h5" Class="fw-black mb-4" Color="Color.Inherit">LIVE CASINO STATS</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-black mb-4" Color="Color.Inherit">LIVE PLATFORM STATS</MudText>
                         <MudGrid>
                             <MudItem xs="12" sm="4">
                                 <div class="glass-panel pa-6 rounded-xl text-center hover-scale">
                                     <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" Size="Size.Large" Class="mb-2" />
-                                    <MudText Typo="Typo.h4" Class="text-gradient fw-black">15,204</MudText>
+                                    <MudText Typo="Typo.h4" Class="text-gradient fw-black">@platformStats.ActivePlayers.ToString("N0")</MudText>
                                     <MudText Typo="Typo.body2" Color="Color.Secondary">Active Players</MudText>
                                 </div>
                             </MudItem>
                             <MudItem xs="12" sm="4">
                                 <div class="glass-panel pa-6 rounded-xl text-center hover-scale">
                                     <MudIcon Icon="@Icons.Material.Filled.Percent" Color="Color.Secondary" Size="Size.Large" Class="mb-2" />
-                                    <MudText Typo="Typo.h4" Class="text-gradient fw-black">98.4%</MudText>
+                                    <MudText Typo="Typo.h4" Class="text-gradient fw-black">@platformStats.AverageRtp.ToString("F1")%</MudText>
                                     <MudText Typo="Typo.body2" Color="Color.Secondary">Average RTP</MudText>
                                 </div>
                             </MudItem>
                             <MudItem xs="12" sm="4">
                                 <div class="glass-panel pa-6 rounded-xl text-center hover-scale">
                                     <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Color="Color.Warning" Size="Size.Large" Class="mb-2" />
-                                    <MudText Typo="Typo.h4" Class="text-gradient fw-black">$4.2M+</MudText>
+                                    <MudText Typo="Typo.h4" Class="text-gradient fw-black">@platformStats.TotalRewardsPaid.ToString("C0")+</MudText>
                                     <MudText Typo="Typo.body2" Color="Color.Secondary">Total Rewards Paid</MudText>
                                 </div>
                             </MudItem>
@@ -781,35 +780,98 @@
 </style>
 
 @code {
+    private string selectedCategory = "Lobby";
+    private string searchTerm = "";
+    private PlatformStatsDto platformStats = new() { ActivePlayers = 1204, AverageRtp = 98.4, TotalRewardsPaid = 4200000, TournamentPrizePool = 25450 };
+    private CancellationTokenSource? _cts;
+
+    private List<GameItem> allGames = new() {
+        new GameItem("Clover Chase", "AleaSim Originals", "Slots", "https://images.unsplash.com/photo-1596838132731-3301c3fd4317?auto=format&fit=crop&w=600&q=80", "/game/cloverchase", "HOT", 98.5),
+        new GameItem("Roulette Royale", "Table Games", "Table", "https://images.unsplash.com/photo-1518893063934-f7142c22732b?auto=format&fit=crop&w=600&q=80", "/game/roulette", "", 97.3),
+        new GameItem("Blackjack", "Card Games", "Table", "https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=600&q=80", "/game/blackjack", "NEW", 99.2),
+        new GameItem("Crazy Dice", "AleaSim Originals", "Slots", "https://images.unsplash.com/photo-1518133835878-5a93cc3f89e5?auto=format&fit=crop&w=600&q=80", "/game/cloverchase", "", 96.5),
+        new GameItem("Baccarat", "Live Casino", "Live", "https://images.unsplash.com/photo-1596838132731-3301c3fd4317?auto=format&fit=crop&w=600&q=80", "/register", "LIVE", 98.9)
+    };
+
+    private IEnumerable<GameItem> FilteredGames => allGames
+        .Where(g => (selectedCategory == "Lobby" || g.Category == selectedCategory))
+        .Where(g => string.IsNullOrWhiteSpace(searchTerm) || g.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || g.Provider.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+
     protected override async Task OnInitializedAsync()
     {
         LayoutService.OnMajorUpdate += StateHasChanged;
         
+        await LoadStats();
+        StartStatsPolling();
+
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true) {
             try {
-                // Attempt to claim daily streak automatically or check status
                 var response = await Http.PostAsync("api/Game/streak/claim", null);
                 if (response.IsSuccessStatusCode) {
                     var res = await response.Content.ReadFromJsonAsync<StreakResult>();
-                    // Only show snackbar if actual bonus received, otherwise it might be spammy
                     if(res != null && res.Amount > 0)
                         Snackbar.Add(res?.Message ?? "Daily bonus claimed!", Severity.Success);
                 }
             } catch { }
         }
     }
+
+    private void SelectCategory(string category) {
+        selectedCategory = category;
+        StateHasChanged();
+    }
+
+    private void ResetFilters() {
+        selectedCategory = "Lobby";
+        searchTerm = "";
+        StateHasChanged();
+    }
+
+    private async Task LoadStats() {
+        try {
+            var stats = await Http.GetFromJsonAsync<PlatformStatsDto>("api/Game/platform-stats");
+            if (stats != null) {
+                platformStats = stats;
+                StateHasChanged();
+            }
+        } catch { }
+    }
+
+    private void StartStatsPolling() {
+        _cts = new CancellationTokenSource();
+        _ = Task.Run(async () => {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+            while (await timer.WaitForNextTickAsync(_cts.Token)) {
+                await InvokeAsync(LoadStats);
+            }
+        });
+    }
     
     public void Dispose()
     {
         LayoutService.OnMajorUpdate -= StateHasChanged;
+        _cts?.Cancel();
+        _cts?.Dispose();
     }
 
     private async Task OpenBonusWheel() {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-        // Assuming BonusWheel dialog exists as per previous file content
         await DialogService.ShowAsync<BonusWheel>("Daily Luck Wheel", options);
     }
 
     public class StreakResult { public int Streak { get; set; } public decimal Amount { get; set; } public string Message { get; set; } = ""; }
+    public class GameItem {
+        public string Title { get; set; }
+        public string Provider { get; set; }
+        public string Category { get; set; }
+        public string ImageUrl { get; set; }
+        public string Href { get; set; }
+        public string Badge { get; set; }
+        public double Rtp { get; set; }
+
+        public GameItem(string title, string provider, string category, string imageUrl, string href, string badge, double rtp) {
+            Title = title; Provider = provider; Category = category; ImageUrl = imageUrl; Href = href; Badge = badge; Rtp = rtp;
+        }
+    }
 }
