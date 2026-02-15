@@ -67,7 +67,7 @@
     protected override async Task OnInitializedAsync()
     {
         try {
-            auditChain = await Http.GetFromJsonAsync<List<GameRoundDto>>("api/Game/history") ?? new();
+            auditChain = await Http.GetFromJsonAsync<List<GameRoundDto>>("api/Game/public-history") ?? new();
         } catch {}
     }
 

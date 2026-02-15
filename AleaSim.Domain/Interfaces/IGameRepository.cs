@@ -57,6 +57,7 @@ public interface IGameRepository {
     IEnumerable<GameRound> GetUserRounds(Guid userId, int count);
     IEnumerable<GameRound> GetGlobalRecentRounds(int count);
     IEnumerable<GameRoundDto> GetUserHistory(Guid userId, int count);
+    IEnumerable<GameRoundDto> GetGlobalHistory(int count);
 
     // Outcomes
     void SaveOutcome(Outcome outcome);

@@ -179,6 +179,13 @@ public class GameController : ControllerBase {
         return Ok(_repo.GetActiveQuests(userId));
     }
 
+    [AllowAnonymous]
+    [HttpGet("public-history")]
+    public IActionResult GetPublicHistory() {
+        var result = _repo.GetGlobalHistory(50);
+        return Ok(result);
+    }
+
     [HttpGet("history")]
     public IActionResult GetHistory() {
         var userId = GetUserIdOrThrow();
