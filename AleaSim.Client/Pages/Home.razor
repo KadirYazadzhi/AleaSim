@@ -85,17 +85,19 @@
                                    Class='@($"rounded-pill px-6 fw-bold {(selectedCategory == "Table" ? "" : "mud-text-secondary")}")'
                                    OnClick='() => SelectCategory("Table")'>Table Games</MudButton>
                         <MudSpacer />
-                        <MudTextField @ref="searchField"
-                                     @bind-Value="SearchTerm" 
-                                     Placeholder="Search games..." 
-                                     Variant="Variant.Outlined" 
-                                     Margin="Margin.Dense" 
-                                     Adornment="Adornment.Start" 
-                                     AdornmentIcon="@Icons.Material.Filled.Search" 
-                                     OnAdornmentClick="FocusSearch"
-                                     Class="rounded-pill glass-input" 
-                                     Style="max-width: 250px;" 
-                                     Immediate="true" />
+                        <div class="search-container d-flex align-center">
+                            <MudTextField @ref="searchField"
+                                         @bind-Value="SearchTerm" 
+                                         Placeholder="Search games..." 
+                                         Variant="Variant.Outlined" 
+                                         Margin="Margin.Dense" 
+                                         Adornment="Adornment.Start" 
+                                         AdornmentIcon="@Icons.Material.Filled.Search" 
+                                         OnAdornmentClick="FocusSearch"
+                                         Class="search-input rounded-pill" 
+                                         Style="width: 250px;" 
+                                         Immediate="true" />
+                        </div>
                     </div>
 
                     <!-- Games Grid -->
@@ -766,6 +768,23 @@
     
     .hover-scale { transition: transform 0.2s; }
     .hover-scale:hover { transform: scale(1.05); }
+
+    .search-input {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50px;
+        transition: all 0.3s ease;
+    }
+    .search-input:focus-within {
+        background: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 0 15px rgba(124, 58, 237, 0.3);
+    }
+    .light-banner + .d-flex .search-input {
+        background: rgba(0, 0, 0, 0.05);
+        color: #1e293b;
+    }
+    .light-banner + .d-flex .search-input:focus-within {
+        background: rgba(0, 0, 0, 0.08);
+    }
 
     .glass-input input { color: white !important; }
     .glass-input .mud-input-outlined-border { border-color: rgba(255,255,255,0.1) !important; }
