@@ -1,10 +1,13 @@
 @page "/"
 @using AleaSim.Client.Components
+@using AleaSim.Client.Services
+@implements IDisposable
 @inject NavigationManager Navigation
 @inject IDialogService DialogService
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthStateProvider
+@inject LayoutService LayoutService
 
 <PageTitle>AleaSim | Premium Crypto Casino</PageTitle>
 
@@ -200,31 +203,31 @@
                                             <MudRating ReadOnly="true" SelectedValue="5" Size="Size.Small" />
                                         </div>
                                     </div>
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">"The withdrawal speed is insane. I hit a jackpot on Clover Chase and had the funds in my wallet in seconds."</MudText>
+                                    <MudText Typo="Typo.body1" Class="mud-text-secondary" Style="font-style: italic;">"The withdrawal speed is insane. I hit a jackpot on Clover Chase and had the funds in my wallet in seconds. Absolutely unmatched."</MudText>
                                 </div>
                             </MudItem>
                             <MudItem xs="12" md="4">
                                 <div class="glass-panel pa-6 rounded-xl h-100">
                                     <div class="d-flex align-center mb-4">
-                                        <MudAvatar Color="Color.Secondary" Size="Size.Medium" Class="mr-3">K</MudAvatar>
+                                        <MudAvatar Color="Color.Secondary" Size="Size.Large" Class="mr-4">K</MudAvatar>
                                         <div>
-                                            <MudText Typo="Typo.subtitle2" Class="fw-bold" Color="Color.Inherit">CryptoKing</MudText>
+                                            <MudText Typo="Typo.h6" Class="fw-bold" Color="Color.Inherit">CryptoKing</MudText>
                                             <MudRating ReadOnly="true" SelectedValue="5" Size="Size.Small" />
                                         </div>
                                     </div>
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">"Finally, a casino that feels fair. The stats dashboard lets me verify everything. Totally transparent."</MudText>
+                                    <MudText Typo="Typo.body1" Class="mud-text-secondary" Style="font-style: italic;">"Finally, a casino that feels fair. The stats dashboard lets me verify everything. Totally transparent and the community is great."</MudText>
                                 </div>
                             </MudItem>
                             <MudItem xs="12" md="4">
                                 <div class="glass-panel pa-6 rounded-xl h-100">
                                     <div class="d-flex align-center mb-4">
-                                        <MudAvatar Color="Color.Warning" Size="Size.Medium" Class="mr-3">S</MudAvatar>
+                                        <MudAvatar Color="Color.Warning" Size="Size.Large" Class="mr-4">S</MudAvatar>
                                         <div>
-                                            <MudText Typo="Typo.subtitle2" Class="fw-bold" Color="Color.Inherit">SarahJ</MudText>
+                                            <MudText Typo="Typo.h6" Class="fw-bold" Color="Color.Inherit">SarahJ</MudText>
                                             <MudRating ReadOnly="true" SelectedValue="4" Size="Size.Small" />
                                         </div>
                                     </div>
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">"Love the daily missions. It adds a whole new layer to the slot games. Can't wait for the new RPG features!"</MudText>
+                                    <MudText Typo="Typo.body1" Class="mud-text-secondary" Style="font-style: italic;">"Love the daily missions. It adds a whole new layer to the slot games. Can't wait for the new RPG features to drop!"</MudText>
                                 </div>
                             </MudItem>
                         </MudGrid>
@@ -273,7 +276,7 @@
     
     <NotAuthorized>
         <!-- Hero Section -->
-        <div class="hero-section">
+        <div class="@(LayoutService.IsDarkMode ? "hero-section" : "hero-section light-hero")">
             <MudContainer MaxWidth="MaxWidth.Large" Class="h-100 d-flex flex-column align-center justify-center text-center position-relative" Style="z-index: 10;">
                 <div class="hero-content animate-slide-up">
                     <MudText Typo="Typo.h1" Class="hero-title mb-4">ALEASIM</MudText>
@@ -665,6 +668,30 @@
         overflow: hidden;
         padding-top: 4rem;
     }
+    
+    /* Light Mode Hero Section Override */
+    .hero-section.light-hero {
+        background: linear-gradient(135deg, #fdf4ff 0%, #ffffff 100%);
+    }
+    .hero-section.light-hero .hero-bg-overlay {
+        background: radial-gradient(circle at center, rgba(236, 72, 153, 0.15) 0%, transparent 70%);
+    }
+    .hero-section.light-hero .hero-title {
+        background: linear-gradient(to bottom right, #7e22ce 30%, #db2777 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: none;
+    }
+    .hero-section.light-hero .hero-subtitle {
+        color: #475569;
+    }
+    .hero-section.light-hero .stat-label {
+        color: #64748b;
+    }
+    .hero-section.light-hero .stat-value.text-success {
+        color: #059669;
+    }
+    
     .hero-bg-overlay {
         position: absolute; inset: 0;
         background: radial-gradient(circle at center, rgba(124, 58, 237, 0.15) 0%, #020617 70%);
@@ -744,6 +771,8 @@
 @code {
     protected override async Task OnInitializedAsync()
     {
+        LayoutService.OnMajorUpdate += StateHasChanged;
+        
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true) {
             try {
@@ -757,6 +786,11 @@
                 }
             } catch { }
         }
+    }
+    
+    public void Dispose()
+    {
+        LayoutService.OnMajorUpdate -= StateHasChanged;
     }
 
     private async Task OpenBonusWheel() {
