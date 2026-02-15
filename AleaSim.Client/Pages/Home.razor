@@ -13,7 +13,7 @@
 
 <AuthorizeView>
     <Authorized>
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="px-4">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="px-4 pt-12">
             <!-- Header & Daily Bonus -->
             <div class="d-flex justify-space-between align-center mb-8 animate-fade-in">
                 <div>
@@ -35,14 +35,14 @@
                 <MudItem xs="12" md="8" lg="9">
                     
                     <!-- Hero/Tournament Banner -->
-                    <div class="@(LayoutService.IsDarkMode ? "tournament-banner" : "tournament-banner light-banner") mb-10 p-relative overflow-hidden rounded-xl shadow-2xl animate-slide-up">
+                    <div class='@($"{(LayoutService.IsDarkMode ? "tournament-banner" : "tournament-banner light-banner")} mb-10 p-relative overflow-hidden rounded-xl shadow-md animate-slide-up")'>
                         <div class="banner-content d-flex justify-space-between align-center flex-wrap gap-6 pa-8" style="position: relative; z-index: 2;">
                             <div style="max-width: 600px;">
                                 <div class="d-flex align-center gap-2 mb-2">
                                     <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="fw-bold pulse-red">LIVE</MudChip>
                                     <MudText Typo="Typo.subtitle2" Class="text-warning fw-bold tracking-wide">SEASON 4</MudText>
                                 </div>
-                                <MudText Typo="Typo.h3" Class='@($"{(LayoutService.IsDarkMode ? "text-white" : "mud-text-primary")} fw-black mb-2 text-shadow-lg")'>GRAND TOURNAMENT</MudText>
+                                <MudText Typo="Typo.h3" Class='@($"{(LayoutService.IsDarkMode ? "text-white text-shadow-lg" : "mud-text-primary")} fw-black mb-2")'>GRAND TOURNAMENT</MudText>
                                 <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black mb-4">$25,450.00 <span class='@($"{(LayoutService.IsDarkMode ? "text-white opacity-70" : "mud-text-secondary")} text-sm fw-normal")'>Prize Pool</span></MudText>
                                 
                                 <div class="d-flex align-center gap-6">
@@ -524,8 +524,8 @@
     .text-warning { color: var(--mud-palette-warning); }
     .text-success { color: var(--mud-palette-success); }
     
-    .text-shadow-lg { text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-    .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+    .text-shadow-lg { text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    .shadow-2xl { box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3); }
     
     .rounded-xl { border-radius: 1rem; }
     .rounded-xxl { border-radius: 2rem; }
