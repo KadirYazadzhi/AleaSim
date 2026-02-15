@@ -449,6 +449,10 @@ public class EfGameRepository : IGameRepository {
         return (bets, wins);
     }
 
+    public decimal GetGlobalTotalRewardsPaid() {
+        return _context.GameRounds.Sum(r => (decimal?)r.TotalWinAmount) ?? 0m;
+    }
+
     public IEnumerable<(DateTime Hour, decimal Bets, decimal Wins)> GetRtpTrend(int hours) {
         var cutoff = DateTime.UtcNow.AddHours(-hours);
         

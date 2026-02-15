@@ -84,6 +84,7 @@ public interface IGameRepository {
 
     // Admin Reporting
     (decimal TotalBets, decimal TotalWins) GetDailyFinancials(DateTime date);
+    decimal GetGlobalTotalRewardsPaid();
     IEnumerable<(DateTime Hour, decimal Bets, decimal Wins)> GetRtpTrend(int hours);
     int GetActivePlayerCount(int minutes);
     IEnumerable<(string Username, decimal TotalWin)> GetTopWinners(DateTime date, int topCount);
