@@ -21,10 +21,10 @@
         <RowTemplate>
             <MudTd DataLabel="Date">@context.PlayedAt.ToString("g")</MudTd>
             <MudTd DataLabel="Game">@context.GameName</MudTd>
-            <MudTd DataLabel="Bet" Style="text-align: right;">$@context.BetAmount.ToString("N2")</MudTd>
+            <MudTd DataLabel="Bet" Style="text-align: right;">@context.BetAmount.ToString("C2")</MudTd>
             <MudTd DataLabel="Win" Style="text-align: right;">
                 <MudText Color="@(context.WinAmount > 0 ? Color.Success : Color.Default)" Style="font-weight: bold;">
-                    $@context.WinAmount.ToString("N2")
+                    @context.WinAmount.ToString("C2")
                 </MudText>
             </MudTd>
             <MudTd DataLabel="PF">

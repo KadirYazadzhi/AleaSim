@@ -61,7 +61,7 @@
 
         <MudItem xs="12" lg="3">
             <MudPaper Class="pa-6 d-flex flex-column gap-4">
-                <MudText Typo="Typo.h5">Balance: <span style="color: #4caf50;">$@balance.ToString("N2")</span></MudText>
+                <MudText Typo="Typo.h5">Balance: <span style="color: #4caf50;">@balance.ToString("C2")</span></MudText>
                 
                 <MudNumericField @bind-Value="betAmount" Label="Bet" Variant="Variant.Outlined" Min="1" Max="500" Disabled="@(!isRoundOver && playerHand.Any())" />
 

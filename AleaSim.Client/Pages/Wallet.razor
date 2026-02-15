@@ -32,8 +32,8 @@
 
             <MudPaper Class="pa-6" Elevation="2">
                 <MudText Typo="Typo.h6" Class="mb-4">Bankruptcy Relief</MudText>
-                <MudText Typo="Typo.body2" Class="mb-4">Ran out of coins? Claim 100 free coins once every hour if your balance is below 10.</MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" OnClick="ClaimFaucet">Claim Free Coins</MudButton>
+                <MudText Typo="Typo.body2" Class="mb-4">Ran out of funds? Claim $100.00 free credits once every hour if your balance is below $10.00.</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" OnClick="ClaimFaucet">Claim Free Credits</MudButton>
             </MudPaper>
         </MudItem>
 
@@ -99,7 +99,7 @@
     private async Task ClaimFaucet() {
         var response = await Http.PostAsync("api/Vault/faucet", null);
         if (response.IsSuccessStatusCode) {
-            Snackbar.Add("Relief claimed! Added 100 coins.", Severity.Success);
+            Snackbar.Add("Relief claimed! Added $100.00.", Severity.Success);
             await LoadTransactions();
         } else {
             var error = await response.Content.ReadAsStringAsync();

@@ -63,8 +63,8 @@
             <MudPaper Class="pa-6" Elevation="2" Style="height: 100%;">
                 <MudText Typo="Typo.h6" Class="mb-4">Financial Overview</MudText>
                 <MudList T="string">
-                    <MudListItem Icon="@Icons.Material.Filled.AccountBalanceWallet">Real Balance: <b>$@profile?.Balance.ToString("N2")</b></MudListItem>
-                    <MudListItem Icon="@Icons.Material.Filled.CardGiftcard">Bonus Balance: <b>$@profile?.BonusBalance.ToString("N2")</b></MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.AccountBalanceWallet">Real Balance: <b>@profile?.Balance.ToString("C2")</b></MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.CardGiftcard">Bonus Balance: <b>@profile?.BonusBalance.ToString("C2")</b></MudListItem>
                 </MudList>
             </MudPaper>
         </MudItem>

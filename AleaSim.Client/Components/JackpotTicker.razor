@@ -5,7 +5,7 @@
 <div class="jackpot-ticker @(IsHot ? "hot" : "")">
     <div class="ticker-label">@Title</div>
     <div class="ticker-value">
-        $@CurrentValue.ToString("N2")
+        @CurrentValue.ToString("C2")
     </div>
     @if (MustDropAt.HasValue)
     {

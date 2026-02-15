@@ -15,12 +15,12 @@
                 </MudItem>
                 <MudItem xs="6">
                     <MudText Typo="Typo.caption">Bet Amount:</MudText>
-                    <MudText Typo="Typo.body2">$@Round.BetAmount.ToString("N2")</MudText>
+                    <MudText Typo="Typo.body2">@Round.BetAmount.ToString("C2")</MudText>
                 </MudItem>
                 <MudItem xs="6">
                     <MudText Typo="Typo.caption">Win Amount:</MudText>
                     <MudText Typo="Typo.body2" Color="@(Round.WinAmount > 0 ? Color.Success : Color.Default)" Style="font-weight: bold;">
-                        $@Round.WinAmount.ToString("N2")
+                        @Round.WinAmount.ToString("C2")
                     </MudText>
                 </MudItem>
                 <MudItem xs="6">

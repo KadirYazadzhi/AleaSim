@@ -8,7 +8,7 @@
     <DialogContent>
         <div class="d-flex flex-column align-center justify-center pa-4">
             <MudText Typo="Typo.h4" Class="mb-4">DOUBLE OR NOTHING</MudText>
-            <MudText Typo="Typo.h5" Color="Color.Success" Class="mb-6">RISK: $@Amount.ToString("N2") -> WIN: $@(Amount * 2).ToString("N2")</MudText>
+            <MudText Typo="Typo.h5" Color="Color.Success" Class="mb-6">RISK: @Amount.ToString("C2") -> WIN: @((Amount * 2).ToString("C2"))</MudText>
 
             <div class="d-flex gap-4">
                 <MudPaper Class="card-choice red" @onclick='() => Play("red")' Elevation="4">
@@ -27,7 +27,7 @@
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Collect" Color="Color.Secondary">COLLECT ($@Amount)</MudButton>
+        <MudButton OnClick="Collect" Color="Color.Secondary">COLLECT (@Amount.ToString("C2"))</MudButton>
     </DialogActions>
 </MudDialog>
 

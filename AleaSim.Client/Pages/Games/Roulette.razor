@@ -89,11 +89,11 @@
         <!-- Controls -->
         <MudItem xs="12" lg="3">
             <MudPaper Class="pa-6 d-flex flex-column gap-4">
-                <MudText Typo="Typo.h5">Balance: <span style="color: #4caf50;">$@balance.ToString("N2")</span></MudText>
+                <MudText Typo="Typo.h5">Balance: <span style="color: #4caf50;">@balance.ToString("C2")</span></MudText>
                 
                 <MudNumericField @bind-Value="chipValue" Label="Chip Value" Variant="Variant.Outlined" Min="1" Max="100" />
                 
-                <MudText Typo="Typo.subtitle2">Total Bet: $@currentBets.Sum(x => x.Amount).ToString("N2")</MudText>
+                <MudText Typo="Typo.subtitle2">Total Bet: @currentBets.Sum(x => x.Amount).ToString("C2")</MudText>
 
                 <MudButton Variant="Variant.Filled" 
                            Color="Color.Primary" 
@@ -213,7 +213,7 @@
             winningNumber = resultData?.Number;
             
             if (result.TotalWin > 0) {
-                Snackbar.Add($"WINNER! Number {winningNumber} paid ${result.TotalWin:N2}", Severity.Success);
+                Snackbar.Add($"WINNER! Number {winningNumber} paid {result.TotalWin.ToString("C2")}", Severity.Success);
                 await Audio.PlayWin();
             }
             

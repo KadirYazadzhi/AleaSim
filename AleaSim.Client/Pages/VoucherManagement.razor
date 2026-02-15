@@ -44,7 +44,7 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Code"><MudChip T="string" Color="Color.Info" Variant="Variant.Text">@context.Code</MudChip></MudTd>
-            <MudTd DataLabel="Amount">$@context.Amount.ToString("N2")</MudTd>
+            <MudTd DataLabel="Amount">@context.Amount.ToString("C2")</MudTd>
             <MudTd DataLabel="Usage">@context.CurrentUses / @context.MaxUses</MudTd>
             <MudTd DataLabel="Status">
                 <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">

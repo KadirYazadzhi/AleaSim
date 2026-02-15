@@ -8,8 +8,15 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http;
 
 using AleaSim.Client.Services; // Added
+using System.Globalization;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
+
+// Set Global Culture to en-US for USD currency unification
+var culture = new CultureInfo("en-US");
+CultureInfo.DefaultThreadCurrentCulture = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
+
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 

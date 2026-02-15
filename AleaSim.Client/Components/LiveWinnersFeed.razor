@@ -20,7 +20,7 @@
                         <MudText Typo="Typo.body2" Color="Color.Inherit" Style="font-weight: bold;">@win.Username</MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">@win.GameName</MudText>
                     </div>
-                    <MudText Typo="Typo.body1" Style="color: #4caf50; font-weight: bold;">$@win.Amount.ToString("N2")</MudText>
+                    <MudText Typo="Typo.body1" Style="color: #4caf50; font-weight: bold;">@win.Amount.ToString("C2")</MudText>
                 </div>
             </MudListItem>
             <MudDivider DividerType="DividerType.Middle" Class="my-1" />

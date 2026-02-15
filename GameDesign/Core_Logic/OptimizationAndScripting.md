@@ -24,7 +24,7 @@ To handle millions of spins without DB crashes, we use a tiered data approach.
 The core of the "Illusion of Control". Instead of generating random numbers, we generate **Outcomes**.
 
 ### Workflow
-1.  **Objective:** Brain sets a goal (e.g., "Win 50.00 BGN").
+1.  **Objective:** Brain sets a goal (e.g., "Win 50.00 USD").
 2.  **Blueprint Selection:** Engine picks a template matching the goal (e.g., "Bell Bonus with Mini").
 3.  **Filling:** Algorithm distributes the win amount into specific symbols.
     *   *Problem:* 50.00 needs to be split into 5 bells.

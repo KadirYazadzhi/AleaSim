@@ -69,11 +69,11 @@
 
                 <MudSelect T="decimal" Label="Denomination" @bind-Value="denomination" Variant="Variant.Filled" Class="mb-4" 
                            Disabled="@(isSpinning || gameState.IsBonusActive || gameState.IsRespinActive || gameState.IsGambleActive)">
-                    <MudSelectItem Value="@(0.01m)">$0.01</MudSelectItem>
-                    <MudSelectItem Value="@(0.05m)">$0.05</MudSelectItem>
-                    <MudSelectItem Value="@(0.10m)">$0.10</MudSelectItem>
-                    <MudSelectItem Value="@(0.50m)">$0.50</MudSelectItem>
-                    <MudSelectItem Value="@(1.00m)">$1.00</MudSelectItem>
+                    <MudSelectItem Value="@(0.01m)">@((0.01m).ToString("C2"))</MudSelectItem>
+                    <MudSelectItem Value="@(0.05m)">@((0.05m).ToString("C2"))</MudSelectItem>
+                    <MudSelectItem Value="@(0.10m)">@((0.10m).ToString("C2"))</MudSelectItem>
+                    <MudSelectItem Value="@(0.50m)">@((0.50m).ToString("C2"))</MudSelectItem>
+                    <MudSelectItem Value="@(1.00m)">@((1.00m).ToString("C2"))</MudSelectItem>
                 </MudSelect>
 
                 <MudNumericField @bind-Value="creditsBet" Label="Bet (Credits)" Variant="Variant.Filled" Min="10" Max="100" Step="10" 

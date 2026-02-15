@@ -47,7 +47,7 @@ Triggered by having 5+ Sticky Clovers on screen.
 
 ### Special Bells (Mini / Minor)
 *   **Appearance:** Distinct visual look.
-*   **Value:** Fixed constant amounts based on denomination (e.g., Mini = 20 BGN, Minor = 100 BGN).
+*   **Value:** Fixed constant amounts based on denomination (e.g., Mini = 20 USD, Minor = 100 USD).
 *   **Value Logic:** Their value is ADDED to the standard Bell value pool.
 *   **Probability Algorithm (Diminishing Returns):**
     *   Chance to spawn depends on Bet Size (Higher Bet = Lower Chance?).
@@ -66,23 +66,23 @@ The bonus ends when lives = 0 or screen is full.
 
 ### Denomination Logic
 The game operates on a Credit system tied to real currency.
-*   **Supported Denominations (BGN):** 0.01, 0.02, 0.05, 0.10, 0.20, 0.50, 1.00.
+*   **Supported Denominations (USD):** 0.01, 0.02, 0.05, 0.10, 0.20, 0.50, 1.00.
 *   **Total Bet Calculation:** `BetCredits * Denomination`.
-    *   *Example:* 100 Credits at 0.01 Denom = **1.00 BGN Bet**.
-    *   *Example:* 100 Credits at 1.00 Denom = **100.00 BGN Bet**.
+    *   *Example:* 100 Credits at 0.01 Denom = **1.00 USD Bet**.
+    *   *Example:* 100 Credits at 1.00 Denom = **100.00 USD Bet**.
 
 ### Fixed Jackpot Values (Mini / Minor)
 These special bells have constant values based on the **Denomination**, not the Total Bet.
 
 | Jackpot | Multiplier (x Denom) | Value at 0.01 | Value at 1.00 | Probability | Cap |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Mini** | 1000x | **10.00 BGN** | **1,000.00 BGN** | High | Soft Cap (exponential decay) |
-| **Minor** | 5000x | **50.00 BGN** | **5,000.00 BGN** | Very Low (~1/5 of Mini) | **Hard Cap at 3** (0% chance after 3rd) |
+| **Mini** | 1000x | **10.00 USD** | **1,000.00 USD** | High | Soft Cap (exponential decay) |
+| **Minor** | 5000x | **50.00 USD** | **5,000.00 USD** | Very Low (~1/5 of Mini) | **Hard Cap at 3** (0% chance after 3rd) |
 
 ### Logic Implications
 *   Players are incentivized to increase **Denomination** to chase bigger Jackpots.
-*   Playing at Max Bet on Low Denom (e.g., 1000 credits at 0.01) gives a huge base game win potential but keeps Jackpots small (10/50 BGN).
-*   Playing at Min Bet on High Denom (e.g., 1 credit at 1.00) gives small base wins but huge Jackpots (1000/5000 BGN).
+*   Playing at Max Bet on Low Denom (e.g., 1000 credits at 0.01) gives a huge base game win potential but keeps Jackpots small (10/50 USD).
+*   Playing at Min Bet on High Denom (e.g., 1 credit at 1.00) gives small base wins but huge Jackpots (1000/5000 USD).
 
 ## 6. Technical Requirements & Edge Cases
 *   **State Machine:** Must track `RespinState` (How many clovers, position, lives left) between HTTP requests.

@@ -20,7 +20,7 @@ This document outlines the discrepancies between the Design Specifications (in `
 *   **Current State:** `SlotGameStateUI` has a `CanGamble` property, but the backend logic (`ProcessAction` in `SlotGameEngine`) is empty/dummy.
 
 ### ❌ Denomination Logic
-*   **Design:** The game should operate on Credits (e.g., 100 credits * 0.01 BGN denom). Jackpots are fixed to denomination.
+*   **Design:** The game should operate on Credits (e.g., 100 credits * 0.01 USD denom). Jackpots are fixed to denomination.
 *   **Current State:** The engine operates purely on raw Currency (`decimal amount`).
 
 ---

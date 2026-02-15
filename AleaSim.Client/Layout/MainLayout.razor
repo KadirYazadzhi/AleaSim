@@ -55,7 +55,7 @@
                     @if (userProfile != null) {
                         <MudPaper Elevation="0" Class="d-flex align-center px-3 py-1 rounded-lg wallet-pill" @onclick='@(() => Navigation.NavigateTo("/wallet"))'>
                             <MudText Typo="Typo.subtitle1" Color="Color.Success" Class="mr-2" Style="font-weight: 800; font-family: 'Roboto Mono', monospace;">
-                                $@userProfile.Balance.ToString("N2")
+                                @userProfile.Balance.ToString("C2")
                             </MudText>
                             <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small" Class="rounded-lg" Style="min-width: 32px; padding: 2px 8px;">+</MudButton>
                         </MudPaper>
@@ -130,7 +130,7 @@
         <div class="mt-auto pa-4">
              <MudCard Class="glass-panel pa-3 text-center mb-4">
                  <MudText Typo="Typo.caption" Class="d-block mb-1 mud-text-secondary">Weekly Jackpot</MudText>
-                 <MudText Typo="Typo.h6" Class="text-gradient font-black">$14,502.55</MudText>
+                 <MudText Typo="Typo.h6" Class="text-gradient font-black">@((14502.55m).ToString("C2"))</MudText>
              </MudCard>
         </div>
     </MudDrawer>
