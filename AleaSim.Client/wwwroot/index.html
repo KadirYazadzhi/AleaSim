@@ -22,6 +22,10 @@
                 console.warn('Theme init failed', e);
             }
         })();
+
+        window.setTheme = (theme) => {
+            document.documentElement.setAttribute('data-theme', theme);
+        };
     </script>
 
     <style>

@@ -6,12 +6,21 @@
     --deep-bg: #020617;
     --glass-bg: rgba(15, 23, 42, 0.6);
     --glass-border: rgba(255, 255, 255, 0.1);
+
+    /* App Theme Defaults (Dark) */
+    --app-background: #0f172a; 
+    --app-text: #f1f5f9;
+}
+
+[data-theme="light"] {
+    --app-background: #f1f5f9;
+    --app-text: #0f172a;
 }
 
 html, body {
     font-family: 'Montserrat', sans-serif;
-    background-color: var(--mud-palette-background);
-    color: var(--mud-palette-text-primary);
+    background-color: var(--app-background) !important;
+    color: var(--app-text) !important;
     scroll-behavior: smooth;
 }
 
