@@ -1,6 +1,31 @@
-docs/*
-.idea/*
+# .NET
+[Bb]in/
+[Oo]bj/
+[Tt]est[Rr]esults/
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+# Rider
+.idea/
+*.sln.DotSettings.user
+
+# Visual Studio Code
+.vscode/
+
+# Web
+node_modules/
+wwwroot/lib/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Custom
+docs/
 goals.md
 instruction.md
-**/bin/
-**/obj/
