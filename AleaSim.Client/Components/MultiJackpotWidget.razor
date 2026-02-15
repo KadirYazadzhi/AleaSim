@@ -2,6 +2,7 @@
 @using AleaSim.Client.Services
 @implements IDisposable
 @inject RealTimeClient RealTime
+@inject LayoutService LayoutService
 
 <div class="jackpot-container">
     <div class="jackpot-row spades">
@@ -28,11 +29,11 @@
 
 <style>
     .jackpot-container {
-        background: #111;
+        background: transparent;
         border: 2px solid #d4af37;
         border-radius: 8px;
         padding: 10px;
-        color: white;
+        color: var(--mud-palette-text-primary);
         font-family: 'Courier New', Courier, monospace;
     }
     .jackpot-row {
@@ -40,15 +41,15 @@
         justify-content: space-between;
         padding: 5px;
         margin-bottom: 2px;
-        background: rgba(255,255,255,0.05);
+        background: rgba(124, 58, 237, 0.05);
         border-radius: 4px;
         align-items: center;
     }
     .suit { font-size: 1.5rem; width: 30px; }
-    .name { flex-grow: 1; text-align: left; margin-left: 10px; font-weight: bold; font-size: 0.8rem; color: #aaa; }
+    .name { flex-grow: 1; text-align: left; margin-left: 10px; font-weight: bold; font-size: 0.8rem; color: var(--mud-palette-text-secondary); }
     .value { font-weight: 900; font-size: 1.1rem; color: #ffD700; }
     
-    .spades { border-left: 4px solid #fff; }
+    .spades { border-left: 4px solid var(--mud-palette-text-primary); }
     .hearts { border-left: 4px solid #d32f2f; .suit { color: #d32f2f; } }
     .diamonds { border-left: 4px solid #1976d2; .suit { color: #1976d2; } }
     .clubs { border-left: 4px solid #388e3c; .suit { color: #388e3c; } }
@@ -62,6 +63,7 @@
 
     protected override void OnInitialized() {
         RealTime.OnJackpotUpdated += HandleUpdate;
+        LayoutService.OnMajorUpdate += StateHasChanged;
     }
 
     private void HandleUpdate(JackpotDto dto) {
@@ -76,5 +78,6 @@
 
     public void Dispose() {
         RealTime.OnJackpotUpdated -= HandleUpdate;
+        LayoutService.OnMajorUpdate -= StateHasChanged;
     }
 }

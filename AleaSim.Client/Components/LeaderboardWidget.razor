@@ -1,7 +1,10 @@
 @using AleaSim.Shared.Models
+@using AleaSim.Client.Services
+@implements IDisposable
 @inject HttpClient Http
+@inject LayoutService LayoutService
 
-<MudPaper Class="pa-4" Elevation="2" Style="background: #1a1a1a;">
+<MudPaper Class="pa-4" Elevation="0" Style="background: transparent;">
     <MudText Typo="Typo.h6" Color="Color.Warning" Class="mb-4">
         <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Class="mr-2" /> Top Players
     </MudText>
@@ -17,15 +20,15 @@
             {
                 <MudListItem>
                     <div class="d-flex justify-space-between align-center">
-                        <MudText Typo="Typo.body2" Style="color: white;">
+                        <MudText Typo="Typo.body2" Color="Color.Inherit" Style="font-weight: 600;">
                             <span style="color: #ffD700; margin-right: 8px;">#@p.Rank</span> @p.Username
                         </MudText>
-                        <MudText Typo="Typo.caption" Style="color: #4caf50;">@p.MaxMultiplier.ToString("F1")x</MudText>
+                        <MudText Typo="Typo.caption" Style="color: #4caf50; font-weight: bold;">@p.MaxMultiplier.ToString("F1")x</MudText>
                     </div>
                 </MudListItem>
             }
         </MudList>
-        <MudButton Variant="Variant.Text" Color="Color.Inherit" FullWidth="true" Href="/leaderboard" Size="Size.Small">View Full Rankings</MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" FullWidth="true" Href="/leaderboard" Size="Size.Small" Class="mt-2">View Full Rankings</MudButton>
     }
 </MudPaper>
 
@@ -34,8 +37,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        LayoutService.OnMajorUpdate += StateHasChanged;
         try {
             rankings = await Http.GetFromJsonAsync<List<TournamentRankDto>>("api/Game/leaderboard/tournament");
         } catch { }
+    }
+
+    public void Dispose()
+    {
+        LayoutService.OnMajorUpdate -= StateHasChanged;
     }
 }
