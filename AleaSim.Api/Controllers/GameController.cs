@@ -182,7 +182,7 @@ public class GameController : ControllerBase {
     [AllowAnonymous]
     [HttpGet("public-history")]
     public IActionResult GetPublicHistory() {
-        var result = _repo.GetGlobalHistory(50);
+        var result = _repo.GetGlobalHistory(100);
         return Ok(result);
     }
 

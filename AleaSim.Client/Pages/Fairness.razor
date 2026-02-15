@@ -41,7 +41,7 @@
 
     <MudPaper Class="pa-6">
         <MudText Typo="Typo.h5" Class="mb-4">Recent Chain (Blockchain View)</MudText>
-        <MudTable Items="@auditChain" Hover="true">
+        <MudTable Items="@auditChain" Hover="true" RowsPerPage="10" Striped="true">
             <HeaderContent>
                 <MudTh>Round ID</MudTh>
                 <MudTh>Game</MudTh>
@@ -54,6 +54,9 @@
                 <MudTd DataLabel="Result">@context.ResultSummary</MudTd>
                 <MudTd DataLabel="Hash" Style="font-family: monospace;">@GetShortHash(context.FullResultJson)</MudTd>
             </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new int[] { 10, 20, 50, 100 }" />
+            </PagerContent>
         </MudTable>
     </MudPaper>
 </MudContainer>
