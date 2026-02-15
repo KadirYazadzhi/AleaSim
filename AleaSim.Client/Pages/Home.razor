@@ -49,7 +49,7 @@
                                 <div class="d-flex align-center gap-6">
                                     <div class="timer-badge glass-panel px-3 py-1 rounded">
                                         <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" Class="text-warning mr-2" />
-                                        <span class='@($"{(LayoutService.IsDarkMode ? "text-white" : "mud-text-primary")} fw-bold")'>14d 05h 22m</span>
+                                        <span class='@($"{(LayoutService.IsDarkMode ? "text-white" : "mud-text-primary")} fw-bold")'>@GetTimeLeft(PlatformStats.Stats.TournamentEndsAt)</span>
                                     </div>
                                     <MudAvatarGroup Max="3" Spacing="2" MaxColor="Color.Primary">
                                         <MudAvatar Image="https://i.pravatar.cc/150?u=1" />
@@ -823,6 +823,14 @@
         selectedCategory = "Lobby";
         searchTerm = "";
         StateHasChanged();
+    }
+
+    private string GetTimeLeft(DateTime endsAt) {
+        if (endsAt == default) return "LOADING...";
+        var diff = endsAt - DateTime.UtcNow;
+        if (diff.Ticks <= 0) return "FINISHED";
+        if (diff.TotalDays >= 1) return $"{(int)diff.TotalDays}d {diff.Hours}h {diff.Minutes}m";
+        return $"{diff.Hours}h {diff.Minutes}m {diff.Seconds}s";
     }
     
     public void Dispose()

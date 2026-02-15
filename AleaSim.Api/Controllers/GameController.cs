@@ -198,16 +198,21 @@ public class GameController : ControllerBase {
         decimal weeklyJackpot = spades?.CurrentValue ?? 0m;
         decimal totalRewards = _repo.GetGlobalTotalRewardsPaid();
         
-        // Tournament pool calculation logic (this might need its own entity eventually, for now we sum payouts)
-        var tournamentHistory = _repo.GetTournamentHistory(1);
-        decimal currentTournamentPool = 25000m; // Base minimum for visibility if fresh month
+        var now = DateTime.UtcNow;
+        var tournamentEndsAt = new DateTime(now.Year, now.Month, 1).AddMonths(1).AddSeconds(-1);
+        
+        // Tournament pool: Base $25,000 + 1% of all-time wagering volume
+        // To keep it strictly real, we fetch total wagering from repo if possible
+        // For now, let's assume we don't have a GetTotalWagering, we use daily as proxy or add it
+        decimal tournamentPool = 25000m + (financials.TotalBets * 0.01m); 
 
         var stats = new PlatformStatsDto {
             ActivePlayers = activeCount, 
             AverageRtp = financials.TotalBets > 0 ? (double)(financials.TotalWins / financials.TotalBets) * 100 : 0,
             TotalRewardsPaid = totalRewards,
             WeeklyJackpot = weeklyJackpot,
-            TournamentPrizePool = currentTournamentPool
+            TournamentPrizePool = tournamentPool,
+            TournamentEndsAt = tournamentEndsAt
         };
 
         return Ok(stats);
