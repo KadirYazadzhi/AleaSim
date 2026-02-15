@@ -24,7 +24,7 @@
 <FlowStateIndicator Intensity="@_flowIntensity" />
 
 <MudLayout>
-    <MudAppBar Elevation="0" Fixed="true" Class="glass-appbar px-6 py-2">
+    <MudAppBar Elevation="0" Fixed="true" Color="Color.Transparent" Class="glass-appbar px-6 py-2">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" Class="mr-4" />
         
         <div class="d-flex align-center cursor-pointer" @onclick='@(() => Navigation.NavigateTo("/"))'>
@@ -118,7 +118,7 @@
                     <MudIconButton Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
                                    Color="Color.Inherit" 
                                    OnClick="@(async () => await LayoutService.ToggleDarkMode())" />
-                    <MudButton Href="/login" Variant="Variant.Text" Color="Color.Inherit" Style="font-weight: bold;">Login</MudButton>
+                    <MudButton Href="/login" Variant="Variant.Outlined" Class="secondary-btn rounded-lg px-6" Style="font-weight: bold;">Login</MudButton>
                     <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Primary" Class="rounded-lg px-6 fw-bold glow-effect">Register</MudButton>
                 </div>
             </NotAuthorized>
@@ -229,6 +229,7 @@
 
     .glass-appbar {
         background-color: var(--mud-palette-appbar-background) !important;
+        color: var(--mud-palette-text-primary) !important;
         backdrop-filter: blur(12px);
         border-bottom: 1px solid var(--mud-palette-divider);
         transition: all 0.3s ease;
@@ -286,6 +287,15 @@
     
     .glow-effect:hover {
         box-shadow: 0 0 25px rgba(124, 58, 237, 0.6);
+    }
+    
+    .secondary-btn {
+        border: 2px solid var(--mud-palette-primary) !important;
+        color: var(--mud-palette-text-primary) !important;
+        background: transparent !important;
+    }
+    .secondary-btn:hover {
+        background: rgba(124, 58, 237, 0.1) !important;
     }
     
     .font-black { font-weight: 900; }
