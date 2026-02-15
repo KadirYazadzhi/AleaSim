@@ -10,6 +10,8 @@
 
 html, body {
     font-family: 'Montserrat', sans-serif;
+    background-color: var(--mud-palette-background);
+    color: var(--mud-palette-text-primary);
     scroll-behavior: smooth;
 }
 
