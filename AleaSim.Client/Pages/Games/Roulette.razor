@@ -35,53 +35,57 @@
             </MudPaper>
         </MudItem>
 
-        <!-- Betting Table -->
-        <MudItem xs="12" lg="9">
-            <MudPaper Class="pa-4" Style="background: #004d00; border: 10px solid #3d2b1f; border-radius: 10px;">
-                <div class="roulette-table" @onmouseup="() => isMouseDown = false" @onmouseleave="() => isMouseDown = false">
-                    <!-- Zero -->
-                    <div class='@($"cell zero {GetCursorClass("number", "0")}")' 
-                         @onmousedown='() => HandleMouseDown("number", "0")'
-                         @onmouseenter='() => HandleMouseEnter("number", "0")'>
-                        0
-                        @GetBetBadge("number", "0")
-                    </div>
-                    
-                    <!-- Numbers 1-36 -->
-                    <div class="numbers-grid">
-                        @for (int i = 1; i <= 36; i++)
-                        {
-                            var num = i;
-                            var type = "number";
-                            var val = num.ToString();
-                            <div class='@($"cell {GetNumberColor(num)} {GetCursorClass(type, val)}")' 
-                                 @onmousedown='() => HandleMouseDown(type, val)'
-                                 @onmouseenter='() => HandleMouseEnter(type, val)'>
-                                @num
-                                @GetBetBadge(type, val)
+                <!-- Betting Table -->
+                <MudItem xs="12" lg="9">
+                    <div @onmousedown="() => isMouseDown = true" 
+                         @onmouseup="() => isMouseDown = false" 
+                         @onmouseleave="() => isMouseDown = false"
+                         class="roulette-board-container">
+                        <MudPaper Class="pa-4" Style="background: #004d00; border: 10px solid #3d2b1f; border-radius: 10px;">
+                                                <div class="roulette-table">
+                                                    <!-- Zero -->
+                                                    <div class='@($"cell zero {GetCursorClass("number", "0")}")' 
+                                                         @onmousedown='() => HandleMouseDown("number", "0")'
+                                                         @onmousedown:stopPropagation
+                                                         @onmouseenter='() => HandleMouseEnter("number", "0")'>
+                                                        0
+                                                        @GetBetBadge("number", "0")
+                                                    </div>                                
+                                <!-- Numbers 1-36 -->
+                                <div class="numbers-grid">
+                                    @for (int i = 1; i <= 36; i++)
+                                    {
+                                        var num = i;
+                                        var type = "number";
+                                        var val = num.ToString();
+                                        <div class='@($"cell {GetNumberColor(num)} {GetCursorClass(type, val)}")' 
+                                             @onmousedown='() => HandleMouseDown(type, val)'
+                                             @onmouseenter='() => HandleMouseEnter(type, val)'>
+                                            @num
+                                            @GetBetBadge(type, val)
+                                        </div>
+                                    }
+                                </div>
+        
+                                <!-- Outside Bets -->
+                                <div class="outside-bets">
+                                    <div class='@($"cell red {GetCursorClass("color", "red")}")' 
+                                         @onmousedown='() => HandleMouseDown("color", "red")'
+                                         @onmouseenter='() => HandleMouseEnter("color", "red")'>RED @GetBetBadge("color", "red")</div>
+                                    <div class='@($"cell black {GetCursorClass("color", "black")}")' 
+                                         @onmousedown='() => HandleMouseDown("color", "black")'
+                                         @onmouseenter='() => HandleMouseEnter("color", "black")'>BLACK @GetBetBadge("color", "black")</div>
+                                    <div class='@($"cell even {GetCursorClass("evenodd", "even")}")' 
+                                         @onmousedown='() => HandleMouseDown("evenodd", "even")'
+                                         @onmouseenter='() => HandleMouseEnter("evenodd", "even")'>EVEN @GetBetBadge("evenodd", "even")</div>
+                                    <div class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' 
+                                         @onmousedown='() => HandleMouseDown("evenodd", "odd")'
+                                         @onmouseenter='() => HandleMouseEnter("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
+                                </div>
                             </div>
-                        }
+                        </MudPaper>
                     </div>
-
-                    <!-- Outside Bets -->
-                    <div class="outside-bets">
-                        <div class='@($"cell red {GetCursorClass("color", "red")}")' 
-                             @onmousedown='() => HandleMouseDown("color", "red")'
-                             @onmouseenter='() => HandleMouseEnter("color", "red")'>RED @GetBetBadge("color", "red")</div>
-                        <div class='@($"cell black {GetCursorClass("color", "black")}")' 
-                             @onmousedown='() => HandleMouseDown("color", "black")'
-                             @onmouseenter='() => HandleMouseEnter("color", "black")'>BLACK @GetBetBadge("color", "black")</div>
-                        <div class='@($"cell even {GetCursorClass("evenodd", "even")}")' 
-                             @onmousedown='() => HandleMouseDown("evenodd", "even")'
-                             @onmouseenter='() => HandleMouseEnter("evenodd", "even")'>EVEN @GetBetBadge("evenodd", "even")</div>
-                        <div class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' 
-                             @onmousedown='() => HandleMouseDown("evenodd", "odd")'
-                             @onmouseenter='() => HandleMouseEnter("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
-                    </div>
-                </div>
-            </MudPaper>
-        </MudItem>
-
+                </MudItem>
         <!-- Controls -->
         <MudItem xs="12" lg="3">
             <MudPaper Class="pa-6 d-flex flex-column gap-4">
