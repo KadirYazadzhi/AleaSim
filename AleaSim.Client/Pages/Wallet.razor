@@ -44,22 +44,29 @@
                 @if (transactions == null) {
                     <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
                 } else {
-                    <MudList T="string" Dense="true">
-                        @foreach (var tx in transactions) {
-                            <MudListItem>
-                                <div class="d-flex justify-space-between">
-                                    <div>
-                                        <MudText Typo="Typo.body2" Style="font-weight: bold;">@tx.Type</MudText>
-                                        <MudText Typo="Typo.caption">@tx.Timestamp.ToString("g")</MudText>
-                                    </div>
-                                    <MudText Typo="Typo.body1" Color="@(tx.Amount > 0 ? Color.Success : Color.Error)">
-                                        @(tx.Amount > 0 ? "+" : "")@tx.Amount.ToString("C2")
-                                    </MudText>
-                                </div>
-                            </MudListItem>
-                            <MudDivider />
-                        }
-                    </MudList>
+                    <MudTable Items="@transactions" Hover="true" Dense="true" RowsPerPage="10" Elevation="0" Class="glass-panel">
+                        <HeaderContent>
+                            <MudTh>Type</MudTh>
+                            <MudTh>Date</MudTh>
+                            <MudTh>Amount</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Type">
+                                <MudText Typo="Typo.body2" Style="font-weight: bold;">@context.Type</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Date">
+                                <MudText Typo="Typo.caption">@context.Timestamp.ToString("g")</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Amount">
+                                <MudText Typo="Typo.body2" Color="@(context.Amount > 0 ? Color.Success : Color.Error)" Style="font-weight: bold;">
+                                    @(context.Amount > 0 ? "+" : "")@context.Amount.ToString("C2")
+                                </MudText>
+                            </MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="new int[] { 10, 20, 50 }" />
+                        </PagerContent>
+                    </MudTable>
                 }
             </MudPaper>
         </MudItem>

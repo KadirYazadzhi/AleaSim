@@ -93,7 +93,7 @@ public class VaultController : ControllerBase {
     public IActionResult GetTransactions() {
         try {
             var userId = GetUserIdOrThrow();
-            var txs = _repo.GetUserTransactions(userId, 50);
+            var txs = _repo.GetUserTransactions(userId, 100);
             
             var result = txs.Select(t => new TransactionDto {
                 Id = t.Id,
