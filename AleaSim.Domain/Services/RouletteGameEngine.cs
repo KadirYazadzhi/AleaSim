@@ -17,6 +17,31 @@ public class RouletteGameEngine : BaseGameEngine {
         _lockService = lockService;
     }
 
+    public override async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string betData) {
+        // 1. Parse bets to validate before taking money
+        var bets = new List<RouletteBetDto>();
+        try {
+            if (!string.IsNullOrEmpty(betData)) {
+                if (betData.StartsWith("\"")) {
+                    var innerJson = JsonSerializer.Deserialize<string>(betData);
+                    bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(innerJson ?? "[]") ?? new();
+                } else {
+                    bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(betData) ?? new();
+                }
+            }
+        } catch { throw new Exception("Invalid bet data format."); }
+
+        decimal totalBet = bets.Sum(x => x.Amount);
+        
+        // 2. Validate Limits
+        if (totalBet > 4100) throw new Exception("Total table bet exceeds $4,100.00 limit.");
+        if (bets.Any(x => x.Type == "number" && x.Amount > 100)) throw new Exception("Single number bet exceeds $100.00 limit.");
+        if (Math.Round(totalBet, 2) != Math.Round(amount, 2)) throw new Exception("Bet Integrity Error: Declared bets do not match total amount.");
+
+        // 3. Deduct money only if valid
+        await base.PlaceBet(userId, sessionId, amount, betData);
+    }
+
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
         using var lockHandle = await _lockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
 
@@ -48,16 +73,6 @@ public class RouletteGameEngine : BaseGameEngine {
                 }
             } catch { }
             
-            decimal totalBet = bets.Sum(x => x.Amount);
-            if (totalBet > 4000) throw new Exception("Total table bet exceeds 4000 limit.");
-            if (bets.Any(x => x.Type == "number" && x.Amount > 100)) throw new Exception("Single number bet exceeds 100 limit.");
-
-            // SECURITY FIX: Strict Validation
-            // Floating point comparison with very small epsilon, or simpler: round to 2 decimals
-            if (Math.Round(totalBet, 2) != Math.Round(betAmount, 2)) {
-                 throw new Exception($"Bet Integrity Error: Declared bets sum ({totalBet}) does not match wagered amount ({betAmount}).");
-            }
-
             var decision = BrainService.DecideOutcome(session.UserId, GameId, betAmount, repo);
             
             int number = 0;
