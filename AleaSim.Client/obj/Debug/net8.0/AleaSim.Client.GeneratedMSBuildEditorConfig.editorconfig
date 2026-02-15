@@ -24,6 +24,8 @@ build_property.SupportLocalizedComponentNames =
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
 build_property.MSBuildProjectDirectory = /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client
 build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 8.0
+build_property.EnableCodeStyleSeverity = 
 
 [/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/App.razor]
 build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
@@ -93,10 +95,6 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQWRtaW5EYXNoYm9hcmQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Pages/Counter.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQ291bnRlci5yYXpvcg==
-build_metadata.AdditionalFiles.CssScope = 
-
 [/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Pages/Fairness.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXMvRmFpcm5lc3MucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
@@ -147,10 +145,6 @@ build_metadata.AdditionalFiles.CssScope =
 
 [/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Pages/Wallet.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXMvV2FsbGV0LnJhem9y
-build_metadata.AdditionalFiles.CssScope = 
-
-[/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/Pages/Weather.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXMvV2VhdGhlci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Client/_Imports.razor]

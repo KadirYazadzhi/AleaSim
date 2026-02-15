@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="../build/AleaSim.Client.props" />
-</Project>
