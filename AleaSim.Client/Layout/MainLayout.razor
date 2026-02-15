@@ -56,7 +56,7 @@
                     @if (userProfile != null) {
                         <MudPaper Elevation="0" Class="d-flex align-center px-3 py-1 rounded-lg wallet-pill" @onclick='@(() => Navigation.NavigateTo("/wallet"))'>
                             <MudText Typo="Typo.subtitle1" Color="Color.Success" Class="mr-2" Style="font-weight: 800; font-family: 'Roboto Mono', monospace;">
-                                @userProfile.Balance.ToString("C2")
+                                @userProfile.TotalBalance.ToString("C2")
                             </MudText>
                             <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small" Class="rounded-lg" Style="min-width: 32px; padding: 2px 8px;">+</MudButton>
                         </MudPaper>
@@ -425,9 +425,10 @@
         }
     }
 
-    private void HandleBalanceUpdate(decimal newBalance) {
+    private void HandleBalanceUpdate(decimal balance, decimal bonusBalance) {
         if (userProfile != null) {
-            userProfile.Balance = newBalance;
+            userProfile.Balance = balance;
+            userProfile.BonusBalance = bonusBalance;
             InvokeAsync(StateHasChanged);
         }
     }

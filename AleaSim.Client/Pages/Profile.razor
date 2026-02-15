@@ -65,6 +65,7 @@
                 <MudList T="string">
                     <MudListItem Icon="@Icons.Material.Filled.AccountBalanceWallet">Real Balance: <b>@profile?.Balance.ToString("C2")</b></MudListItem>
                     <MudListItem Icon="@Icons.Material.Filled.CardGiftcard">Bonus Balance: <b>@profile?.BonusBalance.ToString("C2")</b></MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.AccountBalance">Total Available: <b>@profile?.TotalBalance.ToString("C2")</b></MudListItem>
                 </MudList>
             </MudPaper>
         </MudItem>

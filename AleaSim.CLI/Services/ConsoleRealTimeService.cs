@@ -19,8 +19,8 @@ public class ConsoleRealTimeService : IRealTimeService {
         return Task.CompletedTask;
     }
 
-    public Task NotifyBalanceUpdate(Guid userId, decimal newBalance) {
-        Console.WriteLine($"[RTS] Balance Update: New Balance = {newBalance:C}");
+    public Task NotifyBalanceUpdate(Guid userId, decimal balance, decimal bonusBalance) {
+        Console.WriteLine($"[RTS] Balance Update: New Total = {(balance + bonusBalance):C} (Real: {balance:C}, Bonus: {bonusBalance:C})");
         return Task.CompletedTask;
     }
 

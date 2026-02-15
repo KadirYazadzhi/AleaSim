@@ -134,7 +134,7 @@
     {
         try {
             var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
-            if (profile != null) balance = profile.Balance;
+            if (profile != null) balance = profile.TotalBalance;
 
             var session = await GameService.ResumeSession("slot");
             if (session != null) {
@@ -210,12 +210,12 @@
 
         if (!result.Canceled) {
             var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
-            if (profile != null) balance = profile.Balance;
+            if (profile != null) balance = profile.TotalBalance;
             gameState.IsGambleActive = false; 
         } else {
             gameState.IsGambleActive = false;
             var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
-            if (profile != null) balance = profile.Balance;
+            if (profile != null) balance = profile.TotalBalance;
         }
         StateHasChanged();
     }
@@ -225,7 +225,7 @@
         await GameService.PerformAction("slot", sessionId.Value, "collect", "{}");
         gameState.IsGambleActive = false;
         var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
-        if (profile != null) balance = profile.Balance;
+        if (profile != null) balance = profile.TotalBalance;
         StateHasChanged();
     }
 

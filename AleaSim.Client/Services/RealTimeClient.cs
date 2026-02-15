@@ -8,7 +8,7 @@ public class RealTimeClient : IAsyncDisposable {
     private readonly string _hubUrl = "http://localhost:5286/gamehub";
 
     public event Action<JackpotDto>? OnJackpotUpdated;
-    public event Action<decimal>? OnBalanceUpdated;
+    public event Action<decimal, decimal>? OnBalanceUpdated;
     public event Action<BigWinEventArgs>? OnBigWinReceived;
     public event Action<string, object>? OnLeaderboardUpdated;
     public event Action<object>? OnGameUpdateReceived;
@@ -30,8 +30,8 @@ public class RealTimeClient : IAsyncDisposable {
             OnJackpotUpdated?.Invoke(dto);
         });
 
-        _hubConnection.On<decimal>("ReceiveBalanceUpdate", (newBalance) => {
-            OnBalanceUpdated?.Invoke(newBalance);
+        _hubConnection.On<BalanceUpdateDto>("ReceiveBalanceUpdate", (dto) => {
+            OnBalanceUpdated?.Invoke(dto.Balance, dto.BonusBalance);
         });
 
         _hubConnection.On<string, string, DateTime, string>("ReceiveChatMessage", (user, msg, time, avatar) => {

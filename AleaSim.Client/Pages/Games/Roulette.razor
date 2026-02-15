@@ -148,7 +148,7 @@
             var sessionResponse = await GameService.StartSession("roulette");
             sessionId = sessionResponse.SessionId;
             var user = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
-            if (user != null) balance = user.Balance;
+            if (user != null) balance = user.TotalBalance;
         } catch { }
     }
 
@@ -219,7 +219,7 @@
             
             // Refresh balance
             var user = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
-            if (user != null) balance = user.Balance;
+            if (user != null) balance = user.TotalBalance;
             currentBets.Clear();
         }
         catch (Exception ex) {

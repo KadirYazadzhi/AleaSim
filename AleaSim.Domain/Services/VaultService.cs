@@ -111,7 +111,7 @@ public class VaultService : IVaultService {
                 ResultingBalance = user.Balance
             });
 
-            _ = _realTime.NotifyBalanceUpdate(userId, user.Balance + user.BonusBalance);
+            _ = _realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance);
         }
         return success;
     }
@@ -143,7 +143,7 @@ public class VaultService : IVaultService {
             Description = "Game Win", Timestamp = DateTime.UtcNow, ResultingBalance = user.Balance
         });
 
-        _ = _realTime.NotifyBalanceUpdate(userId, user.Balance + user.BonusBalance);
+        _ = _realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance);
     }
 
     public async Task<bool> CanAffordWinAsync(Guid userId, Guid gameId, decimal winAmount, IGameRepository repo, bool strictShadowCheck = true) {
@@ -192,7 +192,7 @@ public class VaultService : IVaultService {
             Description = "Bonus Credited", Timestamp = DateTime.UtcNow, ResultingBalance = user.Balance
         });
 
-        _ = _realTime.NotifyBalanceUpdate(userId, user.Balance + user.BonusBalance);
+        _ = _realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance);
     }
 
     public async Task<bool> CashoutBonusAsync(Guid userId, IGameRepository repo) {
@@ -214,7 +214,7 @@ public class VaultService : IVaultService {
             });
         }
 
-        _ = _realTime.NotifyBalanceUpdate(userId, user.Balance);
+        _ = _realTime.NotifyBalanceUpdate(userId, user.Balance, 0);
         return true;
     }
 

@@ -120,7 +120,7 @@
     private async Task RefreshBalance() {
         try {
             var user = await Http.GetFromJsonAsync<UserDto>("api/Auth/me");
-            if (user != null) balance = user.Balance;
+            if (user != null) balance = user.TotalBalance;
             StateHasChanged();
         } catch { }
     }

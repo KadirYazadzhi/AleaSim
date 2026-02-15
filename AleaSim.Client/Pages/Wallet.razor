@@ -8,6 +8,25 @@
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
     <MudText Typo="Typo.h3" Class="mb-6">My Wallet</MudText>
 
+    @if (profile != null) {
+        <MudPaper Class="pa-6 mb-6 rounded-xl glass-panel" Elevation="0">
+            <MudGrid align-center>
+                <MudItem xs="12" md="4">
+                    <MudText Typo="Typo.h6" Class="mud-text-secondary">Real Balance</MudText>
+                    <MudText Typo="Typo.h4" Color="Color.Inherit" Style="font-weight: 900;">@profile.Balance.ToString("C2")</MudText>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudText Typo="Typo.h6" Class="mud-text-secondary">Bonus Balance</MudText>
+                    <MudText Typo="Typo.h4" Color="Color.Secondary" Style="font-weight: 900;">@profile.BonusBalance.ToString("C2")</MudText>
+                </MudItem>
+                <MudItem xs="12" md="4" Style="border-left: 2px border-solid var(--mud-palette-divider);">
+                    <MudText Typo="Typo.h6" Class="mud-text-secondary">Total Available</MudText>
+                    <MudText Typo="Typo.h3" Class="text-gradient fw-black">@profile.TotalBalance.ToString("C2")</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+
     <MudGrid>
         <!-- Deposit / Faucet Section -->
         <MudItem xs="12" md="4">
@@ -75,11 +94,21 @@
 
 @code {
     private List<TransactionDto>? transactions;
+    private UserProfileResponse? profile;
     private decimal[] depositAmounts = { 50, 100, 500, 1000 };
     private decimal customAmount = 50;
 
     protected override async Task OnInitializedAsync() {
+        await LoadData();
+    }
+
+    private async Task LoadData() {
+        await LoadProfile();
         await LoadTransactions();
+    }
+
+    private async Task LoadProfile() {
+        profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
     }
 
     private async Task LoadTransactions() {
@@ -90,7 +119,7 @@
         var response = await Http.PostAsJsonAsync("api/Vault/deposit", amount);
         if (response.IsSuccessStatusCode) {
             Snackbar.Add("Deposit successful!", Severity.Success);
-            await LoadTransactions();
+            await LoadData();
         } else {
             Snackbar.Add("Deposit failed. Only Admins can deposit manually.", Severity.Error);
         }
@@ -100,7 +129,7 @@
         var response = await Http.PostAsync("api/Vault/faucet", null);
         if (response.IsSuccessStatusCode) {
             Snackbar.Add("Relief claimed! Added $100.00.", Severity.Success);
-            await LoadTransactions();
+            await LoadData();
         } else {
             var error = await response.Content.ReadAsStringAsync();
             Snackbar.Add($"Failed: {error}", Severity.Warning);
