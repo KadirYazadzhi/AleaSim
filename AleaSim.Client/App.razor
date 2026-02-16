@@ -9,16 +9,17 @@
                     }
                     else
                     {
-                        <MudText Typo="Typo.h4">You are not authorized to view this page.</MudText>
+                        <LayoutView Layout="@typeof(MainLayout)">
+                            <AleaSim.Client.Pages.Forbidden />
+                        </LayoutView>
                     }
                 </NotAuthorized>
             </AuthorizeRouteView>
             <FocusOnNavigate RouteData="@routeData" Selector="h1" />
         </Found>
         <NotFound>
-            <PageTitle>Not found</PageTitle>
             <LayoutView Layout="@typeof(MainLayout)">
-                <p role="alert">Sorry, there's nothing at this address.</p>
+                <AleaSim.Client.Pages.NotFound />
             </LayoutView>
         </NotFound>
     </Router>

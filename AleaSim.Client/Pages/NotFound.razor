@@ -1,0 +1,76 @@
+@page "/404"
+@using AleaSim.Client.Services
+@inject NavigationManager Navigation
+@inject LayoutService LayoutService
+
+<PageTitle>404 - Lost in the Static</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex flex-column align-center justify-center" Style="min-height: 80vh;">
+    
+    <div class="glitch-container mb-8">
+        <MudIcon Icon="@Icons.Material.Filled.VideogameAssetOff" Size="Size.Large" Class="glitch-icon" />
+    </div>
+
+    <MudText Typo="Typo.h1" Class="text-gradient fw-black mb-2" Align="Align.Center">404</MudText>
+    <MudText Typo="Typo.h4" Class="mud-text-secondary mb-8 fw-bold" Align="Align.Center">GAME NOT FOUND</MudText>
+
+    <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-8" Style="max-width: 500px; color: var(--mud-palette-text-secondary);">
+        The page you are looking for seems to have vanished into the digital void. It might have been moved, deleted, or perhaps it never existed in this timeline.
+    </MudText>
+
+    <div class="d-flex gap-4">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="@(() => Navigation.NavigateTo("/"))" Class="rounded-lg px-8 py-3 fw-bold shadow-lg hover-scale">
+            RETURN TO LOBBY
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Large" OnClick="@(() => Navigation.NavigateTo("/help"))" Class="rounded-lg px-8 py-3 fw-bold border-2 hover-scale">
+            REPORT BUG
+        </MudButton>
+    </div>
+
+</MudContainer>
+
+<style>
+    .fw-black { font-weight: 900; }
+    .fw-bold { font-weight: 700; }
+
+    .text-gradient {
+        background: linear-gradient(135deg, var(--mud-palette-error) 0%, var(--mud-palette-warning) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 8rem;
+        line-height: 1;
+        letter-spacing: -5px;
+        text-shadow: 0 10px 30px rgba(244, 63, 94, 0.3);
+    }
+
+    .glitch-icon {
+        font-size: 8rem;
+        color: var(--mud-palette-text-disabled);
+        animation: glitch 3s infinite;
+    }
+
+    @@keyframes glitch {
+        0% { transform: translate(0); opacity: 0.8; }
+        20% { transform: translate(-2px, 2px); opacity: 1; }
+        40% { transform: translate(-2px, -2px); opacity: 0.9; }
+        60% { transform: translate(2px, 2px); opacity: 1; }
+        80% { transform: translate(2px, -2px); opacity: 0.8; }
+        100% { transform: translate(0); opacity: 0.8; }
+    }
+
+    .hover-scale { transition: transform 0.2s; }
+    .hover-scale:hover { transform: scale(1.05); }
+    
+    .shadow-lg { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
+</style>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        LayoutService.OnMajorUpdate += StateHasChanged;
+    }
+    
+    public void Dispose() {
+         LayoutService.OnMajorUpdate -= StateHasChanged;
+    }
+}

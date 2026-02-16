@@ -1,0 +1,102 @@
+@page "/403"
+@using AleaSim.Client.Services
+@inject NavigationManager Navigation
+@inject LayoutService LayoutService
+
+<PageTitle>403 - Restricted Area</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex flex-column align-center justify-center" Style="min-height: 80vh;">
+    
+    <div class="lock-container mb-8 position-relative">
+        <div class="scanner-line"></div>
+        <MudIcon Icon="@Icons.Material.Filled.Fingerprint" Size="Size.Large" Class="lock-icon" />
+    </div>
+
+    <MudText Typo="Typo.h1" Class="text-gradient fw-black mb-2" Align="Align.Center">403</MudText>
+    <MudText Typo="Typo.h4" Class="mud-text-secondary mb-8 fw-bold" Align="Align.Center">ACCESS DENIED</MudText>
+
+    <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-8" Style="max-width: 500px; color: var(--mud-palette-text-secondary);">
+        Security protocols have flagged your biometrics. You do not have the necessary clearance level to access this high-security vault.
+    </MudText>
+
+    <div class="d-flex gap-4">
+        <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" OnClick="@(() => Navigation.NavigateTo("/"))" Class="rounded-lg px-8 py-3 fw-bold shadow-lg hover-scale pulse-red">
+            RETREAT TO SAFETY
+        </MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Large" OnClick="@(() => Navigation.NavigateTo("/login"))" Class="rounded-lg px-8 py-3 fw-bold opacity-50 hover-opacity">
+            SWITCH ACCOUNT
+        </MudButton>
+    </div>
+
+</MudContainer>
+
+<style>
+    .fw-black { font-weight: 900; }
+    .fw-bold { font-weight: 700; }
+
+    .text-gradient {
+        background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 8rem;
+        line-height: 1;
+        letter-spacing: -5px;
+        text-shadow: 0 10px 30px rgba(239, 68, 68, 0.4);
+    }
+
+    .lock-icon {
+        font-size: 8rem;
+        color: var(--mud-palette-error);
+        opacity: 0.8;
+    }
+    
+    .lock-container {
+        position: relative;
+        overflow: hidden;
+        border-radius: 20px;
+        padding: 20px;
+        background: rgba(239, 68, 68, 0.05);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    
+    .scanner-line {
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        background: #ef4444;
+        box-shadow: 0 0 10px #ef4444;
+        animation: scan 2s infinite linear;
+        z-index: 2;
+        opacity: 0.8;
+    }
+
+    @@keyframes scan {
+        0% { top: 0; }
+        100% { top: 100%; }
+    }
+
+    .hover-scale { transition: transform 0.2s; }
+    .hover-scale:hover { transform: scale(1.05); }
+    
+    .hover-opacity:hover { opacity: 1 !important; }
+    
+    .shadow-lg { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
+    
+    .pulse-red { animation: pulseRed 2s infinite; }
+    @@keyframes pulseRed {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+</style>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        LayoutService.OnMajorUpdate += StateHasChanged;
+    }
+    
+    public void Dispose() {
+         LayoutService.OnMajorUpdate -= StateHasChanged;
+    }
+}
