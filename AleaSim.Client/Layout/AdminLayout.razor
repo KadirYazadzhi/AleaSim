@@ -2,48 +2,174 @@
 @using AleaSim.Client.Services
 @inject NavigationManager Navigation
 @inject IAuthService AuthService
+@inject LayoutService LayoutService
 
-<MudThemeProvider Theme="_adminTheme" IsDarkMode="true" />
+<MudThemeProvider Theme="_theme" IsDarkMode="@LayoutService.IsDarkMode" />
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudPopoverProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1" Color="Color.Dark">
-        <MudText Typo="Typo.h5" Class="ml-3">AleaSim <span style="color: #ff4500;">BACKOFFICE</span></MudText>
+    <MudAppBar Elevation="0" Fixed="true" Color="Color.Transparent" Class="glass-appbar px-6 py-2">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" Class="mr-4" />
+        
+        <div class="d-flex align-center cursor-pointer" @onclick='@(() => Navigation.NavigateTo("/dashboard"))'>
+            <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" Color="Color.Error" Class="mr-2" />
+            <MudText Typo="Typo.h5" Class="text-gradient font-black tracking-wide">ALEASIM <span class="mud-text-secondary text-base font-normal">BACKOFFICE</span></MudText>
+        </div>
+        
         <MudSpacer />
-        <MudButton Variant="Variant.Outlined" Color="Color.Inherit" OnClick="ExitAdmin">Exit to Casino</MudButton>
+        
+        <div class="d-flex align-center gap-3">
+             <MudIconButton Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
+                            Color="Color.Inherit" 
+                            OnClick="@(async () => await LayoutService.ToggleDarkMode())" />
+             
+             <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ExitAdmin" StartIcon="@Icons.Material.Filled.ExitToApp" Class="rounded-lg border-2 fw-bold">Exit to Casino</MudButton>
+        </div>
     </MudAppBar>
-    <MudDrawer Open="true" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="DrawerVariant.Persistent">
-        <MudNavMenu>
-            <MudText Typo="Typo.subtitle2" Class="pa-4" Color="Color.Secondary">MANAGEMENT</MudText>
-            <MudNavLink Href="/dashboard" Icon="@Icons.Material.Filled.Dashboard">Overview</MudNavLink>
+
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0" Variant="DrawerVariant.Responsive" Class="sidebar-blur">
+        <MudNavMenu Class="pt-4">
+            <MudText Typo="Typo.subtitle2" Class="px-6 py-4 mud-text-secondary fw-bold">MANAGEMENT</MudText>
+            <MudNavLink Href="/dashboard" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">Overview</MudNavLink>
             <MudNavLink Href="/admin/monitor" Icon="@Icons.Material.Filled.LiveTv">Live Monitor</MudNavLink>
             <MudNavLink Href="/admin/players" Icon="@Icons.Material.Filled.People">Player Manager</MudNavLink>
             
-            <MudText Typo="Typo.subtitle2" Class="pa-4 mt-4" Color="Color.Secondary">SYSTEM</MudText>
+            <MudText Typo="Typo.subtitle2" Class="px-6 py-4 mt-2 mud-text-secondary fw-bold">SYSTEM</MudText>
             <MudNavLink Href="/admin/vouchers" Icon="@Icons.Material.Filled.ConfirmationNumber">Vouchers</MudNavLink>
             <MudNavLink Href="/fairness" Icon="@Icons.Material.Filled.Security">Audit Logs</MudNavLink>
+            <MudNavLink Href="/admin/settings" Icon="@Icons.Material.Filled.Settings">Platform Settings</MudNavLink>
         </MudNavMenu>
+        
+        <div class="mt-auto pa-6">
+            <MudPaper Class="glass-panel pa-4 rounded-xl text-center">
+                 <MudText Typo="Typo.caption" Class="d-block mb-1 mud-text-secondary">System Load</MudText>
+                 <MudProgressLinear Color="Color.Success" Value="24" Class="mb-1 rounded-pill" Size="Size.Small" />
+                 <MudText Typo="Typo.caption" Class="fw-bold text-success">HEALTHY</MudText>
+            </MudPaper>
+        </div>
     </MudDrawer>
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="my-4 pt-4">
+
+    <MudMainContent Class="pt-16 d-flex flex-column" Style="min-height: 100vh">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="flex-grow-1 px-4 py-8">
             @Body
         </MudContainer>
     </MudMainContent>
 </MudLayout>
 
+<style>
+    /* Global Overrides for Premium Feel (Copied from MainLayout for consistency) */
+    .glass-appbar {
+        background-color: var(--mud-palette-appbar-background) !important;
+        color: var(--mud-palette-text-primary) !important;
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--mud-palette-divider);
+        transition: all 0.3s ease;
+    }
+    
+    .sidebar-blur {
+        background-color: var(--mud-palette-drawer-background) !important;
+        border-right: 1px solid var(--mud-palette-divider);
+    }
+
+    .glass-panel {
+        background-color: @(LayoutService.IsDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.05)");
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--mud-palette-divider);
+    }
+
+    .text-gradient {
+        background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .font-black { font-weight: 900; }
+    .fw-bold { font-weight: 700; }
+    .tracking-wide { letter-spacing: 0.1em; }
+    
+    .mud-nav-link {
+        border-radius: 8px;
+        margin: 2px 12px;
+        transition: all 0.2s;
+    }
+    .mud-nav-link:hover {
+        background-color: rgba(124, 58, 237, 0.1);
+        color: var(--mud-palette-primary) !important;
+    }
+    .mud-nav-link.active {
+        background-color: var(--mud-palette-primary);
+        color: white !important;
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+    }
+    .mud-nav-link.active .mud-nav-link-icon { color: white !important; }
+</style>
+
 @code {
-    private MudTheme _adminTheme = new MudTheme() {
+    bool _drawerOpen = true;
+
+    // Premium Casino Theme (Same as MainLayout)
+    private MudTheme _theme = new MudTheme() {
+        PaletteLight = new PaletteLight() {
+            Primary = "#7c3aed", // Violet 600
+            Secondary = "#4338ca", // Indigo 700
+            Info = "#0ea5e9",
+            Success = "#059669",
+            Warning = "#b45309",
+            Error = "#dc2626",
+            AppbarBackground = "rgba(255, 255, 255, 0.8)",
+            Background = "#f1f5f9",
+            Surface = "#ffffff",
+            DrawerBackground = "rgba(255, 255, 255, 0.95)",
+            TextPrimary = "#0f172a",
+            TextSecondary = "#475569",
+            ActionDefault = "#7c3aed",
+            Divider = "rgba(0,0,0,0.1)"
+        },
         PaletteDark = new PaletteDark() {
-            Primary = "#ff4500", // Admin Red/Orange
-            Secondary = "#00e676",
-            Background = "#121212",
-            Surface = "#1e1e1e",
-            AppbarBackground = "#000000",
-            DrawerBackground = "#1a1a1a"
+            Primary = "#a855f7", // Purple 500
+            Secondary = "#f472b6", // Pink 400
+            Info = "#38bdf8",
+            Success = "#22c55e",
+            Warning = "#fbbf24",
+            Error = "#f43f5e",
+            Background = "#0f172a", // Slate 900
+            Surface = "#1e293b", // Slate 800
+            AppbarBackground = "rgba(15, 23, 42, 0.8)",
+            DrawerBackground = "rgba(15, 23, 42, 0.95)",
+            TextPrimary = "#f1f5f9",
+            TextSecondary = "#94a3b8",
+            ActionDefault = "#a855f7",
+            Divider = "rgba(255,255,255,0.06)"
+        },
+        Typography = new Typography() {
+            Default = new DefaultTypography() {
+                FontFamily = new[] { "Montserrat", "Inter", "Helvetica", "Arial", "sans-serif" },
+                FontSize = ".875rem",
+                FontWeight = "400",
+            },
+            H5 = new H5Typography() { FontWeight = "700", LetterSpacing = ".05em" },
+            Button = new ButtonTypography() { FontWeight = "600", TextTransform = "none" }
+        },
+        LayoutProperties = new LayoutProperties() {
+            DefaultBorderRadius = "8px",
+            DrawerWidthLeft = "260px"
         }
     };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LayoutService.InitializeAsync();
+        LayoutService.OnMajorUpdate += StateHasChanged;
+    }
+    
+    public void Dispose()
+    {
+        LayoutService.OnMajorUpdate -= StateHasChanged;
+    }
+
+    void DrawerToggle() => _drawerOpen = !_drawerOpen;
 
     private void ExitAdmin() {
         Navigation.NavigateTo("/");
