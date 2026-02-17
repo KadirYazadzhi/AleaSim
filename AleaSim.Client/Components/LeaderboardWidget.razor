@@ -5,13 +5,13 @@
 @inject LayoutService LayoutService
 
 <MudPaper Class="pa-4" Elevation="0" Style="background: transparent;">
-    <MudText Typo="Typo.h6" Color="Color.Warning" Class="mb-4">
-        <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Class="mr-2" /> Top Players
-    </MudText>
-
     @if (rankings == null)
     {
         <MudProgressLinear Color="Color.Warning" Indeterminate="true" />
+    }
+    else if (!rankings.Any())
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="my-2">No active rankings yet.</MudAlert>
     }
     else
     {

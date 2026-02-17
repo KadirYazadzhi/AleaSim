@@ -16,11 +16,21 @@ public class GameDirector : IGameDirector {
     private readonly Func<string, IGame> _gameResolver;
     private readonly IGameRepository _repo;
     private readonly IAuditService _auditService;
+    private readonly IPromotionService _promotionService;
+    private readonly ILeaderboardService _leaderboardService;
 
-    public GameDirector(Func<string, IGame> gameResolver, IGameRepository repo, IAuditService auditService) {
+    public GameDirector(
+        Func<string, IGame> gameResolver, 
+        IGameRepository repo, 
+        IAuditService auditService, 
+        IPromotionService promotionService,
+        ILeaderboardService leaderboardService) 
+    {
         _gameResolver = gameResolver;
         _repo = repo;
         _auditService = auditService;
+        _promotionService = promotionService;
+        _leaderboardService = leaderboardService;
     }
 
     public async Task<object?> GetCurrentState(string gameType, Guid sessionId) {
@@ -73,6 +83,11 @@ public class GameDirector : IGameDirector {
         // ANALYTICS: Update Real-Time RTP Stats
         if (session != null) {
             _repo.UpdateRtpStats(session.GameId, session.UserId, amount, round.TotalWinAmount);
+            _promotionService.ProcessWinActivity(session.UserId, round.TotalWinAmount, _repo);
+
+            if (user != null && !user.Username.StartsWith("Sim_")) {
+                _leaderboardService.SubmitScore(session.UserId, user.Username, round.TotalWinAmount, amount, gameType);
+            }
         }
 
         _auditService.LogEvent("ROUND_PLAYED", $"{gameType} Round {round.RoundNumber} | Profile: {profile}", 

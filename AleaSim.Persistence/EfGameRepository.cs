@@ -192,10 +192,9 @@ public class EfGameRepository : IGameRepository {
 
     public IEnumerable<TournamentEntry> GetTopTournamentEntries(DateTime date, int topCount) {
         return _context.TournamentEntries
+            .Include(t => t.User)
             .Where(t => t.TournamentDate.Date == date.Date)
-            .Join(_context.Users, t => t.UserId, u => u.Id, (t, u) => new { t, u })
-            .Where(x => !x.u.Username.StartsWith("Sim_"))
-            .Select(x => x.t)
+            .Where(t => !t.User.Username.StartsWith("Sim_"))
             .OrderByDescending(t => t.RoiPercentage)
             .Take(topCount)
             .ToList();

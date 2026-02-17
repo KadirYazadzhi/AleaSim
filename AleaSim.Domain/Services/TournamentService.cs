@@ -16,21 +16,16 @@ public class TournamentService : ITournamentService {
 
     public async Task<IEnumerable<TournamentRankDto>> GetCurrentRankings(IGameRepository repo) {
         var date = DateTime.UtcNow;
-        var entries = repo.GetTopTournamentEntries(date, 50); 
+        var entries = repo.GetTopTournamentEntries(date, 50).ToList(); 
         
-        int rank = 1;
-        var result = entries.Select(e => {
-            var user = repo.GetUser(e.UserId);
-            return new TournamentRankDto {
-                Rank = rank++,
-                UserId = e.UserId,
-                Username = user?.Username ?? "Unknown",
-                MaxMultiplier = e.TotalWagered > 0 ? (e.TotalPayout / e.TotalWagered) : 0,
-                TotalPaid = e.TotalPayout
-            };
-        }).OrderByDescending(x => x.MaxMultiplier).ToList();
+        var result = entries.Select((e, index) => new TournamentRankDto {
+            Rank = index + 1,
+            UserId = e.UserId,
+            Username = e.User?.Username ?? "Unknown",
+            MaxMultiplier = e.TotalWagered > 0 ? (e.TotalPayout / e.TotalWagered) : 0,
+            TotalPaid = e.TotalPayout
+        }).ToList();
 
-        for(int i=0; i<result.Count; i++) result[i].Rank = i + 1;
         return await Task.FromResult(result);
     }
 
