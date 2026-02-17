@@ -115,7 +115,7 @@
         <MudItem xs="12">
             <div class="glass-panel pa-6 rounded-xl">
                 <MudText Typo="Typo.h6" Class="fw-bold mb-4">Simulation History</MudText>
-                <MudTable Items="@_history" Dense="true" Hover="true" Elevation="0" Class="glass-table">
+                <MudTable Items="@_historyItems" Dense="true" Hover="true" Elevation="0" Class="glass-table">
                     <HeaderContent>
                         <MudTh>Timestamp</MudTh>
                         <MudTh>Game</MudTh>
@@ -127,14 +127,20 @@
                         <MudTh></MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd>@context.Timestamp.ToLocalTime().ToString("g")</MudTd>
-                        <MudTd><MudChip T="string" Size="Size.Small" Variant="Variant.Text">@GetGameFromDesc(context.Description)</MudChip></MudTd>
-                        <MudTd>@GetRoundsFromDesc(context.Description)</MudTd>
-                        <MudTd>@GetValFromDesc(context.Description, "Bet:")</MudTd>
-                        <MudTd>@GetValFromDesc(context.Description, "Win:")</MudTd>
+                        <MudTd>@context.Log.Timestamp.ToLocalTime().ToString("g")</MudTd>
                         <MudTd>
-                            <MudText Color="@(GetRtpColorFromDesc(context.Description))" Class="fw-bold">
-                                @GetRtpFromDesc(context.Description)
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@(GetGameColor(context.Report?.GameType))">
+                                @(context.Report?.GameType ?? "Unknown")
+                            </MudChip>
+                        </MudTd>
+                        <MudTd>@(context.Report?.TotalIterations ?? 0)</MudTd>
+                        <MudTd>@(context.Report?.TotalBet.ToString("C2") ?? "?")</MudTd>
+                        <MudTd>
+                             <MudText Color="Color.Success" Class="fw-bold">@(context.Report?.TotalWin.ToString("C2") ?? "?")</MudText>
+                        </MudTd>
+                        <MudTd>
+                            <MudText Color="@(GetRtpColor(context.Report?.ActualRTP ?? 0))" Class="fw-bold">
+                                @(context.Report?.ActualRTP.ToString("F2") ?? "0.00")%
                             </MudText>
                         </MudTd>
                         <MudTd><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small"/></MudTd>
@@ -181,7 +187,12 @@
     private SimulationRequest _request = new() { GameType = "Slot", BetAmount = 1.0m, Iterations = 1000 };
     private SimulationReport? _lastReport;
     private bool _processing = false;
-    private List<AuditLogDto> _history = new();
+    private List<SimHistoryItem> _historyItems = new();
+
+    public class SimHistoryItem {
+        public AuditLogDto Log { get; set; } = new();
+        public SimulationReport? Report { get; set; }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -193,10 +204,19 @@
     {
         try {
             var logs = await AdminService.GetAuditLogs();
-            _history = logs.Where(l => l.EventType == "SIMULATION_REPORT")
+            var simLogs = logs.Where(l => l.EventType == "SIMULATION_REPORT")
                            .OrderByDescending(l => l.Timestamp)
                            .ToList();
+
+            _historyItems = simLogs.Select(l => new SimHistoryItem {
+                Log = l,
+                Report = TryDeserialize(l.MetadataJson)
+            }).ToList();
         } catch {}
+    }
+
+    private SimulationReport? TryDeserialize(string json) {
+        try { return JsonSerializer.Deserialize<SimulationReport>(json); } catch { return null; }
     }
 
     private async Task RunSimulation()
@@ -222,6 +242,13 @@
         _ => Color.Info
     };
 
+    private Color GetGameColor(string? type) => type switch {
+        "Slot" => Color.Primary,
+        "Blackjack" => Color.Secondary,
+        "Roulette" => Color.Tertiary,
+        _ => Color.Default
+    };
+
     private Color GetDecisionColor(string type) => type switch {
         "Random" => Color.Primary,
         "RetentionHook" => Color.Success,
@@ -229,38 +256,11 @@
         _ => Color.Default
     };
 
-    private string GetGameFromDesc(string desc) => desc.Contains("Slot") ? "Slot" : (desc.Contains("Blackjack") ? "BJ" : "Roulette");
-    private string GetRoundsFromDesc(string desc) {
-        var parts = desc.Split(' ');
-        return parts.Length > 1 ? parts[1] : "?";
-    }
-    private string GetRtpFromDesc(string desc) {
-        int idx = desc.IndexOf("RTP: ");
-        if (idx == -1) return "?%";
-        int end = desc.IndexOf("%", idx);
-        return desc.Substring(idx + 5, end - idx - 4);
-    }
-    private Color GetRtpColorFromDesc(string desc) {
-        string rtpStr = GetRtpFromDesc(desc).Replace("%", "");
-        if (double.TryParse(rtpStr, out double rtp)) return GetRtpColor(rtp);
-        return Color.Default;
-    }
-    private string GetValFromDesc(string desc, string prefix) {
-        int idx = desc.IndexOf(prefix);
-        if (idx == -1) return "?";
-        int end = desc.IndexOf(",", idx);
-        if (end == -1) end = desc.IndexOf(")", idx);
-        return desc.Substring(idx + prefix.Length, end - idx - prefix.Length).Trim();
-    }
-
-    private void ShowDetails(AuditLogDto log) {
-        try {
-            var report = JsonSerializer.Deserialize<SimulationReport>(log.MetadataJson);
-            if (report != null) {
-                _lastReport = report;
-                Snackbar.Add("Report loaded to analysis view.", Severity.Info);
-            }
-        } catch {
+    private void ShowDetails(SimHistoryItem item) {
+        if (item.Report != null) {
+            _lastReport = item.Report;
+            Snackbar.Add("Report loaded to analysis view.", Severity.Info);
+        } else {
             Snackbar.Add("Could not load detailed report.", Severity.Error);
         }
     }
