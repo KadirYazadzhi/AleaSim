@@ -18,10 +18,12 @@ public class SlotGameEngine : BaseGameEngine {
         Rows = 4, Cols = 5, PaylinesCount = 20,
         WildSymbol = 8, ScatterSymbol = 10, CollectSymbol = 11, GoldenSymbol = 12,
         BaseStrip = new[] { 
-            1, 2, 3, 4, 5, 1, 2, 3, 4, 6, 1, 2, 3, 5, 1, 2, 7, 1, 3, 4, 5, 
-            1, 2, 3, 4, 5, 1, 2, 3, 4, 6, 1, 2, 3, 5, 1, 2, 7, 1, 3, 4, 5,
-            1, 2, 3, 4, 5, 1, 2, 3, 11, 8, 1, 2, 3, 4, 5, 12 
-        }, // Diluted strip ( ~3% wild density) to prevent infinite respin loops
+            1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 5, 
+            1, 2, 3, 4, 5, 1, 2, 3, 4, 6, 1, 2, 3, 4, 5, 1, 2, 3, 4, 6, 1, 2, 3, 
+            1, 2, 3, 4, 5, 1, 2, 3, 4, 7, 1, 2, 3, 4, 5, 1, 2, 3, 4, 7, 1, 2, 3,
+            1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 5, 1, 2, 3, 4, 8, 1, 2, 3, 4,
+            1, 2, 3, 4, 5, 1, 2, 3, 10, 1, 2, 3, 4, 5, 1, 2, 3, 11, 1, 2, 3, 12 
+        }, // Ultra-diluted strip (~1% special symbol density) for realistic RTP
         Paylines = new[] {
             new[] {0,0,0,0,0}, new[] {1,1,1,1,1}, new[] {2,2,2,2,2}, new[] {3,3,3,3,3},
             new[] {0,1,2,1,0}, new[] {1,2,3,2,1}, new[] {2,1,0,1,2}, new[] {3,2,1,2,3},
@@ -316,7 +318,13 @@ public class SlotGameEngine : BaseGameEngine {
             }
         }
 
-        if (newClovers > 0) { state.IsRespinActive = true; state.RespinLives = 1; }
+        if (newClovers > 0) {
+            // Requirement: 3+ symbols to START respins, 1+ to continue
+            if (state.IsRespinActive || state.StickyClovers.Count >= 3) {
+                state.IsRespinActive = true; 
+                state.RespinLives = 1; 
+            }
+        }
         else if (state.IsRespinActive) {
             state.RespinLives--;
         }
@@ -371,7 +379,7 @@ public class SlotGameEngine : BaseGameEngine {
         for (int r = 0; r < config.Rows; r++) {
             for (int c = 0; c < config.Cols; c++) {
                 if (state.Grid[r][c] == config.ScatterSymbol) continue;
-                if (RngService.GetNextDouble(seed, nonce++) < 0.03) { // 3% chance per cell (was 8%)
+                if (RngService.GetNextDouble(seed, nonce++) < 0.015) { // 1.5% chance per cell (was 3%)
                     state.Grid[r][c] = config.ScatterSymbol; landed = true;
                     double tr = RngService.GetNextDouble(seed, nonce++);
                     var bell = new BellValue { Pos = new Point { R=r, C=c } };
