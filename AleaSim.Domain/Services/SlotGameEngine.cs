@@ -32,10 +32,10 @@ public class SlotGameEngine : BaseGameEngine {
             new[] {2,2,1,2,2}, new[] {1,0,0,0,1}, new[] {2,3,3,3,2}, new[] {0,1,1,1,0}
         },
         Paytable = new Dictionary<int, decimal[]> {
-            { 1, new[] { 0.2m, 0.5m, 2.0m } }, { 2, new[] { 0.2m, 0.5m, 2.0m } },
-            { 3, new[] { 0.4m, 1.0m, 4.0m } }, { 4, new[] { 0.5m, 1.5m, 5.0m } },
-            { 5, new[] { 1.0m, 3.0m, 10.0m } }, { 6, new[] { 1.5m, 5.0m, 15.0m } },
-            { 7, new[] { 2.5m, 10.0m, 25.0m } }, { 8, new[] { 5.0m, 20.0m, 50.0m } }
+            { 1, new[] { 0.1m, 0.2m, 1.0m } }, { 2, new[] { 0.1m, 0.2m, 1.0m } },
+            { 3, new[] { 0.2m, 0.5m, 2.0m } }, { 4, new[] { 0.2m, 0.5m, 2.0m } },
+            { 5, new[] { 0.5m, 1.0m, 5.0m } }, { 6, new[] { 0.5m, 1.0m, 5.0m } },
+            { 7, new[] { 1.0m, 5.0m, 10.0m } }, { 8, new[] { 2.0m, 10.0m, 25.0m } }
         }
     };
 
@@ -198,7 +198,7 @@ public class SlotGameEngine : BaseGameEngine {
                     totalWin = 0; 
                     if (state.BonusLives == 0 || state.BonusBells.Count == config.Rows * config.Cols) {
                         totalWin = state.BonusBells.Sum(b => b.Value);
-                        if (state.BonusBells.Count == config.Rows * config.Cols) totalWin *= 2; 
+                        if (state.BonusBells.Count == config.Rows * config.Cols) totalWin *= 1.5m; // 1.5x Multiplier (was 2x)
                         state.IsBonusActive = false; state.IsRespinActive = false; state.StickyClovers.Clear(); state.HasGoldenClover = false;
                     }
                 } else {
@@ -316,8 +316,8 @@ public class SlotGameEngine : BaseGameEngine {
         }
 
         if (newClovers > 0) {
-            // Requirement: 3+ symbols to START respins, 1+ to continue
-            if (state.IsRespinActive || state.StickyClovers.Count >= 3) {
+            // Requirement: 4+ symbols to START respins, 1+ to continue
+            if (state.IsRespinActive || state.StickyClovers.Count >= 4) {
                 state.IsRespinActive = true; 
                 state.RespinLives = 1; 
             }
@@ -333,7 +333,7 @@ public class SlotGameEngine : BaseGameEngine {
                  for (int c = 0; c < config.Cols; c++) {
                      if (state.StickyClovers.Any(p => p.C == c)) continue;
                      state.WasNudged = true;
-                     state.RespinLives = 3; 
+                     state.RespinLives = 1; // Corrected to 1
                      state.IsRespinActive = true;
                      // Find valid spot
                      for(int r=0; r<config.Rows; r++) {
@@ -349,7 +349,7 @@ public class SlotGameEngine : BaseGameEngine {
         }
 
         if (state.IsRespinActive && state.RespinLives <= 0) {
-             if (state.StickyClovers.Count >= 5) { 
+             if (state.StickyClovers.Count >= 6) { // 6+ symbols to trigger Bonus (was 5)
                  state.IsBonusActive = true; 
                  state.BonusLives = 3; 
                  state.IsRespinActive = false; 
@@ -366,7 +366,7 @@ public class SlotGameEngine : BaseGameEngine {
         for(int r=0; r<config.Rows; r++) for(int c=0; c<config.Cols; c++) state.Grid[r][c] = 0;
         foreach(var p in state.StickyClovers) {
             state.Grid[p.R][p.C] = config.ScatterSymbol;
-            decimal val = state.LockedBet * (state.HasGoldenClover ? RngService.GetNextInt(seed, nonce++, 5, 20) : RngService.GetNextInt(seed, nonce++, 1, 10));
+            decimal val = state.LockedBet * (state.HasGoldenClover ? RngService.GetNextInt(seed, nonce++, 2, 8) : RngService.GetNextInt(seed, nonce++, 1, 5));
             state.BonusBells.Add(new BellValue { Pos = p, Value = val, Type = BellType.Cash });
         }
     }
@@ -376,7 +376,7 @@ public class SlotGameEngine : BaseGameEngine {
         for (int r = 0; r < config.Rows; r++) {
             for (int c = 0; c < config.Cols; c++) {
                 if (state.Grid[r][c] == config.ScatterSymbol) continue;
-                if (RngService.GetNextDouble(seed, nonce++) < 0.015) { // 1.5% chance per cell (was 3%)
+                if (RngService.GetNextDouble(seed, nonce++) < 0.01) { // 1% chance per cell (was 1.5%)
                     state.Grid[r][c] = config.ScatterSymbol; landed = true;
                     double tr = RngService.GetNextDouble(seed, nonce++);
                     var bell = new BellValue { Pos = new Point { R=r, C=c } };

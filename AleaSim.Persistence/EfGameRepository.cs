@@ -276,8 +276,12 @@ public class EfGameRepository : IGameRepository {
     
     public IEnumerable<GameRound> GetGlobalRecentRounds(int count) {
         return _context.GameRounds
-            .OrderByDescending(r => r.ExecutedAt)
+            .Join(_context.GameSessions, r => r.GameSessionId, s => s.Id, (r, s) => new { r, s })
+            .Join(_context.Users, x => x.s.UserId, u => u.Id, (x, u) => new { x.r, u })
+            .Where(x => !x.u.Username.StartsWith("Sim_"))
+            .OrderByDescending(x => x.r.ExecutedAt)
             .Take(count)
+            .Select(x => x.r)
             .ToList();
     }
 
