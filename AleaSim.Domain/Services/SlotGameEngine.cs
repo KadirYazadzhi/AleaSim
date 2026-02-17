@@ -148,6 +148,7 @@ public class SlotGameEngine : BaseGameEngine {
             } catch { }
 
             decimal instantWin = 0;
+            bool wasRespinActive = state.IsRespinActive;
 
             if (state.IsRespinActive || state.IsBonusActive) {
                 currentBet = state.LockedBet;
@@ -201,13 +202,9 @@ public class SlotGameEngine : BaseGameEngine {
                         state.IsBonusActive = false; state.IsRespinActive = false; state.StickyClovers.Clear(); state.HasGoldenClover = false;
                     }
                 } else {
-                    // Fix: Add line wins even if bonus triggered in this spin
-                    decimal lineWin = EvaluateGrid(state.Grid, currentBet, config);
+                    // Fix: Only pay lines on base spin. During Respins, lines are skipped because symbols are sticky.
+                    decimal lineWin = wasRespinActive ? 0 : EvaluateGrid(state.Grid, currentBet, config);
                     totalWin = lineWin + instantWin;
-                    
-                    // If bonus just triggered (IsBonusActive became true in PlayStandardRound), 
-                    // we still pay the line wins from the base game spin.
-                    // Note: 'state.IsBonusActive' might be true now if PlayStandardRound set it.
                 }
 
                 if (state.IsRespinActive || state.IsBonusActive) {
@@ -386,7 +383,7 @@ public class SlotGameEngine : BaseGameEngine {
                     int minis = state.BonusBells.Count(b => b.Type == BellType.Mini);
                     int minors = state.BonusBells.Count(b => b.Type == BellType.Minor);
                     
-                    if (tr < 0.001) { 
+                    if (tr < 0.0001) { // 1 in 10,000 (was 1 in 1,000)
                         bell.Type = BellType.Major; 
                         bell.Value = JackpotService.GetTierValue(JackpotTier.Spades, repo);
                     }
