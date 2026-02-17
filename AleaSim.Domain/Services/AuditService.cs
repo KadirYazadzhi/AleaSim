@@ -27,8 +27,8 @@ public class AuditService : IAuditService {
     public void LogEvent(string eventType, string description, string userId, string metadataJson) {
         lock (this) {
             var now = DateTime.UtcNow;
-            // Truncate to milliseconds to ensure DB consistency (some DBs drop ticks)
-            var safeTimestamp = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second, now.Millisecond, DateTimeKind.Utc);
+            // Truncate to seconds to ensure perfect consistency with all DB providers (MySQL/SQLite/Postgres)
+            var safeTimestamp = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second, DateTimeKind.Utc);
 
             var auditEvent = new AuditEvent {
                 Id = Guid.NewGuid(),
@@ -36,7 +36,7 @@ public class AuditService : IAuditService {
                 EventType = eventType,
                 Description = description,
                 UserId = userId,
-                MetadataJson = metadataJson,
+                MetadataJson = metadataJson ?? "{}",
                 PreviousHash = _lastHash
             };
 
@@ -62,7 +62,7 @@ public class AuditService : IAuditService {
         using var scope = _scopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         
-        var logs = repo.GetAllAuditLogs().ToList();
+        var logs = repo.GetAllAuditLogs().OrderBy(x => x.Timestamp).ToList();
         if (!logs.Any()) return true;
 
         string expectedPreviousHash = "GENESIS";
@@ -98,13 +98,13 @@ public class AuditService : IAuditService {
         string currentHash = "GENESIS";
         
         foreach (var log in allLogs) {
+            // Force fix timestamp to seconds if they have milliseconds (cleaning up old records)
+            var dt = log.Timestamp;
+            log.Timestamp = new DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second, DateTimeKind.Utc);
+            
             log.PreviousHash = currentHash;
-            // Recalculate hash with current properties (using existing timestamp precision from DB)
             log.Hash = CalculateHash(log);
             currentHash = log.Hash;
-            
-            // We need to ensure the entity is marked as modified if we are using a repo wrapper that might not expose context directly.
-            // Since we are modifying properties on tracked entities, SaveChanges should pick it up.
         }
         
         repo.SaveChanges();
@@ -117,7 +117,11 @@ public class AuditService : IAuditService {
     }
 
     private string CalculateHash(AuditEvent ev) {
-        string data = $"{ev.Timestamp:O}|{ev.EventType}|{ev.UserId}|{ev.MetadataJson}|{ev.PreviousHash}";
+        // Use a fixed format string for hashing to avoid DateTime.ToString() variations
+        string ts = ev.Timestamp.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+        string metadata = ev.MetadataJson ?? "{}";
+        string data = $"{ts}|{ev.EventType}|{ev.UserId}|{metadata}|{ev.PreviousHash}";
+        
         byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(data));
         return Convert.ToHexString(bytes);
     }
