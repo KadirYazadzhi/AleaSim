@@ -24,7 +24,7 @@
 
     <MudGrid Class="mb-8">
         <MudItem xs="12" sm="6" md="3">
-            <div class="glass-panel pa-6 rounded-xl hover-scale h-100">
+            <div class="dashboard-card pa-6 rounded-xl hover-scale h-100">
                 <div class="d-flex justify-space-between align-start mb-4">
                     <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" />
                      <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" Size="Size.Small" />
@@ -34,7 +34,7 @@
             </div>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <div class="glass-panel pa-6 rounded-xl hover-scale h-100">
+            <div class="dashboard-card pa-6 rounded-xl hover-scale h-100">
                  <div class="d-flex justify-space-between align-start mb-4">
                     <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Info" Size="Size.Large" />
                     <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">+12%</MudChip>
@@ -44,7 +44,7 @@
             </div>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <div class="glass-panel pa-6 rounded-xl hover-scale h-100">
+            <div class="dashboard-card pa-6 rounded-xl hover-scale h-100">
                  <div class="d-flex justify-space-between align-start mb-4">
                     <MudIcon Icon="@Icons.Material.Filled.Percent" Color="Color.Warning" Size="Size.Large" />
                      <MudIcon Icon="@Icons.Material.Filled.Functions" Color="Color.Warning" Size="Size.Small" />
@@ -54,7 +54,7 @@
             </div>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-             <div class='@($"glass-panel pa-6 rounded-xl hover-scale h-100 {(_emergencyStop ? "border-red" : "")}")'>
+             <div class='@($"dashboard-card pa-6 rounded-xl hover-scale h-100 {(_emergencyStop ? "border-red" : "")}")'>
                  <div class="d-flex justify-space-between align-start mb-4">
                     <MudIcon Icon="@Icons.Material.Filled.PanTool" Color="@(_emergencyStop ? Color.Error : Color.Success)" Size="Size.Large" />
                     <MudSwitch @bind-Value="_emergencyStop" Color="Color.Error" UncheckedColor="Color.Success" T="bool" @onclick="ToggleStop" Class="ml-auto" />
@@ -67,7 +67,7 @@
     
     <MudGrid>
          <MudItem xs="12" md="8">
-            <div class="glass-panel pa-6 rounded-xl" style="height: 400px; display: flex; flex-direction: column;">
+            <div class="dashboard-card pa-6 rounded-xl" style="height: 400px; display: flex; flex-direction: column;">
                 <div class="d-flex justify-space-between align-center mb-4">
                     <MudText Typo="Typo.h6" Class="fw-bold"><MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2"/>Live Event Feed</MudText>
                     <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" />
@@ -95,7 +95,7 @@
         </MudItem>
         
         <MudItem xs="12" md="4">
-             <div class="glass-panel pa-6 rounded-xl h-100">
+             <div class="dashboard-card pa-6 rounded-xl h-100">
                 <MudText Typo="Typo.h6" Class="fw-bold mb-6">Quick Actions</MudText>
                 <MudStack Spacing="3">
                     <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Refresh" Class="rounded-lg py-3" OnClick="OnClearCache">Reset Cache</MudButton>
@@ -119,7 +119,7 @@
         -webkit-text-fill-color: transparent;
     }
 
-    .glass-panel {
+    .dashboard-card {
         background: @(LayoutService.IsDarkMode ? "rgba(30, 41, 59, 0.7)" : "rgba(255, 255, 255, 0.7)");
         backdrop-filter: blur(12px);
         border: 1px solid var(--mud-palette-divider);

@@ -22,7 +22,7 @@
     <MudGrid>
         <!-- Simulation Control -->
         <MudItem xs="12" lg="4">
-            <div class="glass-panel pa-8 rounded-xl h-100">
+            <div class="stats-card pa-8 rounded-xl h-100">
                 <MudText Typo="Typo.h5" Class="fw-bold mb-6">New Simulation</MudText>
                 
                 <MudSelect T="string" @bind-Value="_request.GameType" Label="Game Engine" Variant="Variant.Outlined" Class="mb-4 glass-input">
@@ -54,7 +54,7 @@
 
         <!-- Current/Last Result -->
         <MudItem xs="12" lg="8">
-            <div class="glass-panel pa-8 rounded-xl h-100">
+            <div class="stats-card pa-8 rounded-xl h-100">
                 @if (_lastReport == null)
                 {
                     <div class="d-flex flex-column align-center justify-center h-100 opacity-50">
@@ -113,7 +113,7 @@
 
         <!-- History Table -->
         <MudItem xs="12">
-            <div class="glass-panel pa-6 rounded-xl">
+            <div class="stats-card pa-6 rounded-xl">
                 <MudText Typo="Typo.h6" Class="fw-bold mb-4">Simulation History</MudText>
                 <MudTable Items="@_historyItems" Dense="true" Hover="true" Elevation="0" Class="glass-table">
                     <HeaderContent>
@@ -165,7 +165,7 @@
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
-    .glass-panel {
+    .stats-card {
         background: @(LayoutService.IsDarkMode ? "rgba(30, 41, 59, 0.7)" : "rgba(255, 255, 255, 0.7)");
         backdrop-filter: blur(12px);
         border: 1px solid var(--mud-palette-divider);

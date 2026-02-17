@@ -1,6 +1,7 @@
 @page "/admin/vouchers"
 @using AleaSim.Shared.Models
 @using Microsoft.AspNetCore.Authorization
+@layout AleaSim.Client.Layout.AdminLayout
 @attribute [Authorize(Roles = "Admin")]
 @inject HttpClient Http
 @inject ISnackbar Snackbar
