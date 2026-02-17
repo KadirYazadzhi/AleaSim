@@ -144,7 +144,9 @@ public class EfGameRepository : IGameRepository {
     }
 
     public PlayerProfile? GetPlayerProfile(Guid userId) {
-        return _context.PlayerProfiles.FirstOrDefault(p => p.UserId == userId);
+        return _context.PlayerProfiles
+            .Include(p => p.User)
+            .FirstOrDefault(p => p.UserId == userId);
     }
 
     public IEnumerable<PlayerProfile> GetActiveProfiles(TimeSpan activityWindow) {

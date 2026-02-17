@@ -59,6 +59,10 @@ public class BrainService : IBrainService {
         var profile = repo.GetPlayerProfile(userId); 
         if (profile == null) return new BrainDirective { DecisionType = "Random" };
 
+        if (profile.User != null && profile.User.Username.StartsWith("Sim_")) {
+            return new BrainDirective { DecisionType = "Random", VolatilityModifier = 1.0, Reason = "Simulation Standard" };
+        }
+
         decimal globalRtp = 95.0m;
         if (decimal.TryParse(repo.GetGlobalSetting("GlobalTargetRtp"), out var rtpVal)) globalRtp = rtpVal;
 
