@@ -26,6 +26,9 @@ public abstract class BaseGameEngine : IGame {
 
     public virtual async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string betData) {
         await ExecuteScopedAsync(async (repo, questService, levelService) => {
+            var stop = repo.GetGlobalSetting("EmergencyStop");
+            if (stop == "true") throw new InvalidOperationException("EMERGENCY STOP: Game rounds suspended by administrator.");
+
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
             

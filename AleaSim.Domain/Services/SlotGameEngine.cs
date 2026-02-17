@@ -155,6 +155,7 @@ public class SlotGameEngine : BaseGameEngine {
             }
 
             var directive = BrainService.GetNextDirective(session.UserId, session.GameId, currentBet, repo);
+            var shadowDirective = BrainService.DecideOutcome(session.UserId, session.GameId, currentBet, repo, isShadowMode: true);
             
             // Dynamic Strip based on Volatility (Simplified: just adds/removes Wilds)
             int[] activeStrip = config.BaseStrip;
@@ -256,7 +257,8 @@ public class SlotGameEngine : BaseGameEngine {
             var round = new GameRound {
                 Id = Guid.NewGuid(), GameSessionId = sessionId, TotalBetAmount = currentBet, TotalWinAmount = totalWin,
                 RandomResult = JsonSerializer.Serialize(new { Grid = state.Grid, state.IsRespinActive, state.IsBonusActive, state.WasNudged, BonusTotal = state.BonusBells.Sum(x=>x.Value), state.Denomination, BonusBells = state.BonusBells }),
-                DecisionType = directive.DecisionType, ExecutedAt = DateTime.UtcNow
+                DecisionType = directive.DecisionType, ExecutedAt = DateTime.UtcNow,
+                ShadowBrainResult = JsonSerializer.Serialize(shadowDirective)
             };
             repo.SaveRound(round);
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Grid = state.Grid, Win = totalWin, IsRespin = state.IsRespinActive, Nudge = state.WasNudged, Bonus = state.IsBonusActive, Bells = state.BonusBells });

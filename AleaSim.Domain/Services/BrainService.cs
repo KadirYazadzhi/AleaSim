@@ -48,38 +48,58 @@ public class BrainService : IBrainService {
     }
 
     public BrainDirective DecideOutcome(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo, bool isShadowMode = false) {
+        // 1. Check Forced Directives (Debug/Admin)
         string forceKey = $"brain_force_{userId}";
         if (_cache.TryGetValue(forceKey, out BrainDirective? forced) && forced != null) {
             _cache.Remove(forceKey);
             return forced;
         }
 
+        // 2. Load Profile & Config
         var profile = repo.GetPlayerProfile(userId); 
-        if (profile == null) {
-            return new BrainDirective { DecisionType = "Random" };
-        }
+        if (profile == null) return new BrainDirective { DecisionType = "Random" };
 
+        decimal globalRtp = 95.0m;
+        if (decimal.TryParse(repo.GetGlobalSetting("GlobalTargetRtp"), out var rtpVal)) globalRtp = rtpVal;
+
+        string volMode = repo.GetGlobalSetting("VolatilityMode"); // Low, Medium, High
+
+        // 3. Shadow Mode: Simulate "Pure Random" (No Brain Intervention)
         if (isShadowMode) {
-            int seed = HashCode.Combine(userId, gameId, betAmount, DateTime.UtcNow.Ticks);
-            var rand = _rngService.GetNextInt(seed, 1, 0, 100);
-            if (rand < 30) { 
-                return new BrainDirective { DecisionType = "NearMiss", IsNearMiss = true, TargetWinAmount = 0 };
-            }
-            return new BrainDirective { DecisionType = "Shadow_Random" };
+            return new BrainDirective { DecisionType = "Random", TargetWinAmount = 0, Reason = "Shadow Mode (Pure RNG)" };
         }
 
-        // --- RULE 0: Flow State (Dynamic Difficulty) ---
+        // 4. Flow State & Volatility
         bool isInFlow = profile.AvgSpinInterval < 2.5;
         bool isBored = profile.AvgSpinInterval > 7.0;
         double volatility = isInFlow ? 2.0 : (isBored ? 0.5 : 1.0);
 
+        // Adjust based on Global Volatility Setting
+        if (volMode == "Low") volatility = Math.Max(0.5, volatility - 0.5);
+        else if (volMode == "High") volatility += 0.5;
+
         int seedMain = HashCode.Combine(userId, gameId, betAmount, DateTime.UtcNow.Ticks);
 
-        // --- RULE 1: The Retention Hook ---
+        // 5. RTP Correction Logic
+        // If user is winning too much (> Target + 10%), force cool down
+        if (profile.TotalWagered > 100 && profile.ActualRtp > (double)((globalRtp + 10) / 100)) {
+             var randCool = _rngService.GetNextInt(seedMain, 1, 0, 100);
+             if (randCool < 50) { // 50% chance to force loss/small win
+                 return new BrainDirective { DecisionType = "Random", TargetWinAmount = 0, Reason = "RTP Correction (High)" };
+             }
+        }
+
+        // If user is losing too much (< Target - 15%), trigger Retention Hook
+        // BUT only if they have loss streak
         int skillOffset = profile.LuckyCloverLevel;
         int retentionThreshold = Math.Max(2, (isBored ? 4 : 8) - skillOffset);
         
-        if (profile.LossStreak >= retentionThreshold || (profile.CurrentSessionRtp < 0.5m && profile.TotalWagered > 50)) {
+        // Dynamic Threshold based on Global RTP: Higher RTP = Lower Threshold (More frequent help)
+        if (globalRtp > 98.0m) retentionThreshold = Math.Max(2, retentionThreshold - 2);
+
+        if ((profile.LossStreak >= retentionThreshold) || 
+            (profile.TotalWagered > 50 && profile.ActualRtp < (double)((globalRtp - 15) / 100))) {
+            
             decimal multiplier = isBored ? (decimal)_rngService.GetNextInt(seedMain, 2, 2, 5) : (decimal)_rngService.GetNextInt(seedMain, 2, 10, 25);
             decimal targetWin = betAmount * multiplier;
             
@@ -91,11 +111,6 @@ public class BrainService : IBrainService {
                     Reason = isBored ? "Boredom Recovery" : "Loss Streak Protection"
                 };
             }
-        }
-
-        var randHighRtp = _rngService.GetNextInt(seedMain, 3, 0, 100);
-        if (profile.ActualRtp > 2.5 && profile.TotalWagered > 100 && randHighRtp < 40) { 
-            return new BrainDirective { DecisionType = "Random", TargetWinAmount = 0, Reason = "Cooling Down High RTP" };
         }
 
         return new BrainDirective { 
