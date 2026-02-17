@@ -23,6 +23,8 @@ public class VaultService : IVaultService {
         var profile = repo.GetPlayerProfile(userId);
         if (user == null) return false;
 
+        bool success = false;
+
         // Admin role used to have free play, but we've enabled real deductions for better testing/realism.
         // Admins can always top-up via the Backoffice UI.
         
