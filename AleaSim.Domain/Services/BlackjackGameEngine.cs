@@ -65,6 +65,7 @@ public class BlackjackGameEngine : BaseGameEngine {
             var round = new GameRound {
                 Id = Guid.NewGuid(),
                 GameSessionId = sessionId,
+                RoundNumber = roundNum,
                 TotalBetAmount = lastBet.Amount,
                 ExecutedAt = DateTime.UtcNow,
                 RandomResult = JsonSerializer.Serialize(state)

@@ -252,8 +252,11 @@ public class SlotGameEngine : BaseGameEngine {
             _cache.Set(cacheKey, state, TimeSpan.FromMinutes(10));
             session.GameState = JsonSerializer.Serialize(state);
 
+            int roundCount = repo.GetRoundCount(sessionId);
+
             var round = new GameRound {
                 Id = Guid.NewGuid(), GameSessionId = sessionId, TotalBetAmount = currentBet, TotalWinAmount = totalWin,
+                RoundNumber = roundCount + 1,
                 RandomResult = JsonSerializer.Serialize(new { Grid = state.Grid, state.IsRespinActive, state.IsBonusActive, state.WasNudged, BonusTotal = state.BonusBells.Sum(x=>x.Value), state.Denomination, BonusBells = state.BonusBells }),
                 DecisionType = directive.DecisionType, ExecutedAt = DateTime.UtcNow,
                 ShadowBrainResult = JsonSerializer.Serialize(shadowDirective)

@@ -118,11 +118,14 @@ public class RouletteGameEngine : BaseGameEngine {
             
             BrainService.UpdateProfile(session.UserId, betAmount, actualWin, repo);
 
+            int roundCount = repo.GetRoundCount(sessionId);
+
             var round = new GameRound {
                 Id = Guid.NewGuid(),
                 GameSessionId = sessionId,
                 TotalBetAmount = betAmount,
                 TotalWinAmount = actualWin,
+                RoundNumber = roundCount + 1,
                 RandomResult = JsonSerializer.Serialize(new { Number = number }),
                 DecisionType = decision.DecisionType,
                 ExecutedAt = DateTime.UtcNow

@@ -2,6 +2,8 @@ using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace AleaSim.Domain.Services;
 
@@ -65,11 +67,17 @@ public abstract class BaseGameEngine : IGame {
 
     public virtual async Task<GameSession> StartSession(Guid userId, Guid gameId, int? seed = null, string? clientSeed = null) {
         return await ExecuteScopedAsync(async repo => {
+            var serverSeed = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(serverSeed));
+            var serverSeedHash = Convert.ToHexString(hashBytes);
+
             var session = new GameSession {
                 Id = Guid.NewGuid(),
                 UserId = userId,
                 GameId = gameId,
                 Seed = System.Security.Cryptography.RandomNumberGenerator.GetInt32(int.MaxValue),
+                ServerSeed = serverSeed,
+                ServerSeedHash = serverSeedHash,
                 ClientSeed = clientSeed ?? Guid.NewGuid().ToString("N").Substring(0, 8),
                 StartedAt = DateTime.UtcNow,
                 IsActive = true

@@ -57,6 +57,29 @@
                 <MudText Typo="Typo.body2" Color="Color.Secondary">Visual replay not available for this game type.</MudText>
             }
         </div>
+
+        <MudText Typo="Typo.h6" Class="mb-2 mt-6">Provably Fair Verification</MudText>
+        <MudExpansionPanels Elevation="0">
+            <MudExpansionPanel Text="Verification Details" Style="background: #fafafa;">
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Server Seed Hash:</MudText>
+                        <MudText Typo="Typo.body2" Style="word-break: break-all; font-family: monospace;">@Round.ServerSeedHash</MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Client Seed:</MudText>
+                        <MudText Typo="Typo.body2">@Round.ClientSeed</MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Nonce:</MudText>
+                        <MudText Typo="Typo.body2">@Round.Nonce</MudText>
+                    </MudItem>
+                </MudGrid>
+                <MudAlert Severity="Severity.Info" Class="mt-4" Dense="true">
+                    You can verify the fairness of this round by hashing the revealed Server Seed once the session is closed.
+                </MudAlert>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Close" Color="Color.Primary">Close</MudButton>
