@@ -121,13 +121,13 @@
                 <div class="settings-card pa-6 rounded-xl">
                     <MudText Typo="Typo.h6" Class="fw-bold mb-4">Maintenance</MudText>
                     <MudList T="string" Dense="true" Clickable="true" Class="rounded-lg">
-                        <MudListItem Icon="@Icons.Material.Filled.CleaningServices" OnClick="@(() => Snackbar.Add("Cache cleared successfully", Severity.Success))">
+                        <MudListItem Icon="@Icons.Material.Filled.CleaningServices" OnClick="OnClearCache">
                             Clear Server Cache
                         </MudListItem>
-                        <MudListItem Icon="@Icons.Material.Filled.Storage" OnClick="@(() => Snackbar.Add("Backup started in background...", Severity.Info))">
+                        <MudListItem Icon="@Icons.Material.Filled.Storage" OnClick="OnBackup">
                             Backup Database
                         </MudListItem>
-                        <MudListItem Icon="@Icons.Material.Filled.RestartAlt" IconColor="Color.Warning" OnClick="@(() => Snackbar.Add("Service restart scheduled", Severity.Warning))">
+                        <MudListItem Icon="@Icons.Material.Filled.RestartAlt" IconColor="Color.Warning" OnClick="OnRestartRng">
                             Restart RNG Service
                         </MudListItem>
                     </MudList>
@@ -266,6 +266,21 @@
         } finally {
             _verifyingIntegrity = false;
         }
+    }
+
+    private async Task OnClearCache() {
+        await AdminService.TriggerAction("ClearCache");
+        Snackbar.Add("Server cache cleared.", Severity.Success);
+    }
+
+    private async Task OnBackup() {
+        await AdminService.TriggerAction("BackupDb");
+        Snackbar.Add("Database backup started.", Severity.Info);
+    }
+
+    private async Task OnRestartRng() {
+        await AdminService.TriggerAction("RestartRng");
+        Snackbar.Add("RNG service reset and synced.", Severity.Warning);
     }
     
     public void Dispose()

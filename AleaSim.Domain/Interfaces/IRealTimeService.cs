@@ -11,4 +11,5 @@ public interface IRealTimeService {
     // New Social Features
     Task NotifyBigWin(string username, string gameName, decimal amount, decimal multiplier);
     Task NotifyLeaderboardUpdate(string leaderboardName, object topList);
+    Task BroadcastMessage(string sender, string message);
 }

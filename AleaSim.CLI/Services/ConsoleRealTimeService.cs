@@ -41,4 +41,11 @@ public class ConsoleRealTimeService : IRealTimeService {
         // Console.WriteLine($"[RTS] Leaderboard Updated: {leaderboardName}");
         return Task.CompletedTask;
     }
+
+    public Task BroadcastMessage(string sender, string message) {
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine($"\n[SYSTEM BROADCAST from {sender}]: {message}");
+        Console.ResetColor();
+        return Task.CompletedTask;
+    }
 }
