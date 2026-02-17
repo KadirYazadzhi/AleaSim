@@ -56,8 +56,15 @@ public class AdminController : ControllerBase {
     }
 
     [HttpGet("audit-logs")]
-    public IActionResult GetAuditLogs() {
-        return Ok(_auditService.GetLogs());
+    public ActionResult<List<AuditLogDto>> GetAuditLogs() {
+        return Ok(_auditService.GetLogs().Select(l => new AuditLogDto {
+            Id = l.Id,
+            Timestamp = l.Timestamp,
+            EventType = l.EventType,
+            Description = l.Description,
+            UserId = l.UserId,
+            MetadataJson = l.MetadataJson
+        }).ToList());
     }
 
     [HttpGet("audit/verify")]

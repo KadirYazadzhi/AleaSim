@@ -18,7 +18,7 @@ public interface IAdminService
     Task UpdateVolatility(string mode);
     Task<List<PlayerSearchResultDto>> SearchPlayers(string query);
     Task TriggerAction(string actionType);
-    Task<List<AuditEvent>> GetAuditLogs();
+    Task<List<AuditLogDto>> GetAuditLogs();
 
 }
 
@@ -83,8 +83,8 @@ public class AdminService : IAdminService
         await _http.PostAsJsonAsync("api/Admin/actions/trigger", new { ActionType = actionType });
     }
 
-    public async Task<List<AuditEvent>> GetAuditLogs() {
-        return await _http.GetFromJsonAsync<List<AuditEvent>>("api/Admin/audit-logs") ?? new();
+    public async Task<List<AuditLogDto>> GetAuditLogs() {
+        return await _http.GetFromJsonAsync<List<AuditLogDto>>("api/Admin/audit-logs") ?? new();
     }
 
     public async Task<SimulationReport?> RunSimulation(SimulationRequest request)
