@@ -194,7 +194,7 @@
     {
         try {
             var stats = await AdminService.GetDashboardStats();
-            _targetRtp = stats.CurrentRtp > 0 ? stats.CurrentRtp : 95.0m;
+            _targetRtp = Math.Round(stats.CurrentRtp > 0 ? stats.CurrentRtp : 95.0m, 2);
             _emergencyStop = stats.IsEmergencyStopActive;
             _changedEmergencyStop = _emergencyStop;
         } catch {}

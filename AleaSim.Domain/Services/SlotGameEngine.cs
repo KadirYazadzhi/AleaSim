@@ -316,7 +316,7 @@ public class SlotGameEngine : BaseGameEngine {
             }
         }
 
-        if (newClovers > 0) { state.IsRespinActive = true; state.RespinLives = 3; }
+        if (newClovers > 0) { state.IsRespinActive = true; state.RespinLives = 1; }
         else if (state.IsRespinActive) {
             state.RespinLives--;
         }
@@ -371,7 +371,7 @@ public class SlotGameEngine : BaseGameEngine {
         for (int r = 0; r < config.Rows; r++) {
             for (int c = 0; c < config.Cols; c++) {
                 if (state.Grid[r][c] == config.ScatterSymbol) continue;
-                if (RngService.GetNextDouble(seed, nonce++) < 0.08) { // 8% chance per cell
+                if (RngService.GetNextDouble(seed, nonce++) < 0.03) { // 3% chance per cell (was 8%)
                     state.Grid[r][c] = config.ScatterSymbol; landed = true;
                     double tr = RngService.GetNextDouble(seed, nonce++);
                     var bell = new BellValue { Pos = new Point { R=r, C=c } };
