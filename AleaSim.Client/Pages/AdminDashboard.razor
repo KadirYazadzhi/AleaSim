@@ -51,7 +51,7 @@
                             <MudIcon Icon="@Icons.Material.Filled.Percent" Color="Color.Warning" Size="Size.Large" />
                              <MudIcon Icon="@Icons.Material.Filled.Functions" Color="Color.Warning" Size="Size.Small" />
                         </div>
-                        <MudText Typo="Typo.h4" Class="fw-black mb-1" Color="Color.Warning">@stats.CurrentRtp.ToString("F1")%</MudText>
+                        <MudText Typo="Typo.h4" Class="fw-black mb-1" Color="Color.Warning">@stats.CurrentRtp.ToString("F2")%</MudText>
                         <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">Global RTP</MudText>
                     </div>
                 </MudItem>
@@ -260,7 +260,7 @@
         var report = await AdminService.RunSimulation(new SimulationRequest { GameType = "Slot", Iterations = 10000 });
         _simInProgress = false;
         if (report != null) {
-            var logHtml = $"<span class='text-info fw-bold'>SIMULATION:</span> Slot RTP test resulted in <b>{report.ActualRTP}%</b>";
+            var logHtml = $"<span class='text-info fw-bold'>SIMULATION:</span> Slot RTP test resulted in <b>{report.ActualRTP:F2}%</b>";
             _liveLogs.Insert(0, logHtml);
             Snackbar.Add("Stress test complete.", Severity.Info);
         }

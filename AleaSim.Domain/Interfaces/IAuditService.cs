@@ -6,4 +6,5 @@ public interface IAuditService {
     void LogEvent(string eventType, string description, string userId, string metadataJson);
     IEnumerable<AuditEvent> GetLogs();
     bool VerifyIntegrity();
+    Task RepairIntegrity();
 }

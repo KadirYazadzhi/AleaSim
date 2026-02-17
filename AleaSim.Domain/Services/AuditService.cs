@@ -86,6 +86,36 @@ public class AuditService : IAuditService {
         return true; 
     }
 
+    public async Task RepairIntegrity() {
+        using var scope = _scopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        
+        // Ensure we load all entities and track them
+        var allLogs = repo.GetAllAuditLogs().OrderBy(x => x.Timestamp).ToList();
+        
+        if (!allLogs.Any()) return;
+
+        string currentHash = "GENESIS";
+        
+        foreach (var log in allLogs) {
+            log.PreviousHash = currentHash;
+            // Recalculate hash with current properties (using existing timestamp precision from DB)
+            log.Hash = CalculateHash(log);
+            currentHash = log.Hash;
+            
+            // We need to ensure the entity is marked as modified if we are using a repo wrapper that might not expose context directly.
+            // Since we are modifying properties on tracked entities, SaveChanges should pick it up.
+        }
+        
+        repo.SaveChanges();
+        
+        lock(this) {
+            _lastHash = currentHash;
+        }
+        
+        await Task.CompletedTask;
+    }
+
     private string CalculateHash(AuditEvent ev) {
         string data = $"{ev.Timestamp:O}|{ev.EventType}|{ev.UserId}|{ev.MetadataJson}|{ev.PreviousHash}";
         byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(data));

@@ -6,6 +6,7 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject IAdminService AdminService
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @inject LayoutService LayoutService
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-16 animate-fade-in">
@@ -109,9 +110,12 @@
                         }
                     </div>
 
-                    <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" OnClick="RunIntegrityCheck" Disabled="@_verifyingIntegrity" Class="mt-4 rounded-lg">
-                        RUN AUDIT SCAN
-                    </MudButton>
+                    <div class="d-flex gap-2 mt-4">
+                        <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" OnClick="RunIntegrityCheck" Disabled="@_verifyingIntegrity" Class="rounded-lg">
+                            RUN AUDIT SCAN
+                        </MudButton>
+                        <MudIconButton Icon="@Icons.Material.Filled.Build" Color="Color.Warning" OnClick="RunIntegrityRepair" Disabled="@_verifyingIntegrity" Title="Repair Broken Chain" />
+                    </div>
                 </div>
 
                 <div class="glass-panel pa-6 rounded-xl">
@@ -243,6 +247,22 @@
             else Snackbar.Add("Integrity check FAILED!", Severity.Error);
         } catch (Exception ex) {
             Snackbar.Add($"Audit failed: {ex.Message}", Severity.Error);
+        } finally {
+            _verifyingIntegrity = false;
+        }
+    }
+    
+    private async Task RunIntegrityRepair() {
+        if (!await DialogService.ShowMessageBox("Confirm Repair", "This will re-hash the entire audit log chain. Only do this if integrity is broken.", yesText:"Repair", cancelText:"Cancel") ?? false) return;
+        
+        _verifyingIntegrity = true;
+        Snackbar.Add("Repairing integrity chain... This may take a moment.", Severity.Warning);
+        try {
+            await AdminService.TriggerAction("RepairIntegrity");
+            Snackbar.Add("Integrity chain repaired successfully.", Severity.Success);
+            await RunIntegrityCheck();
+        } catch (Exception ex) {
+            Snackbar.Add($"Repair failed: {ex.Message}", Severity.Error);
         } finally {
             _verifyingIntegrity = false;
         }

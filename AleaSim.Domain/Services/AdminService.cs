@@ -179,6 +179,9 @@ public class AdminService : IAdminService {
             case "BlockIp":
                 // Mock blocking
                 break;
+            case "RepairIntegrity":
+                await _auditService.RepairIntegrity();
+                break;
         }
     }
 

@@ -174,8 +174,6 @@ public class SlotGameEngine : BaseGameEngine {
                 attempts++;
                 if (state.IsBonusActive) { 
                     PlayBonusRound(state, session.Seed, repo, config); 
-                    session.GameState = JsonSerializer.Serialize(state); 
-                    repo.SaveChanges(); 
                 } 
                 else {
                     if (directive.IsNearMiss && attempts == 1) {
@@ -187,9 +185,6 @@ public class SlotGameEngine : BaseGameEngine {
                     } else {
                         instantWin = PlayStandardRound(state, session.Seed, activeStrip, config);
                     }
-                    
-                    session.GameState = JsonSerializer.Serialize(state);
-                    repo.SaveChanges();
                 }
 
                 if (state.IsBonusActive) {

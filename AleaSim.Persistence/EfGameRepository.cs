@@ -440,11 +440,16 @@ public class EfGameRepository : IGameRepository {
         
         var bets = _context.Bets
             .Where(b => b.CreatedAt >= start && b.CreatedAt < end)
-            .Sum(b => (decimal?)b.Amount) ?? 0m;
+            .Join(_context.Users, b => b.UserId, u => u.Id, (b, u) => new { b, u })
+            .Where(x => !x.u.Username.StartsWith("Sim_"))
+            .Sum(x => (decimal?)x.b.Amount) ?? 0m;
             
         var wins = _context.GameRounds
             .Where(r => r.ExecutedAt >= start && r.ExecutedAt < end)
-            .Sum(r => (decimal?)r.TotalWinAmount) ?? 0m;
+            .Join(_context.GameSessions, r => r.GameSessionId, s => s.Id, (r, s) => new { r, s })
+            .Join(_context.Users, x => x.s.UserId, u => u.Id, (x, u) => new { x.r, u })
+            .Where(x => !x.u.Username.StartsWith("Sim_"))
+            .Sum(x => (decimal?)x.r.TotalWinAmount) ?? 0m;
         
         return (bets, wins);
     }
@@ -471,7 +476,7 @@ public class EfGameRepository : IGameRepository {
 
     public int GetActivePlayerCount(int minutes) {
         var cutoff = DateTime.UtcNow.AddMinutes(-minutes);
-        return _context.Users.Count(u => u.LastBetTimestamp >= cutoff);
+        return _context.Users.Count(u => u.LastBetTimestamp >= cutoff && !u.Username.StartsWith("Sim_"));
     }
 
     public IEnumerable<(string Username, decimal TotalWin)> GetTopWinners(DateTime date, int topCount) {
