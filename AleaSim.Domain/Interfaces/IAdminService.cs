@@ -19,5 +19,6 @@ public interface IAdminService {
     Task<ShadowCompareDto> GetShadowComparison(int sampleSize);
     Task UpdateUserBalance(Guid adminId, Guid userId, decimal newBalance);
     Task ToggleUserStatus(Guid adminId, Guid userId, bool isActive);
+    Task ExecuteAction(Guid adminId, string actionType);
 
 }

@@ -17,6 +17,7 @@ public interface IAdminService
     Task ToggleUserStatus(Guid userId, bool isActive);
     Task UpdateVolatility(string mode);
     Task<List<PlayerSearchResultDto>> SearchPlayers(string query);
+    Task TriggerAction(string actionType);
 
 }
 
@@ -75,6 +76,10 @@ public class AdminService : IAdminService
     }
     public async Task<List<PlayerSearchResultDto>> SearchPlayers(string query) {
         return await _http.GetFromJsonAsync<List<PlayerSearchResultDto>>($"api/Admin/players/search/{query}") ?? new();
+    }
+
+    public async Task TriggerAction(string actionType) {
+        await _http.PostAsJsonAsync("api/Admin/actions/trigger", new { ActionType = actionType });
     }
 
     public async Task<SimulationReport?> RunSimulation(SimulationRequest request)

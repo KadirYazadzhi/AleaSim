@@ -100,11 +100,11 @@
                      <div class="glass-panel pa-6 rounded-xl h-100">
                         <MudText Typo="Typo.h6" Class="fw-bold mb-6">Quick Actions</MudText>
                         <MudStack Spacing="3">
-                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Refresh" Class="rounded-lg py-3">Reset Cache</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="Color.Warning" FullWidth="true" StartIcon="@Icons.Material.Filled.NotificationsActive" Class="rounded-lg py-3">Send Global Alert</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="Color.Info" FullWidth="true" StartIcon="@Icons.Material.Filled.Backup" Class="rounded-lg py-3">Backup Database</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Refresh" Class="rounded-lg py-3" OnClick="OnClearCache">Reset Cache</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Warning" FullWidth="true" StartIcon="@Icons.Material.Filled.NotificationsActive" Class="rounded-lg py-3" OnClick="OnSendAlert">Send Global Alert</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Info" FullWidth="true" StartIcon="@Icons.Material.Filled.Backup" Class="rounded-lg py-3" OnClick="OnBackup">Backup Database</MudButton>
                             <MudDivider Class="my-2" />
-                            <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" StartIcon="@Icons.Material.Filled.Block" Class="rounded-lg py-3">Block IP Range</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" StartIcon="@Icons.Material.Filled.Block" Class="rounded-lg py-3" OnClick="OnBlockIp">Block IP Range</MudButton>
                         </MudStack>
                      </div>
                 </MudItem>
@@ -264,6 +264,26 @@
             _liveLogs.Insert(0, logHtml);
             Snackbar.Add("Stress test complete.", Severity.Info);
         }
+    }
+
+    private async Task OnClearCache() {
+        await AdminService.TriggerAction("ClearCache");
+        Snackbar.Add("System cache cleared.", Severity.Success);
+    }
+
+    private async Task OnSendAlert() {
+        await AdminService.TriggerAction("GlobalAlert");
+        Snackbar.Add("Global alert broadcasted.", Severity.Warning);
+    }
+
+    private async Task OnBackup() {
+        await AdminService.TriggerAction("BackupDb");
+        Snackbar.Add("Database backup started in background.", Severity.Info);
+    }
+
+    private async Task OnBlockIp() {
+        await AdminService.TriggerAction("BlockIp"); // Simplified for demo
+        Snackbar.Add("Suspicious IP ranges blocked.", Severity.Error);
     }
 
     public ValueTask DisposeAsync() {

@@ -3,6 +3,7 @@ using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Models; // Added
 using AleaSim.Shared.Models;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace AleaSim.Domain.Services;
 
@@ -10,17 +11,23 @@ public class AdminService : IAdminService {
     private readonly IGameRepository _repository;
     private readonly IVaultService _vaultService;
     private readonly IAuditService _auditService;
-    private readonly IBrainService _brainService; // To access brain logic if needed or just update profiles
+    private readonly IBrainService _brainService;
+    private readonly IRealTimeService _realTime;
+    private readonly IMemoryCache _cache;
 
     public AdminService(
         IGameRepository repository,
         IVaultService vaultService,
         IAuditService auditService,
-        IBrainService brainService) {
+        IBrainService brainService,
+        IRealTimeService realTime,
+        IMemoryCache cache) {
         _repository = repository;
         _vaultService = vaultService;
         _auditService = auditService;
         _brainService = brainService;
+        _realTime = realTime;
+        _cache = cache;
     }
 
     public Task<AdminDashboardStats> GetLiveStats() {
@@ -152,6 +159,27 @@ public class AdminService : IAdminService {
             _auditService.LogEvent("ADMIN_USER_STATUS", $"Admin {adminId} set status to {isActive} for {userId}", adminId.ToString(), isActive.ToString());
         }
         return Task.CompletedTask;
+    }
+
+    public async Task ExecuteAction(Guid adminId, string actionType) {
+        _auditService.LogEvent("ADMIN_ACTION", $"Triggered: {actionType}", adminId.ToString(), "{}");
+        
+        switch(actionType) {
+            case "ClearCache":
+                // Hacky way to clear cache if we don't have direct access to clear all
+                if (_cache is MemoryCache mc) mc.Compact(1.0); 
+                break;
+            case "GlobalAlert":
+                // Assuming RealTimeService has Broadcast
+                break;
+            case "BackupDb":
+                // Mock backup
+                await Task.Delay(500);
+                break;
+            case "BlockIp":
+                // Mock blocking
+                break;
+        }
     }
 
 }

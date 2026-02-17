@@ -165,6 +165,7 @@ public class AdminController : ControllerBase {
     }
 
     public record CreateVoucherRequest(string Code, decimal Amount, int MaxUses);
+    public record TriggerActionDto(string ActionType);
 
     [HttpPost("players/{userId}/force-outcome")]
     public IActionResult ForceOutcome(Guid userId, [FromBody] BrainDirective directive) {
@@ -188,6 +189,13 @@ public class AdminController : ControllerBase {
         var adminId = GetCurrentUserId();
         await _adminService.ToggleUserStatus(adminId, id, dto.IsActive);
         return Ok(new { Message = "User status updated." });
+    }
+
+    [HttpPost("actions/trigger")]
+    public async Task<IActionResult> ExecuteAction([FromBody] TriggerActionDto dto) {
+        var adminId = GetCurrentUserId();
+        await _adminService.ExecuteAction(adminId, dto.ActionType);
+        return Ok(new { Message = $"Action {dto.ActionType} executed." });
     }
 
     private Guid GetCurrentUserId() {

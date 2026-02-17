@@ -26,9 +26,13 @@ public class AuditService : IAuditService {
 
     public void LogEvent(string eventType, string description, string userId, string metadataJson) {
         lock (this) {
+            var now = DateTime.UtcNow;
+            // Truncate to milliseconds to ensure DB consistency (some DBs drop ticks)
+            var safeTimestamp = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second, now.Millisecond, DateTimeKind.Utc);
+
             var auditEvent = new AuditEvent {
                 Id = Guid.NewGuid(),
-                Timestamp = DateTime.UtcNow,
+                Timestamp = safeTimestamp,
                 EventType = eventType,
                 Description = description,
                 UserId = userId,
