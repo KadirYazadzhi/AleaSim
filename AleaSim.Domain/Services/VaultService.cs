@@ -104,7 +104,7 @@ public class VaultService : IVaultService {
             repo.SaveTransaction(new Transaction {
                 Id = Guid.NewGuid(), 
                 UserId = userId, 
-                Amount = isAdmin ? 0 : -amount, 
+                Amount = -amount, 
                 Type = TransactionType.Bet, 
                 Description = isAdmin ? "Admin Bet (Free)" : "Game Bet", 
                 Timestamp = DateTime.UtcNow, 

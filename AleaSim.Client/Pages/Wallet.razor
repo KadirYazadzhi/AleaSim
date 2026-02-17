@@ -77,8 +77,8 @@
                                 <MudText Typo="Typo.caption">@context.Timestamp.ToString("g")</MudText>
                             </MudTd>
                             <MudTd DataLabel="Amount">
-                                <MudText Typo="Typo.body2" Color="@(context.Amount > 0 ? Color.Success : Color.Error)" Style="font-weight: bold;">
-                                    @(context.Amount > 0 ? "+" : "")@context.Amount.ToString("C2")
+                                <MudText Typo="Typo.body2" Color="@(context.Amount > 0 ? Color.Success : (context.Amount < 0 ? Color.Error : Color.Default))" Style="font-weight: bold;">
+                                    @(context.Amount > 0 ? "+" : (context.Amount < 0 ? "-" : ""))@Math.Abs(context.Amount).ToString("C2")
                                 </MudText>
                             </MudTd>
                         </RowTemplate>
