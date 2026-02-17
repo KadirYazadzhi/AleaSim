@@ -38,7 +38,7 @@
                          <div class="d-flex align-center gap-4 pa-4 glass-inner rounded-lg mb-6">
                              <MudSlider T="decimal" @bind-Value="_targetRtp" Min="80" Max="105" Step="0.5m" Color="Color.Primary" ValueLabel="true" Class="flex-grow-1" />
                              <div class="d-flex flex-column align-center" style="min-width: 80px;">
-                                 <MudText Typo="Typo.h5" Class="fw-black text-primary">@_targetRtp%</MudText>
+                                 <MudText Typo="Typo.h5" Class="fw-black text-primary">@_targetRtp.ToString("F2")%</MudText>
                                  <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="SaveRtp" Class="mt-1 rounded-pill">SAVE</MudButton>
                              </div>
                          </div>

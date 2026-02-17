@@ -191,7 +191,9 @@ public class EfGameRepository : IGameRepository {
     public IEnumerable<TournamentEntry> GetTopTournamentEntries(DateTime date, int topCount) {
         return _context.TournamentEntries
             .Where(t => t.TournamentDate.Date == date.Date)
-            .AsEnumerable()
+            .Join(_context.Users, t => t.UserId, u => u.Id, (t, u) => new { t, u })
+            .Where(x => !x.u.Username.StartsWith("Sim_"))
+            .Select(x => x.t)
             .OrderByDescending(t => t.RoiPercentage)
             .Take(topCount)
             .ToList();
@@ -207,6 +209,8 @@ public class EfGameRepository : IGameRepository {
                   round => round.GameSessionId, 
                   session => session.Id, 
                   (round, session) => new { session.UserId, round.TotalBetAmount, round.TotalWinAmount })
+            .Join(_context.Users, x => x.UserId, u => u.Id, (x, u) => new { x.UserId, x.TotalBetAmount, x.TotalWinAmount, u.Username })
+            .Where(x => !x.Username.StartsWith("Sim_"))
             .GroupBy(x => x.UserId)
             .Select(g => new { 
                 UserId = g.Key, 
@@ -489,6 +493,8 @@ public class EfGameRepository : IGameRepository {
                   r => r.GameSessionId, 
                   s => s.Id, 
                   (r, s) => new { s.UserId, r.TotalWinAmount })
+            .Join(_context.Users, x => x.UserId, u => u.Id, (x, u) => new { x.UserId, x.TotalWinAmount, u.Username })
+            .Where(x => !x.Username.StartsWith("Sim_"))
             .GroupBy(x => x.UserId)
             .Select(g => new { UserId = g.Key, TotalWin = g.Sum(x => x.TotalWinAmount) })
             .OrderByDescending(x => x.TotalWin)

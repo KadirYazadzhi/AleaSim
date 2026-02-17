@@ -3,16 +3,19 @@ using AleaSim.Domain.Interfaces;
 using AleaSim.Shared.Models;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace AleaSim.Domain.Services;
 
 public class SimulationService : ISimulationService {
     private readonly IServiceProvider _serviceProvider;
     private readonly Func<string, IGame> _gameFactory;
+    private readonly IAuditService _auditService;
 
-    public SimulationService(IServiceProvider serviceProvider, Func<string, IGame> gameFactory) {
+    public SimulationService(IServiceProvider serviceProvider, Func<string, IGame> gameFactory, IAuditService auditService) {
         _serviceProvider = serviceProvider;
         _gameFactory = gameFactory;
+        _auditService = auditService;
     }
 
     public async Task<SimulationReport> RunSimulation(SimulationRequest request) {
@@ -22,7 +25,7 @@ public class SimulationService : ISimulationService {
         using var scope = _serviceProvider.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
 
-        // 1. Create Dummy User with funds
+        // 1. Create Veteran Dummy User (to bypass new player bonuses)
         var dummyUser = new User {
             Id = Guid.NewGuid(),
             Username = $"Sim_{Guid.NewGuid().ToString().Substring(0, 8)}",
@@ -30,15 +33,16 @@ public class SimulationService : ISimulationService {
             Balance = 100000000m, // Infinite funds
             Role = AleaSim.Domain.Enums.Role.User,
             IsActive = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow.AddYears(-1)
         };
         repo.CreateUser(dummyUser);
         
+        // "Veteran" profile
         repo.CreatePlayerProfile(new PlayerProfile { 
             UserId = dummyUser.Id, 
-            TotalWagered = 0, 
-            TotalPaid = 0,
-            LastSpinTimestamp = DateTime.UtcNow 
+            TotalWagered = 1000000m, 
+            TotalPaid = 950000m,
+            LastSpinTimestamp = DateTime.UtcNow.AddMinutes(-5) 
         });
 
         try {
@@ -53,18 +57,29 @@ public class SimulationService : ISimulationService {
             var distribution = new Dictionary<string, int>();
 
             var session = await engine.StartSession(dummyUser.Id, game.Id);
+            bool pendingRespinOrBonus = false;
 
             for (int i = 0; i < request.Iterations; i++) {
-                await engine.PlaceBet(dummyUser.Id, session.Id, request.BetAmount, "{}");
-                totalBet += request.BetAmount;
+                // Only place a new bet if the previous round wasn't a respin/bonus trigger
+                // (Engine expects ResolveRound for continuing features)
+                if (!pendingRespinOrBonus) {
+                    await engine.PlaceBet(dummyUser.Id, session.Id, request.BetAmount, "{}");
+                    totalBet += request.BetAmount;
+                }
 
                 var round = await engine.ResolveRound(session.Id);
                 totalWin += round.TotalWinAmount;
 
                 if (round.TotalWinAmount > maxWin) maxWin = round.TotalWinAmount;
 
-                if (round.RandomResult.Contains("\"IsBonusActive\":true")) bonusCount++;
-                if (round.RandomResult.Contains("\"IsRespinActive\":true")) respinCount++;
+                // Check flags in result JSON
+                bool isBonus = round.RandomResult.Contains("\"IsBonusActive\":true");
+                bool isRespin = round.RandomResult.Contains("\"IsRespinActive\":true");
+                
+                if (isBonus) bonusCount++;
+                if (isRespin) respinCount++;
+                
+                pendingRespinOrBonus = isBonus || isRespin;
 
                 string dType = round.DecisionType ?? "Unknown";
                 if (!distribution.ContainsKey(dType)) distribution[dType] = 0;
@@ -75,7 +90,7 @@ public class SimulationService : ISimulationService {
 
             decimal rtpResult = totalBet > 0 ? (totalWin / totalBet) * 100m : 0m;
 
-            return new SimulationReport {
+            var report = new SimulationReport {
                 GameType = request.GameType,
                 TotalIterations = request.Iterations,
                 TotalBet = totalBet,
@@ -87,9 +102,15 @@ public class SimulationService : ISimulationService {
                 DecisionDistribution = distribution,
                 ExecutionTimeMs = stopwatch.Elapsed.TotalMilliseconds
             };
+
+            // Persist Report
+            _auditService.LogEvent("SIMULATION_REPORT", $"Simulated {request.Iterations} rounds of {request.GameType}. RTP: {rtpResult:F2}%", dummyUser.Id.ToString(), JsonSerializer.Serialize(report));
+
+            return report;
         }
         finally {
             try {
+                // Use the enhanced deletion method in repo
                 repo.DeleteUser(dummyUser.Id);
             } catch {} 
         }
