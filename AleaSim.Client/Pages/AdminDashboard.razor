@@ -14,7 +14,7 @@
     <div class="d-flex justify-space-between align-center mb-8">
         <div>
             <MudText Typo="Typo.h3" Class="text-gradient fw-black mb-2">BACKOFFICE HUB</MudText>
-            <MudText Typo="Typo.subtitle1" Class="mud-text-secondary">System Monitoring & Control</MudText>
+            <MudText Typo="Typo.subtitle1" Class="mud-text-secondary">Real-time System Monitoring</MudText>
         </div>
         <div class="d-flex align-center gap-4">
              <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.LiveTv" Class="fw-bold pulse-red">LIVE SYSTEM</MudChip>
@@ -22,118 +22,91 @@
         </div>
     </div>
 
-    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="mt-6" Color="Color.Transparent" Class="glass-tabs">
-        <MudTabPanel Text="Real-time Stats" Icon="@Icons.Material.Filled.Speed">
-            <MudGrid Class="mb-8">
-                <MudItem xs="12" sm="6" md="3">
-                    <div class="glass-panel pa-6 rounded-xl hover-scale h-100">
-                        <div class="d-flex justify-space-between align-start mb-4">
-                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" />
-                             <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" Size="Size.Small" />
-                        </div>
-                        <MudText Typo="Typo.h4" Class="fw-black mb-1" Color="Color.Success">@stats.Ggr.ToString("C2")</MudText>
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">EST. GGR (Today)</MudText>
-                    </div>
-                </MudItem>
-                <MudItem xs="12" sm="6" md="3">
-                    <div class="glass-panel pa-6 rounded-xl hover-scale h-100">
-                         <div class="d-flex justify-space-between align-start mb-4">
-                            <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Info" Size="Size.Large" />
-                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">+12%</MudChip>
-                        </div>
-                        <MudText Typo="Typo.h4" Class="fw-black mb-1" Color="Color.Info">@stats.ActivePlayerCount</MudText>
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">Active Players</MudText>
-                    </div>
-                </MudItem>
-                <MudItem xs="12" sm="6" md="3">
-                    <div class="glass-panel pa-6 rounded-xl hover-scale h-100">
-                         <div class="d-flex justify-space-between align-start mb-4">
-                            <MudIcon Icon="@Icons.Material.Filled.Percent" Color="Color.Warning" Size="Size.Large" />
-                             <MudIcon Icon="@Icons.Material.Filled.Functions" Color="Color.Warning" Size="Size.Small" />
-                        </div>
-                        <MudText Typo="Typo.h4" Class="fw-black mb-1" Color="Color.Warning">@stats.CurrentRtp.ToString("F2")%</MudText>
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">Global RTP</MudText>
-                    </div>
-                </MudItem>
-                <MudItem xs="12" sm="6" md="3">
-                     <div class='@($"glass-panel pa-6 rounded-xl hover-scale h-100 {(_emergencyStop ? "border-red" : "")}")'>
-                         <div class="d-flex justify-space-between align-start mb-4">
-                            <MudIcon Icon="@Icons.Material.Filled.PanTool" Color="@(_emergencyStop ? Color.Error : Color.Success)" Size="Size.Large" />
-                            <MudSwitch @bind-Value="_emergencyStop" Color="Color.Error" UncheckedColor="Color.Success" T="bool" @onclick="ToggleStop" Class="ml-auto" />
-                        </div>
-                        <MudText Typo="Typo.h5" Class="fw-black mb-1" Color="@(_emergencyStop ? Color.Error : Color.Success)">@(_emergencyStop ? "STOPPED" : "ACTIVE")</MudText>
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">System Status</MudText>
-                    </div>
-                </MudItem>
-            </MudGrid>
-            
-            <MudGrid>
-                 <MudItem xs="12" md="8">
-                    <div class="glass-panel pa-6 rounded-xl" style="height: 400px; display: flex; flex-direction: column;">
-                        <div class="d-flex justify-space-between align-center mb-4">
-                            <MudText Typo="Typo.h6" Class="fw-bold"><MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2"/>Live Event Feed</MudText>
-                            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" />
-                        </div>
-                        <div class="flex-grow-1 overflow-auto pr-2 custom-scroll">
-                             @if (!_liveLogs.Any())
-                             {
-                                 <div class="d-flex flex-column align-center justify-center h-100 opacity-50">
-                                     <MudIcon Icon="@Icons.Material.Filled.HourglassEmpty" Size="Size.Large" />
-                                     <MudText>Waiting for events...</MudText>
-                                 </div>
-                             }
-                             else
-                             {
-                                 @foreach (var log in _liveLogs)
-                                 {
-                                     <div class="d-flex gap-4 py-3 border-b-glass animate-slide-in-left">
-                                         <MudText Typo="Typo.caption" Class="mud-text-secondary font-mono pt-1">@DateTime.Now.ToString("HH:mm:ss")</MudText>
-                                         <div>@((MarkupString)log)</div>
-                                     </div>
-                                 }
-                             }
-                        </div>
-                    </div>
-                </MudItem>
-                
-                <MudItem xs="12" md="4">
-                     <div class="glass-panel pa-6 rounded-xl h-100">
-                        <MudText Typo="Typo.h6" Class="fw-bold mb-6">Quick Actions</MudText>
-                        <MudStack Spacing="3">
-                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Refresh" Class="rounded-lg py-3" OnClick="OnClearCache">Reset Cache</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="Color.Warning" FullWidth="true" StartIcon="@Icons.Material.Filled.NotificationsActive" Class="rounded-lg py-3" OnClick="OnSendAlert">Send Global Alert</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="Color.Info" FullWidth="true" StartIcon="@Icons.Material.Filled.Backup" Class="rounded-lg py-3" OnClick="OnBackup">Backup Database</MudButton>
-                            <MudDivider Class="my-2" />
-                            <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" StartIcon="@Icons.Material.Filled.Block" Class="rounded-lg py-3" OnClick="OnBlockIp">Block IP Range</MudButton>
-                        </MudStack>
-                     </div>
-                </MudItem>
-            </MudGrid>
-        </MudTabPanel>
-
-        <MudTabPanel Text="Configuration" Icon="@Icons.Material.Filled.Settings">
-            <MudGrid>
-                <MudItem xs="12">
-                    <div class="glass-panel pa-8 rounded-xl">
-                        <MudText Typo="Typo.h5" Class="fw-bold mb-2">Global RTP Control</MudText>
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-8">Adjusting this value will affect the theoretical return to player across all slot games instantly.</MudText>
-                        
-                        <div class="d-flex align-center justify-center mb-6">
-                            <MudProgressCircular Value="@((double)_targetRtp)" Max="100" Color="Color.Secondary" Size="Size.Large" StrokeWidth="8" Class="mr-6">
-                                <MudText Typo="Typo.h6" Class="fw-bold">@_targetRtp.ToString("F2")%</MudText>
-                            </MudProgressCircular>
-                        </div>
-
-                        <MudSlider T="decimal" @bind-Value="_targetRtp" Min="80" Max="105" Step="0.5m" Color="Color.Secondary" ValueLabel="true" Class="mb-8" />
-                        
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" OnClick="UpdateRtp" Size="Size.Large" Class="rounded-lg fw-bold pulse-neon">
-                            APPLY NEW RTP CONFIGURATION
-                        </MudButton>
-                    </div>
-                </MudItem>
-            </MudGrid>
-        </MudTabPanel>
-    </MudTabs>
+    <MudGrid Class="mb-8">
+        <MudItem xs="12" sm="6" md="3">
+            <div class="glass-panel pa-6 rounded-xl hover-scale h-100">
+                <div class="d-flex justify-space-between align-start mb-4">
+                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" />
+                     <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" Size="Size.Small" />
+                </div>
+                <MudText Typo="Typo.h4" Class="fw-black mb-1" Color="Color.Success">@stats.Ggr.ToString("C2")</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">EST. GGR (Today)</MudText>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <div class="glass-panel pa-6 rounded-xl hover-scale h-100">
+                 <div class="d-flex justify-space-between align-start mb-4">
+                    <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Info" Size="Size.Large" />
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">+12%</MudChip>
+                </div>
+                <MudText Typo="Typo.h4" Class="fw-black mb-1" Color="Color.Info">@stats.ActivePlayerCount</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">Active Players</MudText>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <div class="glass-panel pa-6 rounded-xl hover-scale h-100">
+                 <div class="d-flex justify-space-between align-start mb-4">
+                    <MudIcon Icon="@Icons.Material.Filled.Percent" Color="Color.Warning" Size="Size.Large" />
+                     <MudIcon Icon="@Icons.Material.Filled.Functions" Color="Color.Warning" Size="Size.Small" />
+                </div>
+                <MudText Typo="Typo.h4" Class="fw-black mb-1" Color="Color.Warning">@stats.CurrentRtp.ToString("F2")%</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">Global RTP</MudText>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+             <div class='@($"glass-panel pa-6 rounded-xl hover-scale h-100 {(_emergencyStop ? "border-red" : "")}")'>
+                 <div class="d-flex justify-space-between align-start mb-4">
+                    <MudIcon Icon="@Icons.Material.Filled.PanTool" Color="@(_emergencyStop ? Color.Error : Color.Success)" Size="Size.Large" />
+                    <MudSwitch @bind-Value="_emergencyStop" Color="Color.Error" UncheckedColor="Color.Success" T="bool" @onclick="ToggleStop" Class="ml-auto" />
+                </div>
+                <MudText Typo="Typo.h5" Class="fw-black mb-1" Color="@(_emergencyStop ? Color.Error : Color.Success)">@(_emergencyStop ? "STOPPED" : "ACTIVE")</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">System Status</MudText>
+            </div>
+        </MudItem>
+    </MudGrid>
+    
+    <MudGrid>
+         <MudItem xs="12" md="8">
+            <div class="glass-panel pa-6 rounded-xl" style="height: 400px; display: flex; flex-direction: column;">
+                <div class="d-flex justify-space-between align-center mb-4">
+                    <MudText Typo="Typo.h6" Class="fw-bold"><MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2"/>Live Event Feed</MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" />
+                </div>
+                <div class="flex-grow-1 overflow-auto pr-2 custom-scroll">
+                     @if (!_liveLogs.Any())
+                     {
+                         <div class="d-flex flex-column align-center justify-center h-100 opacity-50">
+                             <MudIcon Icon="@Icons.Material.Filled.HourglassEmpty" Size="Size.Large" />
+                             <MudText>Waiting for events...</MudText>
+                         </div>
+                     }
+                     else
+                     {
+                         @foreach (var log in _liveLogs)
+                         {
+                             <div class="d-flex gap-4 py-3 border-b-glass animate-slide-in-left">
+                                 <MudText Typo="Typo.caption" Class="mud-text-secondary font-mono pt-1">@DateTime.Now.ToString("HH:mm:ss")</MudText>
+                                 <div>@((MarkupString)log)</div>
+                             </div>
+                         }
+                     }
+                </div>
+            </div>
+        </MudItem>
+        
+        <MudItem xs="12" md="4">
+             <div class="glass-panel pa-6 rounded-xl h-100">
+                <MudText Typo="Typo.h6" Class="fw-bold mb-6">Quick Actions</MudText>
+                <MudStack Spacing="3">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Refresh" Class="rounded-lg py-3" OnClick="OnClearCache">Reset Cache</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" FullWidth="true" StartIcon="@Icons.Material.Filled.NotificationsActive" Class="rounded-lg py-3" OnClick="OnSendAlert">Send Global Alert</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Info" FullWidth="true" StartIcon="@Icons.Material.Filled.Backup" Class="rounded-lg py-3" OnClick="OnBackup">Backup Database</MudButton>
+                    <MudDivider Class="my-2" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" StartIcon="@Icons.Material.Filled.Block" Class="rounded-lg py-3" OnClick="OnBlockIp">Block IP Range</MudButton>
+                </MudStack>
+             </div>
+        </MudItem>
+    </MudGrid>
 </MudContainer>
 
 <style>
@@ -215,12 +188,6 @@
             _targetRtp = Math.Round(stats.CurrentRtp > 0 ? stats.CurrentRtp : 95.0m, 2);
             _emergencyStop = stats.IsEmergencyStopActive;
         } catch {}
-    }
-
-    private async Task UpdateRtp()
-    {
-        await AdminService.UpdateRtp(_targetRtp);
-        Snackbar.Add($"System-wide RTP updated to {_targetRtp}%", Severity.Success);
     }
 
     private async Task ToggleStop()

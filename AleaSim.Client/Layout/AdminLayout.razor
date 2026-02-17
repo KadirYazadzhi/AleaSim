@@ -30,18 +30,7 @@
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0" Variant="DrawerVariant.Responsive" Class="sidebar-blur">
-        <MudNavMenu Class="pt-4">
-            <MudText Typo="Typo.subtitle2" Class="px-6 py-4 mud-text-secondary fw-bold">MANAGEMENT</MudText>
-            <MudNavLink Href="/dashboard" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">Overview</MudNavLink>
-            <MudNavLink Href="/admin/monitor" Icon="@Icons.Material.Filled.LiveTv">Live Monitor</MudNavLink>
-            <MudNavLink Href="/admin/players" Icon="@Icons.Material.Filled.People">Player Manager</MudNavLink>
-            
-            <MudText Typo="Typo.subtitle2" Class="px-6 py-4 mt-2 mud-text-secondary fw-bold">SYSTEM</MudText>
-            <MudNavLink Href="/admin/vouchers" Icon="@Icons.Material.Filled.ConfirmationNumber">Vouchers</MudNavLink>
-            <MudNavLink Href="/fairness" Icon="@Icons.Material.Filled.Security">Audit Logs</MudNavLink>
-            <MudNavLink Href="/admin/settings" Icon="@Icons.Material.Filled.Settings">Platform Settings</MudNavLink>
-        </MudNavMenu>
-        
+        <NavMenu />
         <div class="mt-auto pa-6">
             <MudPaper Class="glass-panel pa-4 rounded-xl text-center">
                  <MudText Typo="Typo.caption" Class="d-block mb-1 mud-text-secondary">System Load</MudText>
