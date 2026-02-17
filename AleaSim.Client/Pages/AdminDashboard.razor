@@ -120,7 +120,7 @@
                         
                         <div class="d-flex align-center justify-center mb-6">
                             <MudProgressCircular Value="@((double)_targetRtp)" Max="100" Color="Color.Secondary" Size="Size.Large" StrokeWidth="8" Class="mr-6">
-                                <MudText Typo="Typo.h6" Class="fw-bold">@_targetRtp%</MudText>
+                                <MudText Typo="Typo.h6" Class="fw-bold">@_targetRtp.ToString("F2")%</MudText>
                             </MudProgressCircular>
                         </div>
 
@@ -137,10 +137,10 @@
                         <MudAlert Severity="Severity.Info" Class="mb-6 rounded-lg">Run a quick simulation to verify RTP variance before applying changes.</MudAlert>
                         
                         <MudText Typo="Typo.subtitle2" Class="mb-2">Iterations</MudText>
-                        <MudSelect T="int" Label="Spin Count" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Class="mb-6 glass-input">
-                            <MudSelectItem Value="1000">1,000 Spins</MudSelectItem>
-                            <MudSelectItem Value="10000">10,000 Spins</MudSelectItem>
-                            <MudSelectItem Value="100000">100,000 Spins</MudSelectItem>
+                        <MudSelect T="int" Label="Spin Count" @bind-Value="_simIterations" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Class="mb-6 glass-input">
+                            <MudSelectItem Value="100">100 Spins (Quick)</MudSelectItem>
+                            <MudSelectItem Value="1000">1,000 Spins (Standard)</MudSelectItem>
+                            <MudSelectItem Value="5000">5,000 Spins (Deep)</MudSelectItem>
                         </MudSelect>
 
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="RunQuickSimulation" Disabled="@_simInProgress" Class="rounded-lg py-3 mb-4">
@@ -218,6 +218,7 @@
     private bool _emergencyStop = false;
     private List<string> _liveLogs = new();
     private bool _simInProgress = false;
+    private int _simIterations = 1000;
 
     protected override async Task OnInitializedAsync()
     {
@@ -257,12 +258,17 @@
     {
         _simInProgress = true;
         await Task.Delay(1500); // UI feel
-        var report = await AdminService.RunSimulation(new SimulationRequest { GameType = "Slot", Iterations = 10000 });
-        _simInProgress = false;
-        if (report != null) {
-            var logHtml = $"<span class='text-info fw-bold'>SIMULATION:</span> Slot RTP test resulted in <b>{report.ActualRTP:F2}%</b>";
-            _liveLogs.Insert(0, logHtml);
-            Snackbar.Add("Stress test complete.", Severity.Info);
+        try {
+            var report = await AdminService.RunSimulation(new SimulationRequest { GameType = "Slot", Iterations = _simIterations });
+            if (report != null) {
+                var logHtml = $"<span class='text-info fw-bold'>SIMULATION:</span> Slot RTP test ({report.TotalIterations} spins) resulted in <b>{report.ActualRTP:F2}%</b>";
+                _liveLogs.Insert(0, logHtml);
+                Snackbar.Add("Stress test complete.", Severity.Info);
+            }
+        } catch (Exception ex) {
+            Snackbar.Add($"Simulation failed: {ex.Message}", Severity.Error);
+        } finally {
+            _simInProgress = false;
         }
     }
 
