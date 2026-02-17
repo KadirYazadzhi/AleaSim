@@ -17,7 +17,11 @@ public class SlotGameEngine : BaseGameEngine {
     private static readonly SlotGameConfig _defaultConfig = new SlotGameConfig {
         Rows = 4, Cols = 5, PaylinesCount = 20,
         WildSymbol = 8, ScatterSymbol = 10, CollectSymbol = 11, GoldenSymbol = 12,
-        BaseStrip = new[] { 1, 2, 3, 4, 5, 1, 2, 3, 4, 6, 1, 2, 3, 5, 1, 2, 7, 1, 3, 4, 8, 1, 2, 3, 4, 5, 1, 2, 8, 3, 4, 11, 12 },
+        BaseStrip = new[] { 
+            1, 2, 3, 4, 5, 1, 2, 3, 4, 6, 1, 2, 3, 5, 1, 2, 7, 1, 3, 4, 5, 
+            1, 2, 3, 4, 5, 1, 2, 3, 4, 6, 1, 2, 3, 5, 1, 2, 7, 1, 3, 4, 5,
+            1, 2, 3, 4, 5, 1, 2, 3, 11, 8, 1, 2, 3, 4, 5, 12 
+        }, // Diluted strip ( ~3% wild density) to prevent infinite respin loops
         Paylines = new[] {
             new[] {0,0,0,0,0}, new[] {1,1,1,1,1}, new[] {2,2,2,2,2}, new[] {3,3,3,3,3},
             new[] {0,1,2,1,0}, new[] {1,2,3,2,1}, new[] {2,1,0,1,2}, new[] {3,2,1,2,3},
