@@ -23,13 +23,10 @@ public class VaultService : IVaultService {
         var profile = repo.GetPlayerProfile(userId);
         if (user == null) return false;
 
-        bool isAdmin = user.Role == Role.Admin;
-        bool success = false;
-
-        if (isAdmin) {
-            success = true;
-        }
-        else if (user.BonusBalance > 0) {
+        // Admin role used to have free play, but we've enabled real deductions for better testing/realism.
+        // Admins can always top-up via the Backoffice UI.
+        
+        if (user.BonusBalance > 0) {
             if (user.BonusBalance >= amount) {
                 user.BonusBalance -= amount;
                 if (user.WageringRequirement > 0) {
@@ -58,7 +55,7 @@ public class VaultService : IVaultService {
         }
 
         if (success) {
-            if (profile != null && !isAdmin) {
+            if (profile != null) {
                 // Only contribute to Shadow Balance if playing with Real Money
                 // If BonusBalance was used (partially or fully), we skip contribution to avoid skewing Real RTP with Bonus Wagering
                 bool isRealMoneyBet = user.BonusBalance == 0 || (user.BonusBalance > 0 && user.BonusBalance < amount); // Simplified: If any bonus used, treat as bonus? Or proportional?
@@ -97,16 +94,14 @@ public class VaultService : IVaultService {
                 }
             }
             
-            if (!isAdmin) {
-                repo.UpdateUser(user);
-            }
+            repo.UpdateUser(user);
             
             repo.SaveTransaction(new Transaction {
                 Id = Guid.NewGuid(), 
                 UserId = userId, 
                 Amount = -amount, 
                 Type = TransactionType.Bet, 
-                Description = isAdmin ? "Admin Bet (Free)" : "Game Bet", 
+                Description = (user.Role == Role.Admin) ? "Admin Bet" : "Game Bet", 
                 Timestamp = DateTime.UtcNow, 
                 ResultingBalance = user.Balance
             });

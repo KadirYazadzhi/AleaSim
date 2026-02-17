@@ -388,6 +388,7 @@
         NotifService.OnNotificationsChanged += StateHasChanged;
         GameService.OnFlowStateChanged += HandleFlowStateChange; 
         LayoutService.OnMajorUpdate += StateHasChanged;
+        LayoutService.OnBalanceUpdateSuppressionChanged += HandleSuppressionChanged;
         
         PlatformStats.StartPolling();
         PlatformStats.OnStatsUpdated += StateHasChanged;
@@ -411,7 +412,21 @@
         NotifService.OnNotificationsChanged -= StateHasChanged;
         GameService.OnFlowStateChanged -= HandleFlowStateChange;
         LayoutService.OnMajorUpdate -= StateHasChanged;
+        LayoutService.OnBalanceUpdateSuppressionChanged -= HandleSuppressionChanged;
         PlatformStats.OnStatsUpdated -= StateHasChanged;
+    }
+
+    private decimal? _pendingBalance;
+    private decimal? _pendingBonusBalance;
+
+    private void HandleSuppressionChanged(bool suppressed) {
+        if (!suppressed && _pendingBalance.HasValue && userProfile != null) {
+            userProfile.Balance = _pendingBalance.Value;
+            userProfile.BonusBalance = _pendingBonusBalance ?? 0;
+            _pendingBalance = null;
+            _pendingBonusBalance = null;
+            InvokeAsync(StateHasChanged);
+        }
     }
 
     private void HandleFlowStateChange(float intensity) {
@@ -427,9 +442,14 @@
 
     private void HandleBalanceUpdate(decimal balance, decimal bonusBalance) {
         if (userProfile != null) {
-            userProfile.Balance = balance;
-            userProfile.BonusBalance = bonusBalance;
-            InvokeAsync(StateHasChanged);
+            if (LayoutService.IsBalanceUpdateSuppressed) {
+                _pendingBalance = balance;
+                _pendingBonusBalance = bonusBalance;
+            } else {
+                userProfile.Balance = balance;
+                userProfile.BonusBalance = bonusBalance;
+                InvokeAsync(StateHasChanged);
+            }
         }
     }
 

@@ -8,6 +8,8 @@
 @inject RealTimeClient RealTime
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject IAuthService AuthService
+@inject LayoutService layoutService
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudGrid Justify="Justify.Center">
@@ -142,22 +144,34 @@
         isRoundOver = false;
         playerHand.Clear();
         dealerHand.Clear();
+        
+        // Suppress Navbar updates to prevent spoilers
+        layoutService.SetBalanceUpdateSuppression(true);
+        
         StateHasChanged();
 
         try {
             await Audio.PlaySpin();
-            // Optimistically update balance
+            // Optimistically update balance locally
             balance -= betAmount;
             
             var result = await GameService.PlaceBet("blackjack", sessionId.Value, betAmount);
             var state = JsonSerializer.Deserialize<BlackjackStateUI>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (state != null) await UpdateUI(state);
             
-            await RefreshBalance(); // Sync exact balance
+            // If the round is NOT over (player can still hit/stand), 
+            // we release suppression so the deducted balance shows in navbar.
+            if (!isRoundOver) {
+                layoutService.SetBalanceUpdateSuppression(false);
+                var user = await AuthService.GetMe();
+                if (user != null) balance = user.TotalBalance;
+            }
         } catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
             isRoundOver = true;
-            await RefreshBalance(); // Revert optimistic update
+            layoutService.SetBalanceUpdateSuppression(false);
+            var user = await AuthService.GetMe();
+            if (user != null) balance = user.TotalBalance;
         }
     }
 
@@ -165,14 +179,22 @@
         if (sessionId == null || isRoundOver) return;
         
         await Audio.PlayClick();
+        
+        // Only suppress if this action might end the round (to prevent spoils)
+        layoutService.SetBalanceUpdateSuppression(true);
+        
         try {
             var response = await GameService.PerformAction("blackjack", sessionId.Value, action);
             if (response.Success) {
                 var state = JsonSerializer.Deserialize<BlackjackStateUI>(response.UpdatedStateJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (state != null) await UpdateUI(state);
             }
+            
+            // If still not over, release suppression
+            if (!isRoundOver) layoutService.SetBalanceUpdateSuppression(false);
         } catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
+            layoutService.SetBalanceUpdateSuppression(false);
         }
     }
 
@@ -190,12 +212,17 @@
             else if (pVal == dVal) gameResult = "PUSH";
             else gameResult = "DEALER WINS";
 
-            if (gameResult.Contains("WIN") || gameResult == "PUSH") {
-                if (gameResult.Contains("WIN")) await Audio.PlayWin();
-                // Delay refresh to allow animation to finish visually, then sync money
-                await Task.Delay(1000);
-                await RefreshBalance();
-            }
+            if (gameResult.Contains("WIN")) await Audio.PlayWin();
+            
+            // Wait for visual overlay and dealer draw animation
+            await Task.Delay(1000);
+            
+            // Sync exact balance from server
+            var user = await AuthService.GetMe();
+            if (user != null) balance = user.TotalBalance;
+            
+            // Finalize: release navbar updates
+            layoutService.SetBalanceUpdateSuppression(false);
         }
         StateHasChanged();
     }

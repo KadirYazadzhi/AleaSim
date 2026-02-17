@@ -11,6 +11,8 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JSRuntime
 @inject IDialogService DialogService
+@inject LayoutService layoutService
+@inject IAuthService AuthService
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudGrid>
@@ -163,18 +165,33 @@
         isSpinning = true;
         wasNudged = false;
         
+        // Logic: Features (Respin/Bonus) are FREE (cost was paid in the triggering spin)
+        var betAmount = (gameState.IsBonusActive || gameState.IsRespinActive) ? 0 : (creditsBet * denomination);
+
+        // Optimistic local update for instant feedback
+        if (betAmount > 0) {
+            balance -= betAmount;
+            StateHasChanged();
+        }
+
+        // Suppress Navbar updates to prevent spoilers
+        layoutService.SetBalanceUpdateSuppression(true);
+        
         try {
             await Audio.PlaySpin();
             
-            var betAmount = creditsBet * denomination;
             var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount, $"{{\"Denomination\":{denomination}}}");
             
             await JSRuntime.InvokeVoidAsync("slotEngine.spin", result.RandomResultJson);
             
+            // Wait for animation to finish
             await Task.Delay(3500); 
 
+            // Fetch official balance from server to ensure perfect sync
+            var profile = await AuthService.GetMe();
+            if (profile != null) balance = profile.TotalBalance;
+
             lastWin = result.TotalWin;
-            balance += lastWin - (gameState.IsBonusActive || gameState.IsRespinActive ? 0 : betAmount);
             
             var gridData = JsonSerializer.Deserialize<SlotStateResponse>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (gridData != null) {
@@ -200,7 +217,12 @@
                 Snackbar.Add(ex.Message, Severity.Error); 
             }
         }
-        finally { isSpinning = false; StateHasChanged(); }
+        finally { 
+            isSpinning = false; 
+            // Release Navbar updates
+            layoutService.SetBalanceUpdateSuppression(false);
+            StateHasChanged(); 
+        }
     }
 
     private async Task OpenGamble() {

@@ -8,6 +8,8 @@
 @inject RealTimeClient RealTime
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject IAuthService AuthService
+@inject LayoutService layoutService
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudGrid Justify="Justify.Center">
@@ -199,6 +201,13 @@
 
         isSpinning = true;
         winningNumber = null;
+        
+        // Optimistic local update
+        balance -= totalWager;
+
+        // Suppress Navbar updates to prevent spoilers
+        layoutService.SetBalanceUpdateSuppression(true);
+        
         StateHasChanged();
 
         try {
@@ -206,7 +215,7 @@
             var betData = JsonSerializer.Serialize(currentBets);
             var result = await GameService.PlaceBet("roulette", sessionId.Value, totalWager, betData);
             
-            // Dramatic wait
+            // Dramatic wait for ball animation
             await Task.Delay(2000);
 
             var resultData = JsonSerializer.Deserialize<RouletteResult>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -217,8 +226,8 @@
                 await Audio.PlayWin();
             }
             
-            // Refresh balance
-            var user = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+            // Sync exact balance from server
+            var user = await AuthService.GetMe();
             if (user != null) balance = user.TotalBalance;
             currentBets.Clear();
         }
@@ -227,6 +236,8 @@
         }
         finally {
             isSpinning = false;
+            // Release Navbar updates
+            layoutService.SetBalanceUpdateSuppression(false);
             StateHasChanged();
         }
     }

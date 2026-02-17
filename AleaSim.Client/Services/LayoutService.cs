@@ -17,8 +17,16 @@ public class LayoutService
     }
 
     public bool IsDarkMode { get; private set; } = true;
+    public bool IsBalanceUpdateSuppressed { get; private set; }
 
     public event Action? OnMajorUpdate;
+    public event Action<bool>? OnBalanceUpdateSuppressionChanged;
+
+    public void SetBalanceUpdateSuppression(bool suppressed)
+    {
+        IsBalanceUpdateSuppressed = suppressed;
+        OnBalanceUpdateSuppressionChanged?.Invoke(suppressed);
+    }
 
     public async Task InitializeAsync()
     {
