@@ -168,9 +168,10 @@
         // Logic: Features (Respin/Bonus) are FREE (cost was paid in the triggering spin)
         var betAmount = (gameState.IsBonusActive || gameState.IsRespinActive) ? 0 : (creditsBet * denomination);
 
-        // Optimistic local update for instant feedback
+        // Optimistic local update area
         if (betAmount > 0) {
             balance -= betAmount;
+            layoutService.DeductOptimisticBalance(betAmount); // Update Navbar immediately
             StateHasChanged();
         }
 

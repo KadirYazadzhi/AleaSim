@@ -204,6 +204,7 @@
         
         // Optimistic local update
         balance -= totalWager;
+        layoutService.DeductOptimisticBalance(totalWager); // Update Navbar immediately
 
         // Suppress Navbar updates to prevent spoilers
         layoutService.SetBalanceUpdateSuppression(true);

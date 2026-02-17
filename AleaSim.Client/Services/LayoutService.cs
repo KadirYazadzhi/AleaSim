@@ -21,11 +21,17 @@ public class LayoutService
 
     public event Action? OnMajorUpdate;
     public event Action<bool>? OnBalanceUpdateSuppressionChanged;
+    public event Action<decimal>? OnOptimisticDeduction;
 
     public void SetBalanceUpdateSuppression(bool suppressed)
     {
         IsBalanceUpdateSuppressed = suppressed;
         OnBalanceUpdateSuppressionChanged?.Invoke(suppressed);
+    }
+
+    public void DeductOptimisticBalance(decimal amount)
+    {
+        OnOptimisticDeduction?.Invoke(amount);
     }
 
     public async Task InitializeAsync()

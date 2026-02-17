@@ -389,6 +389,7 @@
         GameService.OnFlowStateChanged += HandleFlowStateChange; 
         LayoutService.OnMajorUpdate += StateHasChanged;
         LayoutService.OnBalanceUpdateSuppressionChanged += HandleSuppressionChanged;
+        LayoutService.OnOptimisticDeduction += HandleOptimisticDeduction;
         
         PlatformStats.StartPolling();
         PlatformStats.OnStatsUpdated += StateHasChanged;
@@ -413,7 +414,15 @@
         GameService.OnFlowStateChanged -= HandleFlowStateChange;
         LayoutService.OnMajorUpdate -= StateHasChanged;
         LayoutService.OnBalanceUpdateSuppressionChanged -= HandleSuppressionChanged;
+        LayoutService.OnOptimisticDeduction -= HandleOptimisticDeduction;
         PlatformStats.OnStatsUpdated -= StateHasChanged;
+    }
+
+    private void HandleOptimisticDeduction(decimal amount) {
+        if (userProfile != null) {
+            userProfile.Balance -= amount;
+            InvokeAsync(StateHasChanged);
+        }
     }
 
     private decimal? _pendingBalance;

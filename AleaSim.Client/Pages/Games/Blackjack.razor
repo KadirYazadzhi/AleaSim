@@ -154,6 +154,7 @@
             await Audio.PlaySpin();
             // Optimistically update balance locally
             balance -= betAmount;
+            layoutService.DeductOptimisticBalance(betAmount); // Update Navbar immediately
             
             var result = await GameService.PlaceBet("blackjack", sessionId.Value, betAmount);
             var state = JsonSerializer.Deserialize<BlackjackStateUI>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
