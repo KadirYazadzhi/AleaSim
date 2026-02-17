@@ -168,14 +168,15 @@ public class EfGameRepository : IGameRepository {
     }
 
     public TournamentEntry GetOrCreateTournamentEntry(Guid userId, DateTime date) {
+        var targetDate = date.Date;
         var entry = _context.TournamentEntries
-            .FirstOrDefault(t => t.UserId == userId && t.TournamentDate.Date == date.Date);
+            .FirstOrDefault(t => t.UserId == userId && t.TournamentDate == targetDate);
             
         if (entry == null) {
             entry = new TournamentEntry { 
                 Id = Guid.NewGuid(), 
                 UserId = userId, 
-                TournamentDate = date.Date,
+                TournamentDate = targetDate,
                 TotalWagered = 0,
                 TotalPayout = 0
             };
@@ -191,9 +192,11 @@ public class EfGameRepository : IGameRepository {
     }
 
     public IEnumerable<TournamentEntry> GetTopTournamentEntries(DateTime date, int topCount) {
+        var targetDate = date.Date;
         return _context.TournamentEntries
             .Include(t => t.User)
-            .Where(t => t.TournamentDate.Date == date.Date)
+            .Where(t => t.TournamentDate == targetDate)
+            .AsEnumerable() // Move to memory to support ordering by computed property RoiPercentage
             .Where(t => !t.User.Username.StartsWith("Sim_"))
             .OrderByDescending(t => t.RoiPercentage)
             .Take(topCount)
