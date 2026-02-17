@@ -49,6 +49,8 @@ public class SimulationService : ISimulationService {
             var game = repo.GetGameByType(request.GameType);
             if (game == null) throw new Exception($"Game type '{request.GameType}' not found in DB.");
 
+            if (request.BetAmount <= 0) request.BetAmount = 1.0m;
+
             decimal totalBet = 0;
             decimal totalWin = 0;
             decimal maxWin = 0;
@@ -76,8 +78,8 @@ public class SimulationService : ISimulationService {
                 bool isBonus = round.RandomResult.Contains("\"IsBonusActive\":true");
                 bool isRespin = round.RandomResult.Contains("\"IsRespinActive\":true");
                 
-                if (isBonus) bonusCount++;
-                if (isRespin) respinCount++;
+                if (isBonus && !pendingRespinOrBonus) bonusCount++; // Only count trigger
+                if (isRespin && !pendingRespinOrBonus) respinCount++;
                 
                 pendingRespinOrBonus = isBonus || isRespin;
 
@@ -104,7 +106,7 @@ public class SimulationService : ISimulationService {
             };
 
             // Persist Report
-            _auditService.LogEvent("SIMULATION_REPORT", $"Simulated {request.Iterations} rounds of {request.GameType}. RTP: {rtpResult:F2}%", dummyUser.Id.ToString(), JsonSerializer.Serialize(report));
+            _auditService.LogEvent("SIMULATION_REPORT", $"Simulated {request.Iterations} rounds of {request.GameType}. RTP: {rtpResult:F2}% (Bet: {totalBet:C}, Win: {totalWin:C})", dummyUser.Id.ToString(), JsonSerializer.Serialize(report));
 
             return report;
         }
