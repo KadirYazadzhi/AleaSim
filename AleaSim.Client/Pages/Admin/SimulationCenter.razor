@@ -1,0 +1,269 @@
+@page "/admin/simulation"
+@using AleaSim.Client.Services
+@using AleaSim.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using System.Text.Json
+@layout AleaSim.Client.Layout.AdminLayout
+@attribute [Authorize(Roles = "Admin")]
+@inject IAdminService AdminService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject LayoutService LayoutService
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-16 animate-fade-in">
+    <div class="d-flex justify-space-between align-center mb-8">
+        <div>
+            <MudText Typo="Typo.h3" Class="text-gradient fw-black mb-2">SIMULATION CENTER</MudText>
+            <MudText Typo="Typo.subtitle1" Class="mud-text-secondary">Stress test game engines and verify mathematical integrity.</MudText>
+        </div>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.History" OnClick="RefreshHistory">Refresh History</MudButton>
+    </div>
+
+    <MudGrid>
+        <!-- Simulation Control -->
+        <MudItem xs="12" lg="4">
+            <div class="glass-panel pa-8 rounded-xl h-100">
+                <MudText Typo="Typo.h5" Class="fw-bold mb-6">New Simulation</MudText>
+                
+                <MudSelect T="string" @bind-Value="_request.GameType" Label="Game Engine" Variant="Variant.Outlined" Class="mb-4 glass-input">
+                    <MudSelectItem Value="@("Slot")">Clover Chase (Slot)</MudSelectItem>
+                    <MudSelectItem Value="@("Roulette")">European Roulette</MudSelectItem>
+                    <MudSelectItem Value="@("Blackjack")">Classic Blackjack</MudSelectItem>
+                </MudSelect>
+
+                <MudNumericField T="decimal" @bind-Value="_request.BetAmount" Label="Bet Amount per round" Variant="Variant.Outlined" Min="0.1m" Max="1000" Step="1" Format="C2" Class="mb-4 glass-input" />
+
+                <MudSelect T="int" @bind-Value="_request.Iterations" Label="Iteration Count" Variant="Variant.Outlined" Class="mb-8 glass-input">
+                    <MudSelectItem Value="100">100 Rounds (Sanity Check)</MudSelectItem>
+                    <MudSelectItem Value="1000">1,000 Rounds (Standard)</MudSelectItem>
+                    <MudSelectItem Value="5000">5,000 Rounds (Deep Analysis)</MudSelectItem>
+                    <MudSelectItem Value="10000">10,000 Rounds (Stress Test)</MudSelectItem>
+                </MudSelect>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="RunSimulation" Disabled="@_processing" Size="Size.Large" Class="rounded-lg py-4 pulse-neon">
+                    @if (_processing) { <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/> <MudText Class="ms-2">PROCESSING...</MudText> }
+                    else { <MudText>LAUNCH SIMULATION</MudText> }
+                </MudButton>
+
+                @if (_processing) {
+                    <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="mt-4 rounded-xl" />
+                    <MudText Align="Align.Center" Typo="Typo.caption" Class="mt-2 d-block mud-text-secondary animate-pulse">Running mathematical models...</MudText>
+                }
+            </div>
+        </MudItem>
+
+        <!-- Current/Last Result -->
+        <MudItem xs="12" lg="8">
+            <div class="glass-panel pa-8 rounded-xl h-100">
+                @if (_lastReport == null)
+                {
+                    <div class="d-flex flex-column align-center justify-center h-100 opacity-50">
+                        <MudIcon Icon="@Icons.Material.Filled.Analytics" Size="Size.Large" Style="font-size: 5rem;" />
+                        <MudText Typo="Typo.h6">Select a game and launch to see results</MudText>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex justify-space-between align-start mb-6">
+                        <div>
+                            <MudText Typo="Typo.h5" Class="fw-black">@_lastReport.GameType ANALYSIS</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Calculated in @_lastReport.ExecutionTimeMs.ToString("N0")ms</MudText>
+                        </div>
+                        <MudChip T="string" Color="@(GetRtpColor(_lastReport.ActualRTP))" Variant="Variant.Filled" Class="fw-bold">@_lastReport.ActualRTP.ToString("F2")% RTP</MudChip>
+                    </div>
+
+                    <MudGrid>
+                        <MudItem xs="12" sm="4">
+                            <div class="pa-4 glass-inner rounded-lg text-center">
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase">Total Bet</MudText>
+                                <MudText Typo="Typo.h6" Class="fw-bold">@_lastReport.TotalBet.ToString("C2")</MudText>
+                            </div>
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <div class="pa-4 glass-inner rounded-lg text-center">
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase">Total Win</MudText>
+                                <MudText Typo="Typo.h6" Class="fw-bold text-success">@_lastReport.TotalWin.ToString("C2")</MudText>
+                            </div>
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <div class="pa-4 glass-inner rounded-lg text-center">
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase">Max Win</MudText>
+                                <MudText Typo="Typo.h6" Class="fw-bold text-warning">@_lastReport.MaxWin.ToString("C2")</MudText>
+                            </div>
+                        </MudItem>
+                    </MudGrid>
+
+                    <div class="mt-8">
+                        <MudText Typo="Typo.subtitle2" Class="mb-4 fw-bold">Decision Distribution</MudText>
+                        <div style="height: 200px;">
+                             @foreach(var kv in _lastReport.DecisionDistribution) {
+                                 <div class="mb-3">
+                                     <div class="d-flex justify-space-between mb-1">
+                                         <MudText Typo="Typo.caption">@kv.Key</MudText>
+                                         <MudText Typo="Typo.caption" Class="fw-bold">@kv.Value (@((kv.Value * 100.0 / _lastReport.TotalIterations).ToString("F1"))%)</MudText>
+                                     </div>
+                                     <MudProgressLinear Value="@(kv.Value * 100.0 / _lastReport.TotalIterations)" Color="@(GetDecisionColor(kv.Key))" Rounded="true" Size="Size.Medium" />
+                                 </div>
+                             }
+                        </div>
+                    </div>
+                }
+            </div>
+        </MudItem>
+
+        <!-- History Table -->
+        <MudItem xs="12">
+            <div class="glass-panel pa-6 rounded-xl">
+                <MudText Typo="Typo.h6" Class="fw-bold mb-4">Simulation History</MudText>
+                <MudTable Items="@_history" Dense="true" Hover="true" Elevation="0" Class="glass-table">
+                    <HeaderContent>
+                        <MudTh>Timestamp</MudTh>
+                        <MudTh>Game</MudTh>
+                        <MudTh>Rounds</MudTh>
+                        <MudTh>Total Bet</MudTh>
+                        <MudTh>Total Win</MudTh>
+                        <MudTh>Actual RTP</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Timestamp.ToLocalTime().ToString("g")</MudTd>
+                        <MudTd><MudChip T="string" Size="Size.Small" Variant="Variant.Text">@GetGameFromDesc(context.Description)</MudChip></MudTd>
+                        <MudTd>@GetRoundsFromDesc(context.Description)</MudTd>
+                        <MudTd>@GetValFromDesc(context.Description, "Bet:")</MudTd>
+                        <MudTd>@GetValFromDesc(context.Description, "Win:")</MudTd>
+                        <MudTd>
+                            <MudText Color="@(GetRtpColorFromDesc(context.Description))" Class="fw-bold">
+                                @GetRtpFromDesc(context.Description)
+                            </MudText>
+                        </MudTd>
+                        <MudTd><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small"/></MudTd>
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" OnClick="@(() => ShowDetails(context))" />
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText Typo="Typo.body2" Class="pa-4 mud-text-secondary">No simulation records found.</MudText>
+                    </NoRecordsContent>
+                </MudTable>
+            </div>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<style>
+    .fw-black { font-weight: 900; }
+    .fw-bold { font-weight: 700; }
+    .text-gradient {
+        background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .glass-panel {
+        background: @(LayoutService.IsDarkMode ? "rgba(30, 41, 59, 0.7)" : "rgba(255, 255, 255, 0.7)");
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--mud-palette-divider);
+    }
+    .glass-inner {
+        background: @(LayoutService.IsDarkMode ? "rgba(0, 0, 0, 0.2)" : "rgba(0, 0, 0, 0.05)");
+    }
+    .pulse-neon { animation: pulseNeon 2s infinite; }
+    @@keyframes pulseNeon {
+        0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+    }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    @@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+
+@code {
+    private SimulationRequest _request = new() { GameType = "Slot", BetAmount = 1.0m, Iterations = 1000 };
+    private SimulationReport? _lastReport;
+    private bool _processing = false;
+    private List<AuditLogDto> _history = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        LayoutService.OnMajorUpdate += StateHasChanged;
+        await RefreshHistory();
+    }
+
+    private async Task RefreshHistory()
+    {
+        try {
+            var logs = await AdminService.GetAuditLogs();
+            _history = logs.Where(l => l.EventType == "SIMULATION_REPORT")
+                           .OrderByDescending(l => l.Timestamp)
+                           .ToList();
+        } catch {}
+    }
+
+    private async Task RunSimulation()
+    {
+        _processing = true;
+        try {
+            _lastReport = await AdminService.RunSimulation(_request);
+            if (_lastReport != null) {
+                Snackbar.Add($"{_request.GameType} simulation complete!", Severity.Success);
+                await RefreshHistory();
+            }
+        } catch (Exception ex) {
+            Snackbar.Add($"Simulation failed: {ex.Message}", Severity.Error);
+        } finally {
+            _processing = false;
+        }
+    }
+
+    private Color GetRtpColor(double rtp) => rtp switch {
+        > 100 => Color.Error,
+        > 98 => Color.Warning,
+        > 90 => Color.Success,
+        _ => Color.Info
+    };
+
+    private Color GetDecisionColor(string type) => type switch {
+        "Random" => Color.Primary,
+        "RetentionHook" => Color.Success,
+        "RTP Correction (High)" => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetGameFromDesc(string desc) => desc.Contains("Slot") ? "Slot" : (desc.Contains("Blackjack") ? "BJ" : "Roulette");
+    private string GetRoundsFromDesc(string desc) {
+        var parts = desc.Split(' ');
+        return parts.Length > 1 ? parts[1] : "?";
+    }
+    private string GetRtpFromDesc(string desc) {
+        int idx = desc.IndexOf("RTP: ");
+        if (idx == -1) return "?%";
+        int end = desc.IndexOf("%", idx);
+        return desc.Substring(idx + 5, end - idx - 4);
+    }
+    private Color GetRtpColorFromDesc(string desc) {
+        string rtpStr = GetRtpFromDesc(desc).Replace("%", "");
+        if (double.TryParse(rtpStr, out double rtp)) return GetRtpColor(rtp);
+        return Color.Default;
+    }
+    private string GetValFromDesc(string desc, string prefix) {
+        int idx = desc.IndexOf(prefix);
+        if (idx == -1) return "?";
+        int end = desc.IndexOf(",", idx);
+        if (end == -1) end = desc.IndexOf(")", idx);
+        return desc.Substring(idx + prefix.Length, end - idx - prefix.Length).Trim();
+    }
+
+    private void ShowDetails(AuditLogDto log) {
+        try {
+            var report = JsonSerializer.Deserialize<SimulationReport>(log.MetadataJson);
+            if (report != null) {
+                _lastReport = report;
+                Snackbar.Add("Report loaded to analysis view.", Severity.Info);
+            }
+        } catch {
+            Snackbar.Add("Could not load detailed report.", Severity.Error);
+        }
+    }
+
+    public void Dispose() => LayoutService.OnMajorUpdate -= StateHasChanged;
+}

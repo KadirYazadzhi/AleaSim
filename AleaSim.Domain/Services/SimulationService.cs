@@ -59,29 +59,55 @@ public class SimulationService : ISimulationService {
             var distribution = new Dictionary<string, int>();
 
             var session = await engine.StartSession(dummyUser.Id, game.Id);
-            bool pendingRespinOrBonus = false;
+            bool pendingFeature = false;
 
             for (int i = 0; i < request.Iterations; i++) {
-                // Only place a new bet if the previous round wasn't a respin/bonus trigger
-                // (Engine expects ResolveRound for continuing features)
-                if (!pendingRespinOrBonus) {
-                    await engine.PlaceBet(dummyUser.Id, session.Id, request.BetAmount, "{}");
+                // 1. Prepare Bet Data based on Game Type
+                string betData = "{}";
+                if (request.GameType.Equals("Roulette", StringComparison.OrdinalIgnoreCase)) {
+                    betData = "[{\"Type\":\"color\",\"Value\":\"red\",\"Amount\":" + request.BetAmount + "}]";
+                } else if (request.GameType.Equals("Slot", StringComparison.OrdinalIgnoreCase)) {
+                    betData = "{\"Denomination\":0.01}";
+                }
+
+                // 2. Place Bet (if not in a pending feature like Free Spins)
+                if (!pendingFeature) {
+                    await engine.PlaceBet(dummyUser.Id, session.Id, request.BetAmount, betData);
                     totalBet += request.BetAmount;
                 }
 
+                // 3. Resolve Initial Round
                 var round = await engine.ResolveRound(session.Id);
-                totalWin += round.TotalWinAmount;
+                
+                // 4. Handle Multi-step games (Blackjack)
+                if (request.GameType.Equals("Blackjack", StringComparison.OrdinalIgnoreCase)) {
+                    while (true) {
+                        var stateObj = await engine.GetCurrentState(session.Id);
+                        var stateJson = JsonSerializer.Serialize(stateObj);
+                        if (stateJson.Contains("\"IsRoundOver\":true")) break;
 
+                        // Basic Strategy Simulator: Stand on 17+
+                        // We need to parse hand value from state. 
+                        // Simplified: Stand immediately for speed or loop Hit.
+                        await engine.ProcessAction(dummyUser.Id, session.Id, "stand", "");
+                        
+                        // Re-fetch round to get final win
+                        var lastRound = repo.GetLastRound(session.Id);
+                        if (lastRound != null) round = lastRound;
+                    }
+                }
+
+                totalWin += round.TotalWinAmount;
                 if (round.TotalWinAmount > maxWin) maxWin = round.TotalWinAmount;
 
-                // Check flags in result JSON
+                // 5. Track Features (Slot)
                 bool isBonus = round.RandomResult.Contains("\"IsBonusActive\":true");
                 bool isRespin = round.RandomResult.Contains("\"IsRespinActive\":true");
                 
-                if (isBonus && !pendingRespinOrBonus) bonusCount++; // Only count trigger
-                if (isRespin && !pendingRespinOrBonus) respinCount++;
+                if (isBonus && !pendingFeature) bonusCount++;
+                if (isRespin && !pendingFeature) respinCount++;
                 
-                pendingRespinOrBonus = isBonus || isRespin;
+                pendingFeature = isBonus || isRespin;
 
                 string dType = round.DecisionType ?? "Unknown";
                 if (!distribution.ContainsKey(dType)) distribution[dType] = 0;

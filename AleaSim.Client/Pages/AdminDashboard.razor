@@ -113,7 +113,7 @@
 
         <MudTabPanel Text="Configuration" Icon="@Icons.Material.Filled.Settings">
             <MudGrid>
-                <MudItem xs="12" md="6">
+                <MudItem xs="12">
                     <div class="glass-panel pa-8 rounded-xl">
                         <MudText Typo="Typo.h5" Class="fw-bold mb-2">Global RTP Control</MudText>
                         <MudText Typo="Typo.body2" Class="mud-text-secondary mb-8">Adjusting this value will affect the theoretical return to player across all slot games instantly.</MudText>
@@ -129,29 +129,6 @@
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" OnClick="UpdateRtp" Size="Size.Large" Class="rounded-lg fw-bold pulse-neon">
                             APPLY NEW RTP CONFIGURATION
                         </MudButton>
-                    </div>
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <div class="glass-panel pa-8 rounded-xl h-100">
-                        <MudText Typo="Typo.h5" Class="fw-bold mb-4">Simulation & Testing</MudText>
-                        <MudAlert Severity="Severity.Info" Class="mb-6 rounded-lg">Run a quick simulation to verify RTP variance before applying changes.</MudAlert>
-                        
-                        <MudText Typo="Typo.subtitle2" Class="mb-2">Iterations</MudText>
-                        <MudSelect T="int" Label="Spin Count" @bind-Value="_simIterations" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Class="mb-6 glass-input">
-                            <MudSelectItem Value="100">100 Spins (Quick)</MudSelectItem>
-                            <MudSelectItem Value="1000">1,000 Spins (Standard)</MudSelectItem>
-                            <MudSelectItem Value="5000">5,000 Spins (Deep)</MudSelectItem>
-                        </MudSelect>
-
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="RunQuickSimulation" Disabled="@_simInProgress" Class="rounded-lg py-3 mb-4">
-                            @if (_simInProgress) { <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/> <MudText Class="ms-2">SIMULATING...</MudText> }
-                            else { <MudText>RUN STRESS TEST</MudText> }
-                        </MudButton>
-                        
-                        @if (_simInProgress) { 
-                            <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="rounded-xl" Size="Size.Large" Striped="true" /> 
-                            <MudText Align="Align.Center" Class="mt-2 mud-text-secondary animate-pulse">Calculating outcomes...</MudText>
-                        }
                     </div>
                 </MudItem>
             </MudGrid>
@@ -217,14 +194,11 @@
     private decimal _targetRtp = 95.0m;
     private bool _emergencyStop = false;
     private List<string> _liveLogs = new();
-    private bool _simInProgress = false;
-    private int _simIterations = 1000;
 
     protected override async Task OnInitializedAsync()
     {
         LayoutService.OnMajorUpdate += StateHasChanged;
         await LoadStats();
-        await LoadSimLogs();
         
         RealTime.OnBigWinReceived += (args) => {
             var logHtml = $"<span class='text-warning fw-bold'>BIG WIN:</span> <b>{args.Username}</b> won <span class='text-success'>{args.Amount:C}</span> on {args.GameName} ({args.Multiplier}x)";
@@ -243,16 +217,6 @@
         } catch {}
     }
 
-    private async Task LoadSimLogs() {
-        try {
-            var logs = await AdminService.GetAuditLogs();
-            var simLogs = logs.Where(l => l.EventType == "SIMULATION_REPORT").OrderByDescending(l => l.Timestamp).Take(5);
-            foreach (var log in simLogs) {
-                _liveLogs.Add($"<span class='text-info fw-bold'>HISTORY:</span> {log.Description} <span class='mud-text-secondary text-caption'>({log.Timestamp.ToLocalTime():t})</span>");
-            }
-        } catch {}
-    }
-
     private async Task UpdateRtp()
     {
         await AdminService.UpdateRtp(_targetRtp);
@@ -263,24 +227,6 @@
     {
         await AdminService.ToggleEmergencyStop(!_emergencyStop);
         Snackbar.Add(_emergencyStop ? "Emergency Stop DEACTIVATED" : "Emergency Stop ACTIVATED", _emergencyStop ? Severity.Success : Severity.Error);
-    }
-
-    private async Task RunQuickSimulation()
-    {
-        _simInProgress = true;
-        await Task.Delay(1500); // UI feel
-        try {
-            var report = await AdminService.RunSimulation(new SimulationRequest { GameType = "Slot", Iterations = _simIterations });
-            if (report != null) {
-                var logHtml = $"<span class='text-info fw-bold'>SIMULATION:</span> Slot RTP test ({report.TotalIterations} spins) resulted in <b>{report.ActualRTP:F2}%</b>";
-                _liveLogs.Insert(0, logHtml);
-                Snackbar.Add("Stress test complete.", Severity.Info);
-            }
-        } catch (Exception ex) {
-            Snackbar.Add($"Simulation failed: {ex.Message}", Severity.Error);
-        } finally {
-            _simInProgress = false;
-        }
     }
 
     private async Task OnClearCache() {
