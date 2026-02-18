@@ -75,29 +75,33 @@
                 <MudPaper Class="pa-4" Style="background: #004d00; border: 10px solid #3d2b1f; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
                     <div class="roulette-table">
                         <!-- Zero -->
-                        <div class='@($"cell zero {GetCursorClass("number", "0")}")' 
+                        @{ bool zeroLucky = currentLuckyNumbers.ContainsKey(0); }
+                        <div class='@($"cell zero {GetCursorClass("number", "0")} {(zeroLucky ? "lucky-cell lightning-flash" : "")}")' 
                              @onmousedown='() => HandleMouseDown("number", "0")'
                              @onmousedown:stopPropagation
                              @onmouseenter='() => HandleMouseEnter("number", "0")'>
                             0
                             @GetBetBadge("number", "0")
+                            @GetLuckyBadge(0)
                         </div>                                
                         <!-- Numbers 1-36 -->
-                        <div class="numbers-grid">
-                            @for (int i = 1; i <= 36; i++)
-                            {
-                                var num = i;
-                                var type = "number";
-                                var val = num.ToString();
-                                <div class='@($"cell {GetNumberColor(num)} {GetCursorClass(type, val)}")' 
-                                     @onmousedown='() => HandleMouseDown(type, val)'
-                                     @onmouseenter='() => HandleMouseEnter(type, val)'>
-                                    @num
-                                    @GetBetBadge(type, val)
-                                </div>
-                            }
-                        </div>
-
+                                                        <div class="numbers-grid">
+                                                            @for (int i = 1; i <= 36; i++)
+                                                            {
+                                                                var num = i;
+                                                                var type = "number";
+                                                                var val = num.ToString();
+                                                                bool isLucky = currentLuckyNumbers.ContainsKey(num);
+                                                                
+                                                                <div class='@($"cell {GetNumberColor(num)} {GetCursorClass(type, val)} {(isLucky ? "lucky-cell lightning-flash" : "")}")' 
+                                                                     @onmousedown='() => HandleMouseDown(type, val)'
+                                                                     @onmouseenter='() => HandleMouseEnter(type, val)'>
+                                                                    @num
+                                                                    @GetBetBadge(type, val)
+                                                                    @GetLuckyBadge(num)
+                                                                </div>
+                                                            }
+                                                        </div>
                         <!-- Outside Bets -->
                         <div class="outside-bets">
                             <div class='@($"cell red {GetCursorClass("color", "red")}")' 
@@ -120,34 +124,34 @@
 
         <MudItem xs="12" lg="3">
              <!-- Mode Selector -->
-             <div class="pa-6 rounded-xl glass-panel h-100 d-flex flex-column gap-4 border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)")};")'>
-                 <MudText Typo="Typo.h6" Class="fw-bold d-flex align-center">
-                     <MudIcon Icon="@Icons.Material.Filled.Tune" Class="mr-2" Color="Color.Primary" /> Game Profile
+             <div class="pa-4 rounded-xl glass-panel h-100 d-flex flex-column gap-2 border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)")};")'>
+                 <MudText Typo="Typo.subtitle2" Class="fw-bold d-flex align-center">
+                     <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small" Class="mr-2" Color="Color.Primary" /> Game Profile
                  </MudText>
                  
                  <MudDivider />
 
-                 <div class='@($"pa-4 rounded-xl cursor-pointer transition-all border-2 {(selectedMode == "Classic" ? "border-primary bg-primary-transparent" : "border-transparent")}")' 
-                      @onclick='() => SetMode("Classic")'>
-                     <div class="d-flex justify-space-between align-center mb-1">
-                         <MudText Typo="Typo.subtitle1" Class="fw-bold">CLASSIC</MudText>
-                         @if(selectedMode == "Classic") { <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Primary" Size="Size.Small" /> }
-                     </div>
-                     <MudText Typo="Typo.caption" Class="mud-text-secondary">Standard 35:1 payouts. Low volatility, consistent game.</MudText>
+                 <div class="d-flex gap-2 mt-1">
+                     <MudTooltip Text="Standard 35:1 payouts. Low volatility, consistent game." Arrow="true" Placement="Placement.Left">
+                         <div class='@($"flex-grow-1 pa-3 rounded-lg cursor-pointer text-center transition-all border-2 {(selectedMode == "Classic" ? "border-primary bg-primary-transparent" : "border-transparent bg-dark-lighten")}")' 
+                              @onclick='() => SetMode("Classic")'>
+                             <MudText Typo="Typo.button" Class="fw-bold">CLASSIC</MudText>
+                         </div>
+                     </MudTooltip>
+
+                     <MudTooltip Text="Base 29:1 payouts. Random 50x-500x multipliers on lucky numbers!" Arrow="true" Placement="Placement.Right">
+                         <div class='@($"flex-grow-1 pa-3 rounded-lg cursor-pointer text-center transition-all border-2 {(selectedMode == "Extreme" ? "border-warning bg-warning-transparent" : "border-transparent bg-dark-lighten")}")' 
+                              @onclick='() => SetMode("Extreme")'>
+                             <MudText Typo="Typo.button" Class='@($"fw-bold {(selectedMode == "Extreme" ? "text-warning" : "")}")'>EXTREME</MudText>
+                         </div>
+                     </MudTooltip>
                  </div>
 
-                 <div class='@($"pa-4 rounded-xl cursor-pointer transition-all border-2 {(selectedMode == "Extreme" ? "border-warning bg-warning-transparent" : "border-transparent")}")' 
-                      @onclick='() => SetMode("Extreme")'>
-                     <div class="d-flex justify-space-between align-center mb-1">
-                         <MudText Typo="Typo.subtitle1" Class="fw-bold text-warning">EXTREME</MudText>
-                         @if(selectedMode == "Extreme") { <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Warning" Size="Size.Small" /> }
-                     </div>
-                     <MudText Typo="Typo.caption" Class="mud-text-secondary">Base 29:1 payouts. Random 50x-500x multipliers on lucky numbers!</MudText>
+                 <div class="mt-auto">
+                     <MudAlert Severity="@(selectedMode == "Extreme" ? Severity.Warning : Severity.Info)" Dense="true" NoIcon="true" Class="rounded-lg py-1 px-3">
+                         <MudText Typo="Typo.caption" Class="fw-bold">@(selectedMode == "Extreme" ? "MULTIPLIERS ACTIVE" : "CLASSIC ACTIVE")</MudText>
+                     </MudAlert>
                  </div>
-
-                 <MudAlert Severity="@(selectedMode == "Extreme" ? Severity.Warning : Severity.Info)" Dense="true" Class="mt-2 rounded-lg">
-                     <MudText Typo="Typo.caption">@(selectedMode == "Extreme" ? "Multiplier mode is active. Good luck!" : "Classic mode is active.")</MudText>
-                 </MudAlert>
              </div>
         </MudItem>
     </MudGrid>
@@ -169,6 +173,17 @@
     
     .bet-badge { position: absolute; top: -5px; right: -5px; background: #ffD700; color: black; border-radius: 50%; width: 24px; height: 24px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border: 2px solid white; font-weight: 900; z-index: 5; }
     
+    .lucky-badge { position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); background: #ff9800; color: black; border-radius: 4px; padding: 0 6px; font-size: 0.75rem; font-weight: 900; border: 1px solid white; z-index: 6; box-shadow: 0 0 10px #ff9800; }
+    
+    .lucky-cell { border: 2px solid #ff9800 !important; background: rgba(255, 152, 0, 0.2) !important; z-index: 2; }
+    
+    .lightning-flash { animation: lightning-strike 0.5s ease-out infinite alternate; }
+    
+    @@keyframes lightning-strike {
+        0% { box-shadow: inset 0 0 5px #fff, 0 0 5px #ff9800; filter: brightness(1); }
+        100% { box-shadow: inset 0 0 20px #fff, 0 0 30px #ff9800; filter: brightness(1.8); }
+    }
+
     .result-overlay-pro { 
         position: absolute; 
         top: 20px; 
@@ -198,6 +213,7 @@
     private Guid? sessionId;
     private List<RouletteBetDto> currentBets = new();
     private string selectedMode = "Classic";
+    private Dictionary<int, int> currentLuckyNumbers = new();
 
     private void SetMode(string mode) {
         if (isSpinning) return;
@@ -274,6 +290,7 @@
 
         isSpinning = true;
         winningNumber = null;
+        currentLuckyNumbers.Clear();
         
         // Optimistic local update
         balance -= totalWager;
@@ -298,15 +315,27 @@
             if (resultData != null) {
                 // Trigger Professional 2D Animation
                 await JSRuntime.InvokeVoidAsync("roulettePro.spin", resultData.Number);
+                
+                // Visual Delay for 'Lightning Strike' (Suspense)
+                await Task.Delay(1500);
+                if (resultData.LuckyNumbers != null) {
+                    currentLuckyNumbers = resultData.LuckyNumbers;
+                    StateHasChanged();
+                    // Optional: Play lightning sound here
+                }
             }
 
             // Wait for visual animation to complete (matching gsap duration)
-            await Task.Delay(6500);
+            await Task.Delay(5500);
 
             winningNumber = resultData?.Number;
             
             if (result.TotalWin > 0) {
-                Snackbar.Add($"WINNER! Number {winningNumber} paid {result.TotalWin.ToString("C2")}", Severity.Success);
+                string winMsg = (resultData?.Multiplier > 0) 
+                    ? $"LIGHTNING WIN! {resultData.Multiplier}x Multiplier! Total: {result.TotalWin.ToString("C2")}"
+                    : $"WINNER! Number {winningNumber} paid {result.TotalWin.ToString("C2")}";
+                
+                Snackbar.Add(winMsg, resultData?.Multiplier > 0 ? Severity.Warning : Severity.Success);
                 await Audio.PlayWin();
             }
             
@@ -343,7 +372,22 @@
         };
     }
 
+    private RenderFragment? GetLuckyBadge(int number) {
+        if (!currentLuckyNumbers.TryGetValue(number, out int mult)) return null;
+        return builder => {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "lucky-badge animate-bounce");
+            builder.AddContent(2, $"x{mult}");
+            builder.CloseElement();
+        };
+    }
+
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    public class RouletteResult { public int Number { get; set; } }
+    public class RouletteResult { 
+        public int Number { get; set; } 
+        public string Mode { get; set; } = "Classic";
+        public Dictionary<int, int>? LuckyNumbers { get; set; }
+        public int Multiplier { get; set; }
+    }
 }
