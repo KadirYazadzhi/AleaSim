@@ -78,42 +78,49 @@ public class RouletteGameEngine : BaseGameEngine {
                 }
             } catch { }
             
+            var state = string.IsNullOrEmpty(session.GameState) 
+                ? new RouletteState() 
+                : JsonSerializer.Deserialize<RouletteState>(session.GameState) ?? new RouletteState();
+            int nonce = state.Nonce++;
+            session.GameState = JsonSerializer.Serialize(state);
+
             var decision = BrainService.DecideOutcome(session.UserId, GameId, betAmount, repo);
             
             int number = 0;
             var allNumbers = Enumerable.Range(0, 37).ToList();
 
             if (decision.DecisionType == "Random") {
-                number = RngService.GetNextInt(session.Seed, 0, 0, 37);
+                number = RngService.GetNextInt(session.Seed, nonce, 0, 37);
             }
             else if (decision.TargetWinAmount > 0) {
                 var winningCandidates = allNumbers.Where(n => CalculatePayout(n, bets, mode) > 0).ToList();
                 if (winningCandidates.Any()) {
-                    int idx = RngService.GetNextInt(session.Seed, 0, 0, winningCandidates.Count);
+                    int idx = RngService.GetNextInt(session.Seed, nonce, 0, winningCandidates.Count);
                     number = winningCandidates[idx];
                 } else {
-                    number = RngService.GetNextInt(session.Seed, 0, 0, 37); 
+                    number = RngService.GetNextInt(session.Seed, nonce, 0, 37); 
                 }
             } 
             else {
                 var losingCandidates = allNumbers.Where(n => CalculatePayout(n, bets, mode) == 0).ToList();
                 if (losingCandidates.Any()) {
-                    int idx = RngService.GetNextInt(session.Seed, 0, 0, losingCandidates.Count);
+                    int idx = RngService.GetNextInt(session.Seed, nonce, 0, losingCandidates.Count);
                     number = losingCandidates[idx];
                 } else {
-                    number = RngService.GetNextInt(session.Seed, 0, 0, 37); 
+                    number = RngService.GetNextInt(session.Seed, nonce, 0, 37); 
                 }
             }
             
             // --- Multiplier Logic (Extreme Mode) ---
             var luckyNumbers = new Dictionary<int, int>();
             if (mode == "Extreme") {
-                int count = RngService.GetNextInt(session.Seed, 777, 1, 6); // 1-5 numbers
+                // Use nonce-based seeds for randomness every spin
+                int count = RngService.GetNextInt(session.Seed, nonce + 500, 1, 6); // 1-5 numbers
                 for (int i = 0; i < count; i++) {
-                    int ln = RngService.GetNextInt(session.Seed, i + 100, 0, 37);
+                    int ln = RngService.GetNextInt(session.Seed, nonce + i + 1000, 0, 37);
                     if (!luckyNumbers.ContainsKey(ln)) {
-                        int[] pool = { 50, 100, 100, 200, 500 };
-                        int mult = pool[RngService.GetNextInt(session.Seed, i + 200, 0, pool.Length)];
+                        int[] pool = { 50, 100, 100, 200, 250, 500 };
+                        int mult = pool[RngService.GetNextInt(session.Seed, nonce + i + 2000, 0, pool.Length)];
                         luckyNumbers[ln] = mult;
                     }
                 }
