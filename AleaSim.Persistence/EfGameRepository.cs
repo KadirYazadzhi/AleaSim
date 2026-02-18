@@ -198,7 +198,7 @@ public class EfGameRepository : IGameRepository {
             .Include(t => t.User)
             .Where(t => t.TournamentDate == targetDate)
             .AsEnumerable() // Move to memory to support ordering by computed property RoiPercentage
-            .Where(t => !t.User.Username.StartsWith("Sim_"))
+            .Where(t => !t.User.Username.StartsWith("Sim_") && t.User.Role != Role.Admin)
             .OrderByDescending(t => t.RoiPercentage)
             .Take(topCount)
             .ToList();
