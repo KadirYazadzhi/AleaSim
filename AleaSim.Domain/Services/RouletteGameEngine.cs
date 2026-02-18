@@ -18,14 +18,18 @@ public class RouletteGameEngine : BaseGameEngine {
     }
 
     public override async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string betData) {
-        // 1. Parse bets to validate before taking money
         var bets = new List<RouletteBetDto>();
         try {
             if (!string.IsNullOrEmpty(betData)) {
-                // Handle both raw list and new payload format
-                using var doc = JsonDocument.Parse(betData);
+                string jsonToParse = betData;
+                // Handle cases where the string might be double-quoted/escaped as a string literal
+                if (betData.Trim().StartsWith("\"")) {
+                    jsonToParse = JsonSerializer.Deserialize<string>(betData) ?? "[]";
+                }
+
+                using var doc = JsonDocument.Parse(jsonToParse);
                 if (doc.RootElement.ValueKind == JsonValueKind.Array) {
-                    bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(betData) ?? new();
+                    bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(jsonToParse) ?? new();
                 } else if (doc.RootElement.TryGetProperty("Bets", out var betsEl)) {
                     bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(betsEl.GetRawText()) ?? new();
                 }
@@ -57,9 +61,14 @@ public class RouletteGameEngine : BaseGameEngine {
             string mode = "Classic";
             try {
                 if (!string.IsNullOrEmpty(lastBet?.BetData)) {
-                    using var doc = JsonDocument.Parse(lastBet.BetData);
+                    string jsonToParse = lastBet.BetData;
+                    if (jsonToParse.Trim().StartsWith("\"")) {
+                        jsonToParse = JsonSerializer.Deserialize<string>(jsonToParse) ?? "[]";
+                    }
+
+                    using var doc = JsonDocument.Parse(jsonToParse);
                     if (doc.RootElement.ValueKind == JsonValueKind.Array) {
-                        bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(lastBet.BetData) ?? new();
+                        bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(jsonToParse) ?? new();
                     } else {
                         if (doc.RootElement.TryGetProperty("Bets", out var betsEl)) 
                             bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(betsEl.GetRawText()) ?? new();
