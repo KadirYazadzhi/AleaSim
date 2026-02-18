@@ -10,34 +10,31 @@
 @inject ISnackbar Snackbar
 @inject IAuthService AuthService
 @inject LayoutService layoutService
+@inject IJSRuntime JSRuntime
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudGrid Justify="Justify.Center">
-        <!-- Result Display -->
+        <!-- Visual Roulette Wheel -->
         <MudItem xs="12">
-            <MudPaper Class="pa-6 text-center" Style="background: #0a2a0a; border: 4px solid #d4af37; border-radius: 50% 50% 0 0 / 20% 20% 0 0;">
-                @if (isSpinning)
+            <MudPaper Class="pa-4 d-flex justify-center align-center overflow-hidden" Style="background: radial-gradient(circle, #1a4a1a 0%, #0a2a0a 100%); border: 8px solid #3d2b1f; border-radius: 24px; box-shadow: 0 0 40px rgba(0,0,0,0.9); min-height: 520px; position: relative;">
+                
+                <div id="roulette-pro-container" style="width: 600px; height: 500px;">
+                    <!-- PixiJS Canvas here -->
+                </div>
+                
+                @if (winningNumber.HasValue && !isSpinning)
                 {
-                    <MudProgressCircular Color="Color.Warning" Indeterminate="true" Size="Size.Large" />
-                    <MudText Typo="Typo.h5" Class="mt-2" Style="color: white;">Wheel Spinning...</MudText>
-                }
-                else if (winningNumber.HasValue)
-                {
-                    <div class="result-ball @(GetNumberColor(winningNumber.Value))">
-                        @winningNumber
+                    <div class="result-overlay-pro animate-fade-in">
+                        <MudText Typo="Typo.h3" Class='@($"fw-black {(winningNumber == 0 ? "text-success" : (GetNumberColor(winningNumber.Value) == "red" ? "text-error" : "text-white"))}")'>
+                            @winningNumber
+                        </MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase">Winning Number</MudText>
                     </div>
-                    <MudText Typo="Typo.h4" Class="mt-2" Style="color: white; font-weight: bold;">
-                        @(winningNumber == 0 ? "ZERO" : GetNumberColor(winningNumber.Value).ToUpper()) WINS!
-                    </MudText>
-                }
-                else
-                {
-                    <MudText Typo="Typo.h4" Style="color: #666;">Place your bets!</MudText>
                 }
             </MudPaper>
         </MudItem>
 
-                <!-- Betting Table -->
+        <!-- Betting Table -->
                 <MudItem xs="12" lg="9">
                     <div @onmousedown="() => isMouseDown = true" 
                          @onmouseup="() => isMouseDown = false" 
@@ -129,6 +126,9 @@
     .result-ball { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 2rem; font-weight: bold; border: 4px solid white; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
     
     .bet-badge { position: absolute; top: -5px; right: -5px; background: #ffD700; color: black; border-radius: 50%; width: 24px; height: 24px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border: 2px solid white; font-weight: 900; z-index: 5; }
+    
+    .result-overlay-pro { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.8); padding: 15px 25px; border-radius: 16px; border: 2px solid #d4af37; text-align: center; box-shadow: 0 0 20px rgba(0,0,0,0.5); z-index: 10; }
+    .fw-black { font-weight: 900; }
 </style>
 
 @code {
@@ -139,6 +139,14 @@
     private bool isMouseDown = false;
     private Guid? sessionId;
     private List<RouletteBetDto> currentBets = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("roulettePro.init", "roulette-pro-container");
+        }
+    }
 
     protected override async Task OnInitializedAsync() {
         await Audio.Init();
@@ -216,10 +224,16 @@
             var betData = JsonSerializer.Serialize(currentBets);
             var result = await GameService.PlaceBet("roulette", sessionId.Value, totalWager, betData);
             
-            // Dramatic wait for ball animation
-            await Task.Delay(2000);
-
             var resultData = JsonSerializer.Deserialize<RouletteResult>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            
+            if (resultData != null) {
+                // Trigger Professional 2D Animation
+                await JSRuntime.InvokeVoidAsync("roulettePro.spin", resultData.Number);
+            }
+
+            // Wait for visual animation to complete (matching gsap duration)
+            await Task.Delay(6500);
+
             winningNumber = resultData?.Number;
             
             if (result.TotalWin > 0) {
