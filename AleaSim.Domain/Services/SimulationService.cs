@@ -65,7 +65,9 @@ public class SimulationService : ISimulationService {
                 // 1. Prepare Bet Data based on Game Type
                 string betData = "{}";
                 if (request.GameType.Equals("Roulette", StringComparison.OrdinalIgnoreCase)) {
-                    betData = "[{\"Type\":\"color\",\"Value\":\"red\",\"Amount\":" + request.BetAmount + "}]";
+                    var mode = request.GameMode ?? "Classic";
+                    var bets = new[] { new { Type = "color", Value = "red", Amount = request.BetAmount } };
+                    betData = JsonSerializer.Serialize(new { Bets = bets, Mode = mode });
                 } else if (request.GameType.Equals("Slot", StringComparison.OrdinalIgnoreCase)) {
                     betData = "{\"Denomination\":0.01}";
                 }

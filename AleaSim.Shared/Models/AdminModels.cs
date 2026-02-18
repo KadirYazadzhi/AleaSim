@@ -35,6 +35,7 @@ public class SentinelAlertDto {
 
 public class SimulationRequest {
     public string GameType { get; set; } = "Slot";
+    public string? GameMode { get; set; }
     public decimal BetAmount { get; set; } = 1.0m;
     public int Iterations { get; set; } = 100000;
     public Guid? UserId { get; set; }

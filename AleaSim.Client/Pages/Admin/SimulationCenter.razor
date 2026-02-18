@@ -31,6 +31,14 @@
                     <MudSelectItem Value="@("Blackjack")">Classic Blackjack</MudSelectItem>
                 </MudSelect>
 
+                @if (_request.GameType == "Roulette")
+                {
+                    <MudSelect T="string" @bind-Value="_request.GameMode" Label="Roulette Profile" Variant="Variant.Outlined" Class="mb-4 glass-input">
+                        <MudSelectItem Value="@("Classic")">Classic (35:1)</MudSelectItem>
+                        <MudSelectItem Value="@("Extreme")">Extreme (29:1 + 500x)</MudSelectItem>
+                    </MudSelect>
+                }
+
                 <MudNumericField T="decimal" @bind-Value="_request.BetAmount" Label="Bet Amount per round" Variant="Variant.Outlined" Min="0.1m" Max="1000" Step="1" Format="C2" Class="mb-4 glass-input" />
 
                 <MudSelect T="int" @bind-Value="_request.Iterations" Label="Iteration Count" Variant="Variant.Outlined" Class="mb-8 glass-input">
