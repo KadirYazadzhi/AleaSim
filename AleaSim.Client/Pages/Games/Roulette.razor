@@ -13,9 +13,9 @@
 @inject IJSRuntime JSRuntime
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudGrid Justify="Justify.Center">
-        <!-- Visual Roulette Wheel -->
-        <MudItem xs="12">
+    <MudGrid>
+        <!-- TOP ROW: Wheel and Controls -->
+        <MudItem xs="12" lg="9">
             <MudPaper Class="pa-4 d-flex justify-center align-center overflow-hidden" Style="background: radial-gradient(circle, #1a4a1a 0%, #0a2a0a 100%); border: 8px solid #3d2b1f; border-radius: 24px; box-shadow: 0 0 40px rgba(0,0,0,0.9); min-height: 520px; position: relative;">
                 
                 <div id="roulette-pro-container" style="width: 600px; height: 500px;">
@@ -34,79 +34,97 @@
             </MudPaper>
         </MudItem>
 
-        <!-- Betting Table -->
-                <MudItem xs="12" lg="9">
-                    <div @onmousedown="() => isMouseDown = true" 
-                         @onmouseup="() => isMouseDown = false" 
-                         @onmouseleave="() => isMouseDown = false"
-                         class="roulette-board-container">
-                        <MudPaper Class="pa-4" Style="background: #004d00; border: 10px solid #3d2b1f; border-radius: 10px;">
-                                                <div class="roulette-table">
-                                                    <!-- Zero -->
-                                                    <div class='@($"cell zero {GetCursorClass("number", "0")}")' 
-                                                         @onmousedown='() => HandleMouseDown("number", "0")'
-                                                         @onmousedown:stopPropagation
-                                                         @onmouseenter='() => HandleMouseEnter("number", "0")'>
-                                                        0
-                                                        @GetBetBadge("number", "0")
-                                                    </div>                                
-                                <!-- Numbers 1-36 -->
-                                <div class="numbers-grid">
-                                    @for (int i = 1; i <= 36; i++)
-                                    {
-                                        var num = i;
-                                        var type = "number";
-                                        var val = num.ToString();
-                                        <div class='@($"cell {GetNumberColor(num)} {GetCursorClass(type, val)}")' 
-                                             @onmousedown='() => HandleMouseDown(type, val)'
-                                             @onmouseenter='() => HandleMouseEnter(type, val)'>
-                                            @num
-                                            @GetBetBadge(type, val)
-                                        </div>
-                                    }
-                                </div>
-        
-                                <!-- Outside Bets -->
-                                <div class="outside-bets">
-                                    <div class='@($"cell red {GetCursorClass("color", "red")}")' 
-                                         @onmousedown='() => HandleMouseDown("color", "red")'
-                                         @onmouseenter='() => HandleMouseEnter("color", "red")'>RED @GetBetBadge("color", "red")</div>
-                                    <div class='@($"cell black {GetCursorClass("color", "black")}")' 
-                                         @onmousedown='() => HandleMouseDown("color", "black")'
-                                         @onmouseenter='() => HandleMouseEnter("color", "black")'>BLACK @GetBetBadge("color", "black")</div>
-                                    <div class='@($"cell even {GetCursorClass("evenodd", "even")}")' 
-                                         @onmousedown='() => HandleMouseDown("evenodd", "even")'
-                                         @onmouseenter='() => HandleMouseEnter("evenodd", "even")'>EVEN @GetBetBadge("evenodd", "even")</div>
-                                    <div class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' 
-                                         @onmousedown='() => HandleMouseDown("evenodd", "odd")'
-                                         @onmouseenter='() => HandleMouseEnter("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
-                                </div>
-                            </div>
-                        </MudPaper>
-                    </div>
-                </MudItem>
-        <!-- Controls -->
         <MudItem xs="12" lg="3">
-            <MudPaper Class="pa-6 d-flex flex-column gap-4">
-                <MudText Typo="Typo.h5">Balance: <span style="color: #4caf50;">@balance.ToString("C2")</span></MudText>
+            <MudPaper Class="pa-6 d-flex flex-column gap-4 h-100" Style="background: rgba(0,0,0,0.2); border: 1px solid var(--mud-palette-divider); border-radius: 24px;">
+                <div class="mb-4">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">YOUR BALANCE</MudText>
+                    <MudText Typo="Typo.h4" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
+                </div>
                 
-                <MudNumericField @bind-Value="chipValue" Label="Chip Value" Variant="Variant.Outlined" Min="1" Max="100" />
+                <MudNumericField @bind-Value="chipValue" Label="Chip Value" Variant="Variant.Outlined" Min="1" Max="100" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AddCard" />
                 
-                <MudText Typo="Typo.subtitle2">Total Bet: @currentBets.Sum(x => x.Amount).ToString("C2")</MudText>
+                <div class="pa-4 rounded-lg bg-dark-lighten">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">TOTAL WAGER</MudText>
+                    <MudText Typo="Typo.h5" Class="fw-bold">@currentBets.Sum(x => x.Amount).ToString("C2")</MudText>
+                </div>
+
+                <MudSpacer />
 
                 <MudButton Variant="Variant.Filled" 
                            Color="Color.Primary" 
                            Size="Size.Large" 
                            OnClick="OnSpin" 
                            Disabled="@(isSpinning || !currentBets.Any())"
-                           Style="height: 80px; font-weight: bold;">
-                    SPIN WHEEL
+                           Class="rounded-xl pulse-neon"
+                           Style="height: 100px; font-size: 1.5rem; font-weight: 900;">
+                    SPIN
                 </MudButton>
 
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ClearBets" Disabled="isSpinning">
-                    CLEAR ALL
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ClearBets" Disabled="isSpinning" Class="rounded-lg">
+                    CLEAR BETS
                 </MudButton>
             </MudPaper>
+        </MudItem>
+
+        <!-- BOTTOM ROW: Betting Table -->
+        <MudItem xs="12" lg="9">
+            <div @onmousedown="() => isMouseDown = true" 
+                 @onmouseup="() => isMouseDown = false" 
+                 @onmouseleave="() => isMouseDown = false"
+                 class="roulette-board-container mt-2">
+                <MudPaper Class="pa-4" Style="background: #004d00; border: 10px solid #3d2b1f; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
+                    <div class="roulette-table">
+                        <!-- Zero -->
+                        <div class='@($"cell zero {GetCursorClass("number", "0")}")' 
+                             @onmousedown='() => HandleMouseDown("number", "0")'
+                             @onmousedown:stopPropagation
+                             @onmouseenter='() => HandleMouseEnter("number", "0")'>
+                            0
+                            @GetBetBadge("number", "0")
+                        </div>                                
+                        <!-- Numbers 1-36 -->
+                        <div class="numbers-grid">
+                            @for (int i = 1; i <= 36; i++)
+                            {
+                                var num = i;
+                                var type = "number";
+                                var val = num.ToString();
+                                <div class='@($"cell {GetNumberColor(num)} {GetCursorClass(type, val)}")' 
+                                     @onmousedown='() => HandleMouseDown(type, val)'
+                                     @onmouseenter='() => HandleMouseEnter(type, val)'>
+                                    @num
+                                    @GetBetBadge(type, val)
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Outside Bets -->
+                        <div class="outside-bets">
+                            <div class='@($"cell red {GetCursorClass("color", "red")}")' 
+                                 @onmousedown='() => HandleMouseDown("color", "red")'
+                                 @onmouseenter='() => HandleMouseEnter("color", "red")'>RED @GetBetBadge("color", "red")</div>
+                            <div class='@($"cell black {GetCursorClass("color", "black")}")' 
+                                 @onmousedown='() => HandleMouseDown("color", "black")'
+                                 @onmouseenter='() => HandleMouseEnter("color", "black")'>BLACK @GetBetBadge("color", "black")</div>
+                            <div class='@($"cell even {GetCursorClass("evenodd", "even")}")' 
+                                 @onmousedown='() => HandleMouseDown("evenodd", "even")'
+                                 @onmouseenter='() => HandleMouseEnter("evenodd", "even")'>EVEN @GetBetBadge("evenodd", "even")</div>
+                            <div class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' 
+                                 @onmousedown='() => HandleMouseDown("evenodd", "odd")'
+                                 @onmouseenter='() => HandleMouseEnter("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
+                        </div>
+                    </div>
+                </MudPaper>
+            </div>
+        </MudItem>
+
+        <MudItem xs="12" lg="3">
+             <!-- Sidebar context/Stats -->
+             <div class="pa-6 rounded-xl glass-panel h-100 d-flex flex-column justify-center align-center opacity-50">
+                 <MudIcon Icon="@Icons.Material.Filled.AutoGraph" Size="Size.Large" Class="mb-2" />
+                 <MudText Typo="Typo.body2">Session Analytics</MudText>
+                 <MudText Typo="Typo.caption">Detailed stats coming soon</MudText>
+             </div>
         </MudItem>
     </MudGrid>
 </MudContainer>
