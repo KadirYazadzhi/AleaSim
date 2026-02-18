@@ -123,34 +123,43 @@
         </MudItem>
 
         <MudItem xs="12" lg="3">
-             <!-- Mode Selector -->
-             <div class="pa-4 rounded-xl glass-panel h-100 d-flex flex-column gap-2 border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)")};")'>
+             <!-- Mode Selector Redesign -->
+             <div class="pa-4 rounded-xl glass-panel h-100 d-flex flex-column gap-3 border border-solid var(--mud-palette-divider) position-relative" style='@($"background: {(layoutService.IsDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)")};")'>
                  <MudText Typo="Typo.subtitle2" Class="fw-bold d-flex align-center">
                      <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small" Class="mr-2" Color="Color.Primary" /> Game Profile
                  </MudText>
                  
                  <MudDivider />
 
-                 <div class="d-flex gap-2 mt-1">
-                     <MudTooltip Text="Standard 35:1 payouts. Low volatility, consistent game." Arrow="true" Placement="Placement.Left">
-                         <div class='@($"flex-grow-1 pa-3 rounded-lg cursor-pointer text-center transition-all border-2 {(selectedMode == "Classic" ? "border-primary bg-primary-transparent" : "border-transparent bg-dark-lighten")}")' 
-                              @onclick='() => SetMode("Classic")'>
-                             <MudText Typo="Typo.button" Class="fw-bold">CLASSIC</MudText>
-                         </div>
-                     </MudTooltip>
-
-                     <MudTooltip Text="Base 29:1 payouts. Random 50x-500x multipliers on lucky numbers!" Arrow="true" Placement="Placement.Right">
-                         <div class='@($"flex-grow-1 pa-3 rounded-lg cursor-pointer text-center transition-all border-2 {(selectedMode == "Extreme" ? "border-warning bg-warning-transparent" : "border-transparent bg-dark-lighten")}")' 
-                              @onclick='() => SetMode("Extreme")'>
-                             <MudText Typo="Typo.button" Class='@($"fw-bold {(selectedMode == "Extreme" ? "text-warning" : "")}")'>EXTREME</MudText>
-                         </div>
-                     </MudTooltip>
+                 <!-- CLASSIC CARD -->
+                 <div class='@($"mode-card-pro {(selectedMode == "Classic" ? "active-classic" : "")}")' @onclick='() => SetMode("Classic")'>
+                     <div class="mode-card-content">
+                         <MudIcon Icon="@Icons.Material.Filled.History" Class="mode-icon" />
+                         <MudText Typo="Typo.button" Class="fw-black">CLASSIC</MudText>
+                     </div>
+                     <div class="mode-hover-overlay">
+                         <MudText Typo="Typo.caption" Class="fw-bold">STANDARD MODE</MudText>
+                         <MudText Typo="Typo.body2" Style="font-size: 0.75rem;">Traditional 35:1 payouts. Lower risk, perfect for long sessions.</MudText>
+                     </div>
                  </div>
 
-                 <div class="mt-auto">
-                     <MudAlert Severity="@(selectedMode == "Extreme" ? Severity.Warning : Severity.Info)" Dense="true" NoIcon="true" Class="rounded-lg py-1 px-3">
-                         <MudText Typo="Typo.caption" Class="fw-bold">@(selectedMode == "Extreme" ? "MULTIPLIERS ACTIVE" : "CLASSIC ACTIVE")</MudText>
-                     </MudAlert>
+                 <!-- EXTREME CARD -->
+                 <div class='@($"mode-card-pro {(selectedMode == "Extreme" ? "active-extreme" : "")}")' @onclick='() => SetMode("Extreme")'>
+                     <div class="mode-card-content">
+                         <MudIcon Icon="@Icons.Material.Filled.Bolt" Class="mode-icon text-warning" />
+                         <MudText Typo="Typo.button" Class='@($"fw-black {(selectedMode == "Extreme" ? "text-warning" : "")}")'>EXTREME</MudText>
+                     </div>
+                     <div class="mode-hover-overlay">
+                         <MudText Typo="Typo.caption" Class="fw-bold text-warning">MULTIPLIER MODE</MudText>
+                         <MudText Typo="Typo.body2" Style="font-size: 0.75rem;">Base 29:1 payouts. Random Lightning Strikes apply 50x to 500x multipliers!</MudText>
+                     </div>
+                 </div>
+
+                 <div class="mt-auto pt-2">
+                     <MudText Typo="Typo.caption" Class='@($"fw-bold {(selectedMode == "Extreme" ? "text-warning" : "text-info")}")'>
+                         <MudIcon Icon="@(selectedMode == "Extreme" ? Icons.Material.Filled.AutoAwesome : Icons.Material.Filled.Info)" Size="Size.Small" Class="mr-1" />
+                         @(selectedMode == "Extreme" ? "EXTREME MODE ACTIVE" : "CLASSIC MODE ACTIVE")
+                     </MudText>
                  </div>
              </div>
         </MudItem>
@@ -199,9 +208,40 @@
     }
     .fw-black { font-weight: 900; }
     .bg-dark-lighten { background: rgba(255,255,255,0.05); }
-    .bg-primary-transparent { background: rgba(124, 58, 237, 0.1) !important; }
-    .bg-warning-transparent { background: rgba(255, 152, 0, 0.1) !important; }
     .transition-all { transition: all 0.3s ease; }
+
+    /* Redesigned Mode Cards */
+    .mode-card-pro { 
+        position: relative; 
+        padding: 16px; 
+        border-radius: 16px; 
+        cursor: pointer; 
+        border: 2px solid transparent; 
+        background: rgba(255,255,255,0.05); 
+        transition: all 0.2s ease;
+        overflow: hidden;
+    }
+    .mode-card-content { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+    .mode-icon { font-size: 1.5rem; opacity: 0.7; }
+    
+    .active-classic { border-color: var(--mud-palette-primary); background: rgba(124, 58, 237, 0.1); }
+    .active-extreme { border-color: var(--mud-palette-warning); background: rgba(255, 152, 0, 0.1); }
+
+    .mode-hover-overlay {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(20, 20, 20, 0.95);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 12px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        pointer-events: none;
+        text-align: center;
+        backdrop-filter: blur(4px);
+    }
+    .mode-card-pro:hover .mode-hover-overlay { opacity: 1; }
 </style>
 
 @code {
