@@ -3,6 +3,7 @@
 @implements IDisposable
 @inject RealTimeClient RealTime
 @inject LayoutService LayoutService
+@inject HttpClient Http
 
 <div class="jackpot-container">
     <div class="jackpot-row spades">
@@ -61,19 +62,36 @@
     private decimal diamonds = 500m;
     private decimal clubs = 50m;
 
-    protected override void OnInitialized() {
+    protected override async Task OnInitializedAsync() {
         RealTime.OnJackpotUpdated += HandleUpdate;
         LayoutService.OnMajorUpdate += StateHasChanged;
+        
+        await LoadInitialJackpots();
+    }
+
+    private async Task LoadInitialJackpots() {
+        try {
+            var jackpots = await Http.GetFromJsonAsync<List<JackpotDto>>("api/Game/jackpots");
+            if (jackpots != null) {
+                foreach (var j in jackpots) {
+                    UpdateLocalValue(j);
+                }
+                StateHasChanged();
+            }
+        } catch { /* Fail silently, keep defaults */ }
     }
 
     private void HandleUpdate(JackpotDto dto) {
+        UpdateLocalValue(dto);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateLocalValue(JackpotDto dto) {
         if (dto.Name.Contains("Spades")) spades = dto.CurrentValue;
         else if (dto.Name.Contains("Hearts")) hearts = dto.CurrentValue;
         else if (dto.Name.Contains("Diamonds")) diamonds = dto.CurrentValue;
         else if (dto.Name.Contains("Clubs")) clubs = dto.CurrentValue;
         else if (dto.IsGlobal) spades = dto.CurrentValue; // Fallback
-        
-        InvokeAsync(StateHasChanged);
     }
 
     public void Dispose() {

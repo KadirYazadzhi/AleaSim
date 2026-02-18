@@ -187,6 +187,19 @@ public class GameController : ControllerBase {
     }
 
     [AllowAnonymous]
+    [HttpGet("jackpots")]
+    public IActionResult GetJackpots() {
+        var jackpots = _repo.GetJackpots();
+        var result = jackpots.Select(j => new JackpotDto {
+            Name = j.Name,
+            CurrentValue = j.CurrentValue,
+            MustDropAt = j.MustDropAt,
+            IsGlobal = j.IsGlobal
+        }).ToList();
+        return Ok(result);
+    }
+
+    [AllowAnonymous]
     [HttpGet("platform-stats")]
     public IActionResult GetPlatformStats() {
         var financials = _repo.GetDailyFinancials(DateTime.UtcNow.Date);
