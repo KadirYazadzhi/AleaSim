@@ -51,14 +51,20 @@ public abstract class BaseGameEngine : IGame {
                 };
                 repo.SaveBet(bet);
                 
+                var user = repo.GetUser(session.UserId);
+                bool isSimUser = user?.Username.StartsWith("Sim_") == true;
+
                 BrainService.UpdateProfile(session.UserId, amount, 0, repo);
-                PromotionService.ProcessBetActivity(session.UserId, amount, repo);
-                await JackpotService.Contribute(session.GameId, amount, repo);
-                
-                // Quest Integration
-                questService.GenerateDailyQuests(session.UserId, repo);
-                await questService.UpdateProgressAsync(session.UserId, "SpinCount", 1, repo, VaultService);
-                await levelService.AddExperience(session.UserId, amount, repo, RealTimeService);
+
+                if (!isSimUser) {
+                    PromotionService.ProcessBetActivity(session.UserId, amount, repo);
+                    await JackpotService.Contribute(session.GameId, amount, repo);
+                    
+                    // Quest Integration
+                    questService.GenerateDailyQuests(session.UserId, repo);
+                    await questService.UpdateProgressAsync(session.UserId, "SpinCount", 1, repo, VaultService);
+                    await levelService.AddExperience(session.UserId, amount, repo, RealTimeService);
+                }
             } else {
                 throw new Exception("Insufficient funds");
             }

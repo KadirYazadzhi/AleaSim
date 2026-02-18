@@ -16,5 +16,11 @@ public class GameRound {
     
     public string ShadowBrainResult { get; set; } = string.Empty; // What a test Brain would have decided
 
+    // --- Provably Fair Persistence ---
+    public string ServerSeed { get; set; } = string.Empty;
+    public string ServerSeedHash { get; set; } = string.Empty;
+    public string ClientSeed { get; set; } = string.Empty;
+    public int Nonce { get; set; }
+
     public DateTime ExecutedAt { get; set; }
 }

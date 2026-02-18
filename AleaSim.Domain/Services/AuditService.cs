@@ -62,7 +62,13 @@ public class AuditService : IAuditService {
         using var scope = _scopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         
-        var logs = repo.GetAllAuditLogs().OrderBy(x => x.Timestamp).ToList();
+        // IMPORTANT: Must sort by Timestamp AND Id to ensure deterministic order 
+        // when multiple records share the same second-precision timestamp.
+        var logs = repo.GetAllAuditLogs()
+            .OrderBy(x => x.Timestamp)
+            .ThenBy(x => x.Id)
+            .ToList();
+        
         if (!logs.Any()) return true;
 
         string expectedPreviousHash = "GENESIS";
@@ -90,8 +96,11 @@ public class AuditService : IAuditService {
         using var scope = _scopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         
-        // Ensure we load all entities and track them
-        var allLogs = repo.GetAllAuditLogs().OrderBy(x => x.Timestamp).ToList();
+        // Ensure deterministic order for identical timestamps
+        var allLogs = repo.GetAllAuditLogs()
+            .OrderBy(x => x.Timestamp)
+            .ThenBy(x => x.Id)
+            .ToList();
         
         if (!allLogs.Any()) return;
 

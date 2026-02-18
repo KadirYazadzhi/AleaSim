@@ -68,7 +68,11 @@ public class BlackjackGameEngine : BaseGameEngine {
                 RoundNumber = roundNum,
                 TotalBetAmount = lastBet.Amount,
                 ExecutedAt = DateTime.UtcNow,
-                RandomResult = JsonSerializer.Serialize(state)
+                RandomResult = JsonSerializer.Serialize(state),
+                ServerSeed = session.ServerSeed,
+                ServerSeedHash = session.ServerSeedHash,
+                ClientSeed = session.ClientSeed,
+                Nonce = state.Sequence
             };
             
             // If instant finish (Blackjack)

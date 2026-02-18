@@ -161,7 +161,11 @@ public class RouletteGameEngine : BaseGameEngine {
                     Multiplier = winMultiplier 
                 }),
                 DecisionType = decision.DecisionType,
-                ExecutedAt = DateTime.UtcNow
+                ExecutedAt = DateTime.UtcNow,
+                ServerSeed = session.ServerSeed,
+                ServerSeedHash = session.ServerSeedHash,
+                ClientSeed = session.ClientSeed,
+                Nonce = nonce
             };
 
             repo.SaveRound(round);

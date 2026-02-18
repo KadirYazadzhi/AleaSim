@@ -259,7 +259,11 @@ public class SlotGameEngine : BaseGameEngine {
                 RoundNumber = roundCount + 1,
                 RandomResult = JsonSerializer.Serialize(new { Grid = state.Grid, state.IsRespinActive, state.IsBonusActive, state.WasNudged, BonusTotal = state.BonusBells.Sum(x=>x.Value), state.Denomination, BonusBells = state.BonusBells }),
                 DecisionType = directive.DecisionType, ExecutedAt = DateTime.UtcNow,
-                ShadowBrainResult = JsonSerializer.Serialize(shadowDirective)
+                ShadowBrainResult = JsonSerializer.Serialize(shadowDirective),
+                ServerSeed = session.ServerSeed,
+                ServerSeedHash = session.ServerSeedHash,
+                ClientSeed = session.ClientSeed,
+                Nonce = roundCount + 1
             };
             repo.SaveRound(round);
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Grid = state.Grid, Win = totalWin, IsRespin = state.IsRespinActive, Nudge = state.WasNudged, Bonus = state.IsBonusActive, Bells = state.BonusBells });
