@@ -61,6 +61,9 @@ public class SimulationService : ISimulationService {
             var session = await engine.StartSession(dummyUser.Id, game.Id);
             bool pendingFeature = false;
 
+            // PERFORMANCE FIX: Wrap simulation in a single transaction
+            using var transaction = repo.BeginTransaction();
+
             for (int i = 0; i < request.Iterations; i++) {
                 // 1. Prepare Bet Data based on Game Type
                 string betData = "{}";
@@ -89,8 +92,6 @@ public class SimulationService : ISimulationService {
                         if (stateJson.Contains("\"IsRoundOver\":true")) break;
 
                         // Basic Strategy Simulator: Stand on 17+
-                        // We need to parse hand value from state. 
-                        // Simplified: Stand immediately for speed or loop Hit.
                         await engine.ProcessAction(dummyUser.Id, session.Id, "stand", "");
                         
                         // Re-fetch round to get final win
@@ -116,6 +117,7 @@ public class SimulationService : ISimulationService {
                 distribution[dType]++;
             }
 
+            transaction.Commit();
             stopwatch.Stop();
 
             decimal rtpResult = totalBet > 0 ? (totalWin / totalBet) * 100m : 0m;

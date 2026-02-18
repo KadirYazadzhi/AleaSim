@@ -165,7 +165,11 @@ public class RouletteGameEngine : BaseGameEngine {
             };
 
             repo.SaveRound(round);
-            await RealTimeService.NotifyGameUpdate(session.UserId, new { Game = "Roulette", Number = number, Win = actualWin, LuckyNumbers = luckyNumbers, Multiplier = winMultiplier });
+            
+            var user = repo.GetUser(session.UserId);
+            if (user != null && !user.Username.StartsWith("Sim_")) {
+                await RealTimeService.NotifyGameUpdate(session.UserId, new { Game = "Roulette", Number = number, Win = actualWin, LuckyNumbers = luckyNumbers, Multiplier = winMultiplier });
+            }
             return round;
         });
     }
