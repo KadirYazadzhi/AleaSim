@@ -12,7 +12,7 @@
 @inject LayoutService layoutService
 @inject IJSRuntime JSRuntime
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4" Style="padding-top: 20px;">
     <MudGrid>
         <!-- TOP ROW: Wheel and Controls -->
         <MudItem xs="12" lg="9">
@@ -124,8 +124,13 @@
 
         <MudItem xs="12" lg="3">
              <!-- Mode Selector - Clean Rectangular Stacking -->
-             <div class="pa-2 rounded-xl glass-panel h-100 d-flex flex-column gap-2 border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)")};")'>
+             <div class="pa-4 rounded-xl glass-panel h-100 d-flex flex-column gap-3 border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)")};")'>
+                 <MudText Typo="Typo.subtitle2" Class="fw-bold d-flex align-center">
+                     <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small" Class="mr-2" Color="Color.Primary" /> Game Profile
+                 </MudText>
                  
+                 <MudDivider />
+
                  <div class="d-flex flex-column gap-2 flex-grow-1">
                      <MudTooltip Text="Standard 35:1 payouts. Low volatility, consistent game." Arrow="true" Placement="Placement.Left">
                          <div class='@($"mode-rect-card {(selectedMode == "Classic" ? "active-classic" : "")}")' @onclick='() => SetMode("Classic")'>
