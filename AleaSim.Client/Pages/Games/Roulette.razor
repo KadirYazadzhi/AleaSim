@@ -25,27 +25,27 @@
                 @if (winningNumber.HasValue && !isSpinning)
                 {
                     <div class="result-overlay-pro animate-fade-in">
-                        <MudText Typo="Typo.h3" Class='@($"fw-black {(winningNumber == 0 ? "text-success" : (GetNumberColor(winningNumber.Value) == "red" ? "text-error" : "text-white"))}")'>
+                        <MudText Typo="Typo.h3" Style='@($"font-weight: 900; color: {(winningNumber == 0 ? "#4caf50" : (GetNumberColor(winningNumber.Value) == "red" ? "#ff5252" : "#ffffff"))};")'>
                             @winningNumber
                         </MudText>
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase">Winning Number</MudText>
+                        <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.6); text-transform: uppercase;">Winning Number</MudText>
                     </div>
                 }
             </MudPaper>
         </MudItem>
 
         <MudItem xs="12" lg="3">
-            <MudPaper Class="pa-6 d-flex flex-column gap-4 h-100" Style="background: rgba(0,0,0,0.2); border: 1px solid var(--mud-palette-divider); border-radius: 24px;">
-                <div class="mb-4">
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">YOUR BALANCE</MudText>
+            <MudPaper Class="pa-6 d-flex flex-column gap-4 h-100" Style='@($"background: {(layoutService.IsDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)")}; border: 1px solid var(--mud-palette-divider); border-radius: 24px;")'>
+                <div class="pa-4 rounded-xl border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.5)")};")'>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary fw-bold">YOUR BALANCE</MudText>
                     <MudText Typo="Typo.h4" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
                 </div>
                 
-                <MudNumericField @bind-Value="chipValue" Label="Chip Value" Variant="Variant.Outlined" Min="1" Max="100" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AddCard" />
+                <MudNumericField @bind-Value="chipValue" Label="Chip Value" Variant="Variant.Outlined" Min="1" Max="100" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AddCard" Class="glass-input" />
                 
-                <div class="pa-4 rounded-lg bg-dark-lighten">
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">TOTAL WAGER</MudText>
-                    <MudText Typo="Typo.h5" Class="fw-bold">@currentBets.Sum(x => x.Amount).ToString("C2")</MudText>
+                <div class="pa-4 rounded-xl border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.5)")};")'>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary fw-bold">TOTAL WAGER</MudText>
+                    <MudText Typo="Typo.h5" Class="fw-bold" Color="Color.Primary">@currentBets.Sum(x => x.Amount).ToString("C2")</MudText>
                 </div>
 
                 <MudSpacer />
@@ -60,7 +60,7 @@
                     SPIN
                 </MudButton>
 
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ClearBets" Disabled="isSpinning" Class="rounded-lg">
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ClearBets" Disabled="isSpinning" Class="rounded-lg border-2">
                     CLEAR BETS
                 </MudButton>
             </MudPaper>
@@ -145,8 +145,21 @@
     
     .bet-badge { position: absolute; top: -5px; right: -5px; background: #ffD700; color: black; border-radius: 50%; width: 24px; height: 24px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border: 2px solid white; font-weight: 900; z-index: 5; }
     
-    .result-overlay-pro { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.8); padding: 15px 25px; border-radius: 16px; border: 2px solid #d4af37; text-align: center; box-shadow: 0 0 20px rgba(0,0,0,0.5); z-index: 10; }
+    .result-overlay-pro { 
+        position: absolute; 
+        top: 20px; 
+        right: 20px; 
+        background: rgba(0,0,0,0.85); 
+        padding: 15px 25px; 
+        border-radius: 16px; 
+        border: 2px solid #d4af37; 
+        text-align: center; 
+        box-shadow: 0 0 30px rgba(0,0,0,0.6); 
+        z-index: 10; 
+        backdrop-filter: blur(8px);
+    }
     .fw-black { font-weight: 900; }
+    .bg-dark-lighten { background: rgba(255,255,255,0.05); }
 </style>
 
 @code {
