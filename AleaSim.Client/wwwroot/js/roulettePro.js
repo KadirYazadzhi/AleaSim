@@ -17,8 +17,7 @@ window.roulettePro = {
             backgroundColor: 0x000000,
             backgroundAlpha: 0,
             antialias: true,
-            resolution: window.devicePixelRatio || 1,
-            autoDensity: true
+            resolution: window.devicePixelRatio || 1
         });
         el.appendChild(window.roulettePro.app.view);
         window.roulettePro.setup();
@@ -32,20 +31,18 @@ window.roulettePro = {
 
         const root = new PIXI.Container();
         root.x = centerX; root.y = centerY;
-        root.scale.y = 0.72; // Perspective
+        root.scale.y = 0.75; 
         app.stage.addChild(root);
 
-        // 1. Outer Frame (Wooden)
         const frame = new PIXI.Graphics();
-        frame.beginFill(0x2a1d15);
-        frame.lineStyle(12, 0x1a120d);
-        frame.drawCircle(0, 0, 245);
+        frame.beginFill(0x1a0f0a);
+        frame.lineStyle(8, 0x000000);
+        frame.drawCircle(0, 0, 240);
         frame.endFill();
-        frame.lineStyle(2, 0xd4af37, 0.3);
-        frame.drawCircle(0, 0, 235);
+        frame.lineStyle(3, 0xc5a059, 0.6);
+        frame.drawCircle(0, 0, 225);
         root.addChild(frame);
 
-        // 2. Rotating Disk Container
         const disk = new PIXI.Container();
         root.addChild(disk);
         self.rotatingDisk = disk;
@@ -53,77 +50,60 @@ window.roulettePro = {
         const segAngle = (Math.PI * 2) / 37;
         
         numbers.forEach((num, i) => {
-            const angle = i * segAngle - Math.PI / 2;
+            const angle = i * segAngle;
             const segment = new PIXI.Graphics();
             
-            let color = 0x1a1a1a;
-            if (num === 0) color = 0x006400;
-            else if ([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36].includes(num)) color = 0x8b0000;
+            let color = 0x111111; 
+            if (num === 0) color = 0x005500; 
+            else if ([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36].includes(num)) color = 0x990000; 
             
             segment.beginFill(color);
-            segment.lineStyle(1, 0x333333, 0.4);
+            segment.lineStyle(1, 0x333333, 0.3);
             segment.moveTo(0, 0);
-            segment.arc(0, 0, 220, angle - segAngle/2, angle + segmentAngle/2);
+            segment.arc(0, 0, 220, angle - segAngle/2, angle + segAngle/2);
             segment.lineTo(0, 0);
             segment.endFill();
             disk.addChild(segment);
 
-            // Metal Divider Pins
             const pin = new PIXI.Graphics();
-            pin.beginFill(0xaaaaaa);
-            pin.drawCircle(Math.cos(angle - segAngle/2) * 218, Math.sin(angle - segAngle/2) * 218, 2);
+            pin.beginFill(0xd4af37);
+            pin.drawCircle(Math.cos(angle - segAngle/2) * 218, Math.sin(angle - segAngle/2) * 218, 2.5);
             pin.endFill();
             disk.addChild(pin);
 
-            // Numbers
             const text = new PIXI.Text(num.toString(), {
                 fontFamily: 'Montserrat',
-                fontSize: 16,
-                fontWeight: '900',
+                fontSize: 18,
+                fontWeight: '800',
                 fill: '#ffffff'
             });
             text.anchor.set(0.5);
-            text.x = Math.cos(angle) * 195;
-            text.y = Math.sin(angle) * 195;
-            text.rotation = angle + Math.PI / 2;
+            text.x = Math.cos(angle) * 190;
+            text.y = Math.sin(angle) * 190;
+            text.rotation = angle + Math.PI/2;
             disk.addChild(text);
         });
 
-        // 3. Spindle/Hub (Center part that rotates)
-        const hub = new PIXI.Container();
+        const hub = new PIXI.Graphics();
+        hub.beginFill(0x2a1d15);
+        hub.lineStyle(4, 0xd4af37);
+        hub.drawCircle(0, 0, 60);
+        hub.endFill();
+        hub.lineStyle(6, 0xd4af37, 0.7);
+        hub.moveTo(-50, 0); hub.lineTo(50, 0);
+        hub.moveTo(0, -50); hub.lineTo(0, 50);
         disk.addChild(hub);
-        const hubG = new PIXI.Graphics();
-        hubG.beginFill(0x3d2b1f);
-        hubG.lineStyle(4, 0xd4af37);
-        hubG.drawCircle(0, 0, 65);
-        hubG.endFill();
-        // Golden Cross
-        hubG.lineStyle(8, 0xd4af37, 0.8);
-        hubG.moveTo(-55, 0); hubG.lineTo(55, 0);
-        hubG.moveTo(0, -55); hubG.lineTo(0, 55);
-        hub.addChild(hubG);
 
-        // 4. Ball
         const ball = new PIXI.Graphics();
         ball.beginFill(0xffffff);
         ball.drawCircle(0, 0, 7);
         ball.endFill();
-        ball.beginFill(0xffffff, 0.6);
-        ball.drawCircle(-2, -2, 2);
-        ball.endFill();
         ball.alpha = 0;
-        root.addChild(ball); // Ball is in root (world space during spin)
+        root.addChild(ball);
         self.ball = ball;
 
-        // 5. Lighting Overlays
-        const shine = new PIXI.Graphics();
-        shine.beginFill(0xffffff, 0.05);
-        shine.drawEllipse(0, -100, 200, 100);
-        shine.endFill();
-        app.stage.addChild(shine); shine.x = centerX; shine.y = centerY;
-
         app.ticker.add(() => {
-            if (!self.spinning) disk.rotation += 0.003;
+            if (!self.spinning) disk.rotation += 0.005;
         });
     },
 
@@ -135,32 +115,49 @@ window.roulettePro = {
         const targetIndex = self.numbers.indexOf(targetNumber);
         const segmentAngleRad = (Math.PI * 2) / 37;
         
-        // 1. Setup Ball for world-space orbit
+        // 1. Prepare Ball
         self.ball.alpha = 1;
-        const ballState = { angle: 0, radius: 230 };
+        // The ball will stop at Math.PI / 2 (Bottom of the screen)
+        const stopAngle = Math.PI / 2;
+        const ballState = { angle: -Math.PI / 2, radius: 230 };
         
-        // 2. Math Logic: 
-        // We want the targetIndex segment to be at the TOP (-PI/2) when we stop.
-        // Current angle of segment i is: i * segAngle + disk.rotation
-        // We want: targetIndex * segAngle + disk.rotation = -PI/2
-        // So: targetRotation = -PI/2 - (targetIndex * segAngle)
+        // 2. THE SYNC MATH
+        // Segment angle on disk is i * segAngle
+        // Visual angle = (i * segAngle) + disk.rotation
+        // We want: (targetIndex * segAngle) + finalDiskRotation = stopAngle
+        // finalDiskRotation = stopAngle - (targetIndex * segAngle)
         
-        const extraSpins = Math.PI * 2 * 5; // 5 full loops
-        const baseTarget = - (targetIndex * segmentAngleRad);
-        const finalRotation = self.rotatingDisk.rotation + extraSpins + (Math.PI * 2) + baseTarget;
+        const currentRotation = self.rotatingDisk.rotation;
+        const fullSpins = Math.PI * 2 * 6; 
+        
+        // Calculate the necessary target rotation
+        let targetDiskRotation = stopAngle - (targetIndex * segmentAngleRad);
+        
+        // Ensure finalRotation is forward and includes enough spins
+        let finalRotation = currentRotation + fullSpins;
+        // Adjust to hit the exact angle modulo 2PI
+        const currentNorm = finalRotation % (Math.PI * 2);
+        let diff = targetDiskRotation - currentNorm;
+        while (diff < 0) diff += Math.PI * 2;
+        finalRotation += diff;
 
         // Animate Disk
         gsap.to(self.rotatingDisk, {
             rotation: finalRotation,
             duration: 7,
             ease: "power2.inOut",
-            onComplete: () => { self.spinning = false; }
+            onComplete: () => {
+                self.spinning = false;
+            }
         });
 
-        // Animate Ball
-        // Ball orbits faster in opposite direction
+        // Animate Ball (Opposite direction)
+        // End ball angle at a value that is equivalent to stopAngle (mod 2PI)
+        const totalBallSpins = Math.PI * 2 * 10;
+        const finalBallAngle = -totalBallSpins + stopAngle;
+
         gsap.to(ballState, {
-            angle: -(Math.PI * 2 * 10), // 10 fast orbits
+            angle: finalBallAngle,
             duration: 5.5,
             ease: "power1.out",
             onUpdate: () => {
@@ -169,15 +166,12 @@ window.roulettePro = {
             }
         });
 
-        // Ball spiraling down into the pocket
+        // Spiral ball into the pocket
         gsap.to(ballState, {
-            radius: 205,
-            delay: 4,
-            duration: 2,
-            ease: "bounce.out",
-            onUpdate: () => {
-                // Ensure ball is visible over segments
-            }
+            radius: 195,
+            delay: 4.5,
+            duration: 2.5,
+            ease: "bounce.out"
         });
     }
 };
