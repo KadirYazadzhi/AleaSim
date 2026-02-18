@@ -1,6 +1,7 @@
 using AleaSim.Shared.Models;
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
+using AleaSim.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -213,8 +214,8 @@ public class EfGameRepository : IGameRepository {
                   round => round.GameSessionId, 
                   session => session.Id, 
                   (round, session) => new { session.UserId, round.TotalBetAmount, round.TotalWinAmount })
-            .Join(_context.Users, x => x.UserId, u => u.Id, (x, u) => new { x.UserId, x.TotalBetAmount, x.TotalWinAmount, u.Username })
-            .Where(x => !x.Username.StartsWith("Sim_"))
+            .Join(_context.Users, x => x.UserId, u => u.Id, (x, u) => new { x.UserId, x.TotalBetAmount, x.TotalWinAmount, u.Username, u.Role })
+            .Where(x => !x.Username.StartsWith("Sim_") && x.Role != Role.Admin)
             .GroupBy(x => x.UserId)
             .Select(g => new { 
                 UserId = g.Key, 
@@ -280,7 +281,7 @@ public class EfGameRepository : IGameRepository {
         return _context.GameRounds
             .Join(_context.GameSessions, r => r.GameSessionId, s => s.Id, (r, s) => new { r, s })
             .Join(_context.Users, x => x.s.UserId, u => u.Id, (x, u) => new { x.r, u })
-            .Where(x => !x.u.Username.StartsWith("Sim_"))
+            .Where(x => !x.u.Username.StartsWith("Sim_") && x.u.Role != Role.Admin)
             .OrderByDescending(x => x.r.ExecutedAt)
             .Take(count)
             .Select(x => x.r)
@@ -313,6 +314,8 @@ public class EfGameRepository : IGameRepository {
     public IEnumerable<GameRoundDto> GetGlobalHistory(int count) {
         return _context.GameRounds
             .Join(_context.GameSessions, r => r.GameSessionId, s => s.Id, (r, s) => new { r, s })
+            .Join(_context.Users, x => x.s.UserId, u => u.Id, (x, u) => new { x.r, x.s, u })
+            .Where(x => !x.u.Username.StartsWith("Sim_") && x.u.Role != Role.Admin)
             .Join(_context.Games, x => x.s.GameId, g => g.Id, (x, g) => new { x.r, x.s, g })
             .OrderByDescending(x => x.r.ExecutedAt)
             .Take(count)
@@ -453,21 +456,25 @@ public class EfGameRepository : IGameRepository {
         var bets = _context.Bets
             .Where(b => b.CreatedAt >= start && b.CreatedAt < end)
             .Join(_context.Users, b => b.UserId, u => u.Id, (b, u) => new { b, u })
-            .Where(x => !x.u.Username.StartsWith("Sim_"))
+            .Where(x => !x.u.Username.StartsWith("Sim_") && x.u.Role != Role.Admin)
             .Sum(x => (decimal?)x.b.Amount) ?? 0m;
             
         var wins = _context.GameRounds
             .Where(r => r.ExecutedAt >= start && r.ExecutedAt < end)
             .Join(_context.GameSessions, r => r.GameSessionId, s => s.Id, (r, s) => new { r, s })
             .Join(_context.Users, x => x.s.UserId, u => u.Id, (x, u) => new { x.r, u })
-            .Where(x => !x.u.Username.StartsWith("Sim_"))
+            .Where(x => !x.u.Username.StartsWith("Sim_") && x.u.Role != Role.Admin)
             .Sum(x => (decimal?)x.r.TotalWinAmount) ?? 0m;
         
         return (bets, wins);
     }
 
     public decimal GetGlobalTotalRewardsPaid() {
-        return _context.GameRounds.Sum(r => (decimal?)r.TotalWinAmount) ?? 0m;
+        return _context.GameRounds
+            .Join(_context.GameSessions, r => r.GameSessionId, s => s.Id, (r, s) => new { r, s })
+            .Join(_context.Users, x => x.s.UserId, u => u.Id, (x, u) => new { x.r, u })
+            .Where(x => !x.u.Username.StartsWith("Sim_") && x.u.Role != Role.Admin)
+            .Sum(r => (decimal?)r.r.TotalWinAmount) ?? 0m;
     }
 
     public IEnumerable<(DateTime Hour, decimal Bets, decimal Wins)> GetRtpTrend(int hours) {
@@ -475,12 +482,15 @@ public class EfGameRepository : IGameRepository {
         
         return _context.GameRounds
             .Where(r => r.ExecutedAt >= cutoff)
+            .Join(_context.GameSessions, r => r.GameSessionId, s => s.Id, (r, s) => new { r, s })
+            .Join(_context.Users, x => x.s.UserId, u => u.Id, (x, u) => new { x.r, u })
+            .Where(x => !x.u.Username.StartsWith("Sim_") && x.u.Role != Role.Admin)
             .AsEnumerable() 
-            .GroupBy(r => new DateTime(r.ExecutedAt.Year, r.ExecutedAt.Month, r.ExecutedAt.Day, r.ExecutedAt.Hour, 0, 0))
+            .GroupBy(r => new DateTime(r.r.ExecutedAt.Year, r.r.ExecutedAt.Month, r.r.ExecutedAt.Day, r.r.ExecutedAt.Hour, 0, 0))
             .Select(g => (
                 Hour: g.Key,
-                Bets: g.Sum(x => x.TotalBetAmount),
-                Wins: g.Sum(x => x.TotalWinAmount)
+                Bets: g.Sum(x => x.r.TotalBetAmount),
+                Wins: g.Sum(x => x.r.TotalWinAmount)
             ))
             .OrderBy(x => x.Hour)
             .ToList();
@@ -488,7 +498,7 @@ public class EfGameRepository : IGameRepository {
 
     public int GetActivePlayerCount(int minutes) {
         var cutoff = DateTime.UtcNow.AddMinutes(-minutes);
-        return _context.Users.Count(u => u.LastBetTimestamp >= cutoff && !u.Username.StartsWith("Sim_"));
+        return _context.Users.Count(u => u.LastBetTimestamp >= cutoff && !u.Username.StartsWith("Sim_") && u.Role != Role.Admin);
     }
 
     public IEnumerable<(string Username, decimal TotalWin)> GetTopWinners(DateTime date, int topCount) {
@@ -501,8 +511,8 @@ public class EfGameRepository : IGameRepository {
                   r => r.GameSessionId, 
                   s => s.Id, 
                   (r, s) => new { s.UserId, r.TotalWinAmount })
-            .Join(_context.Users, x => x.UserId, u => u.Id, (x, u) => new { x.UserId, x.TotalWinAmount, u.Username })
-            .Where(x => !x.Username.StartsWith("Sim_"))
+            .Join(_context.Users, x => x.UserId, u => u.Id, (x, u) => new { x.UserId, x.TotalWinAmount, u.Username, u.Role })
+            .Where(x => !x.Username.StartsWith("Sim_") && x.Role != Role.Admin)
             .GroupBy(x => x.UserId)
             .Select(g => new { UserId = g.Key, TotalWin = g.Sum(x => x.TotalWinAmount) })
             .OrderByDescending(x => x.TotalWin)

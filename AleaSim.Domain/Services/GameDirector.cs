@@ -85,7 +85,7 @@ public class GameDirector : IGameDirector {
             _repo.UpdateRtpStats(session.GameId, session.UserId, amount, round.TotalWinAmount);
             _promotionService.ProcessWinActivity(session.UserId, round.TotalWinAmount, _repo);
 
-            if (user != null && !user.Username.StartsWith("Sim_")) {
+            if (user != null && !user.Username.StartsWith("Sim_") && user.Role != Role.Admin) {
                 _leaderboardService.SubmitScore(session.UserId, user.Username, round.TotalWinAmount, amount, gameType);
             }
         }

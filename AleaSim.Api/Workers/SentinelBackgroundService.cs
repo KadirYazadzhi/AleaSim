@@ -13,7 +13,7 @@ public class SentinelBackgroundService : BackgroundService {
     private readonly object _lock = new();
 
     public SentinelBackgroundService(IServiceScopeFactory scopeFactory, ILogger<SentinelBackgroundService> logger) {
-        _scopeFactory = scopeFactory;
+        _scopeFactory = scopeFactory; 
         _logger = logger;
     }
 
