@@ -123,32 +123,31 @@
         </MudItem>
 
         <MudItem xs="12" lg="3">
-             <!-- Mode Selector - Compact & Symmetrical -->
-             <div class="pa-4 rounded-xl glass-panel h-100 d-flex flex-column gap-3 border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)")};")'>
-                 <MudText Typo="Typo.subtitle2" Class="fw-bold d-flex align-center">
-                     <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small" Class="mr-2" Color="Color.Primary" /> Game Profile
-                 </MudText>
+             <!-- Mode Selector - Clean Rectangular Stacking -->
+             <div class="pa-2 rounded-xl glass-panel h-100 d-flex flex-column gap-2 border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)")};")'>
                  
-                 <MudDivider />
-
-                 <div class="d-flex gap-2 flex-grow-1 align-center">
-                     <MudTooltip Text="Standard 35:1 payouts. Low volatility, consistent game." Arrow="true" Placement="Placement.Top">
-                         <div class='@($"mode-mini-card {(selectedMode == "Classic" ? "active-classic" : "")}")' @onclick='() => SetMode("Classic")'>
-                             <MudIcon Icon="@Icons.Material.Filled.History" Class="mb-1" />
-                             <MudText Typo="Typo.button" Class="fw-bold">CLASSIC</MudText>
+                 <div class="d-flex flex-column gap-2 flex-grow-1">
+                     <MudTooltip Text="Standard 35:1 payouts. Low volatility, consistent game." Arrow="true" Placement="Placement.Left">
+                         <div class='@($"mode-rect-card {(selectedMode == "Classic" ? "active-classic" : "")}")' @onclick='() => SetMode("Classic")'>
+                             <MudIcon Icon="@Icons.Material.Filled.History" Class="mode-rect-icon" />
+                             <div class="flex-grow-1 text-end">
+                                 <MudText Typo="Typo.button" Class="fw-black">CLASSIC</MudText>
+                             </div>
                          </div>
                      </MudTooltip>
 
-                     <MudTooltip Text="Base 29:1 payouts. Random Lightning Strikes apply 50x to 500x multipliers!" Arrow="true" Placement="Placement.Top">
-                         <div class='@($"mode-mini-card {(selectedMode == "Extreme" ? "active-extreme" : "")}")' @onclick='() => SetMode("Extreme")'>
-                             <MudIcon Icon="@Icons.Material.Filled.Bolt" Class='@($"mb-1 {(selectedMode == "Extreme" ? "text-warning" : "")}")' />
-                             <MudText Typo="Typo.button" Class='@($"fw-bold {(selectedMode == "Extreme" ? "text-warning" : "")}")'>EXTREME</MudText>
+                     <MudTooltip Text="Base 29:1 payouts. Random Lightning Strikes apply 50x to 500x multipliers!" Arrow="true" Placement="Placement.Left">
+                         <div class='@($"mode-rect-card {(selectedMode == "Extreme" ? "active-extreme" : "")}")' @onclick='() => SetMode("Extreme")'>
+                             <MudIcon Icon="@Icons.Material.Filled.Bolt" Class='@($"mode-rect-icon {(selectedMode == "Extreme" ? "text-warning" : "")}")' />
+                             <div class="flex-grow-1 text-end">
+                                 <MudText Typo="Typo.button" Class='@($"fw-black {(selectedMode == "Extreme" ? "text-warning" : "")}")'>EXTREME</MudText>
+                             </div>
                          </div>
                      </MudTooltip>
                  </div>
 
-                 <div class="mt-auto">
-                     <MudText Typo="Typo.caption" Class='@($"fw-bold d-flex align-center {(selectedMode == "Extreme" ? "text-warning" : "text-info")}")'>
+                 <div class="mt-auto pa-2 border-t border-solid var(--mud-palette-divider)">
+                     <MudText Typo="Typo.caption" Class='@($"fw-bold d-flex align-center justify-center {(selectedMode == "Extreme" ? "text-warning" : "text-info")}")'>
                          <MudIcon Icon="@(selectedMode == "Extreme" ? Icons.Material.Filled.AutoAwesome : Icons.Material.Filled.Info)" Size="Size.Small" Class="mr-1" />
                          @(selectedMode == "Extreme" ? "EXTREME ACTIVE" : "CLASSIC ACTIVE")
                      </MudText>
@@ -202,22 +201,20 @@
     .bg-dark-lighten { background: rgba(255,255,255,0.05); }
     .transition-all { transition: all 0.3s ease; }
 
-    /* Compact Mini Cards */
-    .mode-mini-card {
-        flex: 1;
+    /* Compact Rectangular Cards */
+    .mode-rect-card {
+        width: 100%;
         display: flex;
-        flex-direction: column;
         align-items: center;
-        justify-content: center;
-        padding: 12px 8px;
+        padding: 20px 24px;
         border-radius: 12px;
         cursor: pointer;
         border: 2px solid transparent;
         background: rgba(255,255,255,0.05);
         transition: all 0.2s ease;
-        min-height: 80px;
     }
-    .mode-mini-card:hover { background: rgba(255,255,255,0.1); }
+    .mode-rect-card:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
+    .mode-rect-icon { font-size: 1.8rem; opacity: 0.8; }
     
     .active-classic { border-color: var(--mud-palette-primary); background: rgba(124, 58, 237, 0.1); }
     .active-extreme { border-color: var(--mud-palette-warning); background: rgba(255, 152, 0, 0.1); }
