@@ -119,11 +119,35 @@
         </MudItem>
 
         <MudItem xs="12" lg="3">
-             <!-- Sidebar context/Stats -->
-             <div class="pa-6 rounded-xl glass-panel h-100 d-flex flex-column justify-center align-center opacity-50">
-                 <MudIcon Icon="@Icons.Material.Filled.AutoGraph" Size="Size.Large" Class="mb-2" />
-                 <MudText Typo="Typo.body2">Session Analytics</MudText>
-                 <MudText Typo="Typo.caption">Detailed stats coming soon</MudText>
+             <!-- Mode Selector -->
+             <div class="pa-6 rounded-xl glass-panel h-100 d-flex flex-column gap-4 border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)")};")'>
+                 <MudText Typo="Typo.h6" Class="fw-bold d-flex align-center">
+                     <MudIcon Icon="@Icons.Material.Filled.Tune" Class="mr-2" Color="Color.Primary" /> Game Profile
+                 </MudText>
+                 
+                 <MudDivider />
+
+                 <div class='@($"pa-4 rounded-xl cursor-pointer transition-all border-2 {(selectedMode == "Classic" ? "border-primary bg-primary-transparent" : "border-transparent")}")' 
+                      @onclick='() => SetMode("Classic")'>
+                     <div class="d-flex justify-space-between align-center mb-1">
+                         <MudText Typo="Typo.subtitle1" Class="fw-bold">CLASSIC</MudText>
+                         @if(selectedMode == "Classic") { <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Primary" Size="Size.Small" /> }
+                     </div>
+                     <MudText Typo="Typo.caption" Class="mud-text-secondary">Standard 35:1 payouts. Low volatility, consistent game.</MudText>
+                 </div>
+
+                 <div class='@($"pa-4 rounded-xl cursor-pointer transition-all border-2 {(selectedMode == "Extreme" ? "border-warning bg-warning-transparent" : "border-transparent")}")' 
+                      @onclick='() => SetMode("Extreme")'>
+                     <div class="d-flex justify-space-between align-center mb-1">
+                         <MudText Typo="Typo.subtitle1" Class="fw-bold text-warning">EXTREME</MudText>
+                         @if(selectedMode == "Extreme") { <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Warning" Size="Size.Small" /> }
+                     </div>
+                     <MudText Typo="Typo.caption" Class="mud-text-secondary">Base 29:1 payouts. Random 50x-500x multipliers on lucky numbers!</MudText>
+                 </div>
+
+                 <MudAlert Severity="@(selectedMode == "Extreme" ? Severity.Warning : Severity.Info)" Dense="true" Class="mt-2 rounded-lg">
+                     <MudText Typo="Typo.caption">@(selectedMode == "Extreme" ? "Multiplier mode is active. Good luck!" : "Classic mode is active.")</MudText>
+                 </MudAlert>
              </div>
         </MudItem>
     </MudGrid>
@@ -160,6 +184,9 @@
     }
     .fw-black { font-weight: 900; }
     .bg-dark-lighten { background: rgba(255,255,255,0.05); }
+    .bg-primary-transparent { background: rgba(124, 58, 237, 0.1) !important; }
+    .bg-warning-transparent { background: rgba(255, 152, 0, 0.1) !important; }
+    .transition-all { transition: all 0.3s ease; }
 </style>
 
 @code {
@@ -170,6 +197,13 @@
     private bool isMouseDown = false;
     private Guid? sessionId;
     private List<RouletteBetDto> currentBets = new();
+    private string selectedMode = "Classic";
+
+    private void SetMode(string mode) {
+        if (isSpinning) return;
+        selectedMode = mode;
+        StateHasChanged();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -252,7 +286,11 @@
 
         try {
             await Audio.PlaySpin();
-            var betData = JsonSerializer.Serialize(currentBets);
+            var betPayload = new {
+                Bets = currentBets,
+                Mode = selectedMode
+            };
+            var betData = JsonSerializer.Serialize(betPayload);
             var result = await GameService.PlaceBet("roulette", sessionId.Value, totalWager, betData);
             
             var resultData = JsonSerializer.Deserialize<RouletteResult>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });

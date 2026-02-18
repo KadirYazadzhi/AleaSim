@@ -22,11 +22,12 @@ public class RouletteGameEngine : BaseGameEngine {
         var bets = new List<RouletteBetDto>();
         try {
             if (!string.IsNullOrEmpty(betData)) {
-                if (betData.StartsWith("\"")) {
-                    var innerJson = JsonSerializer.Deserialize<string>(betData);
-                    bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(innerJson ?? "[]") ?? new();
-                } else {
+                // Handle both raw list and new payload format
+                using var doc = JsonDocument.Parse(betData);
+                if (doc.RootElement.ValueKind == JsonValueKind.Array) {
                     bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(betData) ?? new();
+                } else if (doc.RootElement.TryGetProperty("Bets", out var betsEl)) {
+                    bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(betsEl.GetRawText()) ?? new();
                 }
             }
         } catch { throw new Exception("Invalid bet data format."); }
@@ -34,7 +35,7 @@ public class RouletteGameEngine : BaseGameEngine {
         decimal totalBet = bets.Sum(x => x.Amount);
         
         // 2. Validate Limits
-        if (totalBet > 4100) throw new Exception("Total table bet exceeds $4,100.00 limit.");
+        if (totalBet > 100000) throw new Exception("Total table bet exceeds $100,000.00 limit.");
         if (bets.Any(x => x.Type == "number" && x.Amount > 100)) throw new Exception("Single number bet exceeds $100.00 limit.");
         if (Math.Round(totalBet, 2) != Math.Round(amount, 2)) throw new Exception("Bet Integrity Error: Declared bets do not match total amount.");
 
@@ -51,24 +52,19 @@ public class RouletteGameEngine : BaseGameEngine {
 
             var lastBet = repo.GetLastBet(sessionId);
             decimal betAmount = lastBet?.Amount ?? 1.0m;
-            var game = repo.GetGame(GameId);
-            
-            if (game != null && betAmount > (decimal)game.MaxBet) throw new Exception("Bet exceeds game maximum limit.");
-            
-            var state = string.IsNullOrEmpty(session.GameState) 
-                ? new RouletteState() 
-                : JsonSerializer.Deserialize<RouletteState>(session.GameState) ?? new RouletteState();
-            int nonce = state.Nonce++;
-            session.GameState = JsonSerializer.Serialize(state);
             
             var bets = new List<RouletteBetDto>();
+            string mode = "Classic";
             try {
                 if (!string.IsNullOrEmpty(lastBet?.BetData)) {
-                    if (lastBet.BetData.StartsWith("\"")) {
-                        var innerJson = JsonSerializer.Deserialize<string>(lastBet.BetData);
-                        bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(innerJson ?? "[]") ?? new();
-                    } else {
+                    using var doc = JsonDocument.Parse(lastBet.BetData);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Array) {
                         bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(lastBet.BetData) ?? new();
+                    } else {
+                        if (doc.RootElement.TryGetProperty("Bets", out var betsEl)) 
+                            bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(betsEl.GetRawText()) ?? new();
+                        if (doc.RootElement.TryGetProperty("Mode", out var modeEl)) 
+                            mode = modeEl.GetString() ?? "Classic";
                     }
                 }
             } catch { }
@@ -79,36 +75,52 @@ public class RouletteGameEngine : BaseGameEngine {
             var allNumbers = Enumerable.Range(0, 37).ToList();
 
             if (decision.DecisionType == "Random") {
-                number = RngService.GetNextInt(session.Seed, nonce, 0, 37);
+                number = RngService.GetNextInt(session.Seed, 0, 0, 37);
             }
             else if (decision.TargetWinAmount > 0) {
-                var winningCandidates = allNumbers.Where(n => CalculatePayout(n, bets) > 0).ToList();
+                var winningCandidates = allNumbers.Where(n => CalculatePayout(n, bets, mode) > 0).ToList();
                 if (winningCandidates.Any()) {
-                    int idx = RngService.GetNextInt(session.Seed, nonce, 0, winningCandidates.Count);
+                    int idx = RngService.GetNextInt(session.Seed, 0, 0, winningCandidates.Count);
                     number = winningCandidates[idx];
                 } else {
-                    number = RngService.GetNextInt(session.Seed, nonce, 0, 37); 
+                    number = RngService.GetNextInt(session.Seed, 0, 0, 37); 
                 }
             } 
             else {
-                var losingCandidates = allNumbers.Where(n => CalculatePayout(n, bets) == 0).ToList();
+                var losingCandidates = allNumbers.Where(n => CalculatePayout(n, bets, mode) == 0).ToList();
                 if (losingCandidates.Any()) {
-                    int idx = RngService.GetNextInt(session.Seed, nonce, 0, losingCandidates.Count);
+                    int idx = RngService.GetNextInt(session.Seed, 0, 0, losingCandidates.Count);
                     number = losingCandidates[idx];
                 } else {
-                    number = RngService.GetNextInt(session.Seed, nonce, 0, 37); 
+                    number = RngService.GetNextInt(session.Seed, 0, 0, 37); 
                 }
             }
             
-            decimal actualWin = CalculatePayout(number, bets);
+            // --- Multiplier Logic (Extreme Mode) ---
+            var luckyNumbers = new Dictionary<int, int>();
+            if (mode == "Extreme") {
+                int count = RngService.GetNextInt(session.Seed, 777, 1, 6); // 1-5 numbers
+                for (int i = 0; i < count; i++) {
+                    int ln = RngService.GetNextInt(session.Seed, i + 100, 0, 37);
+                    if (!luckyNumbers.ContainsKey(ln)) {
+                        int[] pool = { 50, 100, 100, 200, 500 };
+                        int mult = pool[RngService.GetNextInt(session.Seed, i + 200, 0, pool.Length)];
+                        luckyNumbers[ln] = mult;
+                    }
+                }
+            }
+
+            int winMultiplier = luckyNumbers.ContainsKey(number) ? luckyNumbers[number] : 0;
+            decimal actualWin = CalculatePayout(number, bets, mode, winMultiplier);
 
             bool isRandom = decision.DecisionType == "Random";
             
             // Async Call
             if (actualWin > 0 && !await VaultService.CanAffordWinAsync(session.UserId, GameId, actualWin, repo, strictShadowCheck: !isRandom)) {
-                var losingCandidates = allNumbers.Where(n => CalculatePayout(n, bets) == 0).ToList();
-                if (losingCandidates.Any()) number = losingCandidates[RngService.GetNextInt(session.Seed, nonce+99, 0, losingCandidates.Count)];
-                actualWin = CalculatePayout(number, bets);
+                var losingCandidates = allNumbers.Where(n => CalculatePayout(n, bets, mode) == 0).ToList();
+                if (losingCandidates.Any()) number = losingCandidates[RngService.GetNextInt(session.Seed, 99, 0, losingCandidates.Count)];
+                actualWin = CalculatePayout(number, bets, mode);
+                winMultiplier = 0; // Lost multiplier if moved to losing num
             }
 
             if (actualWin > 0) {
@@ -126,30 +138,37 @@ public class RouletteGameEngine : BaseGameEngine {
                 TotalBetAmount = betAmount,
                 TotalWinAmount = actualWin,
                 RoundNumber = roundCount + 1,
-                RandomResult = JsonSerializer.Serialize(new { Number = number }),
+                RandomResult = JsonSerializer.Serialize(new { 
+                    Number = number, 
+                    Mode = mode, 
+                    LuckyNumbers = luckyNumbers,
+                    Multiplier = winMultiplier 
+                }),
                 DecisionType = decision.DecisionType,
                 ExecutedAt = DateTime.UtcNow
             };
 
             repo.SaveRound(round);
-            await RealTimeService.NotifyGameUpdate(session.UserId, new { Game = "Roulette", Number = number, Win = actualWin });
+            await RealTimeService.NotifyGameUpdate(session.UserId, new { Game = "Roulette", Number = number, Win = actualWin, LuckyNumbers = luckyNumbers, Multiplier = winMultiplier });
             return round;
         });
     }
 
-    private decimal CalculatePayout(int number, List<RouletteBetDto> bets) {
+    private decimal CalculatePayout(int number, List<RouletteBetDto> bets, string mode = "Classic", int activeMultiplier = 0) {
         decimal total = 0;
+        decimal straightUpMult = (mode == "Extreme") ? 30m : 36m;
+
         foreach (var bet in bets) {
             bool win = false;
             decimal mult = 0;
 
             if (bet.Type == "number" && int.TryParse(bet.Value, out int target) && target == number) {
-                win = true; mult = 36m;
+                win = true; 
+                mult = (activeMultiplier > 0) ? (decimal)activeMultiplier : straightUpMult;
             }
             else if (bet.Type == "color") {
                 bool isRed = new[] { 1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36 }.Contains(number);
                 if (number == 0) {
-                    // La Partage Rule: Return half bet
                     total += bet.Amount * 0.5m;
                 }
                 else if ((bet.Value == "red" && isRed) || (bet.Value == "black" && !isRed)) {
@@ -158,7 +177,6 @@ public class RouletteGameEngine : BaseGameEngine {
             }
             else if (bet.Type == "evenodd") {
                 if (number == 0) {
-                    // La Partage Rule: Return half bet
                     total += bet.Amount * 0.5m;
                 }
                 else {
