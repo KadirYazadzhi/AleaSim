@@ -26,7 +26,15 @@ public class JackpotService : IJackpotService {
             // Only Spades (MEGA) and Hearts (MAJOR) are progressive
             if (shouldContribute && (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts)) {
                 decimal increase = betAmount * j.ContributionRate;
-                double newValue = await db.StringIncrementAsync($"jackpot:{j.Tier}", (double)increase);
+                string redisKey = $"jackpot:{j.Tier}";
+
+                // WARM-UP LOGIC: If Redis is empty for this key, seed it from DB
+                var exists = await db.KeyExistsAsync(redisKey);
+                if (!exists) {
+                    await db.StringSetAsync(redisKey, (double)j.CurrentValue);
+                }
+
+                double newValue = await db.StringIncrementAsync(redisKey, (double)increase);
                 
                 // Sync back to entity for local calculations if needed
                 j.CurrentValue = (decimal)newValue;

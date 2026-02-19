@@ -52,11 +52,11 @@ public abstract class BaseGameEngine : IGame {
                 repo.SaveBet(bet);
                 
                 var user = repo.GetUser(session.UserId);
-                bool isSimUser = user?.Username.StartsWith("Sim_") == true;
+                bool isExcluded = user?.Username.StartsWith("Sim_") == true || user?.Role == Role.Admin;
 
                 BrainService.UpdateProfile(session.UserId, amount, 0, repo);
 
-                if (!isSimUser) {
+                if (!isExcluded) {
                     PromotionService.ProcessBetActivity(session.UserId, amount, repo);
                     await JackpotService.Contribute(session.GameId, amount, repo);
                     
