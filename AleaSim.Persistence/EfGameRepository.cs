@@ -152,7 +152,12 @@ public class EfGameRepository : IGameRepository {
     }
 
     public void UpdateUser(User user) {
-        _context.Users.Update(user);
+        var existing = _context.Users.Local.FirstOrDefault(u => u.Id == user.Id);
+        if (existing != null) {
+            _context.Entry(existing).CurrentValues.SetValues(user);
+        } else {
+            _context.Users.Update(user);
+        }
         _context.SaveChanges();
     }
 
@@ -182,7 +187,13 @@ public class EfGameRepository : IGameRepository {
     }
 
     public void UpdatePlayerProfile(PlayerProfile profile) {
-        _context.PlayerProfiles.Update(profile);
+        var existing = _context.PlayerProfiles.Local.FirstOrDefault(p => p.Id == profile.Id);
+        if (existing != null) {
+            // Update the tracked instance with values from the detached instance
+            _context.Entry(existing).CurrentValues.SetValues(profile);
+        } else {
+            _context.PlayerProfiles.Update(profile);
+        }
         _context.SaveChanges();
     }
 
@@ -558,7 +569,12 @@ public class EfGameRepository : IGameRepository {
     }
 
     public void UpdateQuest(Quest quest) {
-        _context.Quests.Update(quest);
+        var existing = _context.Quests.Local.FirstOrDefault(q => q.Id == quest.Id);
+        if (existing != null) {
+            _context.Entry(existing).CurrentValues.SetValues(quest);
+        } else {
+            _context.Quests.Update(quest);
+        }
         _context.SaveChanges();
     }
 
