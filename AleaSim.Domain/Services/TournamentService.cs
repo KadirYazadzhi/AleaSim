@@ -22,6 +22,7 @@ public class TournamentService : ITournamentService {
             Rank = index + 1,
             UserId = e.UserId,
             Username = e.User?.Username ?? "Unknown",
+            AvatarUrl = e.User?.AvatarUrl ?? "https://api.dicebear.com/7.x/bottts/svg?seed=default",
             MaxMultiplier = e.TotalWagered > 0 ? (e.TotalPayout / e.TotalWagered) : 0,
             TotalPaid = e.TotalPayout
         }).ToList();

@@ -92,11 +92,11 @@
                     <!-- Profile Menu -->
                     <MudMenu AnchorOrigin="Origin.BottomRight" LockScroll="true" TransformOrigin="Origin.TopRight">
                         <ActivatorContent>
-                            <MudAvatar Image="@userProfile?.AvatarUrl" Class="cursor-pointer border-2 border-primary" />
+                            <MudAvatar Src="@userProfile?.AvatarUrl" Class="cursor-pointer border-2 border-primary" />
                         </ActivatorContent>
                         <ChildContent>
                             <div class="pa-4 d-flex flex-column align-center border-b border-white-10">
-                                <MudAvatar Image="@userProfile?.AvatarUrl" Size="Size.Large" Class="mb-2" />
+                                <MudAvatar Src="@userProfile?.AvatarUrl" Size="Size.Large" Class="mb-2" />
                                 <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">@userProfile?.Username</MudText>
                                 <MudChip T="string" Size="Size.Small" Color="@GetTierColor(userProfile?.Progression?.Tier ?? VipTier.Bronze)" Variant="Variant.Text" Class="mt-1">
                                     @userProfile?.Progression?.TierName

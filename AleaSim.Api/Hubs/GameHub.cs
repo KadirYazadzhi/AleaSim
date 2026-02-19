@@ -20,7 +20,9 @@ public class GameHub : Hub {
         var userId = Guid.Parse(userIdString);
         
         var user = _repo.GetUser(userId);
-        string avatarUrl = user?.AvatarUrl ?? "https://api.dicebear.com/7.x/bottts/svg?seed=default";
+        string avatarUrl = string.IsNullOrEmpty(user?.AvatarUrl) 
+            ? $"https://api.dicebear.com/7.x/bottts/svg?seed={username}" 
+            : user.AvatarUrl;
 
         // Broadcast to everyone with avatar
         await Clients.All.SendAsync("ReceiveChatMessage", username, message, DateTime.UtcNow, avatarUrl);

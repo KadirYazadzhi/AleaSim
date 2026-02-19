@@ -18,7 +18,12 @@
                     <MudTd DataLabel="Rank">
                         <MudText Style="font-weight: bold; color: #ffD700;">#@context.Rank</MudText>
                     </MudTd>
-                    <MudTd DataLabel="Player">@context.Username</MudTd>
+                    <MudTd DataLabel="Player">
+                        <div class="d-flex align-center gap-3">
+                            <MudAvatar Src="@context.AvatarUrl" Size="Size.Small" />
+                            @context.Username
+                        </div>
+                    </MudTd>
                     <MudTd DataLabel="Prize" Style="text-align: right;">
                         <MudText Color="Color.Success" Style="font-weight: bold;">
                             @GetEstimatedPrize(context.Rank).ToString("C2")
@@ -44,7 +49,7 @@
                     {
                         <MudItem xs="12" md="6" lg="4">
                             <MudPaper Class="pa-4 d-flex align-center gap-4" Style="background: #1a1a1a; border-left: 4px solid #ffD700;">
-                                <MudAvatar Image="@winner.AvatarUrl" Size="Size.Large" />
+                                <MudAvatar Src="@winner.AvatarUrl" Size="Size.Large" />
                                 <div>
                                     <MudText Typo="Typo.subtitle2" Style="color: #aaa;">@winner.MonthName</MudText>
                                     <MudText Typo="Typo.h6">@winner.WinnerName</MudText>

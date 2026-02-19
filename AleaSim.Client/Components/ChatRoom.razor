@@ -8,7 +8,7 @@
         @foreach (var msg in messages)
         {
             <div class="message-item mb-2 d-flex gap-2">
-                <MudAvatar Size="Size.Small" Image="@msg.AvatarUrl" Class="mt-1" />
+                <MudAvatar Size="Size.Small" Src="@msg.AvatarUrl" Class="mt-1" />
                 <div class="flex-grow-1">
                     <MudText Typo="Typo.caption" Style="color: #ffD700; font-weight: bold;">@msg.User</MudText>
                     <div class="message-bubble">

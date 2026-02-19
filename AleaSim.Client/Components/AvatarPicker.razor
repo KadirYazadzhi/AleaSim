@@ -7,7 +7,7 @@
         <div class="d-flex flex-wrap gap-4 justify-center">
             @foreach (var avatar in AvatarConstants.PredefinedAvatars)
             {
-                <MudAvatar Image="@avatar" Style="height:80px; width:80px; cursor:pointer;" 
+                <MudAvatar Src="@avatar" Style="height:80px; width:80px; cursor:pointer;" 
                            Class="hover-scale" @onclick='() => Select(avatar)' />
             }
         </div>

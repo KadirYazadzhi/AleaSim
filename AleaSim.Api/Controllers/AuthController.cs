@@ -121,7 +121,7 @@ public class AuthController : ControllerBase {
             user.Username,
             user.Balance,
             user.BonusBalance,
-            user.AvatarUrl,
+            AvatarUrl = string.IsNullOrEmpty(user.AvatarUrl) ? $"https://api.dicebear.com/7.x/bottts/svg?seed={user.Username}" : user.AvatarUrl,
             ActiveGameStateJson = activeSession?.GameState,
             Role = user.Role.ToString(),
 
@@ -170,6 +170,7 @@ public class AuthController : ControllerBase {
              PasswordHash = _passwordHasher.HashPassword(request.Password), 
              Role = Role.User,
              Balance = 1000m,
+             AvatarUrl = $"https://api.dicebear.com/7.x/bottts/svg?seed={request.Username}",
              CreatedAt = DateTime.UtcNow,
              IsActive = true
          };
