@@ -1,91 +1,71 @@
 using AleaSim.Domain.Interfaces;
+using StackExchange.Redis;
 using System.Collections.Concurrent;
 
 namespace AleaSim.Domain.Services;
 
 public class LeaderboardService : ILeaderboardService {
     private readonly IRealTimeService _realTimeService;
+    private readonly IRedisService _redis;
     
-    // In-Memory Storage: Name -> List of Entries
-    private readonly ConcurrentDictionary<string, List<LeaderboardEntry>> _leaderboards = new();
+    private const string KEY_HIGH_WINS = "leaderboard:daily_wins";
+    private const string KEY_MULTIPLIERS = "leaderboard:big_multipliers";
 
-    public LeaderboardService(IRealTimeService realTimeService) {
+    public LeaderboardService(IRealTimeService realTimeService, IRedisService redis) {
         _realTimeService = realTimeService;
-        InitializeLeaderboards();
-    }
-
-    private void InitializeLeaderboards() {
-        _leaderboards["DailyHighWins"] = new List<LeaderboardEntry>();
-        _leaderboards["BigMultipliers"] = new List<LeaderboardEntry>();
+        _redis = redis;
     }
 
     public void SubmitScore(Guid userId, string username, decimal winAmount, decimal betAmount, string gameName) {
         if (betAmount <= 0) return;
 
         decimal multiplier = winAmount / betAmount;
-        var entry = new LeaderboardEntry {
-            UserId = userId,
-            Username = username,
-            WinAmount = winAmount,
-            Multiplier = multiplier,
-            GameName = gameName,
-            Timestamp = DateTime.UtcNow
-        };
+        var db = _redis.GetDatabase();
 
-        bool updated = false;
+        // 1. Daily High Wins
+        db.SortedSetAdd(KEY_HIGH_WINS, $"{userId}:{username}:{gameName}", (double)winAmount);
 
-        // 1. Daily High Wins (Absolute Value)
-        updated |= UpdateLeaderboard("DailyHighWins", entry, (a, b) => a.WinAmount.CompareTo(b.WinAmount));
+        // 2. Big Multipliers
+        db.SortedSetAdd(KEY_MULTIPLIERS, $"{userId}:{username}:{gameName}", (double)multiplier);
 
-        // 2. Big Multipliers (Luck Factor)
-        updated |= UpdateLeaderboard("BigMultipliers", entry, (a, b) => a.Multiplier.CompareTo(b.Multiplier));
+        // Limit size to Top 100 in Redis to keep it clean
+        db.SortedSetRemoveRangeByRank(KEY_HIGH_WINS, 0, -101);
+        db.SortedSetRemoveRangeByRank(KEY_MULTIPLIERS, 0, -101);
 
         // 3. Global Big Win Broadcast (> 50x)
         if (multiplier >= 50) {
             _ = _realTimeService.NotifyBigWin(username, gameName, winAmount, multiplier);
         }
+
+        // Notify real-time listeners (optional: throttle this)
+        _ = NotifyUpdate();
     }
 
-    private bool UpdateLeaderboard(string name, LeaderboardEntry entry, Comparison<LeaderboardEntry> comparer) {
-        if (!_leaderboards.ContainsKey(name)) return false;
-
-        lock (_leaderboards[name]) {
-            var list = _leaderboards[name];
-            
-            // Check if user is already in list with a LOWER score
-            var existing = list.FirstOrDefault(x => x.UserId == entry.UserId);
-            if (existing != null) {
-                // If new score is lower, ignore
-                if (comparer(entry, existing) <= 0) return false;
-                list.Remove(existing);
-            }
-
-            list.Add(entry);
-            list.Sort((a, b) => comparer(b, a)); // Descending
-            
-            // Keep Top 10
-            if (list.Count > 10) {
-                list.RemoveAt(list.Count - 1);
-            }
-
-            // Only notify if this entry made it to Top 10
-            if (list.Contains(entry)) {
-                // Optimize: Don't spam notifications on every update, throttle in real world.
-                // For demo: Notify immediately.
-                _ = _realTimeService.NotifyLeaderboardUpdate(name, list);
-                return true;
-            }
-        }
-        return false;
+    private async Task NotifyUpdate() {
+        var daily = GetLeaderboard("DailyHighWins").ToList();
+        await _realTimeService.NotifyLeaderboardUpdate("DailyHighWins", daily);
+        
+        var big = GetLeaderboard("BigMultipliers").ToList();
+        await _realTimeService.NotifyLeaderboardUpdate("BigMultipliers", big);
     }
 
     public IEnumerable<object> GetLeaderboard(string name) {
-        if (_leaderboards.TryGetValue(name, out var list)) {
-            lock (list) {
-                return list.ToList(); // Return copy
-            }
-        }
-        return Enumerable.Empty<object>();
+        var db = _redis.GetDatabase();
+        string key = name == "BigMultipliers" ? KEY_MULTIPLIERS : KEY_HIGH_WINS;
+
+        var entries = db.SortedSetRangeByRankWithScores(key, 0, 9, Order.Descending);
+        
+        return entries.Select(e => {
+            var parts = e.Element.ToString().Split(':');
+            return new LeaderboardEntry {
+                UserId = Guid.Parse(parts[0]),
+                Username = parts[1],
+                GameName = parts.Length > 2 ? parts[2] : "Unknown",
+                WinAmount = name == "BigMultipliers" ? 0 : (decimal)e.Score,
+                Multiplier = name == "BigMultipliers" ? (decimal)e.Score : 0,
+                Timestamp = DateTime.UtcNow
+            };
+        });
     }
 
     private class LeaderboardEntry {

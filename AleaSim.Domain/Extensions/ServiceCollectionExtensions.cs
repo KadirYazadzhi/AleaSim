@@ -15,6 +15,7 @@ public static class ServiceCollectionExtensions {
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddSingleton<IVaultService, VaultService>();
         services.AddSingleton<IBrainService, BrainService>();
+        services.AddSingleton<IRedisService, RedisService>();
         services.AddSingleton<IJackpotService, JackpotService>();
         services.AddSingleton<ILeaderboardService, LeaderboardService>();
         services.AddSingleton<IPromotionService, PromotionService>();
