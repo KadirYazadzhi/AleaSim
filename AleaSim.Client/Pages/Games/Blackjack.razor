@@ -21,7 +21,7 @@
                     <div class="d-flex justify-center gap-2">
                         @foreach (var card in dealerHand)
                         {
-                            <div class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "")">
+                            <div @key="card" class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "")">
                                 @FormatCard(card)
                             </div>
                         }
@@ -44,7 +44,7 @@
                     <div class="d-flex justify-center gap-2 mb-2">
                         @foreach (var card in playerHand)
                         {
-                            <div class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "")">
+                            <div @key="card" class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "")">
                                 @FormatCard(card)
                             </div>
                         }

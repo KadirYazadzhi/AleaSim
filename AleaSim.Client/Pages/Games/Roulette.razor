@@ -76,7 +76,7 @@
                     <div class="roulette-table">
                         <!-- Zero -->
                         @{ bool zeroLucky = currentLuckyNumbers.ContainsKey(0); }
-                        <div class='@($"cell zero {GetCursorClass("number", "0")} {(zeroLucky ? "lucky-cell lightning-flash" : "")}")' 
+                        <div @key='"cell-0"' class='@($"cell zero {GetCursorClass("number", "0")} {(zeroLucky ? "lucky-cell lightning-flash" : "")}")' 
                              @onmousedown='() => HandleMouseDown("number", "0")'
                              @onmousedown:stopPropagation
                              @onmouseenter='() => HandleMouseEnter("number", "0")'>
@@ -93,7 +93,7 @@
                                                                 var val = num.ToString();
                                                                 bool isLucky = currentLuckyNumbers.ContainsKey(num);
                                                                 
-                                                                <div class='@($"cell {GetNumberColor(num)} {GetCursorClass(type, val)} {(isLucky ? "lucky-cell lightning-flash" : "")}")' 
+                                                                <div @key='"cell-" + num' class='@($"cell {GetNumberColor(num)} {GetCursorClass(type, val)} {(isLucky ? "lucky-cell lightning-flash" : "")}")' 
                                                                      @onmousedown='() => HandleMouseDown(type, val)'
                                                                      @onmouseenter='() => HandleMouseEnter(type, val)'>
                                                                     @num
@@ -104,16 +104,16 @@
                                                         </div>
                         <!-- Outside Bets -->
                         <div class="outside-bets">
-                            <div class='@($"cell red {GetCursorClass("color", "red")}")' 
+                            <div @key='"outside-red"' class='@($"cell red {GetCursorClass("color", "red")}")' 
                                  @onmousedown='() => HandleMouseDown("color", "red")'
                                  @onmouseenter='() => HandleMouseEnter("color", "red")'>RED @GetBetBadge("color", "red")</div>
-                            <div class='@($"cell black {GetCursorClass("color", "black")}")' 
+                            <div @key='"outside-black"' class='@($"cell black {GetCursorClass("color", "black")}")' 
                                  @onmousedown='() => HandleMouseDown("color", "black")'
                                  @onmouseenter='() => HandleMouseEnter("color", "black")'>BLACK @GetBetBadge("color", "black")</div>
-                            <div class='@($"cell even {GetCursorClass("evenodd", "even")}")' 
+                            <div @key='"outside-even"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' 
                                  @onmousedown='() => HandleMouseDown("evenodd", "even")'
                                  @onmouseenter='() => HandleMouseEnter("evenodd", "even")'>EVEN @GetBetBadge("evenodd", "even")</div>
-                            <div class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' 
+                            <div @key='"outside-odd"' class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' 
                                  @onmousedown='() => HandleMouseDown("evenodd", "odd")'
                                  @onmouseenter='() => HandleMouseEnter("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
                         </div>
@@ -235,10 +235,14 @@
     private List<RouletteBetDto> currentBets = new();
     private string selectedMode = "Classic";
     private Dictionary<int, int> currentLuckyNumbers = new();
+    private bool _shouldRender = true;
+
+    protected override bool ShouldRender() => _shouldRender;
 
     private void SetMode(string mode) {
         if (isSpinning) return;
         selectedMode = mode;
+        _shouldRender = true;
         StateHasChanged();
     }
 
@@ -288,17 +292,24 @@
 
         if (currentAmount >= 100) return;
 
-        // Ensure we don't exceed 100 even if chip value is large
         decimal allowedToAdd = Math.Min(chipValue, 100 - currentAmount);
         
         await Audio.PlayClick();
         if (existing != null) existing.Amount += allowedToAdd;
         else currentBets.Add(new RouletteBetDto { Type = type, Value = value, Amount = allowedToAdd });
         
+        _shouldRender = true;
         StateHasChanged();
+        // After rendering, we can set it to false for the next mouse-enter event if needed, 
+        // but Blazor's event loop will handle this mostly. 
+        // For 'drag betting', we want it to be smooth.
     }
 
-    private void ClearBets() => currentBets.Clear();
+    private void ClearBets() {
+        currentBets.Clear();
+        _shouldRender = true;
+        StateHasChanged();
+    }
 
     private async Task OnSpin() {
         if (sessionId == null || isSpinning || !currentBets.Any()) return;
@@ -312,6 +323,7 @@
         isSpinning = true;
         winningNumber = null;
         currentLuckyNumbers.Clear();
+        _shouldRender = true;
         
         // Optimistic local update
         balance -= totalWager;
@@ -370,6 +382,7 @@
         }
         finally {
             isSpinning = false;
+            _shouldRender = true;
             // Release Navbar updates
             layoutService.SetBalanceUpdateSuppression(false);
             StateHasChanged();
