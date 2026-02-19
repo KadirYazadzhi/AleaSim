@@ -22,7 +22,8 @@ public class JackpotService : IJackpotService {
         foreach (var j in jackpots) {
             bool shouldContribute = j.IsGlobal || (j.GameId == gameId);
             
-            if (shouldContribute) {
+            // Only Spades (MEGA) and Hearts (MAJOR) are progressive
+            if (shouldContribute && (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts)) {
                 j.CurrentValue += betAmount * j.ContributionRate;
                 j.LastUpdated = DateTime.UtcNow;
                 repo.UpdateJackpot(j);
