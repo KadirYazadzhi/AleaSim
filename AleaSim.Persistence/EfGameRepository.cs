@@ -649,7 +649,19 @@ public class EfGameRepository : IGameRepository {
     }
 
     public string GetGlobalSetting(string key) {
-        return _context.GlobalSettings.FirstOrDefault(s => s.Key == key)?.Value ?? string.Empty;
+        string cacheKey = $"setting:{key}";
+        // Try Redis first
+        var cachedValue = _redisCache.GetAsync<string>(cacheKey).GetAwaiter().GetResult();
+        if (cachedValue != null) return cachedValue;
+
+        var value = _context.GlobalSettings.FirstOrDefault(s => s.Key == key)?.Value ?? string.Empty;
+        
+        // Cache for 1 hour
+        if (!string.IsNullOrEmpty(value)) {
+            _redisCache.SetAsync(cacheKey, value, TimeSpan.FromHours(1)).GetAwaiter().GetResult();
+        }
+        
+        return value;
     }
 
     public void SaveTournamentWinners(IEnumerable<TournamentWinner> winners) {
@@ -676,6 +688,9 @@ public class EfGameRepository : IGameRepository {
             setting.LastUpdated = DateTime.UtcNow;
         }
         _context.SaveChanges();
+
+        // Sync to Redis immediately
+        _redisCache.SetAsync($"setting:{key}", value, TimeSpan.FromHours(1)).GetAwaiter().GetResult();
     }
 
     public void DeleteUser(Guid userId) {
