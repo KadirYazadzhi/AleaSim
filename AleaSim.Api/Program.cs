@@ -138,6 +138,29 @@ using (var scope = app.Services.CreateScope()) {
         db.SaveChanges();
     }
 
+    // Seed Global Jackpots if missing
+    if (!db.Jackpots.Any(j => j.IsGlobal)) {
+        db.Jackpots.AddRange(
+            new AleaSim.Domain.Entities.Jackpot { 
+                Id = Guid.NewGuid(), Name = "Global MEGA Spades", Tier = AleaSim.Domain.Entities.JackpotTier.Spades, 
+                CurrentValue = 10000m, ContributionRate = 0.002m, IsGlobal = true, LastUpdated = DateTime.UtcNow 
+            },
+            new AleaSim.Domain.Entities.Jackpot { 
+                Id = Guid.NewGuid(), Name = "Global MAJOR Hearts", Tier = AleaSim.Domain.Entities.JackpotTier.Hearts, 
+                CurrentValue = 2500m, ContributionRate = 0.0015m, IsGlobal = true, LastUpdated = DateTime.UtcNow 
+            },
+            new AleaSim.Domain.Entities.Jackpot { 
+                Id = Guid.NewGuid(), Name = "Global MINOR Diamonds", Tier = AleaSim.Domain.Entities.JackpotTier.Diamonds, 
+                CurrentValue = 500m, ContributionRate = 0.001m, IsGlobal = true, MustDropAt = 1000m, LastUpdated = DateTime.UtcNow 
+            },
+            new AleaSim.Domain.Entities.Jackpot { 
+                Id = Guid.NewGuid(), Name = "Global MINI Clubs", Tier = AleaSim.Domain.Entities.JackpotTier.Clubs, 
+                CurrentValue = 50m, ContributionRate = 0.0005m, IsGlobal = true, MustDropAt = 100m, LastUpdated = DateTime.UtcNow 
+            }
+        );
+        db.SaveChanges();
+    }
+
     // Seed Admin if missing
     if (!db.Users.Any(u => u.Username == "admin")) {
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();

@@ -22,7 +22,7 @@ public class JackpotService : IJackpotService {
         foreach (var j in jackpots) {
             bool shouldContribute = j.IsGlobal || (j.GameId == gameId);
             
-            if (shouldContribute && (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts)) {
+            if (shouldContribute) {
                 j.CurrentValue += betAmount * j.ContributionRate;
                 j.LastUpdated = DateTime.UtcNow;
                 repo.UpdateJackpot(j);

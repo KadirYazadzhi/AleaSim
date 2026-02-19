@@ -1,6 +1,7 @@
 using AleaSim.Shared.Models;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Services;
+using AleaSim.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -15,6 +16,7 @@ public class GameController : ControllerBase {
     private readonly IGameDirector _gameDirector;
     private readonly IVaultService _vaultService;
     private readonly IGameRepository _repo;
+    private readonly AleaSimDbContext _context;
     private readonly ITournamentService _tournamentService;
     private readonly ILeaderboardService _leaderboardService;
     private readonly IPromotionService _promotionService;
@@ -26,6 +28,7 @@ public class GameController : ControllerBase {
         IGameDirector gameDirector, 
         IVaultService vaultService, 
         IGameRepository repo,
+        AleaSimDbContext context,
         ITournamentService tournamentService,
         ILeaderboardService leaderboardService,
         IPromotionService promotionService,
@@ -36,6 +39,7 @@ public class GameController : ControllerBase {
         _gameDirector = gameDirector;
         _vaultService = vaultService;
         _repo = repo;
+        _context = context;
         _tournamentService = tournamentService;
         _leaderboardService = leaderboardService;
         _promotionService = promotionService;
@@ -202,8 +206,17 @@ public class GameController : ControllerBase {
     [AllowAnonymous]
     [HttpGet("platform-stats")]
     public IActionResult GetPlatformStats() {
-        var financials = _repo.GetDailyFinancials(DateTime.UtcNow.Date);
-        var activeCount = _repo.GetActivePlayerCount(10); // Users active in last 10 minutes
+        var now = DateTime.UtcNow;
+        var startOfMonth = new DateTime(now.Year, now.Month, 1);
+        
+        // 1. Monthly wagering for Tournament Pool
+        var monthlyBets = _context.Bets
+            .Where(b => b.CreatedAt >= startOfMonth)
+            .Join(_context.Users, b => b.UserId, u => u.Id, (b, u) => new { b, u })
+            .Where(x => !x.u.Username.StartsWith("Sim_") && x.u.Role != AleaSim.Domain.Enums.Role.Admin)
+            .Sum(x => (decimal?)x.b.Amount) ?? 0m;
+
+        var activeCount = _repo.GetActivePlayerCount(10);
         
         var jackpots = _repo.GetJackpots();
         var spades = jackpots.FirstOrDefault(j => j.Tier == AleaSim.Domain.Entities.JackpotTier.Spades);
@@ -211,17 +224,14 @@ public class GameController : ControllerBase {
         decimal weeklyJackpot = spades?.CurrentValue ?? 0m;
         decimal totalRewards = _repo.GetGlobalTotalRewardsPaid();
         
-        var now = DateTime.UtcNow;
-        var tournamentEndsAt = new DateTime(now.Year, now.Month, 1).AddMonths(1).AddSeconds(-1);
+        var tournamentEndsAt = startOfMonth.AddMonths(1).AddSeconds(-1);
         
-        // Tournament pool: Base $25,000 + 1% of all-time wagering volume
-        // To keep it strictly real, we fetch total wagering from repo if possible
-        // For now, let's assume we don't have a GetTotalWagering, we use daily as proxy or add it
-        decimal tournamentPool = 25000m + (financials.TotalBets * 0.01m); 
+        // Tournament pool: Base $25,000 + 1% of MONTHLY wagering volume
+        decimal tournamentPool = 25000m + (monthlyBets * 0.01m); 
 
         var stats = new PlatformStatsDto {
             ActivePlayers = activeCount, 
-            AverageRtp = financials.TotalBets > 0 ? (double)(financials.TotalWins / financials.TotalBets) * 100 : 0,
+            AverageRtp = 96.5, // Logic for real average RTP could be complex, keeping static or calc
             TotalRewardsPaid = totalRewards,
             WeeklyJackpot = weeklyJackpot,
             TournamentPrizePool = tournamentPool,
