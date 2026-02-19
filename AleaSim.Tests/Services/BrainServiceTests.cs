@@ -16,14 +16,16 @@ public class BrainServiceTests {
     private readonly Mock<IServiceProvider> _mockServiceProvider;
     private readonly Mock<IVaultService> _mockVault;
     private readonly Mock<IGameRepository> _mockRepo;
-    private readonly Mock<IRngService> _mockRng; // Added
+    private readonly Mock<IRngService> _mockRng;
+    private readonly Mock<IRedisCacheService> _mockRedis; // Added
     private readonly IMemoryCache _cache;
     private readonly BrainService _brainService;
 
     public BrainServiceTests() {
         _mockRepo = new Mock<IGameRepository>();
         _mockVault = new Mock<IVaultService>();
-        _mockRng = new Mock<IRngService>(); // Init
+        _mockRng = new Mock<IRngService>();
+        _mockRedis = new Mock<IRedisCacheService>(); // Init
         
         _mockServiceProvider = new Mock<IServiceProvider>();
         _mockServiceProvider.Setup(x => x.GetService(typeof(IGameRepository))).Returns(_mockRepo.Object);
@@ -36,7 +38,7 @@ public class BrainServiceTests {
 
         _cache = new MemoryCache(new MemoryCacheOptions()); 
 
-        _brainService = new BrainService(_mockScopeFactory.Object, _mockVault.Object, _cache, _mockRng.Object); // Injected
+        _brainService = new BrainService(_mockScopeFactory.Object, _mockVault.Object, _cache, _mockRedis.Object, _mockRng.Object); // Fixed
     }
 
     [Fact]

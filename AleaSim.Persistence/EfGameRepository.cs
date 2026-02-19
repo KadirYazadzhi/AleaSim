@@ -2,6 +2,7 @@ using AleaSim.Shared.Models;
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Enums;
+using AleaSim.Domain.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -9,9 +10,11 @@ namespace AleaSim.Persistence;
 
 public class EfGameRepository : IGameRepository {
     private readonly AleaSimDbContext _context;
+    private readonly IRedisCacheService _redisCache;
 
-    public EfGameRepository(AleaSimDbContext context) {
+    public EfGameRepository(AleaSimDbContext context, IRedisCacheService redisCache) {
         _context = context;
+        _redisCache = redisCache;
     }
 
     public ITransaction BeginTransaction() {
@@ -25,11 +28,23 @@ public class EfGameRepository : IGameRepository {
     public GameSession CreateSession(GameSession session) {
         _context.GameSessions.Add(session);
         _context.SaveChanges();
+        
+        // Cache session in Redis (TTL 2 hours)
+        _redisCache.SetAsync($"session:{session.Id}", session, TimeSpan.FromHours(2)).GetAwaiter().GetResult();
         return session;
     }
 
     public GameSession? GetSession(Guid sessionId) {
-        return _context.GameSessions.FirstOrDefault(s => s.Id == sessionId);
+        // Try Cache First
+        var session = _redisCache.GetAsync<GameSession>($"session:{sessionId}").GetAwaiter().GetResult();
+        if (session != null) return session;
+
+        session = _context.GameSessions.FirstOrDefault(s => s.Id == sessionId);
+        
+        if (session != null) {
+            _redisCache.SetAsync($"session:{sessionId}", session, TimeSpan.FromHours(2)).GetAwaiter().GetResult();
+        }
+        return session;
     }
 
     public IEnumerable<GameSession> GetAllActiveSessions() {
@@ -73,11 +88,14 @@ public class EfGameRepository : IGameRepository {
     }
 
     public void EndSession(Guid sessionId) {
-        var session = GetSession(sessionId);
+        var session = _context.GameSessions.FirstOrDefault(s => s.Id == sessionId);
         if (session != null) {
             session.EndedAt = DateTime.UtcNow;
             session.IsActive = false;
             _context.SaveChanges();
+            
+            // Remove from cache
+            _redisCache.RemoveAsync($"session:{sessionId}").GetAwaiter().GetResult();
         }
     }
 

@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions {
         services.AddSingleton<IVaultService, VaultService>();
         services.AddSingleton<IBrainService, BrainService>();
         services.AddSingleton<IRedisService, RedisService>();
+        services.AddSingleton<IRedisCacheService, RedisCacheService>();
         services.AddSingleton<IJackpotService, JackpotService>();
         services.AddSingleton<ILeaderboardService, LeaderboardService>();
         services.AddSingleton<IPromotionService, PromotionService>();

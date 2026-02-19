@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Text.Json;
+using AleaSim.Domain.Entities;
 
 namespace AleaSim.Api.Controllers;
 
@@ -22,6 +23,7 @@ public class GameController : ControllerBase {
     private readonly IPromotionService _promotionService;
     private readonly IVoucherService _voucherService;
     private readonly ILevelService _levelService;
+    private readonly IRedisCacheService _redisCache;
     private readonly ILogger<GameController> _logger;
 
     public GameController(
@@ -34,6 +36,7 @@ public class GameController : ControllerBase {
         IPromotionService promotionService,
         IVoucherService voucherService,
         ILevelService levelService,
+        IRedisCacheService redisCache,
         ILogger<GameController> logger) 
     {
         _gameDirector = gameDirector;
@@ -45,6 +48,7 @@ public class GameController : ControllerBase {
         _promotionService = promotionService;
         _voucherService = voucherService;
         _levelService = levelService;
+        _redisCache = redisCache;
         _logger = logger;
     }
 
@@ -71,8 +75,23 @@ public class GameController : ControllerBase {
             var game = _repo.GetGameByType(gameType);
             if (game == null) return NotFound("Game type not found");
 
-            var session = _repo.GetAllActiveSessions()
-                .FirstOrDefault(s => s.UserId == userId && s.GameId == game.Id);
+            // Try to find session ID in Redis first
+            string sessionCacheKey = $"active_session:{userId}:{game.Id}";
+            var sessionIdStr = await _redisCache.GetAsync<string>(sessionCacheKey);
+            
+            GameSession? session = null;
+            if (!string.IsNullOrEmpty(sessionIdStr) && Guid.TryParse(sessionIdStr, out var sessionId)) {
+                session = _repo.GetSession(sessionId);
+            }
+
+            if (session == null) {
+                session = _repo.GetAllActiveSessions()
+                    .FirstOrDefault(s => s.UserId == userId && s.GameId == game.Id);
+                
+                if (session != null) {
+                    await _redisCache.SetAsync(sessionCacheKey, session.Id.ToString(), TimeSpan.FromHours(2));
+                }
+            }
 
             if (session == null) return NoContent();
 
@@ -111,6 +130,12 @@ public class GameController : ControllerBase {
             if (request.Amount <= 0) return BadRequest("Bet amount must be positive.");
 
             var userId = GetUserIdOrThrow();
+
+            // BOT PROTECTION: Rate Limiting (Max 5 bets per second)
+            string rateLimitKey = $"ratelimit:bet:{userId}";
+            bool isLimited = await _redisCache.IncrementRateLimitAsync(rateLimitKey, TimeSpan.FromSeconds(1));
+            if (isLimited) return StatusCode(429, "Too many requests. Slow down, partner!");
+
             var round = await _gameDirector.PlayRound(gameType, userId, sessionId, request.Amount, request.BetData);
 
             var session = _repo.GetSession(sessionId);

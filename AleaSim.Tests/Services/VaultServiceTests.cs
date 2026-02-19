@@ -10,18 +10,20 @@ public class VaultServiceTests {
     private readonly Mock<IRealTimeService> _mockRealTime;
     private readonly Mock<IGameRepository> _mockRepo;
     private readonly Mock<ILockService> _mockLock;
+    private readonly Mock<IRedisCacheService> _mockCache; // Added
     private readonly VaultService _vaultService;
 
     public VaultServiceTests() {
         _mockRealTime = new Mock<IRealTimeService>();
         _mockRepo = new Mock<IGameRepository>();
         _mockLock = new Mock<ILockService>();
+        _mockCache = new Mock<IRedisCacheService>(); // Init
 
         // Setup lock to return a disposable
         _mockLock.Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
                  .ReturnsAsync(new Mock<IDisposable>().Object);
 
-        _vaultService = new VaultService(_mockRealTime.Object, _mockLock.Object);
+        _vaultService = new VaultService(_mockRealTime.Object, _mockLock.Object, _mockCache.Object); // Fixed
     }
 
     [Fact]

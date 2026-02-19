@@ -11,12 +11,14 @@ public class BrainService : IBrainService {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IVaultService _vaultService;
     private readonly IMemoryCache _cache; 
+    private readonly IRedisCacheService _redisCache;
     private readonly IRngService _rngService;
 
-    public BrainService(IServiceScopeFactory scopeFactory, IVaultService vaultService, IMemoryCache cache, IRngService rngService) {
+    public BrainService(IServiceScopeFactory scopeFactory, IVaultService vaultService, IMemoryCache cache, IRedisCacheService redisCache, IRngService rngService) {
         _scopeFactory = scopeFactory;
         _vaultService = vaultService;
         _cache = cache;
+        _redisCache = redisCache;
         _rngService = rngService;
     }
 
@@ -28,19 +30,21 @@ public class BrainService : IBrainService {
         }
 
         string queueKey = $"brain_queue_{userId}";
-        var queue = _cache.GetOrCreate(queueKey, entry => {
-            entry.SlidingExpiration = TimeSpan.FromMinutes(20); 
-            return new Queue<BrainDirective>();
-        });
+        var queue = _redisCache.GetAsync<List<BrainDirective>>(queueKey).GetAwaiter().GetResult();
 
-        lock (queue!) {
-            if (queue.Count == 0) {
-                for (int i = 0; i < 5; i++) {
-                    queue.Enqueue(DecideOutcome(userId, gameId, betAmount, repo));
-                }
+        if (queue == null || queue.Count == 0) {
+            queue = new List<BrainDirective>();
+            for (int i = 0; i < 5; i++) {
+                queue.Add(DecideOutcome(userId, gameId, betAmount, repo));
             }
-            return queue.Dequeue();
         }
+
+        var directive = queue[0];
+        queue.RemoveAt(0);
+        
+        _redisCache.SetAsync(queueKey, queue, TimeSpan.FromMinutes(20)).GetAwaiter().GetResult();
+        
+        return directive;
     }
 
     public void SetForcedDirective(Guid userId, BrainDirective directive) {
@@ -55,8 +59,17 @@ public class BrainService : IBrainService {
             return forced;
         }
 
-        // 2. Load Profile & Config
-        var profile = repo.GetPlayerProfile(userId); 
+        // 2. Load Profile (TRY REDIS FIRST)
+        string cacheKey = $"user:profile:{userId}";
+        PlayerProfile? profile = _redisCache.GetAsync<PlayerProfile>(cacheKey).GetAwaiter().GetResult();
+        
+        if (profile == null) {
+            profile = repo.GetPlayerProfile(userId); 
+            if (profile != null) {
+                _redisCache.SetAsync(cacheKey, profile, TimeSpan.FromMinutes(30)).GetAwaiter().GetResult();
+            }
+        }
+
         if (profile == null) return new BrainDirective { DecisionType = "Random" };
 
         if (profile.User != null && profile.User.Username.StartsWith("Sim_")) {
@@ -134,7 +147,12 @@ public class BrainService : IBrainService {
     }
 
     private void UpdateProfileLogic(Guid userId, decimal betAmount, decimal winAmount, IGameRepository repo) {
-        var profile = repo.GetPlayerProfile(userId);
+        string cacheKey = $"user:profile:{userId}";
+        var profile = _redisCache.GetAsync<PlayerProfile>(cacheKey).GetAwaiter().GetResult();
+
+        if (profile == null) {
+            profile = repo.GetPlayerProfile(userId);
+        }
 
         if (profile == null) {
             profile = new PlayerProfile { 
@@ -177,5 +195,8 @@ public class BrainService : IBrainService {
 
         profile.LastUpdate = DateTime.UtcNow;
         repo.UpdatePlayerProfile(profile);
+        
+        // UPDATE CACHE instead of just invalidating
+        _redisCache.SetAsync(cacheKey, profile, TimeSpan.FromMinutes(30)).GetAwaiter().GetResult();
     }
 }
