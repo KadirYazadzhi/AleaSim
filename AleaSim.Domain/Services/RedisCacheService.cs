@@ -1,6 +1,7 @@
 using AleaSim.Domain.Interfaces;
 using StackExchange.Redis;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AleaSim.Domain.Services;
 
@@ -13,13 +14,18 @@ public interface IRedisCacheService {
 
 public class RedisCacheService : IRedisCacheService {
     private readonly IDatabase _db;
+    private readonly JsonSerializerOptions _jsonOptions;
 
     public RedisCacheService(IRedisService redisService) {
         _db = redisService.GetDatabase();
+        _jsonOptions = new JsonSerializerOptions {
+            ReferenceHandler = ReferenceHandler.IgnoreCycles,
+            PropertyNameCaseInsensitive = true
+        };
     }
 
     public async Task SetAsync<T>(string key, T value, TimeSpan? expiry = null) {
-        var json = JsonSerializer.Serialize(value);
+        var json = JsonSerializer.Serialize(value, _jsonOptions);
         if (expiry.HasValue) {
             await _db.StringSetAsync(key, json, expiry.Value);
         } else {
@@ -30,7 +36,7 @@ public class RedisCacheService : IRedisCacheService {
     public async Task<T?> GetAsync<T>(string key) {
         var value = await _db.StringGetAsync(key);
         if (!value.HasValue) return default;
-        return JsonSerializer.Deserialize<T>(value!);
+        return JsonSerializer.Deserialize<T>(value!, _jsonOptions);
     }
 
     public async Task RemoveAsync(string key) {

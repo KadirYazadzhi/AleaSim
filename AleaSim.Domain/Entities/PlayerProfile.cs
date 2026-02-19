@@ -3,6 +3,8 @@ namespace AleaSim.Domain.Entities;
 public class PlayerProfile {
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
+    
+    [System.Text.Json.Serialization.JsonIgnore]
     public User User { get; set; } = null!;
 
     // --- Behavioral Metrics ---
