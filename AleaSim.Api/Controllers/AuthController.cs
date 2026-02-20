@@ -125,6 +125,12 @@ public class AuthController : ControllerBase {
             ActiveGameStateJson = activeSession?.GameState,
             Role = user.Role.ToString(),
 
+            user.DailyLossLimit,
+            user.WeeklyLossLimit,
+            user.IsTwoFactorEnabled,
+            user.PreferencesJson,
+            user.LockoutUntil,
+
             LuckyCloverLevel = userProfile?.LuckyCloverLevel ?? 0,
             CashbackLevel = userProfile?.CashbackLevel ?? 0,
             XpBoostLevel = userProfile?.XpBoostLevel ?? 0,
@@ -194,6 +200,65 @@ public class AuthController : ControllerBase {
         
         // Return new token
         return Ok(GenerateToken(user.Username, user.Id, Role.Admin));
+    }
+
+    [Authorize]
+    [HttpPost("password")]
+    public IActionResult ChangePassword([FromBody] ChangePasswordRequest request) {
+        var userId = GetUserIdOrThrow();
+        var user = _repository.GetUser(userId);
+        if (user == null) return NotFound();
+
+        if (!_passwordHasher.VerifyPassword(user.PasswordHash, request.CurrentPassword)) {
+            return BadRequest("Invalid current password.");
+        }
+
+        user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
+        _repository.UpdateUser(user);
+        return Ok(new { Message = "Password updated successfully!" });
+    }
+
+    [Authorize]
+    [HttpPost("settings")]
+    public IActionResult UpdateSettings([FromBody] UpdateSettingsRequest request) {
+        var userId = GetUserIdOrThrow();
+        var user = _repository.GetUser(userId);
+        if (user == null) return NotFound();
+
+        if (request.DailyLossLimit.HasValue) user.DailyLossLimit = request.DailyLossLimit;
+        if (request.WeeklyLossLimit.HasValue) user.WeeklyLossLimit = request.WeeklyLossLimit;
+        if (request.MonthlyLossLimit.HasValue) user.MonthlyLossLimit = request.MonthlyLossLimit;
+        if (!string.IsNullOrEmpty(request.PreferencesJson)) user.PreferencesJson = request.PreferencesJson;
+
+        _repository.UpdateUser(user);
+        return Ok(new { Message = "Settings updated!" });
+    }
+
+    [Authorize]
+    [HttpPost("exclude")]
+    public IActionResult SelfExclude([FromBody] int hours) {
+        var userId = GetUserIdOrThrow();
+        var user = _repository.GetUser(userId);
+        if (user == null) return NotFound();
+
+        user.LockoutUntil = DateTime.UtcNow.AddHours(hours);
+        _repository.UpdateUser(user);
+        return Ok(new { Message = $"Self-exclusion active until {user.LockoutUntil:yyyy-MM-dd HH:mm} UTC" });
+    }
+
+    [Authorize]
+    [HttpPost("2fa/toggle")]
+    public IActionResult Toggle2FA() {
+        var userId = GetUserIdOrThrow();
+        var user = _repository.GetUser(userId);
+        if (user == null) return NotFound();
+
+        user.IsTwoFactorEnabled = !user.IsTwoFactorEnabled;
+        if (user.IsTwoFactorEnabled) {
+            user.TwoFactorSecret = Guid.NewGuid().ToString("N").Substring(0, 16).ToUpper(); // Mock secret
+        }
+        _repository.UpdateUser(user);
+        return Ok(new { Enabled = user.IsTwoFactorEnabled, Secret = user.TwoFactorSecret });
     }
 
     private LoginResponse GenerateToken(string username, Guid userId, Role role) {

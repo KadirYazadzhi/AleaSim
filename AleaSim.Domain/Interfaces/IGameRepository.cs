@@ -44,6 +44,7 @@ public interface IGameRepository {
 
     // Analytics
     IEnumerable<(Guid UserId, decimal NetResult)> CalculateDailyNet(DateTime date);
+    decimal GetUserDailyLoss(Guid userId, DateTime date);
 
     // Bets
     void SaveBet(Bet bet);

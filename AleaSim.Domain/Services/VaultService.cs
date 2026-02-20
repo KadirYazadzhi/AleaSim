@@ -25,6 +25,19 @@ public class VaultService : IVaultService {
         var profile = repo.GetPlayerProfile(userId);
         if (user == null) return false;
 
+        // 1. RESPONSIBLE GAMING: Self-Exclusion Check
+        if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.UtcNow) {
+            throw new InvalidOperationException($"Your account is self-excluded until {user.LockoutUntil.Value:yyyy-MM-dd HH:mm} UTC.");
+        }
+
+        // 2. RESPONSIBLE GAMING: Daily Loss Limit Check
+        if (user.DailyLossLimit.HasValue && user.DailyLossLimit.Value > 0) {
+            var currentDailyLoss = repo.GetUserDailyLoss(userId, DateTime.UtcNow);
+            if (currentDailyLoss + amount > user.DailyLossLimit.Value) {
+                throw new InvalidOperationException($"Bet denied. This would exceed your daily loss limit of {user.DailyLossLimit.Value:C2}. Current loss: {currentDailyLoss:C2}.");
+            }
+        }
+
         bool success = false;
 
         // Admin role used to have free play, but we've enabled real deductions for better testing/realism.

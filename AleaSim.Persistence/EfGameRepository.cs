@@ -233,6 +233,22 @@ public class EfGameRepository : IGameRepository {
             .ToList();
     }
 
+    public decimal GetUserDailyLoss(Guid userId, DateTime date) {
+        var start = date.Date;
+        var end = start.AddDays(1);
+
+        var netResult = _context.GameRounds
+            .Where(r => r.ExecutedAt >= start && r.ExecutedAt < end)
+            .Join(_context.GameSessions, 
+                  round => round.GameSessionId, 
+                  session => session.Id, 
+                  (round, session) => new { session.UserId, round.TotalBetAmount, round.TotalWinAmount })
+            .Where(x => x.UserId == userId)
+            .Sum(x => (decimal?)(x.TotalBetAmount - x.TotalWinAmount)) ?? 0m;
+
+        return netResult;
+    }
+
     public IEnumerable<(Guid UserId, decimal NetResult)> CalculateDailyNet(DateTime date) {
         var start = date.Date;
         var end = start.AddDays(1);
