@@ -2,6 +2,7 @@
 @using AleaSim.Shared.Models
 @using Blazored.LocalStorage
 @using Microsoft.AspNetCore.Components.Authorization
+@using System.Text.Json
 
 @inject AudioService Audio
 @inject ISnackbar Snackbar
@@ -9,72 +10,257 @@
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
-@implements IDisposable
-
 @inject LayoutService LayoutService
+@inject IDialogService DialogService
+@implements IDisposable
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h5">App Settings</MudText>
+        <MudText Typo="Typo.h5" Class="fw-black">
+            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-2" /> PLAYER SETTINGS
+        </MudText>
     </TitleContent>
     <DialogContent>
-        <MudList T="string">
-            <MudListItem>
-                <div class="d-flex justify-space-between align-center">
-                    <MudText>Sound Effects</MudText>
-                    <MudSwitch @bind-Value="Audio.IsMuted" Color="Color.Primary" Label="@(Audio.IsMuted ? "Muted" : "On")" />
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="Color.Primary">
+            <!-- ACCOUNT TAB -->
+            <MudTabPanel Text="Security" Icon="@Icons.Material.Filled.Security">
+                <MudText Typo="Typo.subtitle2" Class="mb-4">Change Password</MudText>
+                <div class="d-flex flex-column gap-3 mb-6">
+                    <MudTextField @bind-Value="currentPassword" Label="Current Password" Variant="Variant.Outlined" InputType="InputType.Password" Dense="true" />
+                    <MudTextField @bind-Value="newPassword" Label="New Password" Variant="Variant.Outlined" InputType="InputType.Password" Dense="true" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangePassword" Disabled="@(string.IsNullOrEmpty(newPassword))">Update Password</MudButton>
                 </div>
-            </MudListItem>
-            
-            <MudListItem>
-                <div class="d-flex justify-space-between align-center">
-                    <MudText>Dark Mode</MudText>
+
+                <MudDivider Class="my-4" />
+
+                <div class="d-flex justify-space-between align-center mb-2">
+                    <div>
+                        <MudText Typo="Typo.subtitle2">Two-Factor Authentication (2FA)</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Add an extra layer of security to your account.</MudText>
+                    </div>
+                    <MudSwitch T="bool" Value="@is2faEnabled" ValueChanged="Toggle2FA" Color="Color.Success" />
+                </div>
+
+                @if (is2faEnabled && !string.IsNullOrEmpty(tfaSecret)) {
+                    <MudAlert Severity="Severity.Info" Class="mt-2">
+                        Your Secret Key: <b>@tfaSecret</b>
+                        <br/>
+                        <MudText Typo="Typo.caption">Scan this in Google Authenticator or Authy.</MudText>
+                    </MudAlert>
+                }
+            </MudTabPanel>
+
+            <!-- PREFERENCES TAB -->
+            <MudTabPanel Text="Game Prefs" Icon="@Icons.Material.Filled.Tune">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Audio Controls</MudText>
+                <div class="pa-4 glass-inner rounded-lg mb-4">
+                    <div class="d-flex align-center mb-2">
+                        <MudIcon Icon="@(Audio.IsMuted ? Icons.Material.Filled.VolumeOff : Icons.Material.Filled.VolumeUp)" Class="mr-3" />
+                        <MudSlider T="double" @bind-Value="Audio.MasterVolume" Min="0" Max="1" Step="0.1" Color="Color.Primary">Master Volume (@((Audio.MasterVolume * 100).ToString("F0"))%)</MudSlider>
+                    </div>
+                    <MudSlider T="double" @bind-Value="Audio.EffectsVolume" Min="0" Max="1" Step="0.1" Color="Color.Secondary">Sound Effects</MudSlider>
+                    <MudCheckBox @bind-Value="Audio.IsMuted" Label="Mute All" Color="Color.Error" Dense="true" />
+                </div>
+
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Visuals & Gameplay</MudText>
+                <div class="pa-4 glass-inner rounded-lg">
+                    <MudSwitch @bind-Value="turboMode" Label="Turbo Mode (Faster Spins)" Color="Color.Warning" UncheckedColor="Color.Default" />
+                    <MudSwitch @bind-Value="lowGraphics" Label="Low Graphics (Better Performance)" Color="Color.Info" UncheckedColor="Color.Default" />
+                    <MudText Typo="Typo.caption" Class="mt-2 d-block">Dark Mode</MudText>
                     <MudIconButton Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
                                    Color="Color.Inherit" 
                                    OnClick="@(() => LayoutService.ToggleDarkMode())" />
                 </div>
-            </MudListItem>
+            </MudTabPanel>
 
-            <MudDivider Class="my-4" />
-            
-            <MudListItem>
-                <MudText Typo="Typo.subtitle2" Class="mb-2">Active Client Seed (Fairness)</MudText>
+            <!-- PRIVACY TAB -->
+            <MudTabPanel Text="Privacy" Icon="@Icons.Material.Filled.PrivacyTip">
+                <MudList T="string">
+                    <MudListItem>
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.body1">Incognito Mode</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Hide your username from public leaderboards.</MudText>
+                            </div>
+                            <MudSwitch @bind-Value="isIncognito" Color="Color.Primary" />
+                        </div>
+                    </MudListItem>
+                    <MudListItem>
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.body1">Hide Balance in Chat</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Other players won't see your wealth when you chat.</MudText>
+                            </div>
+                            <MudSwitch @bind-Value="hideBalance" Color="Color.Primary" />
+                        </div>
+                    </MudListItem>
+                    <MudListItem>
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.body1">Private Profile</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Only you can see your achievements and detailed stats.</MudText>
+                            </div>
+                            <MudSwitch @bind-Value="isPrivateProfile" Color="Color.Primary" />
+                        </div>
+                    </MudListItem>
+                </MudList>
+            </MudTabPanel>
+
+            <!-- RESPONSIBLE GAMING TAB -->
+            <MudTabPanel Text="Responsible" Icon="@Icons.Material.Filled.HealthAndSafety">
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true" Class="mb-4">Playing should be fun. Set limits to stay in control.</MudAlert>
+                
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Loss Limits</MudText>
+                <div class="d-flex gap-4 mb-6">
+                    <MudNumericField @bind-Value="dailyLossLimit" Label="Daily Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" HideSpinButtons="true" Dense="true" />
+                    <MudNumericField @bind-Value="weeklyLossLimit" Label="Weekly Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" HideSpinButtons="true" Dense="true" />
+                </div>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" OnClick="SaveSettings" Class="mb-6">Save Limits</MudButton>
+
+                <MudDivider />
+
+                <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Self-Exclusion (Take a Break)</MudText>
+                <MudText Typo="Typo.caption" Class="mb-4 d-block">Lock your account for a specific period. This cannot be undone.</MudText>
+                
                 <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="() => SelfExclude(24)">24 Hours</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="() => SelfExclude(168)">7 Days</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="() => SelfExclude(720)">30 Days</MudButton>
+                </div>
+            </MudTabPanel>
+
+            <!-- DEV TAB -->
+            <MudTabPanel Text="System" Icon="@Icons.Material.Filled.BugReport">
+                 <MudText Typo="Typo.subtitle2" Class="mb-2">Active Client Seed (Fairness)</MudText>
+                <div class="d-flex gap-2 mb-6">
                     <MudTextField @bind-Value="clientSeed" Label="Change Seed" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="UpdateSeed">Update</MudButton>
                 </div>
-            </MudListItem>
-
-             <MudDivider Class="my-4" />
-             <MudButton Variant="Variant.Text" Color="Color.Error" FullWidth="true" OnClick="UnlockAdmin">UNLOCK ADMIN MODE (DEV)</MudButton>
-
-        </MudList>
+                <MudButton Variant="Variant.Text" Color="Color.Error" FullWidth="true" OnClick="UnlockAdmin">UNLOCK ADMIN MODE (DEV)</MudButton>
+            </MudTabPanel>
+        </MudTabs>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Close" Color="Color.Primary">Close</MudButton>
+        <MudButton OnClick="Close">Cancel</MudButton>
+        <MudButton OnClick="SaveSettings" Color="Color.Primary" Variant="Variant.Filled" Class="px-8">SAVE ALL CHANGES</MudButton>
     </DialogActions>
 </MudDialog>
+
+<style>
+    .fw-black { font-weight: 900; }
+    .glass-inner { background: rgba(0,0,0,0.05); }
+</style>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     
+    // Security
+    private string currentPassword = "";
+    private string newPassword = "";
+    private bool is2faEnabled = false;
+    private string tfaSecret = "";
+
+    // Preferences
+    private bool turboMode;
+    private bool lowGraphics;
+    
+    // Privacy
+    private bool isIncognito;
+    private bool hideBalance;
+    private bool isPrivateProfile;
+
+    // Responsible Gaming
+    private decimal? dailyLossLimit;
+    private decimal? weeklyLossLimit;
+
     private string clientSeed = "a8b3c9d2";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         LayoutService.OnMajorUpdate += StateHasChanged;
+        await LoadSettings();
     }
 
-    public void Dispose()
-    {
-        LayoutService.OnMajorUpdate -= StateHasChanged;
+    private async Task LoadSettings() {
+        try {
+            var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+            if (profile != null) {
+                is2faEnabled = profile.IsTwoFactorEnabled;
+                dailyLossLimit = profile.DailyLossLimit;
+                weeklyLossLimit = profile.WeeklyLossLimit;
+                
+                var prefs = JsonSerializer.Deserialize<Dictionary<string, object>>(profile.PreferencesJson) ?? new();
+                turboMode = GetBool(prefs, "TurboMode");
+                lowGraphics = GetBool(prefs, "LowGraphics");
+                isIncognito = GetBool(prefs, "IsIncognito");
+                hideBalance = GetBool(prefs, "HideBalance");
+                isPrivateProfile = GetBool(prefs, "IsPrivate");
+            }
+        } catch {}
     }
 
+    private bool GetBool(Dictionary<string, object> dict, string key) => dict.TryGetValue(key, out var val) && val.ToString() == "True";
+
+    private async Task SaveSettings() {
+        var prefs = new Dictionary<string, bool> {
+            { "TurboMode", turboMode },
+            { "LowGraphics", lowGraphics },
+            { "IsIncognito", isIncognito },
+            { "HideBalance", hideBalance },
+            { "IsPrivate", isPrivateProfile }
+        };
+
+        var request = new UpdateSettingsRequest {
+            DailyLossLimit = dailyLossLimit,
+            WeeklyLossLimit = weeklyLossLimit,
+            PreferencesJson = JsonSerializer.Serialize(prefs)
+        };
+
+        var response = await Http.PostAsJsonAsync("api/Auth/settings", request);
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Settings saved successfully!", Severity.Success);
+            LayoutService.NotifyMajorUpdate();
+        }
+    }
+
+    private async Task ChangePassword() {
+        var response = await Http.PostAsJsonAsync("api/Auth/password", new ChangePasswordRequest {
+            CurrentPassword = currentPassword,
+            NewPassword = newPassword
+        });
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Password updated!", Severity.Success);
+            currentPassword = ""; newPassword = "";
+        } else {
+            Snackbar.Add(await response.Content.ReadAsStringAsync(), Severity.Error);
+        }
+    }
+
+    private async Task Toggle2FA(bool val) {
+        var response = await Http.PostAsync("api/Auth/2fa/toggle", null);
+        if (response.IsSuccessStatusCode) {
+            var res = await response.Content.ReadFromJsonAsync<TfaResponse>();
+            is2faEnabled = res.Enabled;
+            tfaSecret = res.Secret;
+            Snackbar.Add(is2faEnabled ? "2FA Enabled" : "2FA Disabled", Severity.Info);
+        }
+    }
+
+    private async Task SelfExclude(int hours) {
+        if (!await DialogService.ShowMessageBox("Confirm Self-Exclusion", $"Are you sure you want to lock your account for {hours} hours? This cannot be undone.", yesText:"YES, LOCK ME OUT", cancelText:"Cancel") ?? false) return;
+
+        var response = await Http.PostAsJsonAsync("api/Auth/exclude", hours);
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Self-exclusion active. Logging out...", Severity.Error);
+            await Task.Delay(2000);
+            Nav.NavigateTo("/logout");
+        }
+    }
+
+    public void Dispose() => LayoutService.OnMajorUpdate -= StateHasChanged;
     private void Close() => MudDialog.Close();
-
-    private void UpdateSeed() {
-        Snackbar.Add("Client seed updated for next session!", Severity.Success);
-    }
+    private void UpdateSeed() => Snackbar.Add("Client seed updated for next session!", Severity.Success);
 
     private async Task UnlockAdmin() {
         var response = await Http.PostAsJsonAsync("api/Auth/dev/promote", "MakeMeAdminPlease");
@@ -85,10 +271,10 @@
                 ((CustomAuthStateProvider)AuthStateProvider).NotifyUserAuthentication(result.Token);
                 Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("bearer", result.Token);
                 Snackbar.Add("Admin Mode Unlocked! Refreshing...", Severity.Success);
-                Nav.NavigateTo("/dashboard", true);
+                Nav.NavigateTo("/admin/dashboard", true);
              }
-        } else {
-            Snackbar.Add("Failed to unlock admin.", Severity.Error);
         }
     }
+
+    private record TfaResponse(bool Enabled, string Secret);
 }

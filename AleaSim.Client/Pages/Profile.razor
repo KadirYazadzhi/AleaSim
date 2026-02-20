@@ -7,6 +7,7 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject LayoutService layoutService
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
     <MudText Typo="Typo.h3" Class="mb-6">Player Profile</MudText>
@@ -38,6 +39,11 @@
                     </div>
                     <div>
                         <MudText Typo="Typo.h4">@profile?.Username</MudText>
+                        @if (!string.IsNullOrEmpty(selectedTitle) && selectedTitle != "None") {
+                            <MudText Typo="Typo.subtitle1" Color="Color.Warning" Style="font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+                                @FormatTitle(selectedTitle)
+                            </MudText>
+                        }
                         <MudText Typo="Typo.subtitle1" Color="Color.Info">
                             @profile?.Progression.TierName TIER - Level @profile?.Progression.CurrentLevel
                         </MudText>
@@ -110,6 +116,26 @@
             </MudPaper>
         </MudItem>
 
+        <!-- Advanced Analytics -->
+        <MudItem xs="12">
+            <MudPaper Class="pa-6" Elevation="2">
+                <MudText Typo="Typo.h5" Class="fw-black mb-6">Advanced Player Insights</MudText>
+                <MudGrid>
+                    <MudItem xs="12" md="4">
+                        <div class="pa-4 rounded-lg bg-dark-lighten text-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Favorite" Color="Color.Error" Style="font-size: 3rem;" Class="mb-2" />
+                            <MudText Typo="Typo.h6">@favoriteGame</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Most Played Game</MudText>
+                        </div>
+                    </MudItem>
+                    <MudItem xs="12" md="8">
+                        <MudChart ChartType="ChartType.Line" ChartSeries="@Series" XAxisLabels="@Labels" Width="100%" Height="200px" ChartOptions="@options" />
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="d-block mt-2">Win/Loss Performance (Last 7 Sessions)</MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
         <!-- Achievements Section -->
         <MudItem xs="12">
             <MudPaper Class="pa-6" Elevation="2">
@@ -138,12 +164,26 @@
 </MudContainer>
 
 @code {
-    private UserProfileResponse? profile;
-    private string voucherCode = "";
+        private UserProfileResponse? profile;
+        private string voucherCode = "";
+        private string selectedTitle = "None";
+        
+        // Analytics Mock Data (Real version would fetch from specific API)
+    private string favoriteGame = "Clover Chase";
+    public List<ChartSeries> Series = new List<ChartSeries>()
+    {
+        new ChartSeries() { Name = "Net Profit", Data = new double[] { 10, 42, -15, 23, 88, 54, 102 } },
+    };
+    public string[] Labels = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+    private ChartOptions options = new ChartOptions { InterpolationOption = InterpolationOption.NaturalSpline };
 
     protected override async Task OnInitializedAsync() {
         try {
             profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+            if (profile != null) {
+                var prefs = JsonSerializer.Deserialize<Dictionary<string, object>>(profile.PreferencesJson) ?? new();
+                if (prefs.TryGetValue("Title", out var title)) selectedTitle = title.ToString() ?? "None";
+            }
         } catch {
             Snackbar.Add("Failed to load profile.", Severity.Error);
         }
@@ -197,6 +237,14 @@
             return symId switch { 7 => "7️⃣", 8 => "🍀", 10 => "💰", _ => "💎" };
         } catch { return null; }
     }
+
+    private string FormatTitle(string raw) => raw switch {
+        "Rookie" => "Rookie Gambler",
+        "HighRoller" => "🎰 High Roller",
+        "Whale" => "🐋 Casino Whale",
+        "Legend" => "🏆 Living Legend",
+        _ => raw
+    };
 
     private string GetVipCardStyle(VipTier tier) => tier switch {
         VipTier.Diamond => "background: linear-gradient(135deg, #2c3e50 0%, #000000 100%); border: 2px solid #e0e0e0; color: #fff;",

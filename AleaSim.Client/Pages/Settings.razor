@@ -1,0 +1,430 @@
+@page "/settings"
+@using AleaSim.Client.Services
+@using AleaSim.Shared.Models
+@using Blazored.LocalStorage
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Text.Json
+@attribute [Authorize]
+
+@inject AudioService Audio
+@inject ISnackbar Snackbar
+@inject HttpClient Http
+@inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
+@inject LayoutService LayoutService
+@inject IDialogService DialogService
+@implements IDisposable
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-10 mb-16 animate-fade-in">
+    <!-- Header Section -->
+    <div class="d-flex flex-column align-center mb-10 text-center">
+        <MudIcon Icon="@Icons.Material.Filled.SettingsSuggest" Color="Color.Primary" Style="font-size: 4rem;" Class="mb-2" />
+        <MudText Typo="Typo.h2" Class="fw-black text-gradient uppercase tracking-tighter">Preferences</MudText>
+        <MudText Typo="Typo.subtitle1" Class="opacity-70">Tailor your AleaSim experience to your winning style.</MudText>
+    </div>
+
+    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" 
+             PanelClass="pa-0 mt-6" TabHeaderClass="settings-tabs-header"
+             Centered="true" SliderColor="Color.Secondary">
+        
+        <!-- 1. SECURITY -->
+        <MudTabPanel Text="Security" Icon="@Icons.Material.Filled.Shield">
+            <div class="settings-grid">
+                <div class="settings-group-card glass-panel pa-8 rounded-xxl">
+                    <div class="d-flex align-center mb-6">
+                        <div class="icon-circle bg-primary-soft mr-4">
+                            <MudIcon Icon="@Icons.Material.Filled.Lock" Color="Color.Primary" />
+                        </div>
+                        <MudText Typo="Typo.h5" Class="fw-bold">Update Password</MudText>
+                    </div>
+                    <div class="d-flex flex-column gap-4">
+                        <MudTextField @bind-Value="currentPassword" Label="Current Password" Variant="Variant.Outlined" InputType="InputType.Password" Class="custom-input" />
+                        <MudTextField @bind-Value="newPassword" Label="New Password" Variant="Variant.Outlined" InputType="InputType.Password" Class="custom-input" />
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangePassword" Class="py-4 rounded-xl fw-bold shadow-glow">SAVE NEW PASSWORD</MudButton>
+                    </div>
+                </div>
+
+                <div class="settings-group-card glass-panel pa-8 rounded-xxl">
+                    <div class="d-flex align-center mb-6">
+                        <div class="icon-circle bg-success-soft mr-4">
+                            <MudIcon Icon="@Icons.Material.Filled.PhonelinkLock" Color="Color.Success" />
+                        </div>
+                        <MudText Typo="Typo.h5" Class="fw-bold">2FA Protection</MudText>
+                    </div>
+                    <div class="d-flex justify-space-between align-center mb-6">
+                        <MudText Typo="Typo.body1">Status: <span class='@(is2faEnabled ? "text-success fw-bold" : "text-error")'>@(is2faEnabled ? "Active" : "Inactive")</span></MudText>
+                        <MudSwitch T="bool" Value="@is2faEnabled" ValueChanged="Toggle2FA" Color="Color.Success" />
+                    </div>
+                    @if (is2faEnabled && !string.IsNullOrEmpty(tfaSecret)) {
+                        <div class="pa-4 rounded-lg bg-dark-transparent border-dashed">
+                            <MudText Typo="Typo.caption" Class="d-block mb-1">YOUR SECRET KEY</MudText>
+                            <MudText Typo="Typo.h6" Style="font-family: monospace; letter-spacing: 3px;">@tfaSecret</MudText>
+                        </div>
+                    }
+                </div>
+            </div>
+        </MudTabPanel>
+
+        <!-- 2. GAMEPLAY -->
+        <MudTabPanel Text="Gameplay" Icon="@Icons.Material.Filled.SportsEsports">
+            <div class="settings-grid">
+                <div class="settings-group-card glass-panel pa-8 rounded-xxl">
+                    <div class="d-flex align-center mb-6">
+                        <div class="icon-circle bg-info-soft mr-4">
+                            <MudIcon Icon="@Icons.Material.Filled.VolumeUp" Color="Color.Info" />
+                        </div>
+                        <MudText Typo="Typo.h5" Class="fw-bold">Audio Experience</MudText>
+                    </div>
+                    <div class="d-flex flex-column gap-6">
+                        <div class="volume-control">
+                            <div class="d-flex justify-space-between mb-1">
+                                <MudText Typo="Typo.body2">Master Volume</MudText>
+                                <MudText Typo="Typo.body2" Class="fw-bold">@((Audio.MasterVolume * 100).ToString("F0"))%</MudText>
+                            </div>
+                            <MudSlider T="double" @bind-Value="Audio.MasterVolume" Min="0" Max="1" Step="0.1" Color="Color.Primary" />
+                        </div>
+                        <div class="volume-control">
+                            <div class="d-flex justify-space-between mb-1">
+                                <MudText Typo="Typo.body2">Effects & Wins</MudText>
+                                <MudText Typo="Typo.body2" Class="fw-bold">@((Audio.EffectsVolume * 100).ToString("F0"))%</MudText>
+                            </div>
+                            <MudSlider T="double" @bind-Value="Audio.EffectsVolume" Min="0" Max="1" Step="0.1" Color="Color.Secondary" />
+                        </div>
+                        <MudCheckBox @bind-Value="Audio.IsMuted" Label="Mute All Sounds" Color="Color.Error" Dense="true" />
+                    </div>
+                </div>
+
+                <div class="settings-group-card glass-panel pa-8 rounded-xxl">
+                    <div class="d-flex align-center mb-6">
+                        <div class="icon-circle bg-warning-soft mr-4">
+                            <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Warning" />
+                        </div>
+                        <MudText Typo="Typo.h5" Class="fw-bold">Visual Engine</MudText>
+                    </div>
+                    <div class="d-flex flex-column gap-4">
+                        <div class="pa-4 rounded-xl bg-hover transition-all">
+                            <MudSwitch @bind-Value="turboMode" Label="Turbo Spin Mode" Color="Color.Warning" />
+                            <MudText Typo="Typo.caption" Class="ml-12 d-block opacity-60">Significantly reduces spin duration.</MudText>
+                        </div>
+                        <div class="pa-4 rounded-xl bg-hover transition-all">
+                            <MudSwitch @bind-Value="lowGraphics" Label="High Performance Mode" Color="Color.Info" />
+                            <MudText Typo="Typo.caption" Class="ml-12 d-block opacity-60">Disables complex shaders for higher FPS.</MudText>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </MudTabPanel>
+
+        <!-- 3. PRIVACY -->
+        <MudTabPanel Text="Privacy" Icon="@Icons.Material.Filled.VisibilityOff">
+            <MudPaper Class="pa-8 glass-panel rounded-xxl" Elevation="0">
+                <div class="d-flex flex-column gap-6">
+                    <div class="d-flex justify-space-between align-center pa-4 rounded-xl bg-hover">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.FaceRetouchingOff" Class="mr-4" Color="Color.Primary" />
+                            <div>
+                                <MudText Typo="Typo.h6">Incognito Mode</MudText>
+                                <MudText Typo="Typo.body2" Class="opacity-60">Hide your big wins from the global feed.</MudText>
+                            </div>
+                        </div>
+                        <MudSwitch @bind-Value="isIncognito" Color="Color.Primary" />
+                    </div>
+                    <div class="d-flex justify-space-between align-center pa-4 rounded-xl bg-hover">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.VisibilityOff" Class="mr-4" Color="Color.Success" />
+                            <div>
+                                <MudText Typo="Typo.h6">Private RPG Stats</MudText>
+                                <MudText Typo="Typo.body2" Class="opacity-60">Keep your level and achievements hidden from others.</MudText>
+                            </div>
+                        </div>
+                        <MudSwitch @bind-Value="isPrivateProfile" Color="Color.Primary" />
+                    </div>
+                </div>
+            </MudPaper>
+        </MudTabPanel>
+
+        <!-- 4. RESPONSIBLE -->
+        <MudTabPanel Text="Limits" Icon="@Icons.Material.Filled.HealthAndSafety">
+            <MudPaper Class="pa-8 glass-panel rounded-xxl" Elevation="0">
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-8 rounded-xl border-2">Set loss limits to ensure gaming stays fun.</MudAlert>
+                <MudGrid Spacing="6">
+                    <MudItem xs="12" md="4">
+                        <MudNumericField @bind-Value="dailyLossLimit" Label="Daily Loss Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Class="custom-input" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudNumericField @bind-Value="weeklyLossLimit" Label="Weekly Loss Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Class="custom-input" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudNumericField @bind-Value="monthlyLossLimit" Label="Monthly Loss Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Class="custom-input" />
+                    </MudItem>
+                </MudGrid>
+
+                <div class="mt-12 pa-8 rounded-xxl border-2 border-dashed border-error-subtle bg-error-transparent">
+                    <MudText Typo="Typo.h5" Color="Color.Error" Class="fw-black mb-2 uppercase">Self-Exclusion Zone</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-6 opacity-70">Lock your account temporarily. This action is cryptographic and cannot be reversed by staff.</MudText>
+                    <div class="d-flex gap-4 flex-wrap">
+                        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="() => SelfExclude(24)" Class="px-8 py-3 rounded-lg fw-bold">24H LOCK</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="() => SelfExclude(168)" Class="px-8 py-3 rounded-lg fw-bold">7 DAYS</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="() => SelfExclude(720)" Class="px-8 py-3 rounded-lg fw-bold shadow-glow-error">30 DAYS FULL LOCK</MudButton>
+                    </div>
+                </div>
+            </MudPaper>
+        </MudTabPanel>
+
+        <!-- 5. APPEARANCE -->
+        <MudTabPanel Text="Custom" Icon="@Icons.Material.Filled.Palette">
+            <div class="settings-grid">
+                <div class="settings-group-card glass-panel pa-8 rounded-xxl h-100">
+                    <MudText Typo="Typo.h5" Class="fw-bold mb-6">Visual Theme</MudText>
+                    <MudSelect @bind-Value="selectedSkin" Label="Platform Skin" Variant="Variant.Outlined" Class="custom-input" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem Value='@("Default")'>Classic Emerald</MudSelectItem>
+                        <MudSelectItem Value='@("Vegas")'>Las Vegas Night</MudSelectItem>
+                        <MudSelectItem Value='@("Neon")'>Neon Cyberpunk</MudSelectItem>
+                        <MudSelectItem Value='@("Minimal")'>Slate Minimalist</MudSelectItem>
+                    </MudSelect>
+                    
+                    <div class="mt-8 d-flex justify-space-between align-center pa-4 rounded-xl bg-hover">
+                        <MudText>Current Mode</MudText>
+                        <MudButton StartIcon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" 
+                                   Variant="Variant.Outlined" Color="Color.Primary"
+                                   OnClick="@(() => LayoutService.ToggleDarkMode())" Class="rounded-lg">
+                            @(LayoutService.IsDarkMode ? "Dark" : "Light")
+                        </MudButton>
+                    </div>
+                </div>
+
+                <div class="settings-group-card glass-panel pa-8 rounded-xxl h-100">
+                    <MudText Typo="Typo.h5" Class="fw-bold mb-6">Player Identity</MudText>
+                    <MudSelect @bind-Value="selectedTitle" Label="Active Title" Variant="Variant.Outlined" Class="custom-input" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem Value='@("None")'>No Title</MudSelectItem>
+                        <MudSelectItem Value='@("Rookie")'>Rookie Gambler</MudSelectItem>
+                        <MudSelectItem Value='@("HighRoller")'>🎰 High Roller</MudSelectItem>
+                        <MudSelectItem Value='@("Whale")'>🐋 Casino Whale</MudSelectItem>
+                        <MudSelectItem Value='@("Legend")'>🏆 Living Legend</MudSelectItem>
+                    </MudSelect>
+                    <MudAlert Severity="Severity.Info" Class="mt-6 rounded-lg" Dense="true">Titles are visible in chat and profile.</MudAlert>
+                </div>
+            </div>
+        </MudTabPanel>
+    </MudTabs>
+
+    <!-- Sticky Action Bar -->
+    <div class="d-flex justify-center mt-12">
+        <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" 
+                   OnClick="SaveSettings" 
+                   Class="px-16 py-5 rounded-xxl fw-black shadow-glow-success hover-scale animate-bounce-subtle"
+                   Style="font-size: 1.3rem; letter-spacing: 2px;">
+            COMMIT ALL CHANGES
+        </MudButton>
+    </div>
+</MudContainer>
+
+<style>
+    .fw-black { font-weight: 900; }
+    .fw-bold { font-weight: 700; }
+    .uppercase { text-transform: uppercase; }
+    .tracking-tighter { letter-spacing: -2px; }
+    
+    .text-gradient {
+        background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-secondary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .glass-panel {
+        background: @(LayoutService.IsDarkMode ? "rgba(25, 30, 50, 0.6)" : "rgba(255, 255, 255, 0.8)");
+        backdrop-filter: blur(15px);
+        border: 1px solid @(LayoutService.IsDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)");
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+
+    .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+    }
+
+    .icon-circle {
+        width: 48px; height: 48px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .bg-primary-soft { background: @(LayoutService.IsDarkMode ? "rgba(124, 58, 237, 0.15)" : "rgba(124, 58, 237, 0.1)"); }
+    .bg-success-soft { background: @(LayoutService.IsDarkMode ? "rgba(16, 185, 129, 0.15)" : "rgba(16, 185, 129, 0.1)"); }
+    .bg-info-soft { background: @(LayoutService.IsDarkMode ? "rgba(14, 165, 233, 0.15)" : "rgba(14, 165, 233, 0.1)"); }
+    .bg-warning-soft { background: @(LayoutService.IsDarkMode ? "rgba(245, 158, 11, 0.15)" : "rgba(245, 158, 11, 0.1)"); }
+
+    .bg-hover:hover { background: rgba(var(--mud-palette-primary-rgb), 0.05); }
+    .bg-dark-transparent { background: rgba(0,0,0,0.2); }
+    .bg-error-transparent { background: rgba(239, 68, 68, 0.05); }
+    .border-dashed { border: 2px dashed rgba(var(--mud-palette-primary-rgb), 0.3); }
+    .border-error-subtle { border-color: rgba(239, 68, 68, 0.2) !important; }
+
+    .custom-input .mud-input-outlined-border { border-radius: 12px !important; }
+    
+    .shadow-glow { box-shadow: 0 0 20px rgba(var(--mud-palette-primary-rgb), 0.3); }
+    .shadow-glow-success { box-shadow: 0 0 30px rgba(var(--mud-palette-success-rgb), 0.4); }
+    .shadow-glow-error { box-shadow: 0 0 20px rgba(var(--mud-palette-error-rgb), 0.3); }
+
+    .animate-bounce-subtle { animation: bounceSubtle 3s infinite; }
+    @@keyframes bounceSubtle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+    .settings-tabs-header {
+        background: @(LayoutService.IsDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)") !important;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+        padding: 4px;
+    }
+
+    .settings-tabs-header .mud-tabs-tab {
+        border-radius: 0.8rem;
+        margin: 0 2px;
+        transition: all 0.3s ease;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .settings-tabs-header .mud-tab-active {
+        background: var(--mud-palette-primary) !important;
+        color: var(--mud-palette-primary-text) !important;
+    }
+
+    .settings-tabs-header .mud-tabs-tabbar-inner {
+        background: transparent !important;
+    }
+    
+    .rounded-xxl { border-radius: 2rem; }
+    .transition-all { transition: all 0.3s ease; }
+    .hover-scale:hover { transform: scale(1.03); }
+</style>
+
+@code {
+    // 1. Security
+    private string currentPassword = "";
+    private string newPassword = "";
+    private bool is2faEnabled = false;
+    private string tfaSecret = "";
+    private List<SessionItem> mockSessions = new() {
+        new SessionItem("192.168.1.42", "Windows 11 / Chrome 121", "Just now", true),
+        new SessionItem("84.22.10.154", "iPhone 15 Pro / Safari", "2 hours ago", false),
+        new SessionItem("10.0.0.5", "Android 14 / Chrome Mobile", "Yesterday", false)
+    };
+
+    // 2. Preferences
+    private bool turboMode;
+    private bool lowGraphics;
+    
+    // 3. Privacy
+    private bool isIncognito;
+    private bool hideBalance;
+    private bool isPrivateProfile;
+
+    // 4. Responsible Gaming
+    private decimal? dailyLossLimit;
+    private decimal? weeklyLossLimit;
+    private decimal? monthlyLossLimit;
+
+    // 6. Customization
+    private string selectedSkin = "Default";
+    private string selectedTitle = "None";
+
+    protected override async Task OnInitializedAsync()
+    {
+        LayoutService.OnMajorUpdate += StateHasChanged;
+        await LoadSettings();
+    }
+
+    private async Task LoadSettings() {
+        try {
+            var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+            if (profile != null) {
+                is2faEnabled = profile.IsTwoFactorEnabled;
+                dailyLossLimit = profile.DailyLossLimit;
+                weeklyLossLimit = profile.WeeklyLossLimit;
+                monthlyLossLimit = 0;
+                
+                var prefs = JsonSerializer.Deserialize<Dictionary<string, object>>(profile.PreferencesJson) ?? new();
+                turboMode = GetBool(prefs, "TurboMode");
+                lowGraphics = GetBool(prefs, "LowGraphics");
+                isIncognito = GetBool(prefs, "IsIncognito");
+                hideBalance = GetBool(prefs, "HideBalance");
+                isPrivateProfile = GetBool(prefs, "IsPrivate");
+                selectedSkin = prefs.ContainsKey("Skin") ? prefs["Skin"].ToString() : "Default";
+                selectedTitle = prefs.ContainsKey("Title") ? prefs["Title"].ToString() : "None";
+            }
+        } catch {}
+    }
+
+    private bool GetBool(Dictionary<string, object> dict, string key) => 
+        dict.TryGetValue(key, out var val) && val != null && (val.ToString() == "True" || val.ToString() == "true");
+
+    private async Task SaveSettings() {
+        var prefs = new Dictionary<string, string> {
+            { "TurboMode", turboMode.ToString() },
+            { "LowGraphics", lowGraphics.ToString() },
+            { "IsIncognito", isIncognito.ToString() },
+            { "HideBalance", hideBalance.ToString() },
+            { "IsPrivate", isPrivateProfile.ToString() },
+            { "Skin", selectedSkin },
+            { "Title", selectedTitle }
+        };
+
+        var request = new UpdateSettingsRequest {
+            DailyLossLimit = dailyLossLimit,
+            WeeklyLossLimit = weeklyLossLimit,
+            MonthlyLossLimit = monthlyLossLimit,
+            PreferencesJson = JsonSerializer.Serialize(prefs)
+        };
+
+        var response = await Http.PostAsJsonAsync("api/Auth/settings", request);
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Settings applied! May your luck change now!", Severity.Success);
+            LayoutService.NotifyMajorUpdate();
+        }
+    }
+
+    private async Task ChangePassword() {
+        if (string.IsNullOrEmpty(newPassword)) return;
+        var response = await Http.PostAsJsonAsync("api/Auth/password", new ChangePasswordRequest {
+            CurrentPassword = currentPassword,
+            NewPassword = newPassword
+        });
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Password updated!", Severity.Success);
+            currentPassword = ""; newPassword = "";
+        } else {
+            Snackbar.Add(await response.Content.ReadAsStringAsync(), Severity.Error);
+        }
+    }
+
+    private async Task Toggle2FA(bool val) {
+        var response = await Http.PostAsync("api/Auth/2fa/toggle", null);
+        if (response.IsSuccessStatusCode) {
+            var res = await response.Content.ReadFromJsonAsync<TfaResponse>();
+            is2faEnabled = res.Enabled;
+            tfaSecret = res.Secret;
+            Snackbar.Add(is2faEnabled ? "2FA Protection Enabled" : "2FA Protection Disabled", Severity.Info);
+        }
+    }
+
+    private async Task SelfExclude(int hours) {
+        if (!await DialogService.ShowMessageBox("Safety Protocol", $"Are you sure you want to self-exclude for {hours} hours? You will be logged out immediately.", yesText:"CONFIRM EXCLUSION", cancelText:"Cancel") ?? false) return;
+
+        var response = await Http.PostAsJsonAsync("api/Auth/exclude", hours);
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Exclusion activated.", Severity.Error);
+            await Task.Delay(1000);
+            Nav.NavigateTo("/logout");
+        }
+    }
+
+    public void Dispose() => LayoutService.OnMajorUpdate -= StateHasChanged;
+    
+    private record TfaResponse(bool Enabled, string Secret);
+    private class SessionItem {
+        public string Ip { get; set; }
+        public string Device { get; set; }
+        public string Time { get; set; }
+        public bool IsCurrent { get; set; }
+        public SessionItem(string ip, string dev, string time, bool curr) { Ip = ip; Device = dev; Time = time; IsCurrent = curr; }
+    }
+}

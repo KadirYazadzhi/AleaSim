@@ -108,7 +108,7 @@
                             </div>
                             <MudMenuItem Href="/profile" Icon="@Icons.Material.Filled.Person">Profile</MudMenuItem>
                             <MudMenuItem Href="/wallet" Icon="@Icons.Material.Filled.AccountBalanceWallet">Wallet</MudMenuItem>
-                            <MudMenuItem Href="/settings" Icon="@Icons.Material.Filled.Settings" OnClick="OpenSettings">Settings</MudMenuItem>
+                            <MudMenuItem Href="/settings" Icon="@Icons.Material.Filled.Settings">Settings</MudMenuItem>
                             <MudMenuItem Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" OnClick="@(async () => await LayoutService.ToggleDarkMode())">
                                 @(LayoutService.IsDarkMode ? "Light Mode" : "Dark Mode")
                             </MudMenuItem>
