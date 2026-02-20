@@ -3,6 +3,7 @@ using System;
 using AleaSim.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AleaSim.Persistence.Migrations
 {
     [DbContext(typeof(AleaSimDbContext))]
-    partial class AleaSimDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260220024654_AddUserSettingsAndSecurity")]
+    partial class AddUserSettingsAndSecurity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

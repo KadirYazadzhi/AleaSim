@@ -30,6 +30,19 @@ public class User {
     public bool IsActive { get; set; }
     public DateTime? LockoutUntil { get; set; } // For cool-down periods
 
+    // --- Responsible Gaming ---
+    public decimal? DailyLossLimit { get; set; }
+    public decimal? WeeklyLossLimit { get; set; }
+    public decimal? MonthlyLossLimit { get; set; }
+    
+    // --- Security ---
+    public bool IsTwoFactorEnabled { get; set; }
+    public string? TwoFactorSecret { get; set; } // Encrypted in real app
+    
+    // --- Preferences (JSON) ---
+    // Contains: AudioVolume, TurboMode, LowGraphics, HideBalance, IsIncognito
+    public string PreferencesJson { get; set; } = "{}";
+
     // --- Authentication ---
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiry { get; set; }
