@@ -43,3 +43,15 @@ public class RegisterRequest {
         Email = email;
     }
 }
+
+public class ChangePasswordRequest {
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+public class UpdateSettingsRequest {
+    public decimal? DailyLossLimit { get; set; }
+    public decimal? WeeklyLossLimit { get; set; }
+    public decimal? MonthlyLossLimit { get; set; }
+    public string? PreferencesJson { get; set; }
+}

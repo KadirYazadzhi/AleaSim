@@ -29,6 +29,11 @@ public class LayoutService
         OnAvatarChanged?.Invoke(newUrl);
     }
 
+    public void NotifyMajorUpdate()
+    {
+        OnMajorUpdate?.Invoke();
+    }
+
     public void SetBalanceUpdateSuppression(bool suppressed)
     {
         IsBalanceUpdateSuppressed = suppressed;

@@ -16,6 +16,13 @@ public class UserProfileResponse {
     public int CurrentStreak { get; set; }
     public UserProgressionDto Progression { get; set; } = new();
     public List<UserAchievementDto> Achievements { get; set; } = new();
+
+    // Settings
+    public bool IsTwoFactorEnabled { get; set; }
+    public decimal? DailyLossLimit { get; set; }
+    public decimal? WeeklyLossLimit { get; set; }
+    public string PreferencesJson { get; set; } = "{}";
+    public DateTime? LockoutUntil { get; set; }
 }
 
 public class UserDto {
@@ -32,6 +39,12 @@ public class UserDto {
     public int CurrentStreak { get; set; } // Added
     public UserProgressionDto Progression { get; set; } = new();
     public List<UserAchievementDto> Achievements { get; set; } = new();
+    
+    // Settings
+    public bool IsTwoFactorEnabled { get; set; }
+    public decimal? DailyLossLimit { get; set; }
+    public decimal? WeeklyLossLimit { get; set; }
+    public string PreferencesJson { get; set; } = "{}";
 }
 
 public class BalanceUpdateDto {
