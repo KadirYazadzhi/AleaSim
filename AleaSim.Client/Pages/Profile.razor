@@ -31,7 +31,9 @@
             <MudPaper Class="pa-6" Elevation="2">
                 <div class="d-flex align-center gap-4 mb-4">
                     <div class="position-relative">
-                        <MudAvatar Src="@profile?.AvatarUrl" Style="height:100px; width:100px;" />
+                        <MudAvatar Style="height:100px; width:100px;">
+                            <MudImage Src="@profile?.AvatarUrl" />
+                        </MudAvatar>
                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Class="avatar-edit-btn" OnClick="OpenAvatarPicker" />
                     </div>
                     <div>
@@ -161,6 +163,7 @@
         var response = await Http.PostAsJsonAsync("api/Auth/avatar", url);
         if (response.IsSuccessStatusCode) {
             Snackbar.Add("Avatar updated!", Severity.Success);
+            layoutService.NotifyAvatarChanged(url); // Trigger global update
             await OnInitializedAsync();
         }
     }

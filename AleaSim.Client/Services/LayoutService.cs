@@ -20,8 +20,14 @@ public class LayoutService
     public bool IsBalanceUpdateSuppressed { get; private set; }
 
     public event Action? OnMajorUpdate;
+    public event Action<string>? OnAvatarChanged; // Added
     public event Action<bool>? OnBalanceUpdateSuppressionChanged;
     public event Action<decimal>? OnOptimisticDeduction;
+
+    public void NotifyAvatarChanged(string newUrl)
+    {
+        OnAvatarChanged?.Invoke(newUrl);
+    }
 
     public void SetBalanceUpdateSuppression(bool suppressed)
     {
