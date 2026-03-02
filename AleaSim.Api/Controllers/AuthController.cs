@@ -278,17 +278,19 @@ public class AuthController : ControllerBase {
     }
 
     [Authorize]
-    [HttpGet("sessions")]
-    public IActionResult GetSessions() {
+    [HttpPost("sessions")]
+    public IActionResult GetSessions([FromBody] SessionRequest? request) {
         var userId = GetUserIdOrThrow();
         var sessions = _repository.GetUserSessions(userId);
         return Ok(sessions.Select(s => new {
             s.IpAddress,
             Device = s.UserAgent,
             LastActive = s.LastActiveAt,
-            IsCurrent = s.RefreshToken == Request.Headers["Authorization"].ToString().Replace("Bearer ", "") // Simplified check
+            IsCurrent = !string.IsNullOrEmpty(request?.RefreshToken) && s.RefreshToken == request.RefreshToken
         }));
     }
+
+    public record SessionRequest(string RefreshToken);
 
     [Authorize]
     [HttpPost("2fa/toggle")]

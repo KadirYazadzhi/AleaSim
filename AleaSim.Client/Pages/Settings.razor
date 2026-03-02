@@ -376,13 +376,17 @@
             }
 
             // Fetch Real Sessions
-            var sessions = await Http.GetFromJsonAsync<List<SessionResponse>>("api/Auth/sessions");
-            if (sessions != null) {
-                activeSessions = sessions.Select(s => new SessionItem(
-                    s.IpAddress, 
-                    FormatUserAgent(s.Device), 
-                    s.LastActive.ToLocalTime().ToString("g"), 
-                    s.IsCurrent)).ToList();
+            var currentRefreshToken = await LocalStorage.GetItemAsync<string>("refreshToken");
+            var sessionsResponse = await Http.PostAsJsonAsync("api/Auth/sessions", new { RefreshToken = currentRefreshToken });
+            if (sessionsResponse.IsSuccessStatusCode) {
+                var sessions = await sessionsResponse.Content.ReadFromJsonAsync<List<SessionResponse>>();
+                if (sessions != null) {
+                    activeSessions = sessions.Select(s => new SessionItem(
+                        s.IpAddress, 
+                        FormatUserAgent(s.Device), 
+                        s.LastActive.ToLocalTime().ToString("g"), 
+                        s.IsCurrent)).ToList();
+                }
             }
         } catch {}
     }

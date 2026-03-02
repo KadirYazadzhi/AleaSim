@@ -33,11 +33,22 @@ public class LayoutService
     public async Task InitializeAsync()
     {
         IsDarkMode = await _localStorage.ContainKeyAsync("darkMode") ? await _localStorage.GetItemAsync<bool>("darkMode") : true;
+        
+        // Try to get skin from LocalStorage first for speed, fallback to default
         CurrentSkin = await _localStorage.ContainKeyAsync("platformSkin") ? await _localStorage.GetItemAsync<string>("platformSkin") : "Default";
         
         ApplySkinInternal(CurrentSkin);
         await _jsRuntime.InvokeVoidAsync("setTheme", IsDarkMode ? "dark" : "light");
         OnMajorUpdate?.Invoke();
+    }
+
+    public void SetSkinFromProfile(string preferencesJson) {
+        try {
+            var prefs = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(preferencesJson);
+            if (prefs != null && prefs.TryGetValue("Skin", out var skinObj)) {
+                ApplySkin(skinObj.ToString() ?? "Default");
+            }
+        } catch {}
     }
 
     public void ApplySkin(string skin)

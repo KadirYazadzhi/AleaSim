@@ -439,7 +439,12 @@
     }
 
     private async Task LoadProfile() {
-        try { userProfile = await AuthService.GetMe(); } catch { }
+        try { 
+            userProfile = await AuthService.GetMe(); 
+            if (userProfile != null && !string.IsNullOrEmpty(userProfile.PreferencesJson)) {
+                LayoutService.SetSkinFromProfile(userProfile.PreferencesJson);
+            }
+        } catch { }
     }
 
     private string GetTierIcon(VipTier tier) => tier switch {
