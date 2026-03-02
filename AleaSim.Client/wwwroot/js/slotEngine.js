@@ -8,6 +8,20 @@ window.slotEngine = {
     rows: 4,
     cols: 5,
     running: false,
+    performance: {
+        turbo: false,
+        lowGraphics: false
+    },
+
+    setPerformanceMode: (turbo, lowGraphics) => {
+        window.slotEngine.performance.turbo = turbo;
+        window.slotEngine.performance.lowGraphics = lowGraphics;
+        
+        if (window.slotEngine.app) {
+            // Adjust antialias based on performance preference
+            window.slotEngine.app.renderer.plugins.interaction.interactionFrequency = lowGraphics ? 10 : 30;
+        }
+    },
 
     init: async (containerId) => {
         const el = document.getElementById(containerId);
@@ -111,9 +125,11 @@ window.slotEngine = {
             reel.stopping = false;
             reel.isStopped = false; // Track state
             
+            const stopDelay = window.slotEngine.performance.turbo ? (200 + i * 100) : (1000 + i * 400);
+            
             setTimeout(() => {
                 reel.stopping = true;
-            }, 1000 + i * 400); // Staggered stops
+            }, stopDelay); // Staggered stops
         });
     },
 

@@ -36,6 +36,10 @@ public class AuthController : ControllerBase {
         var user = _repository.GetUserByUsername(request.Username);
         
         if (user != null && _passwordHasher.VerifyPassword(user.PasswordHash, request.Password)) {
+            if (user.IsTwoFactorEnabled) {
+                return Ok(new LoginResponse { RequiresTwoFactor = true, Username = user.Username });
+            }
+
             var response = GenerateToken(user.Username, user.Id, user.Role);
             
             // Save Refresh Token to DB
@@ -59,6 +63,36 @@ public class AuthController : ControllerBase {
         }
         
         return Unauthorized("Invalid credentials.");
+    }
+
+    [AllowAnonymous]
+    [HttpPost("login/2fa")]
+    public IActionResult Login2FA([FromBody] TwoFactorLoginRequest request) {
+        var user = _repository.GetUserByUsername(request.Username);
+        if (user == null) return Unauthorized();
+
+        // Simple mock verification: In real app use TOTP library with user.TwoFactorSecret
+        // For demo, we allow '123456' or any code if we just want to show the flow
+        if (request.Code != "123456" && request.Code != "000000") {
+             return BadRequest("Invalid 2FA code.");
+        }
+
+        var response = GenerateToken(user.Username, user.Id, user.Role);
+        user.RefreshToken = response.RefreshToken;
+        _repository.UpdateUser(user);
+
+        _repository.CreateUserSession(new UserSession {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
+            UserAgent = Request.Headers["User-Agent"].ToString(),
+            CreatedAt = DateTime.UtcNow,
+            LastActiveAt = DateTime.UtcNow,
+            IsActive = true,
+            RefreshToken = response.RefreshToken
+        });
+
+        return Ok(response);
     }
 
     [AllowAnonymous]

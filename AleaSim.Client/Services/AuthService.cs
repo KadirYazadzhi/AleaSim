@@ -23,15 +23,35 @@ public class AuthService : IAuthService {
         if (response.IsSuccessStatusCode) {
             var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
             if (result != null) {
-                await _localStorage.SetItemAsync("authToken", result.Token);
-                await _localStorage.SetItemAsync("refreshToken", result.RefreshToken);
+                if (result.RequiresTwoFactor) return result;
 
-                ((CustomAuthStateProvider)_authStateProvider).NotifyUserAuthentication(result.Token);
+                await StoreAuthResult(result);
                 return result;
             }
         }
         
         throw new Exception("Login failed. Check credentials.");
+    }
+
+    public async Task<LoginResponse> Login2FA(TwoFactorLoginRequest request) {
+        var response = await _httpClient.PostAsJsonAsync("api/Auth/login/2fa", request);
+        
+        if (response.IsSuccessStatusCode) {
+            var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+            if (result != null) {
+                await StoreAuthResult(result);
+                return result;
+            }
+        }
+        
+        var error = await response.Content.ReadAsStringAsync();
+        throw new Exception(string.IsNullOrEmpty(error) ? "Invalid 2FA code." : error);
+    }
+
+    private async Task StoreAuthResult(LoginResponse result) {
+        await _localStorage.SetItemAsync("authToken", result.Token);
+        await _localStorage.SetItemAsync("refreshToken", result.RefreshToken);
+        ((CustomAuthStateProvider)_authStateProvider).NotifyUserAuthentication(result.Token);
     }
 
     public async Task<string> RefreshToken() {

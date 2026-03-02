@@ -352,12 +352,17 @@
         if (authState.User.Identity?.IsAuthenticated == true) {
             await LoadProfile();
             
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
-            if (!string.IsNullOrEmpty(token)) {
-                await RealTime.StartAsync(token);
-                RealTime.OnBigWinReceived += HandleBigWin;
-                RealTime.OnGameUpdateReceived += HandleGameUpdate;
-                RealTime.OnBalanceUpdated += HandleBalanceUpdate;
+            try {
+                var token = await LocalStorage.GetItemAsync<string>("authToken");
+                if (!string.IsNullOrEmpty(token)) {
+                    await RealTime.StartAsync(token);
+                    RealTime.OnBigWinReceived += HandleBigWin;
+                    RealTime.OnGameUpdateReceived += HandleGameUpdate;
+                    RealTime.OnBalanceUpdated += HandleBalanceUpdate;
+                }
+            } catch (Exception ex) {
+                Console.WriteLine($"SignalR Connection failed: {ex.Message}");
+                // We don't show a snackbar here to avoid annoying the user on minor network blips
             }
         }
     }

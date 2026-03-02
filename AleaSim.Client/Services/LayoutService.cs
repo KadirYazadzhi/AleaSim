@@ -1,4 +1,5 @@
 using System;
+using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Blazored.LocalStorage;
 using Microsoft.JSInterop;
@@ -10,6 +11,7 @@ public class LayoutService
 {
     private readonly ILocalStorageService _localStorage;
     private readonly IJSRuntime _jsRuntime;
+    private readonly HttpClient _http;
 
     public bool IsDarkMode { get; private set; } = true;
     public string CurrentSkin { get; private set; } = "Default";
@@ -23,10 +25,11 @@ public class LayoutService
     public event Action<bool>? OnBalanceUpdateSuppressionChanged;
     public event Action<decimal>? OnOptimisticDeduction;
 
-    public LayoutService(ILocalStorageService localStorage, IJSRuntime jsRuntime)
+    public LayoutService(ILocalStorageService localStorage, IJSRuntime jsRuntime, HttpClient http)
     {
         _localStorage = localStorage;
         _jsRuntime = jsRuntime;
+        _http = http;
         CurrentTheme = CreateDefaultTheme();
     }
 
@@ -46,7 +49,21 @@ public class LayoutService
         try {
             var prefs = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(preferencesJson);
             if (prefs != null && prefs.TryGetValue("Skin", out var skinObj)) {
-                ApplySkin(skinObj.ToString() ?? "Default");
+                string skin = skinObj.ToString() ?? "Default";
+                if (skin != CurrentSkin) {
+                    ApplySkinInternal(skin);
+                    _localStorage.SetItemAsync("platformSkin", skin);
+                    OnMajorUpdate?.Invoke();
+                }
+            }
+            if (prefs != null && prefs.TryGetValue("DarkMode", out var darkObj)) {
+                bool dark = darkObj.ToString()?.ToLower() == "true";
+                if (dark != IsDarkMode) {
+                    IsDarkMode = dark;
+                    _localStorage.SetItemAsync("darkMode", dark);
+                    _jsRuntime.InvokeVoidAsync("setTheme", dark ? "dark" : "light");
+                    OnMajorUpdate?.Invoke();
+                }
             }
         } catch {}
     }
@@ -56,6 +73,7 @@ public class LayoutService
         ApplySkinInternal(skin);
         _localStorage.SetItemAsync("platformSkin", skin);
         OnMajorUpdate?.Invoke();
+        _ = SyncSettingsWithBackend();
     }
 
     private void ApplySkinInternal(string skin)
@@ -159,6 +177,17 @@ public class LayoutService
         await _localStorage.SetItemAsync("darkMode", IsDarkMode);
         await _jsRuntime.InvokeVoidAsync("setTheme", IsDarkMode ? "dark" : "light");
         OnMajorUpdate?.Invoke();
+        await SyncSettingsWithBackend();
+    }
+
+    private async Task SyncSettingsWithBackend() {
+        try {
+            var prefs = new System.Collections.Generic.Dictionary<string, string> {
+                { "Skin", CurrentSkin },
+                { "DarkMode", IsDarkMode.ToString() }
+            };
+            await _http.PostAsJsonAsync("api/Auth/settings", new { PreferencesJson = System.Text.Json.JsonSerializer.Serialize(prefs) });
+        } catch {}
     }
 
     public void NotifyMajorUpdate() => OnMajorUpdate?.Invoke();

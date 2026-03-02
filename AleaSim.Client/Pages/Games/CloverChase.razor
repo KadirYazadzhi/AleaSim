@@ -122,6 +122,10 @@
     private Guid? sessionId;
     private SlotState gameState = new();
     private bool wasNudged = false;
+    
+    // Performance Flags
+    private bool turboMode = false;
+    private bool lowGraphics = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -129,6 +133,7 @@
         {
             await JSRuntime.InvokeVoidAsync("slotEngine.init", "pixi-slot-container");
             await LoadData();
+            await JSRuntime.InvokeVoidAsync("slotEngine.setPerformanceMode", turboMode, lowGraphics);
         }
     }
 
@@ -136,7 +141,14 @@
     {
         try {
             var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
-            if (profile != null) balance = profile.TotalBalance;
+            if (profile != null) {
+                balance = profile.TotalBalance;
+                
+                // Parse preferences for performance
+                var prefs = JsonSerializer.Deserialize<Dictionary<string, object>>(profile.PreferencesJson) ?? new();
+                if (prefs.TryGetValue("TurboMode", out var turbo)) turboMode = turbo.ToString()?.ToLower() == "true";
+                if (prefs.TryGetValue("LowGraphics", out var low)) lowGraphics = low.ToString()?.ToLower() == "true";
+            }
 
             var session = await GameService.ResumeSession("slot");
             if (session != null) {
@@ -165,6 +177,9 @@
         isSpinning = true;
         wasNudged = false;
         
+        // Sync performance mode just in case it was changed in settings dialog
+        await JSRuntime.InvokeVoidAsync("slotEngine.setPerformanceMode", turboMode, lowGraphics);
+
         // Logic: Features (Respin/Bonus) are FREE (cost was paid in the triggering spin)
         var betAmount = (gameState.IsBonusActive || gameState.IsRespinActive) ? 0 : (creditsBet * denomination);
 
@@ -185,8 +200,9 @@
             
             await JSRuntime.InvokeVoidAsync("slotEngine.spin", result.RandomResultJson);
             
-            // Wait for animation to finish
-            await Task.Delay(3500); 
+            // Wait for animation to finish (much shorter in turbo mode)
+            var waitTime = turboMode ? 1000 : 3500;
+            await Task.Delay(waitTime); 
 
             // Fetch official balance from server to ensure perfect sync
             var profile = await AuthService.GetMe();

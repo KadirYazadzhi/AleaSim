@@ -14,46 +14,85 @@
             <MudText Typo="Typo.body1" Class="mud-text-secondary mt-2">Sign in to continue your winning streak.</MudText>
         </div>
 
-        <MudForm @bind-IsValid="@success" @bind-Errors="@errors">
+        @if (!_show2FA)
+        {
+            <MudForm @bind-IsValid="@success" @bind-Errors="@errors">
+                <MudTextField T="string" 
+                              Label="Username" 
+                              Variant="Variant.Outlined" 
+                              Class="mb-4 glass-input"
+                              Adornment="Adornment.Start" 
+                              AdornmentIcon="@Icons.Material.Filled.Person"
+                              Required="true" 
+                              RequiredError="Username is required!" 
+                              @bind-Value="model.Username" 
+                              OnKeyDown="HandleEnter" />
+                              
+                <MudTextField T="string" 
+                              Label="Password" 
+                              Variant="Variant.Outlined" 
+                              InputType="InputType.Password" 
+                              Class="mb-6 glass-input"
+                              Adornment="Adornment.Start" 
+                              AdornmentIcon="@Icons.Material.Filled.Lock"
+                              Required="true" 
+                              RequiredError="Password is required!" 
+                              @bind-Value="model.Password" 
+                              OnKeyDown="HandleEnter" />
+
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           Size="Size.Large" 
+                           FullWidth="true" 
+                           Disabled="@(!success || _loading)" 
+                           OnClick="OnLogin" 
+                           Class="py-3 rounded-lg fw-black hover-scale pulse-neon"
+                           Style="font-size: 1.1rem;">
+                    @if (_loading) {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                        <MudText Class="ms-2">LOGGING IN...</MudText>
+                    } else {
+                        <MudText>LOGIN</MudText>
+                    }
+                </MudButton>
+            </MudForm>
+        }
+        else
+        {
+            <div class="pa-4 rounded-lg bg-dark-transparent mb-6 text-center border-1 border-solid border-primary">
+                <MudIcon Icon="@Icons.Material.Filled.PhonelinkLock" Color="Color.Primary" Size="Size.Large" Class="mb-2" />
+                <MudText Typo="Typo.h6">2FA Verification</MudText>
+                <MudText Typo="Typo.caption">Enter the 6-digit code from your app</MudText>
+            </div>
+            
             <MudTextField T="string" 
-                          Label="Username" 
+                          Label="Verification Code" 
                           Variant="Variant.Outlined" 
-                          Class="mb-4 glass-input"
-                          Adornment="Adornment.Start" 
-                          AdornmentIcon="@Icons.Material.Filled.Person"
-                          Required="true" 
-                          RequiredError="Username is required!" 
-                          @bind-Value="model.Username" 
-                          OnKeyDown="HandleEnter" />
-                          
-            <MudTextField T="string" 
-                          Label="Password" 
-                          Variant="Variant.Outlined" 
-                          InputType="InputType.Password" 
                           Class="mb-6 glass-input"
                           Adornment="Adornment.Start" 
-                          AdornmentIcon="@Icons.Material.Filled.Lock"
-                          Required="true" 
-                          RequiredError="Password is required!" 
-                          @bind-Value="model.Password" 
+                          AdornmentIcon="@Icons.Material.Filled.Security"
+                          Placeholder="123456"
+                          @bind-Value="_2faCode" 
                           OnKeyDown="HandleEnter" />
 
             <MudButton Variant="Variant.Filled" 
                        Color="Color.Primary" 
                        Size="Size.Large" 
                        FullWidth="true" 
-                       Disabled="@(!success || _loading)" 
-                       OnClick="OnLogin" 
+                       Disabled="@(string.IsNullOrEmpty(_2faCode) || _loading)" 
+                       OnClick="OnVerify2FA" 
                        Class="py-3 rounded-lg fw-black hover-scale pulse-neon"
                        Style="font-size: 1.1rem;">
                 @if (_loading) {
                     <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
-                    <MudText Class="ms-2">LOGGING IN...</MudText>
+                    <MudText Class="ms-2">VERIFYING...</MudText>
                 } else {
-                    <MudText>LOGIN</MudText>
+                    <MudText>VERIFY & LOGIN</MudText>
                 }
             </MudButton>
-        </MudForm>
+            
+            <MudButton Variant="Variant.Text" Color="Color.Secondary" FullWidth="true" Class="mt-2" OnClick="@(() => _show2FA = false)">Back to Login</MudButton>
+        }
 
         <div class="text-center mt-6">
             <MudText Typo="Typo.body2" Class="mud-text-secondary">
@@ -68,6 +107,8 @@
     LoginRequest model = new LoginRequest("", "");
     bool success;
     bool _loading = false;
+    bool _show2FA = false;
+    string _2faCode = "";
     string[] errors = { };
 
     [Parameter]
@@ -81,8 +122,9 @@
     }
 
     private async Task HandleEnter(KeyboardEventArgs e) {
-        if (e.Key == "Enter" && success) {
-            await OnLogin();
+        if (e.Key == "Enter") {
+            if (!_show2FA && success) await OnLogin();
+            else if (_show2FA && !string.IsNullOrEmpty(_2faCode)) await OnVerify2FA();
         }
     }
 
@@ -91,12 +133,12 @@
         _loading = true;
         try {
             var response = await AuthService.Login(model);
-            Snackbar.Add("Login successful!", Severity.Success);
             
-            if (response.Role == "Admin") {
-                Navigation.NavigateTo("/dashboard");
+            if (response.RequiresTwoFactor) {
+                _show2FA = true;
+                Snackbar.Add("2FA Code Required", Severity.Info);
             } else {
-                Navigation.NavigateTo("/");
+                CompleteLogin(response);
             }
         }
         catch (Exception ex) {
@@ -104,6 +146,33 @@
         }
         finally {
             _loading = false;
+        }
+    }
+
+    private async Task OnVerify2FA() {
+        if (_loading) return;
+        _loading = true;
+        try {
+            var response = await AuthService.Login2FA(new TwoFactorLoginRequest { 
+                Username = model.Username, 
+                Code = _2faCode 
+            });
+            CompleteLogin(response);
+        }
+        catch (Exception ex) {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally {
+            _loading = false;
+        }
+    }
+
+    private void CompleteLogin(LoginResponse response) {
+        Snackbar.Add("Login successful!", Severity.Success);
+        if (response.Role == "Admin") {
+            Navigation.NavigateTo("/dashboard");
+        } else {
+            Navigation.NavigateTo("/");
         }
     }
 }

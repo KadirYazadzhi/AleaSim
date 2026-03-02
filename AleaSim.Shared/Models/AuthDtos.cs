@@ -16,14 +16,21 @@ public class LoginResponse {
     public string RefreshToken { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
+    public bool RequiresTwoFactor { get; set; }
 
     public LoginResponse() {}
-    public LoginResponse(string token, string refreshToken, string username, string role) {
+    public LoginResponse(string token, string refreshToken, string username, string role, bool requires2fa = false) {
         Token = token;
         RefreshToken = refreshToken;
         Username = username;
         Role = role;
+        RequiresTwoFactor = requires2fa;
     }
+}
+
+public class TwoFactorLoginRequest {
+    public string Username { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
 }
 
 public class RefreshTokenRequest {
