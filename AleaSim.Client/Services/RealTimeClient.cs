@@ -5,19 +5,9 @@ namespace AleaSim.Client.Services;
 
 public class RealTimeClient : IAsyncDisposable {
     private HubConnection? _hubConnection;
-    private readonly string _hubUrl;
+    private readonly string _hubUrl = "http://localhost:5286/gamehub";
 
     public RealTimeClient(Microsoft.AspNetCore.Components.NavigationManager navigationManager) {
-        var baseUri = navigationManager.BaseUri;
-        
-        // If we are running on a typical Blazor dev port (like 5241), the API is likely on 5286
-        if (baseUri.Contains(":5241")) {
-            baseUri = baseUri.Replace(":5241", ":5286");
-        } else if (baseUri.Contains(":7241")) {
-            baseUri = baseUri.Replace(":7241", ":7286");
-        }
-
-        _hubUrl = new Uri(new Uri(baseUri), "gamehub").ToString();
     }
 
     public event Action<JackpotDto>? OnJackpotUpdated;
