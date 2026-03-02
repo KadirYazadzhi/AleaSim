@@ -86,7 +86,7 @@
     {
         isLoadingChain = true;
         try {
-            auditChain = await Http.GetFromJsonAsync<List<AuditEvent>>("api/Game/audit-chain") ?? new();
+            auditChain = await Http.GetFromJsonAsync<List<AuditLogDto>>("api/Game/audit-chain") ?? new();
         } catch {
             Snackbar.Add("Failed to load audit chain.", Severity.Error);
         } finally {

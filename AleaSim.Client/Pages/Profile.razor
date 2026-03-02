@@ -15,14 +15,14 @@
     <MudGrid>
         <!-- VIP Card Section -->
         <MudItem xs="12">
-            <MudPaper Class="pa-8 vip-card mb-4" Elevation="6" Style="@GetVipCardStyle(profile?.Progression.Tier ?? VipTier.Bronze)">
+            <MudPaper Class="pa-8 vip-card mb-4" Elevation="6" Style="@GetVipCardStyle(profile?.Progression?.Tier ?? VipTier.Bronze)">
                 <div class="d-flex justify-space-between align-center">
                     <div>
                         <MudText Typo="Typo.h6" Style="opacity: 0.8; letter-spacing: 2px;">ALEASIM LOYALTY CARD</MudText>
-                        <MudText Typo="Typo.h3" Style="font-weight: 900; margin: 20px 0;">@profile?.Progression.TierName TIER</MudText>
+                        <MudText Typo="Typo.h3" Style="font-weight: 900; margin: 20px 0;">@(profile?.Progression?.TierName ?? "BRONZE") TIER</MudText>
                         <MudText Typo="Typo.h5">@profile?.Username</MudText>
                     </div>
-                    <MudIcon Icon="@GetTierIcon(profile?.Progression.Tier ?? VipTier.Bronze)" Style="font-size: 8rem; opacity: 0.3;" />
+                    <MudIcon Icon="@GetTierIcon(profile?.Progression?.Tier ?? VipTier.Bronze)" Style="font-size: 8rem; opacity: 0.3;" />
                 </div>
             </MudPaper>
         </MudItem>
@@ -45,7 +45,7 @@
                             </MudText>
                         }
                         <MudText Typo="Typo.subtitle1" Color="Color.Info">
-                            @profile?.Progression.TierName TIER - Level @profile?.Progression.CurrentLevel
+                            @(profile?.Progression?.TierName ?? "BRONZE") TIER - Level @(profile?.Progression?.CurrentLevel ?? 0)
                         </MudText>
                         @if (GetLuckySymbol() != null) {
                             <MudChip T="string" Icon="@Icons.Material.Filled.AutoFixHigh" Color="Color.Secondary" Size="Size.Small">
@@ -55,14 +55,16 @@
                     </div>
                 </div>
 
-                <MudText Typo="Typo.body1" Class="mb-1">Progress to Level @(profile?.Progression.CurrentLevel + 1)</MudText>
-                <MudProgressLinear Color="Color.Info" Value="@(profile?.Progression.ProgressPercentage ?? 0)" Height="20" Class="rounded-lg">
-                    <MudText Typo="Typo.subtitle2" Color="Color.Dark">
-                        <b>@(profile?.Progression.CurrentXP.ToString("N0")) / @profile?.Progression.NextLevelXP.ToString("N0") XP</b>
-                    </MudText>
+                <MudText Typo="Typo.body1" Class="mb-1">Progress to Level @((profile?.Progression?.CurrentLevel ?? 0) + 1)</MudText>
+                <MudProgressLinear Color="Color.Info" Value="@(profile?.Progression?.ProgressPercentage ?? 0)" Height="20" Class="rounded-lg">
+                    <ChildContent>
+                        <MudText Typo="Typo.subtitle2" Color="Color.Dark">
+                            <b>@((profile?.Progression?.CurrentXP ?? 0).ToString("N0")) / @((profile?.Progression?.NextLevelXP ?? 1).ToString("N0")) XP</b>
+                        </MudText>
+                    </ChildContent>
                 </MudProgressLinear>
                 
-                <MudText Typo="Typo.caption" Class="mt-2 d-block">Lifetime Experience: @profile?.Progression.LifetimeXP.ToString("N0") XP</MudText>
+                <MudText Typo="Typo.caption" Class="mt-2 d-block">Lifetime Experience: @((profile?.Progression?.LifetimeXP ?? 0).ToString("N0")) XP</MudText>
             </MudPaper>
         </MudItem>
 
@@ -72,7 +74,7 @@
                 <div class="d-flex justify-space-between align-center mb-4">
                     <MudText Typo="Typo.h6">Financial Overview</MudText>
                     <MudChip T="string" Color="@(profile?.TotalWon >= profile?.TotalWagered ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Text" Icon="@Icons.Material.Filled.TrendingUp">
-                        Net: @((profile?.TotalWon - profile?.TotalWagered)?.ToString("C2"))
+                        Net: @((profile?.TotalWon - profile?.TotalWagered)?.ToString("C2") ?? "$0.00")
                     </MudChip>
                 </div>
                 <MudList T="string" Dense="true">
@@ -100,14 +102,14 @@
 
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-6" Elevation="2" Style="height: 100%;">
-                <MudText Typo="Typo.h6" Class="mb-4">RPG Skill Shop (Available Points: @profile?.Progression.SkillPoints)</MudText>
+                <MudText Typo="Typo.h6" Class="mb-4">RPG Skill Shop (Available Points: @(profile?.Progression?.SkillPoints ?? 0))</MudText>
                 
                 <div class="mb-4 d-flex justify-space-between align-center">
                     <div>
                         <MudText Typo="Typo.body1">Lucky Clover (Lv. @profile?.LuckyCloverLevel)</MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">+@profile?.LuckyCloverLevel% Bonus Trigger Chance</MudText>
                     </div>
-                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Color="Color.Primary" OnClick='() => UpgradeSkill("clover")' Disabled="@(profile?.Progression.SkillPoints == 0)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Color="Color.Primary" OnClick='() => UpgradeSkill("clover")' Disabled="@((profile?.Progression?.SkillPoints ?? 0) == 0)" />
                 </div>
 
                 <div class="mb-4 d-flex justify-space-between align-center">
@@ -115,7 +117,7 @@
                         <MudText Typo="Typo.body1">Cashback King (Lv. @profile?.CashbackLevel)</MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">@(10 + profile?.CashbackLevel)% Daily Cashback</MudText>
                     </div>
-                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Color="Color.Primary" OnClick='() => UpgradeSkill("cashback")' Disabled="@(profile?.Progression.SkillPoints == 0)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Color="Color.Primary" OnClick='() => UpgradeSkill("cashback")' Disabled="@((profile?.Progression?.SkillPoints ?? 0) == 0)" />
                 </div>
 
                 <div class="mb-4 d-flex justify-space-between align-center">
@@ -123,7 +125,7 @@
                         <MudText Typo="Typo.body1">XP Booster (Lv. @profile?.XpBoostLevel)</MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">+@(profile?.XpBoostLevel * 10)% Experience Gain</MudText>
                     </div>
-                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Color="Color.Primary" OnClick='() => UpgradeSkill("xp")' Disabled="@(profile?.Progression.SkillPoints == 0)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Color="Color.Primary" OnClick='() => UpgradeSkill("xp")' Disabled="@((profile?.Progression?.SkillPoints ?? 0) == 0)" />
                 </div>
             </MudPaper>
         </MudItem>
@@ -142,7 +144,7 @@
                             <MudDivider Class="my-4" />
                             
                             <MudIcon Icon="@Icons.Material.Filled.Speed" Color="Color.Info" Style="font-size: 2rem;" Class="mb-1" />
-                            <MudText Typo="Typo.h6">@((profile?.TotalWon > 0 && profile?.TotalWagered > 0) ? (profile.TotalWon / profile.TotalWagered * 100).ToString("F1") : "0.0")%</MudText>
+                            <MudText Typo="Typo.h6">@((profile?.TotalWon > 0 && (profile?.TotalWagered ?? 0) > 0) ? (profile.TotalWon / profile.TotalWagered * 100).ToString("F1") : "0.0")%</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Your Personal RTP</MudText>
                         </div>
                     </MudItem>
@@ -191,10 +193,10 @@
 </MudContainer>
 
 @code {
-        private UserProfileResponse? profile;
-        private string voucherCode = "";
-        private string selectedTitle = "None";
-        
+    private UserProfileResponse? profile;
+    private string voucherCode = "";
+    private string selectedTitle = "None";
+    
     public List<ChartSeries> Series = new();
     public string[] Labels = { "R1", "R2", "R3", "R4", "R5", "R6", "R7" };
     private ChartOptions options = new ChartOptions { 
@@ -304,83 +306,4 @@
     .ach-card { width: 120px; background: var(--mud-palette-background-grey); border: 2px solid var(--mud-palette-divider); transition: all 0.2s; }
     .ach-card:hover { border-color: var(--mud-palette-primary); transform: scale(1.05); }
     .bg-dark-lighten { background: rgba(255,255,255,0.03); }
-</style>
-
-    private async Task OpenAvatarPicker() {
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
-        var dialog = await DialogService.ShowAsync<AleaSim.Client.Components.AvatarPicker>("Select Your Avatar", options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is string newUrl) {
-            await UpdateAvatar(newUrl);
-        }
-    }
-
-    private async Task UpdateAvatar(string url) {
-        var response = await Http.PostAsJsonAsync("api/Auth/avatar", url);
-        if (response.IsSuccessStatusCode) {
-            Snackbar.Add("Avatar updated!", Severity.Success);
-            layoutService.NotifyAvatarChanged(url); // Trigger global update
-            await OnInitializedAsync();
-        }
-    }
-
-    private async Task RedeemVoucher() {
-        try {
-            var response = await Http.PostAsync($"api/Game/vouchers/redeem/{voucherCode}", null);
-            if (response.IsSuccessStatusCode) {
-                Snackbar.Add("Success! Bonus credited.", Severity.Success);
-                voucherCode = "";
-                await OnInitializedAsync();
-            } else {
-                Snackbar.Add(await response.Content.ReadAsStringAsync(), Severity.Warning);
-            }
-        } catch { }
-    }
-
-    private async Task UpgradeSkill(string name) {
-        var response = await Http.PostAsync($"api/Game/skills/upgrade/{name}", null);
-        if (response.IsSuccessStatusCode) {
-            Snackbar.Add("Perk Upgraded!", Severity.Success);
-            await OnInitializedAsync();
-        }
-    }
-
-    private string? GetLuckySymbol() {
-        try {
-            var affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile?.SymbolAffinityJson ?? "{}");
-            if (affinity == null || !affinity.Any()) return null;
-            int symId = affinity.OrderByDescending(x => x.Value).First().Key;
-            return symId switch { 7 => "7️⃣", 8 => "🍀", 10 => "💰", _ => "💎" };
-        } catch { return null; }
-    }
-
-    private string FormatTitle(string raw) => raw switch {
-        "Rookie" => "Rookie Gambler",
-        "HighRoller" => "🎰 High Roller",
-        "Whale" => "🐋 Casino Whale",
-        "Legend" => "🏆 Living Legend",
-        _ => raw
-    };
-
-    private string GetVipCardStyle(VipTier tier) => tier switch {
-        VipTier.Diamond => "background: linear-gradient(135deg, #2c3e50 0%, #000000 100%); border: 2px solid #e0e0e0; color: #fff;",
-        VipTier.Platinum => "background: linear-gradient(135deg, #607d8b 0%, #263238 100%); color: #fff;",
-        VipTier.Gold => "background: linear-gradient(135deg, #ffD700 0%, #b8860b 100%); color: #000;",
-        VipTier.Silver => "background: linear-gradient(135deg, #bdc3c7 0%, #2c3e50 100%); color: #fff;",
-        _ => "background: linear-gradient(135deg, #cd7f32 0%, #8b4513 100%); color: #fff;"
-    };
-
-    private string GetTierIcon(VipTier tier) => tier switch {
-        VipTier.Diamond => Icons.Material.Filled.WorkspacePremium,
-        VipTier.Platinum => Icons.Material.Filled.AutoAwesome,
-        VipTier.Gold => Icons.Material.Filled.MilitaryTech,
-        _ => Icons.Material.Filled.Stars
-    };
-}
-
-<style>
-    .avatar-edit-btn { position: absolute; bottom: -10px; right: -10px; background: white !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-    .vip-card { border-radius: 20px; transition: transform 0.3s ease; cursor: default; }
-    .vip-card:hover { transform: translateY(-5px); }
 </style>
