@@ -5,7 +5,11 @@ namespace AleaSim.Client.Services;
 
 public class RealTimeClient : IAsyncDisposable {
     private HubConnection? _hubConnection;
-    private readonly string _hubUrl = "http://localhost:5286/gamehub";
+    private readonly string _hubUrl;
+
+    public RealTimeClient(Microsoft.AspNetCore.Components.NavigationManager navigationManager) {
+        _hubUrl = navigationManager.ToAbsoluteUri("/gamehub").ToString();
+    }
 
     public event Action<JackpotDto>? OnJackpotUpdated;
     public event Action<decimal, decimal>? OnBalanceUpdated;
