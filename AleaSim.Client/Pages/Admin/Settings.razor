@@ -103,6 +103,14 @@
                                 </MudText>
                                 <MudText Typo="Typo.caption" Class="mud-text-secondary text-center px-4 mt-2">@_integrityResult.Message</MudText>
                             }
+                            else if (_integrityHistory.Any())
+                            {
+                                var last = _integrityHistory.First();
+                                <MudText Typo="Typo.h6" Color="@(last.MetadataJson.Contains("true") ? Color.Success : Color.Error)" Class="fw-bold text-center">
+                                    @(last.MetadataJson.Contains("true") ? "SYSTEM SECURE" : "INTEGRITY FAILED")
+                                </MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary text-center px-4 mt-2">Last check: @last.Timestamp.ToLocalTime().ToString("g")</MudText>
+                            }
                             else
                             {
                                 <MudText Typo="Typo.body2" Class="mud-text-secondary text-center">Last check: Never</MudText>
@@ -116,6 +124,26 @@
                         </MudButton>
                         <MudIconButton Icon="@Icons.Material.Filled.Build" Color="Color.Warning" OnClick="RunIntegrityRepair" Disabled="@_verifyingIntegrity" Title="Repair Broken Chain" />
                     </div>
+
+                    @if (_integrityHistory.Any())
+                    {
+                        <div class="mt-6">
+                            <MudText Typo="Typo.caption" Class="fw-bold mud-text-secondary uppercase mb-2 d-block">Scan History</MudText>
+                            <div style="max-height: 150px; overflow-y: auto;" class="custom-scroll">
+                                @foreach (var entry in _integrityHistory.Take(5))
+                                {
+                                    <div class="d-flex justify-space-between align-center pa-2 mb-1 rounded glass-inner" style="font-size: 0.75rem;">
+                                        <div class="d-flex align-center gap-2">
+                                            <MudIcon Icon="@(entry.MetadataJson.Contains("true") ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error)" 
+                                                     Color="@(entry.MetadataJson.Contains("true") ? Color.Success : Color.Error)" Size="Size.Small" />
+                                            <span>@entry.Timestamp.ToLocalTime().ToString("MM/dd HH:mm")</span>
+                                        </div>
+                                        <span class="fw-bold">@(entry.MetadataJson.Contains("true") ? "PASS" : "FAIL")</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
 
                 <div class="settings-card pa-6 rounded-xl">
@@ -183,11 +211,23 @@
     
     private bool _verifyingIntegrity = false;
     private IntegrityResponse? _integrityResult;
+    private List<AuditLogDto> _integrityHistory = new();
 
     protected override async Task OnInitializedAsync()
     {
         LayoutService.OnMajorUpdate += StateHasChanged;
         await LoadCurrentSettings();
+        await LoadIntegrityHistory();
+    }
+
+    private async Task LoadIntegrityHistory()
+    {
+        try {
+            var logs = await AdminService.GetAuditLogs();
+            _integrityHistory = logs.Where(l => l.EventType == "SYSTEM_INTEGRITY_CHECK")
+                                   .OrderByDescending(l => l.Timestamp)
+                                   .ToList();
+        } catch {}
     }
 
     private async Task LoadCurrentSettings()
@@ -245,6 +285,8 @@
             _integrityResult = await AdminService.VerifyIntegrity();
             if (_integrityResult.IsValid) Snackbar.Add("Integrity check passed.", Severity.Success);
             else Snackbar.Add("Integrity check FAILED!", Severity.Error);
+            
+            await LoadIntegrityHistory();
         } catch (Exception ex) {
             Snackbar.Add($"Audit failed: {ex.Message}", Severity.Error);
         } finally {

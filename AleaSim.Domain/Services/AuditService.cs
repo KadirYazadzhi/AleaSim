@@ -59,37 +59,51 @@ public class AuditService : IAuditService {
     }
 
     public bool VerifyIntegrity() {
-        using var scope = _scopeFactory.CreateScope();
-        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-        
-        // IMPORTANT: Must sort by Timestamp AND Id to ensure deterministic order 
-        // when multiple records share the same second-precision timestamp.
-        var logs = repo.GetAllAuditLogs()
-            .OrderBy(x => x.Timestamp)
-            .ThenBy(x => x.Id)
-            .ToList();
-        
-        if (!logs.Any()) return true;
+        bool isValid = false;
+        try {
+            using var scope = _scopeFactory.CreateScope();
+            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+            
+            // IMPORTANT: Must sort by Timestamp AND Id to ensure deterministic order 
+            // when multiple records share the same second-precision timestamp.
+            var logs = repo.GetAllAuditLogs()
+                .OrderBy(x => x.Timestamp)
+                .ThenBy(x => x.Id)
+                .ToList();
+            
+            if (!logs.Any()) {
+                isValid = true;
+            } else {
+                string expectedPreviousHash = "GENESIS";
+                isValid = true;
 
-        string expectedPreviousHash = "GENESIS";
+                foreach (var log in logs) {
+                    // Skip logging our own verify event if it was just added mid-loop (unlikely due to sync)
+                    if (log.EventType == "SYSTEM_INTEGRITY_CHECK") continue;
 
-        foreach (var log in logs) {
-            // 1. Check Link: Does PreviousHash match?
-            if (log.PreviousHash != expectedPreviousHash) {
-                return false; // Broken chain link
+                    // 1. Check Link: Does PreviousHash match?
+                    if (log.PreviousHash != expectedPreviousHash) {
+                        isValid = false; // Broken chain link
+                        break;
+                    }
+
+                    // 2. Check Data: Does Hash match Content?
+                    string calculatedHash = CalculateHash(log);
+                    if (log.Hash != calculatedHash) {
+                        isValid = false; // Data tampering
+                        break;
+                    }
+
+                    // Update for next iteration
+                    expectedPreviousHash = log.Hash;
+                }
             }
-
-            // 2. Check Data: Does Hash match Content?
-            string calculatedHash = CalculateHash(log);
-            if (log.Hash != calculatedHash) {
-                return false; // Data tampering
-            }
-
-            // Update for next iteration
-            expectedPreviousHash = log.Hash;
+        }
+        finally {
+            LogEvent("SYSTEM_INTEGRITY_CHECK", $"Manual integrity scan performed. Result: {(isValid ? "PASS" : "FAIL")}", "SYSTEM", $"{{\"IsValid\": {isValid.ToString().ToLower()}}}");
         }
 
-        return true; 
+        return isValid; 
     }
 
     public async Task RepairIntegrity() {
@@ -122,6 +136,7 @@ public class AuditService : IAuditService {
             _lastHash = currentHash;
         }
         
+        LogEvent("SYSTEM_INTEGRITY_REPAIR", "Full hash chain re-calculation performed.", "SYSTEM", "{}");
         await Task.CompletedTask;
     }
 
