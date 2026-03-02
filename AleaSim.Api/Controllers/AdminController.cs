@@ -56,13 +56,26 @@ public class AdminController : ControllerBase {
     }
 
     [HttpGet("system/stats")]
-    public IActionResult GetSystemStats() {
+    public async Task<IActionResult> GetSystemStats() {
         var process = System.Diagnostics.Process.GetCurrentProcess();
-        var cpuUsage = 15.0; // Simplified CPU calculation fallback
+        
+        // Accurate CPU calculation:
+        var startCpuTime = process.TotalProcessorTime;
+        var startTime = DateTime.UtcNow;
+        
+        await Task.Delay(100); // Measure over 100ms interval
+        
+        var endCpuTime = process.TotalProcessorTime;
+        var endTime = DateTime.UtcNow;
+        
+        var cpuUsedMs = (endCpuTime - startCpuTime).TotalMilliseconds;
+        var totalMsTotal = (endTime - startTime).TotalMilliseconds;
+        var cpuUsageTotal = cpuUsedMs / (Environment.ProcessorCount * totalMsTotal) * 100;
+
         var ramUsageMb = process.WorkingSet64 / (1024 * 1024);
         
         return Ok(new {
-            CpuUsage = cpuUsage,
+            CpuUsage = Math.Min(Math.Max(cpuUsageTotal, 0.5), 100), // Ensure between 0.5% and 100%
             RamUsageMb = ramUsageMb,
             UptimeMinutes = (DateTime.Now - process.StartTime).TotalMinutes,
             ThreadCount = process.Threads.Count
