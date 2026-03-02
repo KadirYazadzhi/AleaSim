@@ -69,6 +69,19 @@ public class AdminController : ControllerBase {
         });
     }
 
+    [HttpGet("settings/global")]
+    public IActionResult GetGlobalSettings() {
+        return Ok(_repository.GetAllGlobalSettings());
+    }
+
+    [HttpPost("settings/update")]
+    public IActionResult UpdateGlobalSetting([FromBody] UpdateGlobalSettingRequest request) {
+        _repository.SetGlobalSetting(request.Key, request.Value, request.Description ?? "");
+        return Ok(new { Message = "Setting updated successfully." });
+    }
+
+    public record UpdateGlobalSettingRequest(string Key, string Value, string? Description);
+
     [HttpGet("audit-logs")]
     public ActionResult<List<AuditLogDto>> GetAuditLogs() {
         return Ok(_auditService.GetLogs().Select(l => new AuditLogDto {

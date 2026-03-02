@@ -67,7 +67,10 @@ public class AleaSimDbContext : DbContext {
         modelBuilder.Entity<GlobalSetting>().HasData(
             new GlobalSetting { Key = "GlobalTargetRtp", Value = "95.0", Description = "Target RTP percentage for the system", LastUpdated = DateTime.UtcNow },
             new GlobalSetting { Key = "EmergencyStop", Value = "false", Description = "Master switch to pause all games", LastUpdated = DateTime.UtcNow },
-            new GlobalSetting { Key = "VolatilityMode", Value = "Standard", Description = "Global volatility profile (Low, Standard, High)", LastUpdated = DateTime.UtcNow }
+            new GlobalSetting { Key = "VolatilityMode", Value = "Standard", Description = "Global volatility profile (Low, Standard, High)", LastUpdated = DateTime.UtcNow },
+            new GlobalSetting { Key = "Content_Help", Value = "Welcome to AleaSim Help Center. Use the expansion panels below to find answers.", Description = "Help Page Introduction Content", LastUpdated = DateTime.UtcNow },
+            new GlobalSetting { Key = "Content_Terms", Value = "By using AleaSim, you agree to our terms of service...", Description = "Terms of Service Content", LastUpdated = DateTime.UtcNow },
+            new GlobalSetting { Key = "Content_Privacy", Value = "We value your privacy. Your data is encrypted...", Description = "Privacy Policy Content", LastUpdated = DateTime.UtcNow }
         );
     }
 }

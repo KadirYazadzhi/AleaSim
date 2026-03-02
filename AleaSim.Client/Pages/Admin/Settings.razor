@@ -8,199 +8,144 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject LayoutService LayoutService
+@inject HttpClient Http
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-16 animate-fade-in">
     <div class="d-flex justify-space-between align-center mb-8">
         <div>
             <MudText Typo="Typo.h3" Class="text-gradient fw-black mb-2">PLATFORM CONFIGURATION</MudText>
-            <MudText Typo="Typo.subtitle1" Class="mud-text-secondary">Manage global risk parameters and system integrity.</MudText>
+            <MudText Typo="Typo.subtitle1" Class="mud-text-secondary">Manage risk, security, and dynamic platform content.</MudText>
         </div>
     </div>
 
-    <MudGrid>
-        <!-- Risk Control Section -->
-        <MudItem xs="12" md="8">
-            <div class="settings-card pa-8 rounded-xl h-100">
-                <MudText Typo="Typo.h5" Class="fw-bold mb-6 d-flex align-center">
-                    <MudIcon Icon="@Icons.Material.Filled.Tune" Class="mr-3" Color="Color.Primary"/> Global Risk Control
-                </MudText>
+    <MudTabs Elevation="4" Rounded="true" Color="Color.Primary" ApplyEffectsToContainer="true" PanelClass="pa-6">
+        <!-- 1. RISK & SECURITY -->
+        <MudTabPanel Text="Risk & Security" Icon="@Icons.Material.Filled.Shield">
+            <MudGrid>
+                <!-- Risk Control Section -->
+                <MudItem xs="12" md="8">
+                    <div class="settings-card pa-8 rounded-xl h-100">
+                        <MudText Typo="Typo.h5" Class="fw-bold mb-6 d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Tune" Class="mr-3" Color="Color.Primary"/> Global Risk Control
+                        </MudText>
 
-                <MudGrid>
-                    <!-- RTP Control -->
-                    <MudItem xs="12">
-                         <MudText Typo="Typo.subtitle1" Class="fw-bold mb-1">Global Target RTP</MudText>
-                         <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
-                             The theoretical Return to Player percentage applied to all slots.
-                             <br/>
-                             <span class="text-warning">Warning: Changes affect live sessions immediately.</span>
-                         </MudText>
-                         
-                         <div class="d-flex align-center gap-4 pa-4 glass-inner rounded-lg mb-6">
-                             <MudSlider T="decimal" @bind-Value="_targetRtp" Min="80" Max="105" Step="0.5m" Color="Color.Primary" ValueLabel="true" Class="flex-grow-1" />
-                             <div class="d-flex flex-column align-center" style="min-width: 80px;">
-                                 <MudText Typo="Typo.h5" Class="fw-black text-primary">@_targetRtp.ToString("F2")%</MudText>
-                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="SaveRtp" Class="mt-1 rounded-pill">SAVE</MudButton>
-                             </div>
-                         </div>
-                    </MudItem>
+                        <MudGrid>
+                            <!-- RTP Control -->
+                            <MudItem xs="12">
+                                 <MudText Typo="Typo.subtitle1" Class="fw-bold mb-1">Global Target RTP</MudText>
+                                 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                                     The theoretical Return to Player percentage applied to all slots.
+                                 </MudText>
+                                 
+                                 <div class="d-flex align-center gap-4 pa-4 glass-inner rounded-lg mb-6">
+                                     <MudSlider T="decimal" @bind-Value="_targetRtp" Min="80" Max="105" Step="0.5m" Color="Color.Primary" ValueLabel="true" Class="flex-grow-1" />
+                                     <div class="d-flex flex-column align-center" style="min-width: 80px;">
+                                         <MudText Typo="Typo.h5" Class="fw-black text-primary">@_targetRtp.ToString("F2")%</MudText>
+                                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="SaveRtp" Class="mt-1 rounded-pill">SAVE</MudButton>
+                                     </div>
+                                 </div>
+                            </MudItem>
 
-                    <!-- Volatility Mode -->
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">Volatility Profile</MudText>
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">Adjusts the variance of the RNG engine.</MudText>
-                        
-                        <MudSelect T="string" @bind-Value="_volatilityMode" Label="Select Mode" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Class="glass-input">
-                            <MudSelectItem Value="@("Low")">Low (Frequent Small Wins)</MudSelectItem>
-                            <MudSelectItem Value="@("Medium")">Medium (Balanced)</MudSelectItem>
-                            <MudSelectItem Value="@("High")">High (Rare Big Wins)</MudSelectItem>
-                        </MudSelect>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="SaveVolatility" Class="mt-4 rounded-lg" FullWidth="true">APPLY PROFILE</MudButton>
-                    </MudItem>
+                            <!-- Volatility Mode -->
+                            <MudItem xs="12" sm="6">
+                                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">Volatility Profile</MudText>
+                                <MudSelect T="string" @bind-Value="_volatilityMode" Label="Select Mode" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Class="glass-input">
+                                    <MudSelectItem Value="@("Low")">Low (Frequent Small Wins)</MudSelectItem>
+                                    <MudSelectItem Value="@("Medium")">Medium (Balanced)</MudSelectItem>
+                                    <MudSelectItem Value="@("High")">High (Rare Big Wins)</MudSelectItem>
+                                </MudSelect>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="SaveVolatility" Class="mt-4 rounded-lg" FullWidth="true">APPLY PROFILE</MudButton>
+                            </MudItem>
 
-                    <!-- Emergency Stop -->
-                    <MudItem xs="12" sm="6">
-                         <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">Emergency Override</MudText>
-                         <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">Instantly halts all new game rounds.</MudText>
-                         
-                         <div class='@($"pa-4 rounded-xl border-2 d-flex flex-column align-center justify-center transition-all {(_emergencyStop ? "border-error bg-error-subtle" : "border-success bg-success-subtle")}")' style="height: 140px;">
-                             <MudSwitch @bind-Value="_emergencyStop" Color="Color.Error" UncheckedColor="Color.Success" Size="Size.Large" ThumbIcon="@(_emergencyStop ? Icons.Material.Filled.Stop : Icons.Material.Filled.PlayArrow)" T="bool" />
-                             <MudText Typo="Typo.h6" Class="fw-black mt-2" Color="@(_emergencyStop ? Color.Error : Color.Success)">
-                                 @(_emergencyStop ? "SYSTEM HALTED" : "SYSTEM ACTIVE")
-                             </MudText>
-                             @if(_changedEmergencyStop != _emergencyStop) {
-                                  <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="SaveEmergencyStop" Class="mt-2 pulse-red">CONFIRM CHANGE</MudButton>
-                             }
-                         </div>
-                    </MudItem>
-                </MudGrid>
-            </div>
-        </MudItem>
-
-        <!-- System Integrity Section -->
-        <MudItem xs="12" md="4">
-            <MudStack Spacing="4">
-                <div class="settings-card pa-6 rounded-xl">
-                    <MudText Typo="Typo.h6" Class="fw-bold mb-4 d-flex align-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Security" Class="mr-2" Color="Color.Info"/> System Integrity
-                    </MudText>
-                    
-                    <div class="d-flex flex-column align-center py-4">
-                        @if (_verifyingIntegrity)
-                        {
-                            <MudProgressCircular Color="Color.Info" Indeterminate="true" Size="Size.Large" Class="mb-4" />
-                            <MudText>Verifying Hash Chains...</MudText>
-                        }
-                        else
-                        {
-                            <MudIcon Icon="@(_integrityResult?.IsValid == true ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.GppGood)" 
-                                     Color="@(_integrityResult?.IsValid == true ? Color.Success : Color.Secondary)" 
-                                     Style="font-size: 5rem;" Class="mb-4" />
-                            
-                            @if (_integrityResult != null)
-                            {
-                                <MudText Typo="Typo.h6" Color="@(_integrityResult.IsValid ? Color.Success : Color.Error)" Class="fw-bold text-center">
-                                    @(_integrityResult.IsValid ? "SYSTEM SECURE" : "INTEGRITY FAILED")
-                                </MudText>
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary text-center px-4 mt-2">@_integrityResult.Message</MudText>
-                            }
-                            else if (_integrityHistory.Any())
-                            {
-                                var last = _integrityHistory.First();
-                                <MudText Typo="Typo.h6" Color="@(last.MetadataJson.Contains("true") ? Color.Success : Color.Error)" Class="fw-bold text-center">
-                                    @(last.MetadataJson.Contains("true") ? "SYSTEM SECURE" : "INTEGRITY FAILED")
-                                </MudText>
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary text-center px-4 mt-2">Last check: @last.Timestamp.ToLocalTime().ToString("g")</MudText>
-                            }
-                            else
-                            {
-                                <MudText Typo="Typo.body2" Class="mud-text-secondary text-center">Last check: Never</MudText>
-                            }
-                        }
+                            <!-- Emergency Stop -->
+                            <MudItem xs="12" sm="6">
+                                 <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">Emergency Override</MudText>
+                                 <div class='@($"pa-4 rounded-xl border-2 d-flex flex-column align-center justify-center transition-all {(_emergencyStop ? "border-error bg-error-subtle" : "border-success bg-success-subtle")}")' style="height: 140px;">
+                                     <MudSwitch @bind-Value="_emergencyStop" Color="Color.Error" UncheckedColor="Color.Success" Size="Size.Large" ThumbIcon="@(_emergencyStop ? Icons.Material.Filled.Stop : Icons.Material.Filled.PlayArrow)" T="bool" />
+                                     <MudText Typo="Typo.h6" Class="fw-black mt-2" Color="@(_emergencyStop ? Color.Error : Color.Success)">
+                                         @(_emergencyStop ? "SYSTEM HALTED" : "SYSTEM ACTIVE")
+                                     </MudText>
+                                     @if(_changedEmergencyStop != _emergencyStop) {
+                                          <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="SaveEmergencyStop" Class="mt-2 pulse-red">CONFIRM CHANGE</MudButton>
+                                     }
+                                 </div>
+                            </MudItem>
+                        </MudGrid>
                     </div>
+                </MudItem>
 
-                    <div class="d-flex gap-2 mt-4">
-                        <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" OnClick="RunIntegrityCheck" Disabled="@_verifyingIntegrity" Class="rounded-lg">
-                            RUN AUDIT SCAN
-                        </MudButton>
-                        <MudIconButton Icon="@Icons.Material.Filled.Build" Color="Color.Warning" OnClick="RunIntegrityRepair" Disabled="@_verifyingIntegrity" Title="Repair Broken Chain" />
-                    </div>
-
-                    @if (_integrityHistory.Any())
-                    {
-                        <div class="mt-6">
-                            <MudText Typo="Typo.caption" Class="fw-bold mud-text-secondary uppercase mb-2 d-block">Scan History</MudText>
-                            <div style="max-height: 150px; overflow-y: auto;" class="custom-scroll">
-                                @foreach (var entry in _integrityHistory.Take(5))
-                                {
-                                    <div class="d-flex justify-space-between align-center pa-2 mb-1 rounded glass-inner" style="font-size: 0.75rem;">
-                                        <div class="d-flex align-center gap-2">
-                                            <MudIcon Icon="@(entry.MetadataJson.Contains("true") ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error)" 
-                                                     Color="@(entry.MetadataJson.Contains("true") ? Color.Success : Color.Error)" Size="Size.Small" />
-                                            <span>@entry.Timestamp.ToLocalTime().ToString("MM/dd HH:mm")</span>
-                                        </div>
-                                        <span class="fw-bold">@(entry.MetadataJson.Contains("true") ? "PASS" : "FAIL")</span>
-                                    </div>
+                <!-- System Integrity Section -->
+                <MudItem xs="12" md="4">
+                    <MudStack Spacing="4">
+                        <div class="settings-card pa-6 rounded-xl">
+                            <MudText Typo="Typo.h6" Class="fw-bold mb-4">System Integrity</MudText>
+                            <div class="d-flex flex-column align-center py-4">
+                                @if (_verifyingIntegrity) { <MudProgressCircular Color="Color.Info" Indeterminate="true" Size="Size.Large" Class="mb-4" /> }
+                                else {
+                                    <MudIcon Icon="@(_integrityResult?.IsValid == true ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.GppGood)" 
+                                             Color="@(_integrityResult?.IsValid == true ? Color.Success : Color.Secondary)" 
+                                             Style="font-size: 5rem;" Class="mb-4" />
+                                    @if (_integrityHistory.Any()) {
+                                        var last = _integrityHistory.First();
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary text-center px-4 mt-2">Last check: @last.Timestamp.ToLocalTime().ToString("g")</MudText>
+                                    }
                                 }
                             </div>
+                            <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" OnClick="RunIntegrityCheck" Disabled="@_verifyingIntegrity" Class="rounded-lg">SCAN NOW</MudButton>
                         </div>
-                    }
-                </div>
 
-                <div class="settings-card pa-6 rounded-xl">
-                    <MudText Typo="Typo.h6" Class="fw-bold mb-4">Maintenance</MudText>
-                    <MudList T="string" Dense="true" Clickable="true" Class="rounded-lg">
-                        <MudListItem Icon="@Icons.Material.Filled.CleaningServices" OnClick="OnClearCache">
-                            Clear Server Cache
-                        </MudListItem>
-                        <MudListItem Icon="@Icons.Material.Filled.Storage" OnClick="OnBackup">
-                            Backup Database
-                        </MudListItem>
-                        <MudListItem Icon="@Icons.Material.Filled.RestartAlt" IconColor="Color.Warning" OnClick="OnRestartRng">
-                            Restart RNG Service
-                        </MudListItem>
-                    </MudList>
-                </div>
-            </MudStack>
-        </MudItem>
-    </MudGrid>
+                        <div class="settings-card pa-6 rounded-xl">
+                            <MudText Typo="Typo.h6" Class="fw-bold mb-4">Maintenance</MudText>
+                            <MudList T="string" Dense="true" Clickable="true" Class="rounded-lg">
+                                <MudListItem Icon="@Icons.Material.Filled.CleaningServices" OnClick="OnClearCache">Clear Server Cache</MudListItem>
+                                <MudListItem Icon="@Icons.Material.Filled.RestartAlt" IconColor="Color.Warning" OnClick="OnRestartRng">Restart RNG Engine</MudListItem>
+                            </MudList>
+                        </div>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
 
+        <!-- 2. EDITORIAL CENTER -->
+        <MudTabPanel Text="Editorial Center" Icon="@Icons.Material.Filled.EditNote">
+            <MudGrid>
+                @foreach (var key in new[] { "Content_Help", "Content_Terms", "Content_Privacy" })
+                {
+                    var setting = _globalSettings.FirstOrDefault(s => s.Key == key);
+                    <MudItem xs="12" md="6">
+                        <div class="settings-card pa-8 rounded-xl h-100">
+                            <MudText Typo="Typo.h6" Class="fw-bold mb-4">@key.Replace("Content_", "") Page Content</MudText>
+                            <MudTextField T="string" Label="Page Content (Markdown/HTML Support)" 
+                                         Value="@(setting?.Value)" 
+                                         ValueChanged="@(val => OnSettingChanged(key, val))"
+                                         Variant="Variant.Outlined" Lines="8" AutoGrow="true" Class="mb-4" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" 
+                                       StartIcon="@Icons.Material.Filled.Save"
+                                       OnClick="@(() => SaveGlobalSetting(key))">UPDATE PAGE</MudButton>
+                        </div>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudTabPanel>
+    </MudTabs>
 </MudContainer>
 
 <style>
     .fw-black { font-weight: 900; }
     .fw-bold { font-weight: 700; }
-    
     .text-gradient {
         background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
-
     .settings-card {
         background: @(LayoutService.IsDarkMode ? "rgba(30, 41, 59, 0.7)" : "rgba(255, 255, 255, 0.7)");
         backdrop-filter: blur(12px);
         border: 1px solid var(--mud-palette-divider);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
-    
-    .glass-inner {
-        background: @(LayoutService.IsDarkMode ? "rgba(0, 0, 0, 0.2)" : "rgba(0, 0, 0, 0.05)");
-        border-radius: 12px;
-    }
-
+    .glass-inner { background: @(LayoutService.IsDarkMode ? "rgba(0, 0, 0, 0.2)" : "rgba(0, 0, 0, 0.05)"); }
     .bg-error-subtle { background-color: rgba(244, 63, 94, 0.1); }
     .bg-success-subtle { background-color: rgba(34, 197, 94, 0.1); }
-    
-    .pulse-red { animation: pulseRed 2s infinite; }
-    @@keyframes pulseRed {
-        0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7); }
-        70% { box-shadow: 0 0 0 10px rgba(244, 63, 94, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
-    }
-    
-    .transition-all { transition: all 0.3s ease; }
-    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
-    @@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 
 @code {
@@ -208,30 +153,38 @@
     private string _volatilityMode = "Medium";
     private bool _emergencyStop = false;
     private bool _changedEmergencyStop = false;
-    
     private bool _verifyingIntegrity = false;
     private IntegrityResponse? _integrityResult;
     private List<AuditLogDto> _integrityHistory = new();
+    private List<GlobalSettingDto> _globalSettings = new();
 
     protected override async Task OnInitializedAsync()
     {
         LayoutService.OnMajorUpdate += StateHasChanged;
         await LoadCurrentSettings();
         await LoadIntegrityHistory();
+        await LoadGlobalSettings();
     }
 
-    private async Task LoadIntegrityHistory()
-    {
+    private async Task LoadGlobalSettings() {
         try {
-            var logs = await AdminService.GetAuditLogs();
-            _integrityHistory = logs.Where(l => l.EventType == "SYSTEM_INTEGRITY_CHECK")
-                                   .OrderByDescending(l => l.Timestamp)
-                                   .ToList();
+            _globalSettings = await Http.GetFromJsonAsync<List<GlobalSettingDto>>("api/Admin/settings/global") ?? new();
         } catch {}
     }
 
-    private async Task LoadCurrentSettings()
-    {
+    private void OnSettingChanged(string key, string newVal) {
+        var s = _globalSettings.FirstOrDefault(x => x.Key == key);
+        if (s != null) s.Value = newVal;
+    }
+
+    private async Task SaveGlobalSetting(string key) {
+        var s = _globalSettings.FirstOrDefault(x => x.Key == key);
+        if (s == null) return;
+        var response = await Http.PostAsJsonAsync("api/Admin/settings/update", s);
+        if (response.IsSuccessStatusCode) Snackbar.Add($"{key} updated!", Severity.Success);
+    }
+
+    private async Task LoadCurrentSettings() {
         try {
             var stats = await AdminService.GetDashboardStats();
             _targetRtp = Math.Round(stats.CurrentRtp > 0 ? stats.CurrentRtp : 95.0m, 2);
@@ -240,93 +193,27 @@
         } catch {}
     }
 
-    private async Task SaveRtp()
-    {
-        try {
-            await AdminService.UpdateRtp(_targetRtp);
-            Snackbar.Add($"Global RTP updated to {_targetRtp}%", Severity.Success);
-        } catch (Exception ex) {
-            Snackbar.Add($"Failed to update RTP: {ex.Message}", Severity.Error);
-        }
-    }
+    private async Task SaveRtp() { await AdminService.UpdateRtp(_targetRtp); Snackbar.Add("RTP Updated", Severity.Success); }
+    private async Task SaveVolatility() { await AdminService.UpdateVolatility(_volatilityMode); Snackbar.Add("Volatility Updated", Severity.Success); }
+    private async Task SaveEmergencyStop() { await AdminService.ToggleEmergencyStop(_emergencyStop); _changedEmergencyStop = _emergencyStop; Snackbar.Add("Emergency Stop Updated", Severity.Success); }
 
-    private async Task SaveVolatility()
-    {
-        try {
-            await AdminService.UpdateVolatility(_volatilityMode);
-            Snackbar.Add($"Volatility profile set to {_volatilityMode}", Severity.Success);
-        } catch (Exception ex) {
-            Snackbar.Add($"Failed to update volatility: {ex.Message}", Severity.Error);
-        }
-    }
-
-    private async Task SaveEmergencyStop()
-    {
-        try {
-            await AdminService.ToggleEmergencyStop(_emergencyStop);
-            _changedEmergencyStop = _emergencyStop;
-            Snackbar.Add(_emergencyStop ? "EMERGENCY STOP ACTIVATED" : "System resumed normal operation", _emergencyStop ? Severity.Warning : Severity.Success);
-        } catch (Exception ex) {
-            Snackbar.Add($"Failed to toggle emergency stop: {ex.Message}", Severity.Error);
-            _emergencyStop = !_emergencyStop; // Revert
-        }
-    }
-
-    private async Task RunIntegrityCheck()
-    {
+    private async Task RunIntegrityCheck() {
         _verifyingIntegrity = true;
-        _integrityResult = null;
-        StateHasChanged(); // Force update
-        
-        // Simulate a bit of delay for effect if the API is too fast
-        await Task.Delay(2000); 
+        _integrityResult = await AdminService.VerifyIntegrity();
+        await LoadIntegrityHistory();
+        _verifyingIntegrity = false;
+    }
 
+    private async Task OnClearCache() { await AdminService.TriggerAction("ClearCache"); Snackbar.Add("Cache Cleared", Severity.Success); }
+    private async Task OnRestartRng() { await AdminService.TriggerAction("RestartRng"); Snackbar.Add("RNG Restarted", Severity.Warning); }
+
+    public void Dispose() => LayoutService.OnMajorUpdate -= StateHasChanged;
+
+    public class GlobalSettingDto { public string Key { get; set; } = ""; public string Value { get; set; } = ""; }
+    private async Task LoadIntegrityHistory() {
         try {
-            _integrityResult = await AdminService.VerifyIntegrity();
-            if (_integrityResult.IsValid) Snackbar.Add("Integrity check passed.", Severity.Success);
-            else Snackbar.Add("Integrity check FAILED!", Severity.Error);
-            
-            await LoadIntegrityHistory();
-        } catch (Exception ex) {
-            Snackbar.Add($"Audit failed: {ex.Message}", Severity.Error);
-        } finally {
-            _verifyingIntegrity = false;
-        }
-    }
-    
-    private async Task RunIntegrityRepair() {
-        if (!await DialogService.ShowMessageBox("Confirm Repair", "This will re-hash the entire audit log chain. Only do this if integrity is broken.", yesText:"Repair", cancelText:"Cancel") ?? false) return;
-        
-        _verifyingIntegrity = true;
-        Snackbar.Add("Repairing integrity chain... This may take a moment.", Severity.Warning);
-        try {
-            await AdminService.TriggerAction("RepairIntegrity");
-            Snackbar.Add("Integrity chain repaired successfully.", Severity.Success);
-            await RunIntegrityCheck();
-        } catch (Exception ex) {
-            Snackbar.Add($"Repair failed: {ex.Message}", Severity.Error);
-        } finally {
-            _verifyingIntegrity = false;
-        }
-    }
-
-    private async Task OnClearCache() {
-        await AdminService.TriggerAction("ClearCache");
-        Snackbar.Add("Server cache cleared.", Severity.Success);
-    }
-
-    private async Task OnBackup() {
-        await AdminService.TriggerAction("BackupDb");
-        Snackbar.Add("Database backup started.", Severity.Info);
-    }
-
-    private async Task OnRestartRng() {
-        await AdminService.TriggerAction("RestartRng");
-        Snackbar.Add("RNG service reset and synced.", Severity.Warning);
-    }
-    
-    public void Dispose()
-    {
-        LayoutService.OnMajorUpdate -= StateHasChanged;
+            var logs = await AdminService.GetAuditLogs();
+            _integrityHistory = logs.Where(l => l.EventType == "SYSTEM_INTEGRITY_CHECK").OrderByDescending(l => l.Timestamp).ToList();
+        } catch {}
     }
 }

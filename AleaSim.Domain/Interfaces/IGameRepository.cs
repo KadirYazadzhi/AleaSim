@@ -129,5 +129,6 @@ public interface IGameRepository {
 
     // Global Settings
     string GetGlobalSetting(string key);
+    IEnumerable<GlobalSetting> GetAllGlobalSettings();
     void SetGlobalSetting(string key, string value, string description = "");
 }

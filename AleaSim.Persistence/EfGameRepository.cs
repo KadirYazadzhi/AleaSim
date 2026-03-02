@@ -701,6 +701,10 @@ public class EfGameRepository : IGameRepository {
         return value;
     }
 
+    public IEnumerable<GlobalSetting> GetAllGlobalSettings() {
+        return _context.GlobalSettings.ToList();
+    }
+
     public void SaveTournamentWinners(IEnumerable<TournamentWinner> winners) {
         _context.TournamentWinners.AddRange(winners);
         _context.SaveChanges();
