@@ -40,22 +40,31 @@
     </AuthorizeView>
 
     <MudPaper Class="pa-6">
-        <MudText Typo="Typo.h5" Class="mb-4">Recent Chain (Blockchain View)</MudText>
-        <MudTable Items="@auditChain" Hover="true" RowsPerPage="10" Striped="true">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h5">Recent Chain (Blockchain View)</MudText>
+            <MudChip T="string" Color="Color.Success" Variant="Variant.Text" Icon="@Icons.Material.Filled.Lock">IMMUATABLE LEDGER ACTIVE</MudChip>
+        </div>
+        
+        <MudTable Items="@auditChain" Hover="true" RowsPerPage="10" Striped="true" Loading="@isLoadingChain">
             <HeaderContent>
-                <MudTh>Round ID</MudTh>
-                <MudTh>Game</MudTh>
-                <MudTh>Result</MudTh>
-                <MudTh>Hash</MudTh>
+                <MudTh>Timestamp</MudTh>
+                <MudTh>Event Type</MudTh>
+                <MudTh>Description</MudTh>
+                <MudTh>Hash (Prev / Current)</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Round ID">@context.Id.ToString().Substring(0, 8)...</MudTd>
-                <MudTd DataLabel="Game">@context.GameName</MudTd>
-                <MudTd DataLabel="Result">@context.ResultSummary</MudTd>
-                <MudTd DataLabel="Hash" Style="font-family: monospace;">@GetShortHash(context.FullResultJson)</MudTd>
+                <MudTd DataLabel="Time">@context.Timestamp.ToString("HH:mm:ss.fff")</MudTd>
+                <MudTd DataLabel="Type">
+                    <MudChip T="string" Size="Size.Small" Color="@GetEventColor(context.EventType)" Variant="Variant.Filled">@context.EventType</MudChip>
+                </MudTd>
+                <MudTd DataLabel="Desc">@context.Description</MudTd>
+                <MudTd DataLabel="Hash" Style="font-family: monospace; font-size: 0.75rem;">
+                    <div class="mud-text-secondary" style="opacity: 0.5;">@context.PreviousHash.Substring(0, 8)...</div>
+                    <div class="fw-bold">@context.Hash.Substring(0, 16)...</div>
+                </MudTd>
             </RowTemplate>
             <PagerContent>
-                <MudTablePager PageSizeOptions="new int[] { 10, 20, 50, 100 }" />
+                <MudTablePager PageSizeOptions="new int[] { 10, 20, 50 }" />
             </PagerContent>
         </MudTable>
     </MudPaper>
@@ -65,14 +74,34 @@
     private string serverSeed = "";
     private string clientSeed = "";
     private string? verificationResult;
-    private List<GameRoundDto> auditChain = new();
+    private List<AuditLogDto> auditChain = new();
+    private bool isLoadingChain = true;
 
     protected override async Task OnInitializedAsync()
     {
-        try {
-            auditChain = await Http.GetFromJsonAsync<List<GameRoundDto>>("api/Game/public-history") ?? new();
-        } catch {}
+        await LoadAuditChain();
     }
+
+    private async Task LoadAuditChain()
+    {
+        isLoadingChain = true;
+        try {
+            auditChain = await Http.GetFromJsonAsync<List<AuditEvent>>("api/Game/audit-chain") ?? new();
+        } catch {
+            Snackbar.Add("Failed to load audit chain.", Severity.Error);
+        } finally {
+            isLoadingChain = false;
+        }
+    }
+
+    private Color GetEventColor(string type) => type switch {
+        "BetPlaced" => Color.Info,
+        "GameOutcome" => Color.Success,
+        "JackpotWon" => Color.Warning,
+        "Simulation" => Color.Secondary,
+        "SystemUpdate" => Color.Primary,
+        _ => Color.Default
+    };
 
     private string GetShortHash(string input) {
         if (string.IsNullOrEmpty(input)) return "N/A";

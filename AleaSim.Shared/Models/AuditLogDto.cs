@@ -7,4 +7,6 @@ public class AuditLogDto {
     public string Description { get; set; } = string.Empty;
     public string UserId { get; set; } = string.Empty;
     public string MetadataJson { get; set; } = string.Empty;
+    public string Hash { get; set; } = string.Empty;
+    public string PreviousHash { get; set; } = string.Empty;
 }

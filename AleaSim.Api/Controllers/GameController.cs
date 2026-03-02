@@ -216,6 +216,23 @@ public class GameController : ControllerBase {
     }
 
     [AllowAnonymous]
+    [HttpGet("audit-chain")]
+    public IActionResult GetAuditChain() {
+        var logs = _repo.GetAuditLogs(50);
+        var result = logs.Select(l => new AuditLogDto {
+            Id = l.Id,
+            Timestamp = l.Timestamp,
+            EventType = l.EventType,
+            Description = l.Description,
+            UserId = l.UserId,
+            MetadataJson = l.MetadataJson,
+            Hash = l.Hash,
+            PreviousHash = l.PreviousHash
+        });
+        return Ok(result);
+    }
+
+    [AllowAnonymous]
     [HttpGet("jackpots")]
     public IActionResult GetJackpots() {
         var jackpots = _repo.GetJackpots();
