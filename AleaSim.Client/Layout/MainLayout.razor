@@ -26,7 +26,7 @@
 
 <MudLayout>
     <MudAppBar Elevation="0" Fixed="true" Color="Color.Transparent" Class="glass-appbar px-6 py-2">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" Class="mr-4" />
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => LayoutService.ToggleDrawer())" Class="mr-4" />
         
         <div class="d-flex align-center cursor-pointer" @onclick='@(() => Navigation.NavigateTo("/"))'>
             <MudIcon Icon="@Icons.Material.Filled.Casino" Size="Size.Large" Color="Color.Primary" Class="mr-2 spin-hover" />
@@ -130,7 +130,7 @@
         </AuthorizeView>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0" Variant="DrawerVariant.Responsive" Class="sidebar-blur">
+    <MudDrawer @bind-Open="@LayoutService.IsDrawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0" Variant="DrawerVariant.Responsive" Class="sidebar-blur">
         <NavMenu />
         <div class="mt-auto pa-4">
              <MudCard Class="glass-panel pa-3 text-center mb-4">
@@ -331,7 +331,6 @@
 </style>
 
 @code {
-    bool _drawerOpen = false;
     bool _chatOpen = false;
     bool _notificationsOpen = false;
     private UserDto? userProfile;
@@ -506,7 +505,6 @@
         _ => Color.Default
     };
 
-    void DrawerToggle() => _drawerOpen = !_drawerOpen;
     void ToggleNotifications() => _notificationsOpen = !_notificationsOpen;
 
     private void OpenSettings() {

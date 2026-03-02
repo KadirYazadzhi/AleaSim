@@ -17,12 +17,19 @@ public class LayoutService
     }
 
     public bool IsDarkMode { get; private set; } = true;
+    public bool IsDrawerOpen { get; set; } = true;
     public bool IsBalanceUpdateSuppressed { get; private set; }
 
     public event Action? OnMajorUpdate;
     public event Action<string>? OnAvatarChanged; // Added
     public event Action<bool>? OnBalanceUpdateSuppressionChanged;
     public event Action<decimal>? OnOptimisticDeduction;
+
+    public void ToggleDrawer()
+    {
+        IsDrawerOpen = !IsDrawerOpen;
+        OnMajorUpdate?.Invoke();
+    }
 
     public void NotifyAvatarChanged(string newUrl)
     {

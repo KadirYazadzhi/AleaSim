@@ -11,7 +11,7 @@
 
 <MudLayout>
     <MudAppBar Elevation="0" Fixed="true" Color="Color.Transparent" Class="glass-appbar px-6 py-2">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" Class="mr-4" />
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => LayoutService.ToggleDrawer())" Class="mr-4" />
         
         <div class="d-flex align-center cursor-pointer" @onclick='@(() => Navigation.NavigateTo("/dashboard"))'>
             <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" Color="Color.Error" Class="mr-2" />
@@ -29,7 +29,7 @@
         </div>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0" Variant="DrawerVariant.Responsive" Class="sidebar-blur">
+    <MudDrawer @bind-Open="@LayoutService.IsDrawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0" Variant="DrawerVariant.Responsive" Class="sidebar-blur">
         <NavMenu />
         <div class="mt-auto pa-6">
             <MudPaper Class="glass-panel pa-4 rounded-xl text-center">
@@ -77,27 +77,9 @@
     .font-black { font-weight: 900; }
     .fw-bold { font-weight: 700; }
     .tracking-wide { letter-spacing: 0.1em; }
-    
-    .mud-nav-link {
-        border-radius: 8px;
-        margin: 2px 12px;
-        transition: all 0.2s;
-    }
-    .mud-nav-link:hover {
-        background-color: rgba(124, 58, 237, 0.1);
-        color: var(--mud-palette-primary) !important;
-    }
-    .mud-nav-link.active {
-        background-color: var(--mud-palette-primary);
-        color: white !important;
-        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
-    }
-    .mud-nav-link.active .mud-nav-link-icon { color: white !important; }
 </style>
 
 @code {
-    bool _drawerOpen = true;
-
     // Premium Casino Theme (Same as MainLayout)
     private MudTheme _theme = new MudTheme() {
         PaletteLight = new PaletteLight() {
@@ -157,8 +139,6 @@
     {
         LayoutService.OnMajorUpdate -= StateHasChanged;
     }
-
-    void DrawerToggle() => _drawerOpen = !_drawerOpen;
 
     private void ExitAdmin() {
         Navigation.NavigateTo("/");
