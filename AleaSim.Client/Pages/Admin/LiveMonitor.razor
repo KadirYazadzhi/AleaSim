@@ -20,6 +20,13 @@
         </MudTd>
         <MudTd DataLabel="Details" Style="font-family: monospace;">@context.Data</MudTd>
     </RowTemplate>
+    <NoRecordsContent>
+        <div class="pa-12 d-flex flex-column align-center justify-center">
+            <MudIcon Icon="@Icons.Material.Filled.Stream" Color="Color.Surface" Style="font-size: 3rem; opacity: 0.2;" Class="mb-4" />
+            <MudText Typo="Typo.h6" Class="mud-text-secondary">Waiting for live activity...</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">New bets and wins will appear here in real-time.</MudText>
+        </div>
+    </NoRecordsContent>
 </MudTable>
 
 @code {

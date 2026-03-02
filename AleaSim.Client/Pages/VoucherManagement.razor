@@ -54,6 +54,14 @@
             </MudTd>
             <MudTd DataLabel="Expires">@(context.ExpiresAt?.ToShortDateString() ?? "Never")</MudTd>
         </RowTemplate>
+        <NoRecordsContent>
+            <div class="pa-12 d-flex flex-column align-center justify-center">
+                <MudIcon Icon="@Icons.Material.Filled.ConfirmationNumber" Color="Color.Surface" Style="font-size: 4rem; opacity: 0.2;" Class="mb-4" />
+                <MudText Typo="Typo.h6" Class="mud-text-secondary">No active vouchers found.</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">Create your first promo code to attract more players!</MudText>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ToggleCreateForm">CREATE VOUCHER</MudButton>
+            </div>
+        </NoRecordsContent>
     </MudTable>
 </MudContainer>
 
