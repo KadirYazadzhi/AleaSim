@@ -17,6 +17,14 @@ public class UserProfileResponse {
     public UserProgressionDto Progression { get; set; } = new();
     public List<UserAchievementDto> Achievements { get; set; } = new();
 
+    // Stats
+    public decimal TotalWagered { get; set; }
+    public decimal TotalWon { get; set; }
+    public int TotalRounds { get; set; }
+    public double? WinLossRatio => TotalWagered > 0 ? (double)(TotalWon / TotalWagered) : 0;
+    public string FavoriteGame { get; set; } = "N/A";
+    public List<double> RecentWinLossTrend { get; set; } = new();
+
     // Settings
     public bool IsTwoFactorEnabled { get; set; }
     public decimal? DailyLossLimit { get; set; }

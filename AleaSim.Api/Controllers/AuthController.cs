@@ -105,13 +105,26 @@ public class AuthController : ControllerBase {
 
         // Get RPG Progress
         var prog = _levelService.GetProgression(userId, _repository);
-        var userProfile = _repository.GetPlayerProfile(userId); // Added to get skill levels
+        var userProfile = _repository.GetPlayerProfile(userId);
+
+        // Get Real Stats
+        var rtpStats = _repository.GetOrCreateUserStats(userId);
+        var userRounds = _repository.GetUserHistory(userId, 50);
+        
+        var favGame = userRounds.GroupBy(r => r.GameName)
+            .OrderByDescending(g => g.Count())
+            .Select(g => g.Key)
+            .FirstOrDefault() ?? "N/A";
+
+        var trend = userRounds.OrderBy(r => r.PlayedAt)
+            .TakeLast(7)
+            .Select(r => (double)(r.WinAmount - r.BetAmount))
+            .ToList();
 
         // Get Achievements
         var userAchs = await _achievementService.GetUserAchievements(userId, _repository);
 
         // Get Active Session for State Recovery
-        // Optimization: Should use repo specific method if available, but GetAllActiveSessions is cached/small list usually
         var activeSession = _repository.GetAllActiveSessions()
             .Where(s => s.UserId == userId)
             .OrderByDescending(s => s.StartedAt)
@@ -124,6 +137,12 @@ public class AuthController : ControllerBase {
             AvatarUrl = string.IsNullOrEmpty(user.AvatarUrl) ? $"https://api.dicebear.com/7.x/bottts/svg?seed={user.Username}" : user.AvatarUrl,
             ActiveGameStateJson = activeSession?.GameState,
             Role = user.Role.ToString(),
+
+            TotalWagered = rtpStats.TotalWagered,
+            TotalWon = rtpStats.TotalPaid,
+            TotalRounds = rtpStats.TotalRounds,
+            FavoriteGame = favGame,
+            RecentWinLossTrend = trend,
 
             user.DailyLossLimit,
             user.WeeklyLossLimit,

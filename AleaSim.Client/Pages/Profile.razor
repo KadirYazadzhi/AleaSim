@@ -69,11 +69,18 @@
         <!-- Stats and Perks -->
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-6" Elevation="2" Style="height: 100%;">
-                <MudText Typo="Typo.h6" Class="mb-4">Financial Overview</MudText>
-                <MudList T="string">
+                <div class="d-flex justify-space-between align-center mb-4">
+                    <MudText Typo="Typo.h6">Financial Overview</MudText>
+                    <MudChip T="string" Color="@(profile?.TotalWon >= profile?.TotalWagered ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Text" Icon="@Icons.Material.Filled.TrendingUp">
+                        Net: @((profile?.TotalWon - profile?.TotalWagered)?.ToString("C2"))
+                    </MudChip>
+                </div>
+                <MudList T="string" Dense="true">
                     <MudListItem Icon="@Icons.Material.Filled.AccountBalanceWallet">Real Balance: <b>@profile?.Balance.ToString("C2")</b></MudListItem>
                     <MudListItem Icon="@Icons.Material.Filled.CardGiftcard">Bonus Balance: <b>@profile?.BonusBalance.ToString("C2")</b></MudListItem>
-                    <MudListItem Icon="@Icons.Material.Filled.AccountBalance">Total Available: <b>@profile?.TotalBalance.ToString("C2")</b></MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Payments">Total Wagered: <b>@profile?.TotalWagered.ToString("C2")</b></MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.EmojiEvents">Total Won: <b>@profile?.TotalWon.ToString("C2")</b></MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Repeat">Total Rounds: <b>@profile?.TotalRounds.ToString("N0")</b></MudListItem>
                 </MudList>
             </MudPaper>
         </MudItem>
@@ -83,6 +90,11 @@
                 <MudText Typo="Typo.h6" Class="mb-4">Redeem Promo Code</MudText>
                 <MudTextField @bind-Value="voucherCode" Label="Voucher Code" Variant="Variant.Outlined" Placeholder="e.g. FREE100" />
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" Class="mt-4" OnClick="RedeemVoucher" Disabled="@string.IsNullOrEmpty(voucherCode)">Redeem Code</MudButton>
+                
+                <div class="mt-4 d-flex align-center gap-2">
+                    <MudIcon Icon="@Icons.Material.Filled.FlashOn" Color="Color.Warning" />
+                    <MudText Typo="Typo.body2">Current Streak: <b>@profile?.CurrentStreak Days</b></MudText>
+                </div>
             </MudPaper>
         </MudItem>
 
@@ -122,15 +134,30 @@
                 <MudText Typo="Typo.h5" Class="fw-black mb-6">Advanced Player Insights</MudText>
                 <MudGrid>
                     <MudItem xs="12" md="4">
-                        <div class="pa-4 rounded-lg bg-dark-lighten text-center">
+                        <div class="pa-4 rounded-lg bg-dark-lighten text-center border-1 border-solid border-mud-palette-divider" style="background: var(--mud-palette-background-grey);">
                             <MudIcon Icon="@Icons.Material.Filled.Favorite" Color="Color.Error" Style="font-size: 3rem;" Class="mb-2" />
-                            <MudText Typo="Typo.h6">@favoriteGame</MudText>
+                            <MudText Typo="Typo.h6">@profile?.FavoriteGame</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Most Played Game</MudText>
+                            
+                            <MudDivider Class="my-4" />
+                            
+                            <MudIcon Icon="@Icons.Material.Filled.Speed" Color="Color.Info" Style="font-size: 2rem;" Class="mb-1" />
+                            <MudText Typo="Typo.h6">@((profile?.TotalWon > 0 && profile?.TotalWagered > 0) ? (profile.TotalWon / profile.TotalWagered * 100).ToString("F1") : "0.0")%</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Your Personal RTP</MudText>
                         </div>
                     </MudItem>
                     <MudItem xs="12" md="8">
-                        <MudChart ChartType="ChartType.Line" ChartSeries="@Series" XAxisLabels="@Labels" Width="100%" Height="200px" ChartOptions="@options" />
-                        <MudText Typo="Typo.caption" Align="Align.Center" Class="d-block mt-2">Win/Loss Performance (Last 7 Sessions)</MudText>
+                        @if (Series.Any() && Series[0].Data.Any())
+                        {
+                            <MudChart ChartType="ChartType.Line" ChartSeries="@Series" XAxisLabels="@Labels" Width="100%" Height="200px" ChartOptions="@options" />
+                        }
+                        else
+                        {
+                            <div class="d-flex align-center justify-center" style="height: 200px; background: rgba(0,0,0,0.05); border-radius: 8px;">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Not enough data for performance chart yet.</MudText>
+                            </div>
+                        }
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="d-block mt-2">Net Profit/Loss Trend (Last 7 Rounds)</MudText>
                     </MudItem>
                 </MudGrid>
             </MudPaper>
@@ -146,7 +173,7 @@
                         @foreach (var ach in profile.Achievements)
                         {
                             <MudTooltip Text="@ach.Description">
-                                <MudPaper Class="pa-4 d-flex flex-column align-center justify-center" Style="width: 120px; background: #fffde7; border: 2px solid #fbc02d;">
+                                <MudPaper Class="pa-4 d-flex flex-column align-center justify-center ach-card">
                                     <MudText Typo="Typo.h3">@ach.Icon</MudText>
                                     <MudText Typo="Typo.caption" Align="Align.Center" Style="font-weight: bold;">@ach.Name</MudText>
                                 </MudPaper>
@@ -168,14 +195,12 @@
         private string voucherCode = "";
         private string selectedTitle = "None";
         
-        // Analytics Mock Data (Real version would fetch from specific API)
-    private string favoriteGame = "Clover Chase";
-    public List<ChartSeries> Series = new List<ChartSeries>()
-    {
-        new ChartSeries() { Name = "Net Profit", Data = new double[] { 10, 42, -15, 23, 88, 54, 102 } },
+    public List<ChartSeries> Series = new();
+    public string[] Labels = { "R1", "R2", "R3", "R4", "R5", "R6", "R7" };
+    private ChartOptions options = new ChartOptions { 
+        InterpolationOption = InterpolationOption.NaturalSpline,
+        YAxisFormat = "C0"
     };
-    public string[] Labels = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
-    private ChartOptions options = new ChartOptions { InterpolationOption = InterpolationOption.NaturalSpline };
 
     protected override async Task OnInitializedAsync() {
         try {
@@ -183,11 +208,103 @@
             if (profile != null) {
                 var prefs = JsonSerializer.Deserialize<Dictionary<string, object>>(profile.PreferencesJson) ?? new();
                 if (prefs.TryGetValue("Title", out var title)) selectedTitle = title.ToString() ?? "None";
+
+                if (profile.RecentWinLossTrend != null && profile.RecentWinLossTrend.Any())
+                {
+                    Series = new List<ChartSeries>
+                    {
+                        new ChartSeries { Name = "Net Result", Data = profile.RecentWinLossTrend.ToArray() }
+                    };
+                    // Update labels based on count
+                    Labels = Enumerable.Range(1, profile.RecentWinLossTrend.Count).Select(i => $"R{i}").ToArray();
+                }
             }
         } catch {
             Snackbar.Add("Failed to load profile.", Severity.Error);
         }
     }
+
+    private async Task OpenAvatarPicker() {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
+        var dialog = await DialogService.ShowAsync<AleaSim.Client.Components.AvatarPicker>("Select Your Avatar", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is string newUrl) {
+            await UpdateAvatar(newUrl);
+        }
+    }
+
+    private async Task UpdateAvatar(string url) {
+        var response = await Http.PostAsJsonAsync("api/Auth/avatar", url);
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Avatar updated!", Severity.Success);
+            layoutService.NotifyAvatarChanged(url); // Trigger global update
+            await OnInitializedAsync();
+        }
+    }
+
+    private async Task RedeemVoucher() {
+        try {
+            var response = await Http.PostAsync($"api/Game/vouchers/redeem/{voucherCode}", null);
+            if (response.IsSuccessStatusCode) {
+                Snackbar.Add("Success! Bonus credited.", Severity.Success);
+                voucherCode = "";
+                await OnInitializedAsync();
+            } else {
+                Snackbar.Add(await response.Content.ReadAsStringAsync(), Severity.Warning);
+            }
+        } catch { }
+    }
+
+    private async Task UpgradeSkill(string name) {
+        var response = await Http.PostAsync($"api/Game/skills/upgrade/{name}", null);
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Perk Upgrade successful!", Severity.Success);
+            await OnInitializedAsync();
+        }
+    }
+
+    private string? GetLuckySymbol() {
+        try {
+            var affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile?.SymbolAffinityJson ?? "{}");
+            if (affinity == null || !affinity.Any()) return null;
+            int symId = affinity.OrderByDescending(x => x.Value).First().Key;
+            return symId switch { 1 => "🍒", 2 => "🍋", 3 => "🍊", 4 => "🍇", 5 => "🔔", 6 => "💎", 7 => "7️⃣", 8 => "🍀", 10 => "💰", _ => "💎" };
+        } catch { return null; }
+    }
+
+    private string FormatTitle(string raw) => raw switch {
+        "Rookie" => "Rookie Gambler",
+        "HighRoller" => "🎰 High Roller",
+        "Whale" => "🐋 Casino Whale",
+        "Legend" => "🏆 Living Legend",
+        _ => raw
+    };
+
+    private string GetVipCardStyle(VipTier tier) => tier switch {
+        VipTier.Diamond => "background: linear-gradient(135deg, #2c3e50 0%, #000000 100%); border: 2px solid #e0e0e0; color: #fff;",
+        VipTier.Platinum => "background: linear-gradient(135deg, #607d8b 0%, #263238 100%); color: #fff;",
+        VipTier.Gold => "background: linear-gradient(135deg, #ffD700 0%, #b8860b 100%); color: #000;",
+        VipTier.Silver => "background: linear-gradient(135deg, #bdc3c7 0%, #2c3e50 100%); color: #fff;",
+        _ => "background: linear-gradient(135deg, #cd7f32 0%, #8b4513 100%); color: #fff;"
+    };
+
+    private string GetTierIcon(VipTier tier) => tier switch {
+        VipTier.Diamond => Icons.Material.Filled.WorkspacePremium,
+        VipTier.Platinum => Icons.Material.Filled.AutoAwesome,
+        VipTier.Gold => Icons.Material.Filled.MilitaryTech,
+        _ => Icons.Material.Filled.Stars
+    };
+}
+
+<style>
+    .avatar-edit-btn { position: absolute; bottom: -10px; right: -10px; background: white !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .vip-card { border-radius: 20px; transition: transform 0.3s ease; cursor: default; }
+    .vip-card:hover { transform: translateY(-5px); }
+    .ach-card { width: 120px; background: var(--mud-palette-background-grey); border: 2px solid var(--mud-palette-divider); transition: all 0.2s; }
+    .ach-card:hover { border-color: var(--mud-palette-primary); transform: scale(1.05); }
+    .bg-dark-lighten { background: rgba(255,255,255,0.03); }
+</style>
 
     private async Task OpenAvatarPicker() {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
