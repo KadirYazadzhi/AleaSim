@@ -4,7 +4,7 @@
 @inject IAuthService AuthService
 @inject LayoutService LayoutService
 
-<MudThemeProvider Theme="_theme" IsDarkMode="@LayoutService.IsDarkMode" />
+<MudThemeProvider Theme="@LayoutService.CurrentTheme" IsDarkMode="@LayoutService.IsDarkMode" />
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudPopoverProvider />
@@ -80,55 +80,6 @@
 </style>
 
 @code {
-    // Premium Casino Theme (Same as MainLayout)
-    private MudTheme _theme = new MudTheme() {
-        PaletteLight = new PaletteLight() {
-            Primary = "#7c3aed", // Violet 600
-            Secondary = "#4338ca", // Indigo 700
-            Info = "#0ea5e9",
-            Success = "#059669",
-            Warning = "#b45309",
-            Error = "#dc2626",
-            AppbarBackground = "rgba(255, 255, 255, 0.8)",
-            Background = "#f1f5f9",
-            Surface = "#ffffff",
-            DrawerBackground = "rgba(255, 255, 255, 0.95)",
-            TextPrimary = "#0f172a",
-            TextSecondary = "#475569",
-            ActionDefault = "#7c3aed",
-            Divider = "rgba(0,0,0,0.1)"
-        },
-        PaletteDark = new PaletteDark() {
-            Primary = "#a855f7", // Purple 500
-            Secondary = "#f472b6", // Pink 400
-            Info = "#38bdf8",
-            Success = "#22c55e",
-            Warning = "#fbbf24",
-            Error = "#f43f5e",
-            Background = "#0f172a", // Slate 900
-            Surface = "#1e293b", // Slate 800
-            AppbarBackground = "rgba(15, 23, 42, 0.8)",
-            DrawerBackground = "rgba(15, 23, 42, 0.95)",
-            TextPrimary = "#f1f5f9",
-            TextSecondary = "#94a3b8",
-            ActionDefault = "#a855f7",
-            Divider = "rgba(255,255,255,0.06)"
-        },
-        Typography = new Typography() {
-            Default = new DefaultTypography() {
-                FontFamily = new[] { "Montserrat", "Inter", "Helvetica", "Arial", "sans-serif" },
-                FontSize = ".875rem",
-                FontWeight = "400",
-            },
-            H5 = new H5Typography() { FontWeight = "700", LetterSpacing = ".05em" },
-            Button = new ButtonTypography() { FontWeight = "600", TextTransform = "none" }
-        },
-        LayoutProperties = new LayoutProperties() {
-            DefaultBorderRadius = "8px",
-            DrawerWidthLeft = "260px"
-        }
-    };
-
     protected override async Task OnInitializedAsync()
     {
         await LayoutService.InitializeAsync();

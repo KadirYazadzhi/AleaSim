@@ -114,6 +114,11 @@ public interface IGameRepository {
     void CreateVoucher(Voucher voucher);
     IEnumerable<Voucher> GetAllVouchers();
 
+    // User Sessions
+    void CreateUserSession(UserSession session);
+    List<UserSession> GetUserSessions(Guid userId);
+    void InactivateSession(string refreshToken);
+
     // Transactions
     void SaveTransaction(Transaction transaction);
     IEnumerable<Transaction> GetUserTransactions(Guid userId, int count);

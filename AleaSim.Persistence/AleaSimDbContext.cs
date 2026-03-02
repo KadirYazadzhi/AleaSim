@@ -6,6 +6,7 @@ namespace AleaSim.Persistence;
 
 public class AleaSimDbContext : DbContext {
     public DbSet<User> Users { get; set; }
+    public DbSet<UserSession> UserSessions { get; set; }
     public DbSet<PlayerProfile> PlayerProfiles { get; set; }
     public DbSet<TournamentEntry> TournamentEntries { get; set; }
     public DbSet<Game> Games { get; set; }

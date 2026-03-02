@@ -63,6 +63,33 @@
                         </div>
                     }
                 </div>
+
+                <div class="settings-group-card glass-panel pa-8 rounded-xxl">
+                    <div class="d-flex align-center mb-6">
+                        <div class="icon-circle bg-info-soft mr-4">
+                            <MudIcon Icon="@Icons.Material.Filled.Devices" Color="Color.Info" />
+                        </div>
+                        <MudText Typo="Typo.h5" Class="fw-bold">Active Sessions</MudText>
+                    </div>
+                    <div class="d-flex flex-column gap-3">
+                        @if (activeSessions.Any()) {
+                            @foreach (var session in activeSessions) {
+                                <div class="pa-4 rounded-xl bg-dark-transparent d-flex justify-space-between align-center border border-solid border-white-10">
+                                    <div>
+                                        <MudText Typo="Typo.body2" Class="fw-bold">@session.Ip</MudText>
+                                        <MudText Typo="Typo.caption" Class="opacity-60 d-block">@session.Device</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Info">@session.Time</MudText>
+                                    </div>
+                                    @if (session.IsCurrent) {
+                                        <MudChip T="string" Color="Color.Success" Size="Size.Small">THIS DEVICE</MudChip>
+                                    }
+                                </div>
+                            }
+                        } else {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">Loading session data...</MudText>
+                        }
+                    </div>
+                </div>
             </div>
         </MudTabPanel>
 
@@ -303,11 +330,7 @@
     private string newPassword = "";
     private bool is2faEnabled = false;
     private string tfaSecret = "";
-    private List<SessionItem> mockSessions = new() {
-        new SessionItem("192.168.1.42", "Windows 11 / Chrome 121", "Just now", true),
-        new SessionItem("84.22.10.154", "iPhone 15 Pro / Safari", "2 hours ago", false),
-        new SessionItem("10.0.0.5", "Android 14 / Chrome Mobile", "Yesterday", false)
-    };
+    private List<SessionItem> activeSessions = new();
 
     // 2. Preferences
     private bool turboMode;
@@ -351,8 +374,27 @@
                 selectedSkin = prefs.ContainsKey("Skin") ? prefs["Skin"].ToString() : "Default";
                 selectedTitle = prefs.ContainsKey("Title") ? prefs["Title"].ToString() : "None";
             }
+
+            // Fetch Real Sessions
+            var sessions = await Http.GetFromJsonAsync<List<SessionResponse>>("api/Auth/sessions");
+            if (sessions != null) {
+                activeSessions = sessions.Select(s => new SessionItem(
+                    s.IpAddress, 
+                    FormatUserAgent(s.Device), 
+                    s.LastActive.ToLocalTime().ToString("g"), 
+                    s.IsCurrent)).ToList();
+            }
         } catch {}
     }
+
+    private string FormatUserAgent(string ua) {
+        if (ua.Contains("Windows")) return "Windows Desktop";
+        if (ua.Contains("Android")) return "Android Mobile";
+        if (ua.Contains("iPhone") || ua.Contains("iPad")) return "iOS Device";
+        return "Web Browser";
+    }
+
+    private record SessionResponse(string IpAddress, string Device, DateTime LastActive, bool IsCurrent);
 
     private bool GetBool(Dictionary<string, object> dict, string key) => 
         dict.TryGetValue(key, out var val) && val != null && (val.ToString() == "True" || val.ToString() == "true");
@@ -377,6 +419,12 @@
 
         var response = await Http.PostAsJsonAsync("api/Auth/settings", request);
         if (response.IsSuccessStatusCode) {
+            // Apply visual skin immediately
+            LayoutService.ApplySkin(selectedSkin);
+            
+            // Persist audio settings to local storage
+            await Audio.SaveSettings();
+
             Snackbar.Add("Settings applied! May your luck change now!", Severity.Success);
             LayoutService.NotifyMajorUpdate();
         }

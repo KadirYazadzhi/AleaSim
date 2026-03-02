@@ -43,6 +43,18 @@ public class AuthController : ControllerBase {
             user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
             _repository.UpdateUser(user);
 
+            // Record Session
+            _repository.CreateUserSession(new UserSession {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
+                UserAgent = Request.Headers["User-Agent"].ToString(),
+                CreatedAt = DateTime.UtcNow,
+                LastActiveAt = DateTime.UtcNow,
+                IsActive = true,
+                RefreshToken = response.RefreshToken
+            });
+
             return Ok(response);
         }
         
@@ -263,6 +275,19 @@ public class AuthController : ControllerBase {
         user.LockoutUntil = DateTime.UtcNow.AddHours(hours);
         _repository.UpdateUser(user);
         return Ok(new { Message = $"Self-exclusion active until {user.LockoutUntil:yyyy-MM-dd HH:mm} UTC" });
+    }
+
+    [Authorize]
+    [HttpGet("sessions")]
+    public IActionResult GetSessions() {
+        var userId = GetUserIdOrThrow();
+        var sessions = _repository.GetUserSessions(userId);
+        return Ok(sessions.Select(s => new {
+            s.IpAddress,
+            Device = s.UserAgent,
+            LastActive = s.LastActiveAt,
+            IsCurrent = s.RefreshToken == Request.Headers["Authorization"].ToString().Replace("Bearer ", "") // Simplified check
+        }));
     }
 
     [Authorize]

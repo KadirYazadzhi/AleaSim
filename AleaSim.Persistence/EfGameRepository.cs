@@ -651,6 +651,27 @@ public class EfGameRepository : IGameRepository {
         return _context.Vouchers.ToList();
     }
 
+    public void CreateUserSession(UserSession session) {
+        _context.UserSessions.Add(session);
+        _context.SaveChanges();
+    }
+
+    public List<UserSession> GetUserSessions(Guid userId) {
+        return _context.UserSessions
+            .Where(s => s.UserId == userId && s.IsActive)
+            .OrderByDescending(s => s.LastActiveAt)
+            .Take(10)
+            .ToList();
+    }
+
+    public void InactivateSession(string refreshToken) {
+        var sessions = _context.UserSessions.Where(s => s.RefreshToken == refreshToken).ToList();
+        foreach (var s in sessions) {
+            s.IsActive = false;
+        }
+        _context.SaveChanges();
+    }
+
     public void SaveTransaction(Transaction transaction) {
         _context.Transactions.Add(transaction);
         _context.SaveChanges();
