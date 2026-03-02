@@ -92,6 +92,10 @@ public interface IGameRepository {
 
     // Quests
     IEnumerable<Quest> GetActiveQuests(Guid userId);
+    IEnumerable<Quest> GetAllQuests(); // Added
+    IEnumerable<UserQuestProgress> GetUserQuestProgressions(Guid userId); // Added
+    void CreateUserQuestProgress(UserQuestProgress progress); // Added
+    void UpdateUserQuestProgress(UserQuestProgress progress); // Added
     Quest? GetQuest(Guid questId);
     void CreateQuest(Quest quest);
     void UpdateQuest(Quest quest);

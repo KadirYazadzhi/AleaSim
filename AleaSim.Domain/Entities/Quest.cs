@@ -1,24 +1,24 @@
-namespace AleaSim.Domain.Entities;
+using System;
 
-public enum QuestStatus {
-    Active,
-    Completed,
-    Claimed,
-    Expired
-}
+namespace AleaSim.Domain.Entities;
 
 public class Quest {
     public Guid Id { get; set; }
-    public Guid UserId { get; set; }
-    public string Type { get; set; } = string.Empty; // "SpinCount", "WinAmount", "SymbolCollect"
-    public string Description { get; set; } = string.Empty; // "Spin 50 times on Clover Chase"
-    
-    public int TargetValue { get; set; }
-    public int CurrentProgress { get; set; }
-    
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string GoalType { get; set; } = "SpinCount"; // SpinCount, WinAmount, TotalWager
+    public decimal TargetValue { get; set; }
     public decimal RewardAmount { get; set; }
-    
-    public QuestStatus Status { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime ExpiresAt { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class UserQuestProgress {
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public Guid QuestId { get; set; }
+    public decimal CurrentValue { get; set; }
+    public bool IsCompleted { get; set; }
+    public DateTime? CompletedAt { get; set; }
+
+    public virtual Quest Quest { get; set; } = null!;
 }

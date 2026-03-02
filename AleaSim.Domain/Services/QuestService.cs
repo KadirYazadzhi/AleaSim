@@ -1,84 +1,70 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
 
 namespace AleaSim.Domain.Services;
 
 public class QuestService : IQuestService {
-    private readonly ILockService _lockService;
+    public async Task UpdateProgress(Guid userId, string goalType, decimal value, IGameRepository repo, IRealTimeService realTime, IVaultService vault) {
+        var activeQuests = repo.GetAllQuests().Where(q => q.IsActive && q.GoalType == goalType).ToList();
+        var userProgressions = repo.GetUserQuestProgressions(userId);
 
-    public QuestService(ILockService lockService) {
-        _lockService = lockService;
-    }
-    
-    public IEnumerable<Quest> GetActiveQuests(Guid userId, IGameRepository repo) {
-        return repo.GetActiveQuests(userId);
-    }
-
-    public void GenerateDailyQuests(Guid userId, IGameRepository repo) {
-        var existing = repo.GetActiveQuests(userId).Any(q => q.CreatedAt.Date == DateTime.UtcNow.Date);
-        if (existing) return;
-
-        var quests = new List<Quest> {
-            new Quest {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                Type = "SpinCount",
-                Description = "Spin 50 times today",
-                TargetValue = 50,
-                CurrentProgress = 0,
-                RewardAmount = 10,
-                Status = QuestStatus.Active,
-                CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddDays(1)
-            },
-            new Quest {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                Type = "WinAmount",
-                Description = "Win a total of $100",
-                TargetValue = 100,
-                CurrentProgress = 0,
-                RewardAmount = 25,
-                Status = QuestStatus.Active,
-                CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddDays(1)
-            }
-        };
-
-        foreach (var q in quests) {
-            repo.CreateQuest(q);
-        }
-    }
-
-    public async Task UpdateProgressAsync(Guid userId, string type, int amount, IGameRepository repo, IVaultService vault) {
-        var quests = repo.GetActiveQuests(userId).Where(q => q.Type == type && q.Status == QuestStatus.Active).ToList();
-        
-        foreach (var quest in quests) {
-            quest.CurrentProgress += amount;
+        foreach (var quest in activeQuests) {
+            var progress = userProgressions.FirstOrDefault(p => p.QuestId == quest.Id);
             
-            if (quest.CurrentProgress >= quest.TargetValue) {
-                quest.CurrentProgress = quest.TargetValue;
-                quest.Status = QuestStatus.Completed;
-                
-                await ClaimRewardAsync(quest.Id, repo, vault);
+            if (progress == null) {
+                progress = new UserQuestProgress {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    QuestId = quest.Id,
+                    CurrentValue = 0,
+                    IsCompleted = false
+                };
+                repo.CreateUserQuestProgress(progress);
             }
-            
-            repo.UpdateQuest(quest);
+
+            if (progress.IsCompleted) continue;
+
+            progress.CurrentValue += value;
+
+            if (progress.CurrentValue >= quest.TargetValue) {
+                progress.CurrentValue = quest.TargetValue;
+                progress.IsCompleted = true;
+                progress.CompletedAt = DateTime.UtcNow;
+
+                // Award Reward
+                await vault.CreditBonusAsync(userId, quest.RewardAmount, quest.RewardAmount * 5, repo);
+
+                // Notify User
+                await realTime.NotifyGameUpdate(userId, new {
+                    Type = "QuestCompleted",
+                    Title = quest.Title,
+                    Reward = quest.RewardAmount,
+                    Message = $"Mission Accomplished: {quest.Title}! Rewarded {quest.RewardAmount:C}."
+                });
+            }
+
+            repo.UpdateUserQuestProgress(progress);
         }
     }
 
-    public async Task<bool> ClaimRewardAsync(Guid questId, IGameRepository repo, IVaultService vault) {
-        using var lockHandle = await _lockService.AcquireLockAsync($"quest_{questId}", TimeSpan.FromSeconds(5));
-        
-        var quest = repo.GetQuest(questId);
-        if (quest == null || (quest.Status != QuestStatus.Completed && quest.Status != QuestStatus.Active)) return false; 
-        
-        if (quest.Status == QuestStatus.Completed) {
-            quest.Status = QuestStatus.Claimed;
-            repo.UpdateQuest(quest); // Mark claimed immediately
-            await vault.CreditBonusAsync(quest.UserId, quest.RewardAmount, quest.RewardAmount * 5, repo);
-            return true;
+    public async Task<IEnumerable<UserQuestProgress>> GetActiveQuests(Guid userId, IGameRepository repo) {
+        // Return all active quests with their user progress (or empty progress if new)
+        var allActive = repo.GetAllQuests().Where(q => q.IsActive).ToList();
+        var userProgs = repo.GetUserQuestProgressions(userId).ToDictionary(p => p.QuestId);
+
+        var results = new List<UserQuestProgress>();
+        foreach (var q in allActive) {
+            if (userProgs.TryGetValue(q.Id, out var prog)) {
+                prog.Quest = q; // Ensure navigation property is set for DTO
+                results.Add(prog);
+            } else {
+                results.Add(new UserQuestProgress { QuestId = q.Id, Quest = q, UserId = userId, CurrentValue = 0 });
+            }
         }
-        return false;
+        return await Task.FromResult(results);
     }
 }

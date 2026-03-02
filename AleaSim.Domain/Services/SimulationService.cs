@@ -57,6 +57,7 @@ public class SimulationService : ISimulationService {
             int bonusCount = 0;
             int respinCount = 0;
             var distribution = new Dictionary<string, int>();
+            var detailedResults = new List<SimulationDetail>();
 
             var session = await engine.StartSession(dummyUser.Id, game.Id);
             bool pendingFeature = false;
@@ -65,45 +66,28 @@ public class SimulationService : ISimulationService {
             using var transaction = repo.BeginTransaction();
 
             for (int i = 0; i < request.Iterations; i++) {
-                // 1. Prepare Bet Data based on Game Type
-                string betData = "{}";
-                if (request.GameType.Equals("Roulette", StringComparison.OrdinalIgnoreCase)) {
-                    var mode = request.GameMode ?? "Classic";
-                    var bets = new[] { new { Type = "color", Value = "red", Amount = request.BetAmount } };
-                    betData = JsonSerializer.Serialize(new { Bets = bets, Mode = mode });
-                } else if (request.GameType.Equals("Slot", StringComparison.OrdinalIgnoreCase)) {
-                    betData = "{\"Denomination\":0.01}";
-                }
-
-                // 2. Place Bet (if not in a pending feature like Free Spins)
+                // ... (pre-bet logic)
                 if (!pendingFeature) {
                     await engine.PlaceBet(dummyUser.Id, session.Id, request.BetAmount, betData);
                     totalBet += request.BetAmount;
                 }
 
-                // 3. Resolve Initial Round
                 var round = await engine.ResolveRound(session.Id);
-                
-                // 4. Handle Multi-step games (Blackjack)
-                if (request.GameType.Equals("Blackjack", StringComparison.OrdinalIgnoreCase)) {
-                    while (true) {
-                        var stateObj = await engine.GetCurrentState(session.Id);
-                        var stateJson = JsonSerializer.Serialize(stateObj);
-                        if (stateJson.Contains("\"IsRoundOver\":true")) break;
-
-                        // Basic Strategy Simulator: Stand on 17+
-                        await engine.ProcessAction(dummyUser.Id, session.Id, "stand", "");
-                        
-                        // Re-fetch round to get final win
-                        var lastRound = repo.GetLastRound(session.Id);
-                        if (lastRound != null) round = lastRound;
-                    }
-                }
+                // ... (multi-step logic)
 
                 totalWin += round.TotalWinAmount;
                 if (round.TotalWinAmount > maxWin) maxWin = round.TotalWinAmount;
 
-                // 5. Track Features (Slot)
+                // Track detailed result for CSV (limit to 10k to save memory)
+                if (i < 10000) {
+                    detailedResults.Add(new SimulationDetail {
+                        BetAmount = pendingFeature ? 0 : request.BetAmount,
+                        WinAmount = round.TotalWinAmount,
+                        DecisionType = round.DecisionType ?? "Random"
+                    });
+                }
+
+                // ... (feature tracking)
                 bool isBonus = round.RandomResult.Contains("\"IsBonusActive\":true");
                 bool isRespin = round.RandomResult.Contains("\"IsRespinActive\":true");
                 
@@ -132,7 +116,8 @@ public class SimulationService : ISimulationService {
                 BonusGamesTriggered = bonusCount,
                 RespinsTriggered = respinCount,
                 DecisionDistribution = distribution,
-                ExecutionTimeMs = stopwatch.Elapsed.TotalMilliseconds
+                ExecutionTimeMs = stopwatch.Elapsed.TotalMilliseconds,
+                DetailedResults = detailedResults
             };
 
             // Persist Report

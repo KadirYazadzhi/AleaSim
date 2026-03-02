@@ -273,6 +273,11 @@ public class EfGameRepository : IGameRepository {
         return stats;
     }
 
+    public IEnumerable<Quest> GetAllQuests() => _context.Quests.ToList();
+    public IEnumerable<UserQuestProgress> GetUserQuestProgressions(Guid userId) => _context.UserQuestProgressions.Where(p => p.UserId == userId).ToList();
+    public void CreateUserQuestProgress(UserQuestProgress progress) { _context.UserQuestProgressions.Add(progress); _context.SaveChanges(); }
+    public void UpdateUserQuestProgress(UserQuestProgress progress) { _context.UserQuestProgressions.Update(progress); _context.SaveChanges(); }
+
     public void SaveBet(Bet bet) {
         _context.Bets.Add(bet);
         _context.SaveChanges();

@@ -9,6 +9,8 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject LayoutService LayoutService
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-16 animate-fade-in">
     <div class="d-flex justify-space-between align-center mb-8">
@@ -78,6 +80,10 @@
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">Calculated in @((_lastReport.ExecutionTimeMs / 1000.0).ToString("F2"))s</MudText>
                         </div>
                         <MudChip T="string" Color="@(GetRtpColor(_lastReport.ActualRTP))" Variant="Variant.Filled" Class="fw-bold">@_lastReport.ActualRTP.ToString("F2")% RTP</MudChip>
+                    </div>
+
+                    <div class="d-flex gap-2 mb-6">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Info" StartIcon="@Icons.Material.Filled.Download" OnClick="DownloadCsv" Size="Size.Small">DOWNLOAD CSV</MudButton>
                     </div>
 
                     <MudGrid>
@@ -241,6 +247,29 @@
         } finally {
             _processing = false;
         }
+    }
+
+    private async Task DownloadCsv() {
+        if (_lastReport == null || !_lastReport.DetailedResults.Any()) return;
+        
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Round,Bet,Win,Decision,RTP_Cumulative");
+        
+        decimal runningBet = 0;
+        decimal runningWin = 0;
+        int i = 1;
+        
+        foreach (var r in _lastReport.DetailedResults) {
+            runningBet += r.BetAmount;
+            runningWin += r.WinAmount;
+            var rtp = runningBet > 0 ? (double)(runningWin / runningBet) * 100 : 0;
+            sb.AppendLine($"{i},{r.BetAmount},{r.WinAmount},{r.DecisionType},{rtp:F2}%");
+            i++;
+        }
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        var base64 = Convert.ToBase64String(bytes);
+        await JSRuntime.InvokeVoidAsync("aleaUtils.downloadFile", $"Simulation_{_lastReport.GameType}_{DateTime.Now:yyyyMMdd}.csv", "text/csv", base64);
     }
 
     private Color GetRtpColor(double rtp) => rtp switch {

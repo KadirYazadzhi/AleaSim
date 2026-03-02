@@ -236,6 +236,10 @@
     private string selectedMode = "Classic";
     private Dictionary<int, int> currentLuckyNumbers = new();
     private bool _shouldRender = true;
+    
+    // Performance Flags
+    private bool turboMode = false;
+    private bool lowGraphics = false;
 
     protected override bool ShouldRender() => _shouldRender;
 
@@ -264,7 +268,13 @@
             var sessionResponse = await GameService.StartSession("roulette");
             sessionId = sessionResponse.SessionId;
             var user = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
-            if (user != null) balance = user.TotalBalance;
+            if (user != null) {
+                balance = user.TotalBalance;
+                // Parse preferences for performance
+                var prefs = JsonSerializer.Deserialize<Dictionary<string, object>>(user.PreferencesJson) ?? new();
+                if (prefs.TryGetValue("TurboMode", out var turbo)) turboMode = turbo.ToString()?.ToLower() == "true";
+                if (prefs.TryGetValue("LowGraphics", out var low)) lowGraphics = low.ToString()?.ToLower() == "true";
+            }
         } catch { }
     }
 
@@ -349,8 +359,8 @@
                 // Trigger Professional 2D Animation
                 await JSRuntime.InvokeVoidAsync("roulettePro.spin", resultData.Number);
                 
-                // Visual Delay for 'Lightning Strike' (Suspense)
-                await Task.Delay(1500);
+                // Visual Delay for 'Lightning Strike' (Suspense) - much faster in turbo
+                await Task.Delay(turboMode ? 200 : 1500);
                 if (resultData.LuckyNumbers != null) {
                     currentLuckyNumbers = resultData.LuckyNumbers;
                     StateHasChanged();
@@ -358,8 +368,8 @@
                 }
             }
 
-            // Wait for visual animation to complete (matching gsap duration)
-            await Task.Delay(5500);
+            // Wait for visual animation to complete (matching gsap duration) - much faster in turbo
+            await Task.Delay(turboMode ? 1500 : 5500);
 
             winningNumber = resultData?.Number;
             

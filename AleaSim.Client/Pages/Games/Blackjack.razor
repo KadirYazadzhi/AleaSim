@@ -113,6 +113,10 @@
     private bool isRoundOver = true;
     private string gameResult = "";
     private Guid? sessionId;
+    
+    // Performance Flags
+    private bool turboMode = false;
+    private bool lowGraphics = false;
 
     protected override async Task OnInitializedAsync() {
         await Audio.Init();
@@ -121,8 +125,13 @@
 
     private async Task RefreshBalance() {
         try {
-            var user = await Http.GetFromJsonAsync<UserDto>("api/Auth/me");
-            if (user != null) balance = user.TotalBalance;
+            var user = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+            if (user != null) {
+                balance = user.TotalBalance;
+                var prefs = JsonSerializer.Deserialize<Dictionary<string, object>>(user.PreferencesJson) ?? new();
+                if (prefs.TryGetValue("TurboMode", out var turbo)) turboMode = turbo.ToString()?.ToLower() == "true";
+                if (prefs.TryGetValue("LowGraphics", out var low)) lowGraphics = low.ToString()?.ToLower() == "true";
+            }
             StateHasChanged();
         } catch { }
     }
@@ -145,23 +154,18 @@
         playerHand.Clear();
         dealerHand.Clear();
         
-        // Suppress Navbar updates to prevent spoilers
         layoutService.SetBalanceUpdateSuppression(true);
-        
         StateHasChanged();
 
         try {
             await Audio.PlaySpin();
-            // Optimistically update balance locally
             balance -= betAmount;
-            layoutService.DeductOptimisticBalance(betAmount); // Update Navbar immediately
+            layoutService.DeductOptimisticBalance(betAmount); 
             
             var result = await GameService.PlaceBet("blackjack", sessionId.Value, betAmount);
             var state = JsonSerializer.Deserialize<BlackjackStateUI>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (state != null) await UpdateUI(state);
             
-            // If the round is NOT over (player can still hit/stand), 
-            // we release suppression so the deducted balance shows in navbar.
             if (!isRoundOver) {
                 layoutService.SetBalanceUpdateSuppression(false);
                 var user = await AuthService.GetMe();
@@ -171,17 +175,13 @@
             Snackbar.Add(ex.Message, Severity.Error);
             isRoundOver = true;
             layoutService.SetBalanceUpdateSuppression(false);
-            var user = await AuthService.GetMe();
-            if (user != null) balance = user.TotalBalance;
+            await RefreshBalance();
         }
     }
 
     private async Task OnAction(string action) {
         if (sessionId == null || isRoundOver) return;
-        
         await Audio.PlayClick();
-        
-        // Only suppress if this action might end the round (to prevent spoils)
         layoutService.SetBalanceUpdateSuppression(true);
         
         try {
@@ -190,8 +190,6 @@
                 var state = JsonSerializer.Deserialize<BlackjackStateUI>(response.UpdatedStateJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (state != null) await UpdateUI(state);
             }
-            
-            // If still not over, release suppression
             if (!isRoundOver) layoutService.SetBalanceUpdateSuppression(false);
         } catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
@@ -214,15 +212,10 @@
             else gameResult = "DEALER WINS";
 
             if (gameResult.Contains("WIN")) await Audio.PlayWin();
+            await Task.Delay(turboMode ? 200 : 1000);
             
-            // Wait for visual overlay and dealer draw animation
-            await Task.Delay(1000);
-            
-            // Sync exact balance from server
             var user = await AuthService.GetMe();
             if (user != null) balance = user.TotalBalance;
-            
-            // Finalize: release navbar updates
             layoutService.SetBalanceUpdateSuppression(false);
         }
         StateHasChanged();

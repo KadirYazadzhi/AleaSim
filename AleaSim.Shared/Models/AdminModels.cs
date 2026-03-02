@@ -52,4 +52,11 @@ public class SimulationReport {
     public int RespinsTriggered { get; set; }
     public Dictionary<string, int> DecisionDistribution { get; set; } = new();
     public double ExecutionTimeMs { get; set; }
+    public List<SimulationDetail> DetailedResults { get; set; } = new();
+}
+
+public class SimulationDetail {
+    public decimal BetAmount { get; set; }
+    public decimal WinAmount { get; set; }
+    public string DecisionType { get; set; } = "Random";
 }

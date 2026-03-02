@@ -23,8 +23,10 @@ public class GameController : ControllerBase {
     private readonly IPromotionService _promotionService;
     private readonly IVoucherService _voucherService;
     private readonly ILevelService _levelService;
+    private readonly IQuestService _questService;
     private readonly IRedisCacheService _redisCache;
     private readonly ILogger<GameController> _logger;
+    private readonly IRealTimeService _realTime;
 
     public GameController(
         IGameDirector gameDirector, 
@@ -36,7 +38,9 @@ public class GameController : ControllerBase {
         IPromotionService promotionService,
         IVoucherService voucherService,
         ILevelService levelService,
+        IQuestService questService,
         IRedisCacheService redisCache,
+        IRealTimeService realTime,
         ILogger<GameController> logger) 
     {
         _gameDirector = gameDirector;
@@ -48,7 +52,9 @@ public class GameController : ControllerBase {
         _promotionService = promotionService;
         _voucherService = voucherService;
         _levelService = levelService;
+        _questService = questService;
         _redisCache = redisCache;
+        _realTime = realTime;
         _logger = logger;
     }
 
@@ -138,6 +144,13 @@ public class GameController : ControllerBase {
 
             var round = await _gameDirector.PlayRound(gameType, userId, sessionId, request.Amount, request.BetData);
 
+            // Update Quests
+            _ = _questService.UpdateProgress(userId, "SpinCount", 1, _repo, _realTime, _vaultService);
+            _ = _questService.UpdateProgress(userId, "TotalWager", request.Amount, _repo, _realTime, _vaultService);
+            if (round.TotalWinAmount > 0) {
+                _ = _questService.UpdateProgress(userId, "WinAmount", round.TotalWinAmount, _repo, _realTime, _vaultService);
+            }
+
             var session = _repo.GetSession(sessionId);
             var profile = session != null ? _repo.GetPlayerProfile(session.UserId) : null;
 
@@ -203,9 +216,18 @@ public class GameController : ControllerBase {
     }
 
     [HttpGet("quests")]
-    public IActionResult GetQuests() {
+    public async Task<IActionResult> GetQuests() {
         var userId = GetUserIdOrThrow();
-        return Ok(_repo.GetActiveQuests(userId));
+        var quests = await _questService.GetActiveQuests(userId, _repo);
+        return Ok(quests.Select(p => new {
+            p.Quest.Title,
+            p.Quest.Description,
+            p.CurrentValue,
+            p.Quest.TargetValue,
+            p.IsCompleted,
+            p.Quest.RewardAmount,
+            Percentage = (double)(p.CurrentValue / p.Quest.TargetValue * 100)
+        }));
     }
 
     [AllowAnonymous]

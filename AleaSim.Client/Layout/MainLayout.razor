@@ -133,6 +133,14 @@
     <MudDrawer @bind-Open="@LayoutService.IsDrawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0" Variant="DrawerVariant.Responsive" Class="sidebar-blur">
         <NavMenu />
         <div class="mt-auto pa-4">
+             <AuthorizeView>
+                 <Authorized>
+                     <div class="mb-4">
+                         <QuestWidget />
+                     </div>
+                 </Authorized>
+             </AuthorizeView>
+             
              <MudCard Class="glass-panel pa-3 text-center mb-4">
                  <MudText Typo="Typo.caption" Class="d-block mb-1 mud-text-secondary">Weekly Jackpot</MudText>
                  <MudText Typo="Typo.h6" Class="text-gradient font-black">@PlatformStats.Stats.WeeklyJackpot.ToString("C2")</MudText>
@@ -434,6 +442,15 @@
         if (json != null) {
             if (json.Contains("AchievementUnlocked")) NotifService.Add("Achievement!", "You unlocked a new badge!", "Success");
             else if (json.Contains("LevelUp")) NotifService.Add("Level Up!", "Congratulations on your new rank!", "Info");
+            else if (json.Contains("QuestCompleted")) {
+                try {
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    var title = doc.RootElement.GetProperty("Title").GetString();
+                    var reward = doc.RootElement.GetProperty("Reward").GetDecimal();
+                    NotifService.Add("Mission Complete!", $"{title} finished! Rewarded {reward:C}.", "Success");
+                    Snackbar.Add($"Mission Accomplished: {title}!", Severity.Success);
+                } catch {}
+            }
         }
         InvokeAsync(StateHasChanged);
     }

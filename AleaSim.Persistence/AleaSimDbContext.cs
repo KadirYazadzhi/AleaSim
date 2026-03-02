@@ -19,6 +19,7 @@ public class AleaSimDbContext : DbContext {
     public DbSet<AuditEvent> AuditLogs { get; set; }
     public DbSet<GlobalSetting> GlobalSettings { get; set; }
     public DbSet<Quest> Quests { get; set; }
+    public DbSet<UserQuestProgress> UserQuestProgressions { get; set; }
     public DbSet<UserProgression> UserProgressions { get; set; }
     public DbSet<Achievement> Achievements { get; set; }
     public DbSet<UserAchievement> UserAchievements { get; set; }
@@ -71,6 +72,13 @@ public class AleaSimDbContext : DbContext {
             new GlobalSetting { Key = "Content_Help", Value = "Welcome to AleaSim Help Center. Use the expansion panels below to find answers.", Description = "Help Page Introduction Content", LastUpdated = DateTime.UtcNow },
             new GlobalSetting { Key = "Content_Terms", Value = "By using AleaSim, you agree to our terms of service...", Description = "Terms of Service Content", LastUpdated = DateTime.UtcNow },
             new GlobalSetting { Key = "Content_Privacy", Value = "We value your privacy. Your data is encrypted...", Description = "Privacy Policy Content", LastUpdated = DateTime.UtcNow }
+        );
+
+        // Seed Quests
+        modelBuilder.Entity<Quest>().HasData(
+            new Quest { Id = Guid.NewGuid(), Title = "Daily Spinner", Description = "Complete 50 spins on any slot", GoalType = "SpinCount", TargetValue = 50, RewardAmount = 10, IsActive = true },
+            new Quest { Id = Guid.NewGuid(), Title = "High Stakes", Description = "Wager a total of $1,000", GoalType = "TotalWager", TargetValue = 1000, RewardAmount = 50, IsActive = true },
+            new Quest { Id = Guid.NewGuid(), Title = "Big Win Hunter", Description = "Win a total of $500", GoalType = "WinAmount", TargetValue = 500, RewardAmount = 25, IsActive = true }
         );
     }
 }
