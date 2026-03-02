@@ -120,26 +120,11 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<AleaSim.Api.Hubs.GameHub>("/gamehub"); // Added
 
-    // Initialize Database & Seed Data
-    using (var scope = app.Services.CreateScope()) {
-        var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
-        
-        // For Development/Demo: Ensure UserSessions table exists
-        var createTableSql = @"
-            CREATE TABLE IF NOT EXISTS UserSessions (
-                Id VARCHAR(36) PRIMARY KEY,
-                UserId VARCHAR(36) NOT NULL,
-                IpAddress VARCHAR(50) NOT NULL,
-                UserAgent VARCHAR(500) NOT NULL,
-                CreatedAt DATETIME NOT NULL,
-                LastActiveAt DATETIME NOT NULL,
-                IsActive TINYINT(1) NOT NULL DEFAULT 1,
-                RefreshToken VARCHAR(500),
-                CONSTRAINT FK_UserSessions_Users FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
-            );";
-        db.Database.ExecuteSqlRaw(createTableSql);
-
-        db.Database.EnsureCreated(); // Auto-create tables if missing
+// Initialize Database & Seed Data
+using (var scope = app.Services.CreateScope()) {
+    var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
+    
+    db.Database.EnsureCreated(); // Auto-create tables if missing
     // Seed Games if missing
     if (!db.Games.Any()) {
         db.Games.AddRange(
