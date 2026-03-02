@@ -1,0 +1,40 @@
+@page "/privacy"
+@using AleaSim.Client.Services
+@inject LayoutService LayoutService
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-12 mb-16">
+    <MudText Typo="Typo.h3" Class="text-gradient fw-black mb-4">PRIVACY POLICY</MudText>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-8">Last Updated: March 2026</MudText>
+
+    <MudPaper Class="pa-8 rounded-xl glass-panel" Elevation="0">
+        <MudText Typo="Typo.h6" Class="fw-bold mb-2">1. Data Collection</MudText>
+        <MudText Typo="Typo.body1" Class="mb-6">We collect minimal personal data required to provide our services, including your username, email address, and transaction history. We do not store your passwords in plain text.</MudText>
+
+        <MudText Typo="Typo.h6" Class="fw-bold mb-2">2. How We Use Your Data</MudText>
+        <MudText Typo="Typo.body1" Class="mb-6">Your data is used to process bets, manage your account, and improve our AI-driven 'Brain' engine to provide a more personalized gaming experience.</MudText>
+
+        <MudText Typo="Typo.h6" Class="fw-bold mb-2">3. Data Sharing</MudText>
+        <MudText Typo="Typo.body1" Class="mb-6">AleaSim does not sell your personal data to third parties. Data is only shared with essential service providers (e.g., payment processors) or when required by law.</MudText>
+
+        <MudText Typo="Typo.h6" Class="fw-bold mb-2">4. Cookies</MudText>
+        <MudText Typo="Typo.body1" Class="mb-6">We use essential cookies to maintain your login session and preferences. You can disable cookies in your browser settings, but some features of the platform may not function correctly.</MudText>
+
+        <MudText Typo="Typo.h6" Class="fw-bold mb-2">5. Your Rights</MudText>
+        <MudText Typo="Typo.body1" Class="mb-6">You have the right to request access to your data, correction of inaccuracies, or deletion of your account. Contact our support team for any privacy-related requests.</MudText>
+    </MudPaper>
+</MudContainer>
+
+<style>
+    .fw-black { font-weight: 900; }
+    .fw-bold { font-weight: 700; }
+    .text-gradient {
+        background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .glass-panel {
+        background-color: @(LayoutService.IsDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.05)");
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--mud-palette-divider);
+    }
+</style>

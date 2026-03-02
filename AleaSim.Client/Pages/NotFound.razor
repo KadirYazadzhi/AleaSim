@@ -5,7 +5,7 @@
 
 <PageTitle>404 - Lost in the Static</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex flex-column align-center justify-center" Style="min-height: 80vh;">
+<MudContainer MaxWidth="MaxWidth.Medium" Class="notfound-page d-flex flex-column align-center justify-center" Style="min-height: 80vh;">
     
     <div class="glitch-container mb-8">
         <MudIcon Icon="@Icons.Material.Filled.VideogameAssetOff" Size="Size.Large" Class="glitch-icon" />
@@ -30,10 +30,10 @@
 </MudContainer>
 
 <style>
-    .fw-black { font-weight: 900; }
-    .fw-bold { font-weight: 700; }
+    .notfound-page .fw-black { font-weight: 900; }
+    .notfound-page .fw-bold { font-weight: 700; }
 
-    .text-gradient {
+    .notfound-page .text-gradient {
         background: linear-gradient(135deg, var(--mud-palette-error) 0%, var(--mud-palette-warning) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -43,7 +43,7 @@
         text-shadow: 0 10px 30px rgba(244, 63, 94, 0.3);
     }
 
-    .glitch-icon {
+    .notfound-page .glitch-icon {
         font-size: 8rem;
         color: var(--mud-palette-text-disabled);
         animation: glitch 3s infinite;
@@ -58,10 +58,10 @@
         100% { transform: translate(0); opacity: 0.8; }
     }
 
-    .hover-scale { transition: transform 0.2s; }
-    .hover-scale:hover { transform: scale(1.05); }
+    .notfound-page .hover-scale { transition: transform 0.2s; }
+    .notfound-page .hover-scale:hover { transform: scale(1.05); }
     
-    .shadow-lg { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
+    .notfound-page .shadow-lg { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
 </style>
 
 @code {

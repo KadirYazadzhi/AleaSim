@@ -1,0 +1,40 @@
+@page "/terms"
+@using AleaSim.Client.Services
+@inject LayoutService LayoutService
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-12 mb-16">
+    <MudText Typo="Typo.h3" Class="text-gradient fw-black mb-4">TERMS OF SERVICE</MudText>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-8">Last Updated: March 2026</MudText>
+
+    <MudPaper Class="pa-8 rounded-xl glass-panel" Elevation="0">
+        <MudText Typo="Typo.h6" Class="fw-bold mb-2">1. Eligibility</MudText>
+        <MudText Typo="Typo.body1" Class="mb-6">You must be at least 18 years of age or the legal age of majority in your jurisdiction to use AleaSim. By using this platform, you represent and warrant that you meet these eligibility requirements.</MudText>
+
+        <MudText Typo="Typo.h6" Class="fw-bold mb-2">2. Account Security</MudText>
+        <MudText Typo="Typo.body1" Class="mb-6">You are responsible for maintaining the confidentiality of your account credentials. AleaSim is not liable for any loss resulting from unauthorized access to your account due to negligence.</MudText>
+
+        <MudText Typo="Typo.h6" Class="fw-bold mb-2">3. Provably Fair Verification</MudText>
+        <MudText Typo="Typo.body1" Class="mb-6">Our platform provides cryptographic proof for all game outcomes. It is the user's responsibility to utilize the verification tools provided to ensure the fairness of their play.</MudText>
+
+        <MudText Typo="Typo.h6" Class="fw-bold mb-2">4. Responsible Gaming</MudText>
+        <MudText Typo="Typo.body1" Class="mb-6">AleaSim provides tools for self-exclusion and loss limits. We encourage all players to gamble responsibly and use these tools to manage their gaming activity.</MudText>
+
+        <MudText Typo="Typo.h6" Class="fw-bold mb-2">5. Prohibited Activities</MudText>
+        <MudText Typo="Typo.body1" Class="mb-6">Any attempt to exploit bugs, use automated bots for unfair advantage, or engage in money laundering is strictly prohibited and will result in permanent account termination.</MudText>
+    </MudPaper>
+</MudContainer>
+
+<style>
+    .fw-black { font-weight: 900; }
+    .fw-bold { font-weight: 700; }
+    .text-gradient {
+        background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .glass-panel {
+        background-color: @(LayoutService.IsDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.05)");
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--mud-palette-divider);
+    }
+</style>

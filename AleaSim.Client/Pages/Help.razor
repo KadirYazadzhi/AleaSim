@@ -1,0 +1,50 @@
+@page "/help"
+@using AleaSim.Client.Services
+@inject LayoutService LayoutService
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-12 mb-16">
+    <MudText Typo="Typo.h3" Class="text-gradient fw-black mb-4">HELP CENTER</MudText>
+    <MudText Typo="Typo.body1" Class="mud-text-secondary mb-12">Find answers to common questions about AleaSim.</MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudExpansionPanels Elevation="2" Rounded="true">
+                <MudExpansionPanel Text="How does Provably Fair work?">
+                    We use HMAC-SHA512 to generate game outcomes. Before each round, you are provided with a hashed server seed. Once the round is over, the server seed is revealed (usually when the session ends), allowing you to verify that the outcome was indeed generated from the hash you saw beforehand.
+                </MudExpansionPanel>
+                <MudExpansionPanel Text="What are the withdrawal limits?">
+                    There are no fixed withdrawal limits for verified players. However, large withdrawals might undergo manual review by our security team for your protection.
+                </MudExpansionPanel>
+                <MudExpansionPanel Text="How do I earn XP and level up?">
+                    Every bet you place earns you Experience Points (XP). The amount of XP depends on the size of your bet. As you level up, you earn Skill Points that can be used in the Profile page to upgrade your perks.
+                </MudExpansionPanel>
+                <MudExpansionPanel Text="I lost my session, what happens to my money?">
+                    Don't worry! All outcomes are decided on the server the moment you click 'Spin' or 'Deal'. If your connection drops, the result is still processed and your balance will be updated correctly. You can check your 'Bet History' to see the outcome.
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-6 rounded-xl glass-panel" Elevation="0">
+                <MudText Typo="Typo.h6" Class="fw-bold mb-4">Still need help?</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">Our support team is available 24/7 to assist you with any inquiries.</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Email" Class="rounded-lg py-3 mb-3">Email Support</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" FullWidth="true" StartIcon="@Icons.Custom.Brands.Discord" Class="rounded-lg py-3 border-2">Join Discord</MudButton>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<style>
+    .fw-black { font-weight: 900; }
+    .fw-bold { font-weight: 700; }
+    .text-gradient {
+        background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .glass-panel {
+        background-color: @(LayoutService.IsDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.05)");
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--mud-palette-divider);
+    }
+</style>
