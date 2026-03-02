@@ -27,7 +27,6 @@ public class AuthService : IAuthService {
                 await _localStorage.SetItemAsync("refreshToken", result.RefreshToken);
 
                 ((CustomAuthStateProvider)_authStateProvider).NotifyUserAuthentication(result.Token);
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", result.Token);
                 return result;
             }
         }
@@ -58,7 +57,6 @@ public class AuthService : IAuthService {
         await _localStorage.SetItemAsync("authToken", result.Token);
         await _localStorage.SetItemAsync("refreshToken", result.RefreshToken);
 
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", result.Token);
         return result.Token;
     }
 
@@ -74,7 +72,6 @@ public class AuthService : IAuthService {
         await _localStorage.RemoveItemAsync("authToken");
         await _localStorage.RemoveItemAsync("refreshToken");
         ((CustomAuthStateProvider)_authStateProvider).NotifyUserLogout();
-        _httpClient.DefaultRequestHeaders.Authorization = null;
     }
 
     public async Task<UserDto?> GetMe() {

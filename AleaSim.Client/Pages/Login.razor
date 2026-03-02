@@ -70,6 +70,16 @@
     bool _loading = false;
     string[] errors = { };
 
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Reason { get; set; }
+
+    protected override void OnInitialized() {
+        if (Reason == "expired") {
+            Snackbar.Add("Your session has expired. Please login again.", Severity.Info);
+        }
+    }
+
     private async Task HandleEnter(KeyboardEventArgs e) {
         if (e.Key == "Enter" && success) {
             await OnLogin();

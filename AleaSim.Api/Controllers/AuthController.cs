@@ -271,7 +271,7 @@ public class AuthController : ControllerBase {
                 new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim(ClaimTypes.Role, role.ToString()), new Claim("role", role.ToString()), new Claim("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", role.ToString())
             }),
-            Expires = DateTime.UtcNow.AddHours(4), // Extended Access Token lifetime to 4 hours (was 15m)
+            Expires = DateTime.UtcNow.AddHours(12), // Extended Access Token lifetime to 12 hours (was 4h)
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
         var token = tokenHandler.CreateToken(tokenDescriptor);
