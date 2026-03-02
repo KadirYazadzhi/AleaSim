@@ -24,8 +24,17 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddTransient<RefreshTokenHandler>();
 
 builder.Services.AddHttpClient("AleaSim.Api", client => {
-    // Dynamically use the base address of the hosting environment
-    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
+    // Determine API Base Address
+    var baseAddress = builder.HostEnvironment.BaseAddress;
+    
+    // If we are running on a typical Blazor dev port (like 5241), the API is likely on 5286
+    if (baseAddress.Contains(":5241")) {
+        baseAddress = baseAddress.Replace(":5241", ":5286");
+    } else if (baseAddress.Contains(":7241")) {
+        baseAddress = baseAddress.Replace(":7241", ":7286");
+    }
+    
+    client.BaseAddress = new Uri(baseAddress);
     client.Timeout = TimeSpan.FromMinutes(10);
 })
 .AddHttpMessageHandler<RefreshTokenHandler>();
