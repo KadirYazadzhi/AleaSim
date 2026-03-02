@@ -75,7 +75,7 @@
                     <div class="d-flex justify-space-between align-start mb-6">
                         <div>
                             <MudText Typo="Typo.h5" Class="fw-black">@_lastReport.GameType ANALYSIS</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Calculated in @_lastReport.ExecutionTimeMs.ToString("N0")ms</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Calculated in @((_lastReport.ExecutionTimeMs / 1000.0).ToString("F2"))s</MudText>
                         </div>
                         <MudChip T="string" Color="@(GetRtpColor(_lastReport.ActualRTP))" Variant="Variant.Filled" Class="fw-bold">@_lastReport.ActualRTP.ToString("F2")% RTP</MudChip>
                     </div>
