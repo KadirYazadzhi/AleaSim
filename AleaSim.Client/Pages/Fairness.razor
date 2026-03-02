@@ -59,8 +59,8 @@
                 </MudTd>
                 <MudTd DataLabel="Desc">@context.Description</MudTd>
                 <MudTd DataLabel="Hash" Style="font-family: monospace; font-size: 0.75rem;">
-                    <div class="mud-text-secondary" style="opacity: 0.5;">@context.PreviousHash.Substring(0, 8)...</div>
-                    <div class="fw-bold">@context.Hash.Substring(0, 16)...</div>
+                    <div class="mud-text-secondary" style="opacity: 0.5;">@Truncate(context.PreviousHash, 8)...</div>
+                    <div class="fw-bold">@Truncate(context.Hash, 16)...</div>
                 </MudTd>
             </RowTemplate>
             <PagerContent>
@@ -80,6 +80,12 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadAuditChain();
+    }
+
+    private string Truncate(string? value, int length)
+    {
+        if (string.IsNullOrEmpty(value)) return "GENESIS";
+        return value.Length <= length ? value : value.Substring(0, length);
     }
 
     private async Task LoadAuditChain()
