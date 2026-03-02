@@ -131,9 +131,25 @@
     {
         if (firstRender)
         {
-            await JSRuntime.InvokeVoidAsync("slotEngine.init", "pixi-slot-container");
-            await LoadData();
+            try {
+                // Small delay to ensure PIXI container is fully ready in DOM
+                await Task.Delay(500); 
+                await LoadData();
+                await JSRuntime.InvokeVoidAsync("slotEngine.init", "pixi-slot-container", turboMode, lowGraphics);
+                
+                // Keep this for subsequent runtime changes
+                await SetEnginePerformance();
+            } catch (Exception ex) {
+                Console.WriteLine($"JS Init Error: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task SetEnginePerformance() {
+        try {
             await JSRuntime.InvokeVoidAsync("slotEngine.setPerformanceMode", turboMode, lowGraphics);
+        } catch {
+            // Fallback if script hasn't updated in browser cache yet
         }
     }
 
@@ -178,7 +194,7 @@
         wasNudged = false;
         
         // Sync performance mode just in case it was changed in settings dialog
-        await JSRuntime.InvokeVoidAsync("slotEngine.setPerformanceMode", turboMode, lowGraphics);
+        await SetEnginePerformance();
 
         // Logic: Features (Respin/Bonus) are FREE (cost was paid in the triggering spin)
         var betAmount = (gameState.IsBonusActive || gameState.IsRespinActive) ? 0 : (creditsBet * denomination);

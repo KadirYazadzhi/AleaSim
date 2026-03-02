@@ -23,7 +23,10 @@ window.slotEngine = {
         }
     },
 
-    init: async (containerId) => {
+    init: async (containerId, turbo = false, lowGraphics = false) => {
+        window.slotEngine.performance.turbo = turbo;
+        window.slotEngine.performance.lowGraphics = lowGraphics;
+
         const el = document.getElementById(containerId);
         if (!el) return;
         el.innerHTML = '';
@@ -32,7 +35,7 @@ window.slotEngine = {
             width: 800,
             height: 480,
             backgroundColor: 0x101010,
-            antialias: true
+            antialias: !lowGraphics
         });
         el.appendChild(window.slotEngine.app.view);
 
