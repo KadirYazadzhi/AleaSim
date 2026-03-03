@@ -85,20 +85,22 @@ public class LayoutService
         {
             theme.PaletteDark.Primary = "#ffD700"; // Gold
             theme.PaletteDark.Secondary = "#b30000"; // Deep Red
-            theme.PaletteDark.Background = "#1a0f00"; // Dark Chocolate
-            theme.PaletteDark.Surface = "#2d1a00";
-            theme.PaletteDark.AppbarBackground = "rgba(26, 15, 0, 0.8)";
-            theme.PaletteDark.DrawerBackground = "rgba(26, 15, 0, 0.95)";
+            theme.PaletteDark.Background = "#0d0900"; // Very Dark Brown
+            theme.PaletteDark.Surface = "#1a1200";
+            theme.PaletteDark.AppbarBackground = "rgba(13, 9, 0, 0.9)";
+            theme.PaletteDark.DrawerBackground = "rgba(13, 9, 0, 0.98)";
+            theme.PaletteDark.TableStriped = "rgba(255, 215, 0, 0.05)";
         }
         else if (skin == "Neon")
         {
             theme.PaletteDark.Primary = "#00f2ff"; // Cyan
             theme.PaletteDark.Secondary = "#ff00ff"; // Magenta
-            theme.PaletteDark.Background = "#050505";
-            theme.PaletteDark.Surface = "#111111";
+            theme.PaletteDark.Background = "#000000"; // Pure Black
+            theme.PaletteDark.Surface = "#0a0a0a";
             theme.PaletteDark.Success = "#39ff14";
-            theme.PaletteDark.AppbarBackground = "rgba(5, 5, 5, 0.8)";
-            theme.PaletteDark.DrawerBackground = "rgba(5, 5, 5, 0.95)";
+            theme.PaletteDark.AppbarBackground = "rgba(0, 0, 0, 0.9)";
+            theme.PaletteDark.DrawerBackground = "rgba(5, 5, 5, 0.98)";
+            theme.PaletteDark.TableStriped = "rgba(0, 242, 255, 0.05)";
         }
         else if (skin == "Minimal")
         {
@@ -106,9 +108,15 @@ public class LayoutService
             theme.PaletteDark.Secondary = "#64748b";
             theme.PaletteDark.Background = "#0f172a";
             theme.PaletteDark.Surface = "#1e293b";
+            theme.PaletteDark.AppbarBackground = "rgba(15, 23, 42, 0.85)";
+            theme.PaletteDark.DrawerBackground = "rgba(15, 23, 42, 0.95)";
         }
 
         CurrentTheme = theme;
+        
+        // Explicitly set background color to avoid "dark blue" stickiness
+        var bg = IsDarkMode ? theme.PaletteDark.Background.ToString() : theme.PaletteLight.Background.ToString();
+        _jsRuntime.InvokeVoidAsync("aleaUtils.setBackgroundColor", bg);
     }
 
     private MudTheme CreateDefaultTheme() => new MudTheme()
@@ -176,6 +184,7 @@ public class LayoutService
         IsDarkMode = !IsDarkMode;
         await _localStorage.SetItemAsync("darkMode", IsDarkMode);
         await _jsRuntime.InvokeVoidAsync("setTheme", IsDarkMode ? "dark" : "light");
+        ApplySkinInternal(CurrentSkin); // Refresh theme colors
         OnMajorUpdate?.Invoke();
         await SyncSettingsWithBackend();
     }

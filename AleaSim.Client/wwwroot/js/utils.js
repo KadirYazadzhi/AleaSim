@@ -7,5 +7,9 @@ window.aleaUtils = {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    },
+    setBackgroundColor: (color) => {
+        document.documentElement.style.backgroundColor = color;
+        document.body.style.backgroundColor = color;
     }
 };

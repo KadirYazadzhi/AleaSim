@@ -4,23 +4,16 @@
     --casino-blue: #3b82f6;
     --casino-blue-glow: rgba(59, 130, 246, 0.5);
     --deep-bg: #020617;
-    --glass-bg: rgba(15, 23, 42, 0.6);
-    --glass-border: rgba(255, 255, 255, 0.1);
-
-    /* App Theme Defaults (Dark) */
-    --app-background: #0f172a; 
-    --app-text: #f1f5f9;
 }
 
 [data-theme="light"] {
-    --app-background: #f1f5f9;
-    --app-text: #0f172a;
+    /* Optional: Light mode adjustments */
 }
 
 html, body {
     font-family: 'Montserrat', sans-serif;
-    background-color: var(--app-background) !important;
-    color: var(--app-text) !important;
+    background-color: var(--mud-palette-background) !important;
+    color: var(--mud-palette-text-primary) !important;
     scroll-behavior: smooth;
 }
 
@@ -31,30 +24,30 @@ html, body {
 
 .hover-card {
     cursor: pointer;
-    background: var(--glass-bg) !important;
+    background: var(--mud-palette-surface) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border) !important;
+    border: 1px solid var(--mud-palette-divider) !important;
     border-radius: 24px !important;
 }
 
 .hover-card:hover {
     transform: translateY(-12px) scale(1.02);
-    border-color: var(--casino-purple) !important;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--casino-purple-glow) !important;
+    border-color: var(--mud-palette-primary) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--mud-palette-primary-hover) !important;
 }
 
 .game-showcase-card {
     border-radius: 24px !important;
     overflow: hidden;
-    background: var(--glass-bg) !important;
+    background: var(--mud-palette-surface) !important;
     backdrop-filter: blur(16px);
-    border: 1px solid var(--glass-border) !important;
+    border: 1px solid var(--mud-palette-divider) !important;
 }
 
 .game-showcase-card:hover {
-    border-color: var(--casino-blue) !important;
-    box-shadow: 0 0 30px var(--casino-blue-glow) !important;
+    border-color: var(--mud-palette-secondary) !important;
+    box-shadow: 0 0 30px var(--mud-palette-secondary-hover) !important;
 }
 
 .game-showcase-card .mud-card-media {
@@ -67,10 +60,10 @@ html, body {
 
 /* Modern Glass Panel */
 .glass-panel {
-    background: var(--glass-bg);
+    background: var(--mud-palette-drawer-background);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid var(--glass-border) !important;
+    border: 1px solid var(--mud-palette-divider) !important;
     border-radius: 24px;
 }
 
