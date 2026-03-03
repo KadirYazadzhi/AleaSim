@@ -253,20 +253,20 @@
     }
 
     .glass-panel {
-        background-color: @(LayoutService.IsDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.05)");
+        background-color: var(--mud-palette-surface);
         backdrop-filter: blur(10px);
         border: 1px solid var(--mud-palette-divider);
     }
     
     .wallet-pill {
-        background-color: @(LayoutService.IsDarkMode ? "rgba(21, 28, 48, 0.6)" : "rgba(255, 255, 255, 0.8)");
+        background-color: var(--mud-palette-surface);
         border: 1px solid var(--mud-palette-success-hover);
         cursor: pointer;
         transition: all 0.2s;
     }
     
     .wallet-pill:hover {
-        background-color: @(LayoutService.IsDarkMode ? "rgba(21, 28, 48, 0.9)" : "#ffffff");
+        background-color: var(--mud-palette-surface-hover);
         border-color: var(--mud-palette-success);
     }
 
