@@ -15,6 +15,13 @@ html, body {
     background-color: var(--mud-palette-background) !important;
     color: var(--mud-palette-text-primary) !important;
     scroll-behavior: smooth;
+    overflow: auto !important; /* Force scrolling to be enabled */
+    min-height: 100%;
+}
+
+/* Ensure MudBlazor containers don't hide the body background */
+.mud-layout, .mud-main-content {
+    background-color: transparent !important;
 }
 
 /* Global Transitions */

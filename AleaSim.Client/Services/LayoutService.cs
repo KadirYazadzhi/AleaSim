@@ -106,7 +106,7 @@ public class LayoutService
         {
             theme.PaletteDark.Primary = "#94a3b8";
             theme.PaletteDark.Secondary = "#64748b";
-            theme.PaletteDark.Background = "#0f172a";
+            theme.PaletteDark.Background = "#0f172a"; // Keep deep slate for minimal
             theme.PaletteDark.Surface = "#1e293b";
             theme.PaletteDark.AppbarBackground = "rgba(15, 23, 42, 0.85)";
             theme.PaletteDark.DrawerBackground = "rgba(15, 23, 42, 0.95)";
@@ -146,10 +146,10 @@ public class LayoutService
             Success = "#22c55e",
             Warning = "#fbbf24",
             Error = "#f43f5e",
-            Background = "#0f172a",
-            Surface = "#1e293b",
-            AppbarBackground = "rgba(15, 23, 42, 0.8)",
-            DrawerBackground = "rgba(15, 23, 42, 0.95)",
+            Background = "#050505",
+            Surface = "#0f172a",
+            AppbarBackground = "rgba(5, 5, 5, 0.8)",
+            DrawerBackground = "rgba(5, 5, 5, 0.95)",
             TextPrimary = "#f1f5f9",
             TextSecondary = "#94a3b8",
             ActionDefault = "#a855f7",
