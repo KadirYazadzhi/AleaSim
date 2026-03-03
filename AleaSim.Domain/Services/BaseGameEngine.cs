@@ -72,7 +72,7 @@ public abstract class BaseGameEngine : IGame {
     }
 
     public virtual async Task<GameSession> StartSession(Guid userId, Guid gameId, int? seed = null, string? clientSeed = null) {
-        return await ExecuteScopedAsync(async repo => {
+        return await ExecuteScopedAsync(repo => {
             var serverSeed = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
             var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(serverSeed));
             var serverSeedHash = Convert.ToHexString(hashBytes);
@@ -88,7 +88,7 @@ public abstract class BaseGameEngine : IGame {
                 StartedAt = DateTime.UtcNow,
                 IsActive = true
             };
-            return repo.CreateSession(session);
+            return Task.FromResult(repo.CreateSession(session));
         });
     }
 

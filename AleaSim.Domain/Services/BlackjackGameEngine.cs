@@ -69,9 +69,9 @@ public class BlackjackGameEngine : BaseGameEngine {
                 TotalBetAmount = lastBet.Amount,
                 ExecutedAt = DateTime.UtcNow,
                 RandomResult = JsonSerializer.Serialize(state),
-                ServerSeed = session.ServerSeed,
-                ServerSeedHash = session.ServerSeedHash,
-                ClientSeed = session.ClientSeed,
+                ServerSeed = session.ServerSeed ?? "",
+                ServerSeedHash = session.ServerSeedHash ?? "",
+                ClientSeed = session.ClientSeed ?? "",
                 Nonce = state.Sequence
             };
             
@@ -89,6 +89,7 @@ public class BlackjackGameEngine : BaseGameEngine {
         
         await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
+            if (session == null) return;
             var round = repo.GetLastRound(sessionId);
             if (round == null) return;
             var state = JsonSerializer.Deserialize<BlackjackState>(round.RandomResult);
@@ -130,7 +131,7 @@ public class BlackjackGameEngine : BaseGameEngine {
                         if (r1 == "A") state.IsSplitAces = true;
                         int seq = state.Sequence;
                         state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
-                        state.SplitHand.Add(DrawCard(session.Seed, ref seq));
+                        if (state.SplitHand != null) state.SplitHand.Add(DrawCard(session.Seed, ref seq));
                         state.Sequence = seq;
                     } else throw new Exception("Insufficient funds for Split");
                 }
@@ -144,9 +145,6 @@ public class BlackjackGameEngine : BaseGameEngine {
                         decimal win = insuranceBet * 3; // Return bet + win (2x)
                         await VaultService.ProcessWinAsync(session.UserId, win, repo);
                         repo.UpdateRtpStats(session.GameId, session.UserId, insuranceBet, win);
-                        // Round will end naturally via next check or dealer reveal
-                        // Actually, if Dealer has BJ, round ends immediately usually.
-                        // But let's just record the side bet win here.
                     } else {
                         // Dealer does not have BJ, insurance lost.
                         repo.UpdateRtpStats(session.GameId, session.UserId, insuranceBet, 0);
@@ -178,8 +176,6 @@ public class BlackjackGameEngine : BaseGameEngine {
             round.RandomResult = JsonSerializer.Serialize(state);
             // If round is over, update TotalWinAmount here for persistence
             if (state.IsRoundOver) {
-                // FinishRoundAsync handles vault payout, but we need to record it in round entity
-                // Re-calculate win to store in entity
                 decimal win = CalculateWin(state);
                 round.TotalWinAmount = win;
             }
@@ -198,7 +194,6 @@ public class BlackjackGameEngine : BaseGameEngine {
         int sVal = hasSplit ? CalculateHandValue(state.SplitHand!) : 0;
 
         // DEALER LOGIC FIX: Dealer plays if ANY player hand is not busted (<= 21)
-        // Note: If player has Blackjack (21 on 2 cards), dealer still plays to try to push.
         bool pAlive = pVal <= 21;
         bool sAlive = hasSplit && sVal <= 21;
 
@@ -248,8 +243,6 @@ public class BlackjackGameEngine : BaseGameEngine {
             decimal bet2 = state.IsSplitDoubleDown ? state.BetAmount * 2 : state.BetAmount;
             
             if (sVal <= 21) {
-                // Split Aces usually receive only one card.
-                // Split Blackjack is usually counted as 21, not BJ. Assuming standard rules here (21).
                 if (dVal > 21 || sVal > dVal) win += bet2 * 2;
                 else if (sVal == dVal) win += bet2;
             }
@@ -259,7 +252,6 @@ public class BlackjackGameEngine : BaseGameEngine {
 
     private string DrawCard(int seed, ref int seq) {
         seq++;
-        // Use CSPRNG wrapped in RngService
         int idx = RngService.GetNextInt(seed, seq, 0, 52);
         int rankIdx = idx % 13;
         int suitIdx = idx / 13;
@@ -293,15 +285,15 @@ public class BlackjackGameEngine : BaseGameEngine {
         }
         return value;
     }
-    public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome());
+    public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome { GameRoundId = roundId });
     
     public override async Task<object?> GetCurrentState(Guid sessionId) {
-        if (_lockService is null) return null; // Safety check
-        // Ideally, check cache first.
+        if (_lockService is null) return null;
         return await ExecuteScopedAsync(async (repo, _, _) => {
             var round = repo.GetLastRound(sessionId);
             if (round == null) return null;
             return JsonSerializer.Deserialize<BlackjackState>(round.RandomResult);
         });
     }
+}
 }

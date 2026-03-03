@@ -217,7 +217,7 @@ public class RouletteGameEngine : BaseGameEngine {
     }
 
     public override Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData) => Task.CompletedTask;
-    public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome());
+    public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome { GameRoundId = roundId });
     
     // Implemented Recovery!
     public override async Task<object?> GetCurrentState(Guid sessionId) {

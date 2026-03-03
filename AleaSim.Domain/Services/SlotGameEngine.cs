@@ -485,7 +485,7 @@ public class SlotGameEngine : BaseGameEngine {
                      decimal newWin = state.PendingGambleWin * 2;
                      state.PendingGambleWin = newWin;
                      await VaultService.ProcessWinAsync(userId, newWin, repo);
-                     await questService.UpdateProgressAsync(userId, "WinAmount", (int)newWin, repo, VaultService);
+                     await questService.UpdateProgressAsync(userId, "WinAmount", newWin, repo, RealTimeService, VaultService);
                  } else {
                      state.PendingGambleWin = 0;
                      state.IsGambleActive = false; 
@@ -500,14 +500,15 @@ public class SlotGameEngine : BaseGameEngine {
         });
     }
 
-    public override async Task<Outcome> GetOutcome(Guid roundId) => new Outcome { GameRoundId = roundId };
+    public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome { GameRoundId = roundId });
     
     // Implemented!
-    public override async Task<object?> GetCurrentState(Guid sessionId) {
+    public override Task<object?> GetCurrentState(Guid sessionId) {
         if (_cache.TryGetValue($"slot_state_{sessionId}", out SlotState? state)) {
-            return state;
+            return Task.FromResult<object?>(state);
         }
-        // Fallback to DB
+        return Task.FromResult<object?>(null);
+    }
         return await ExecuteScopedAsync(async (repo, _, _) => {
             var session = repo.GetSession(sessionId);
             if (session == null || string.IsNullOrEmpty(session.GameState)) return null;

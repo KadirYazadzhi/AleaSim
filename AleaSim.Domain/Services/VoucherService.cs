@@ -5,9 +5,9 @@ namespace AleaSim.Domain.Services;
 
 public class VoucherService : IVoucherService {
     
-    public async Task<Voucher> CreateVoucher(string code, decimal amount, int maxUses, DateTime? expiry) {
+    public Task<Voucher> CreateVoucher(string code, decimal amount, int maxUses, DateTime? expiry) {
         // Logic will be handled via repo in implementation
-        return new Voucher { Code = code.ToUpper(), Amount = amount, MaxUses = maxUses, ExpiresAt = expiry };
+        return Task.FromResult(new Voucher { Code = code.ToUpper(), Amount = amount, MaxUses = maxUses, ExpiresAt = expiry });
     }
 
     public async Task<decimal> RedeemVoucher(Guid userId, string code, IGameRepository repo, IVaultService vaultService) {
