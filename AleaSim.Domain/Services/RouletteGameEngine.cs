@@ -141,7 +141,7 @@ public class RouletteGameEngine : BaseGameEngine {
 
             if (actualWin > 0) {
                 await VaultService.ProcessWinAsync(session.UserId, actualWin, repo);
-                await questService.UpdateProgressAsync(session.UserId, "WinAmount", (int)actualWin, repo, VaultService);
+                await questService.UpdateProgressAsync(session.UserId, "WinAmount", actualWin, repo, RealTimeService, VaultService);
             }
             
             BrainService.UpdateProfile(session.UserId, betAmount, actualWin, repo);

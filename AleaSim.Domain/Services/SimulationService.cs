@@ -66,7 +66,17 @@ public class SimulationService : ISimulationService {
             using var transaction = repo.BeginTransaction();
 
             for (int i = 0; i < request.Iterations; i++) {
-                // ... (pre-bet logic)
+                // 1. Prepare Bet Data based on Game Type
+                string betData = "{}";
+                if (request.GameType.Equals("Roulette", StringComparison.OrdinalIgnoreCase)) {
+                    var mode = request.GameMode ?? "Classic";
+                    var bets = new[] { new { Type = "color", Value = "red", Amount = request.BetAmount } };
+                    betData = JsonSerializer.Serialize(new { Bets = bets, Mode = mode });
+                } else if (request.GameType.Equals("Slot", StringComparison.OrdinalIgnoreCase)) {
+                    betData = "{\"Denomination\":0.01}";
+                }
+
+                // 2. Place Bet (if not in a pending feature like Free Spins)
                 if (!pendingFeature) {
                     await engine.PlaceBet(dummyUser.Id, session.Id, request.BetAmount, betData);
                     totalBet += request.BetAmount;

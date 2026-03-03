@@ -236,7 +236,7 @@ public class SlotGameEngine : BaseGameEngine {
                 }
 
                 await VaultService.ProcessWinAsync(session.UserId, totalWin, repo);
-                await questService.UpdateProgressAsync(session.UserId, "WinAmount", (int)totalWin, repo, VaultService);
+                await questService.UpdateProgressAsync(session.UserId, "WinAmount", totalWin, repo, RealTimeService, VaultService);
                 
                 state.IsGambleActive = true;
                 state.PendingGambleWin = totalWin;

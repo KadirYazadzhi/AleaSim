@@ -61,8 +61,8 @@ public abstract class BaseGameEngine : IGame {
                     await JackpotService.Contribute(session.GameId, amount, repo);
                     
                     // Quest Integration
-                    questService.GenerateDailyQuests(session.UserId, repo);
-                    await questService.UpdateProgressAsync(session.UserId, "SpinCount", 1, repo, VaultService);
+                    await questService.GenerateDailyQuests(session.UserId, repo);
+                    await questService.UpdateProgressAsync(session.UserId, "SpinCount", 1, repo, RealTimeService, VaultService);
                     await levelService.AddExperience(session.UserId, amount, repo, RealTimeService);
                 }
             } else {

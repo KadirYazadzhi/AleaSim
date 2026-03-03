@@ -216,7 +216,7 @@ public class BlackjackGameEngine : BaseGameEngine {
         if (win > 0) {
             await VaultService.ProcessWinAsync(session.UserId, win, repo);
             repo.UpdateRtpStats(session.GameId, session.UserId, 0, win);
-            await questService.UpdateProgressAsync(session.UserId, "WinAmount", (int)win, repo, VaultService);
+            await questService.UpdateProgressAsync(session.UserId, "WinAmount", win, repo, RealTimeService, VaultService);
         }
         BrainService.UpdateProfile(session.UserId, state.BetAmount, win, repo);
     }

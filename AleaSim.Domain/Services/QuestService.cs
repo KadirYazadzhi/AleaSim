@@ -8,7 +8,7 @@ using AleaSim.Domain.Interfaces;
 namespace AleaSim.Domain.Services;
 
 public class QuestService : IQuestService {
-    public async Task UpdateProgress(Guid userId, string goalType, decimal value, IGameRepository repo, IRealTimeService realTime, IVaultService vault) {
+    public async Task UpdateProgressAsync(Guid userId, string goalType, decimal value, IGameRepository repo, IRealTimeService realTime, IVaultService vault) {
         var activeQuests = repo.GetAllQuests().Where(q => q.IsActive && q.GoalType == goalType).ToList();
         var userProgressions = repo.GetUserQuestProgressions(userId);
 
@@ -49,6 +49,12 @@ public class QuestService : IQuestService {
 
             repo.UpdateUserQuestProgress(progress);
         }
+    }
+
+    public async Task GenerateDailyQuests(Guid userId, IGameRepository repo) {
+        // Implementation for generating daily quests if needed, 
+        // for now we rely on seeded global quests.
+        await Task.CompletedTask;
     }
 
     public async Task<IEnumerable<UserQuestProgress>> GetActiveQuests(Guid userId, IGameRepository repo) {
