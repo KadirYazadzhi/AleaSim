@@ -458,17 +458,20 @@ public class SlotGameEngine : BaseGameEngine {
         using var lockHandle = await _lockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
         await ExecuteScopedAsync(async (repo, questService, levelService) => {
              var session = repo.GetSession(sessionId);
+             if (session == null) throw new Exception("Session not found.");
+
              string cacheKey = $"slot_state_{sessionId}";
              if (!_cache.TryGetValue(cacheKey, out SlotState? state)) {
                  state = string.IsNullOrEmpty(session.GameState) ? null : JsonSerializer.Deserialize<SlotState>(session.GameState);
              }
-             if (state == null || !state.IsGambleActive || state.PendingGambleWin <= 0) throw new Exception("Gamble not available.");
+             if (state == null) throw new Exception("Gamble not available.");
 
              if (action.ToLower() == "collect") {
                  state.IsGambleActive = false;
                  state.PendingGambleWin = 0;
              }
              else if (action.ToLower() == "gamble") {
+                 if (!state.IsGambleActive || state.PendingGambleWin <= 0) throw new Exception("Gamble not available.");
                  string choice = actionData.ToLower(); 
                  if (choice != "red" && choice != "black") throw new Exception("Invalid gamble choice.");
 
@@ -492,27 +495,26 @@ public class SlotGameEngine : BaseGameEngine {
                  }
              }
 
-             _cache.Set(cacheKey, state, TimeSpan.FromMinutes(10));
-             session.GameState = JsonSerializer.Serialize(state);
-             repo.SaveChanges();
-             
-             await RealTimeService.NotifyGameUpdate(userId, new { GambleResult = state.PendingGambleWin, IsGambleActive = state.IsGambleActive });
+             if (state != null) {
+                 _cache.Set(cacheKey, state, TimeSpan.FromMinutes(10));
+                 session.GameState = JsonSerializer.Serialize(state);
+                 repo.SaveChanges();
+                 await RealTimeService.NotifyGameUpdate(userId, new { GambleResult = state.PendingGambleWin, IsGambleActive = state.IsGambleActive });
+             }
         });
     }
 
     public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome { GameRoundId = roundId });
     
     // Implemented!
-    public override Task<object?> GetCurrentState(Guid sessionId) {
+    public override async Task<object?> GetCurrentState(Guid sessionId) {
         if (_cache.TryGetValue($"slot_state_{sessionId}", out SlotState? state)) {
-            return Task.FromResult<object?>(state);
+            return state;
         }
-        return Task.FromResult<object?>(null);
-    }
-        return await ExecuteScopedAsync(async (repo, _, _) => {
+        return await ExecuteScopedAsync((repo, _, _) => {
             var session = repo.GetSession(sessionId);
-            if (session == null || string.IsNullOrEmpty(session.GameState)) return null;
-            return JsonSerializer.Deserialize<SlotState>(session.GameState);
+            if (session == null || string.IsNullOrEmpty(session.GameState)) return Task.FromResult<object?>(null);
+            return Task.FromResult<object?>(JsonSerializer.Deserialize<SlotState>(session.GameState));
         });
     }
 }

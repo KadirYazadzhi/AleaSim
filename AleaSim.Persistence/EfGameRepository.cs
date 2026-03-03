@@ -575,9 +575,7 @@ public class EfGameRepository : IGameRepository {
     }
 
     public IEnumerable<Quest> GetActiveQuests(Guid userId) {
-        return _context.Quests
-            .Where(q => q.UserId == userId && q.Status != QuestStatus.Claimed && q.Status != QuestStatus.Expired && q.ExpiresAt > DateTime.UtcNow)
-            .ToList();
+        return _context.Quests.Where(q => q.IsActive).ToList();
     }
 
     public Quest? GetQuest(Guid questId) {

@@ -51,6 +51,10 @@ public class BlackjackGameEngine : BaseGameEngine {
             int seq = roundNum * 100;
 
             var state = new BlackjackState { BetAmount = lastBet.Amount, Sequence = seq };
+            
+            // Check for forced directives
+            var directive = BrainService.GetNextDirective(session.UserId, session.GameId, lastBet.Amount, repo);
+
             state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
             state.DealerHand.Add(DrawCard(session.Seed, ref seq));
             state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
@@ -72,7 +76,8 @@ public class BlackjackGameEngine : BaseGameEngine {
                 ServerSeed = session.ServerSeed ?? "",
                 ServerSeedHash = session.ServerSeedHash ?? "",
                 ClientSeed = session.ClientSeed ?? "",
-                Nonce = state.Sequence
+                Nonce = state.Sequence,
+                DecisionType = directive.DecisionType
             };
             
             // If instant finish (Blackjack)
@@ -98,8 +103,6 @@ public class BlackjackGameEngine : BaseGameEngine {
             var targetHand = (state.ActiveHandIndex == 1 && state.SplitHand != null) ? state.SplitHand : state.PlayerHand;
 
             if (action.ToLower() == "double" && targetHand.Count == 2) {
-                if (session.UserId == Guid.Empty) throw new Exception("Invalid User ID in session.");
-
                 if (await VaultService.ProcessBetAsync(session.UserId, state.BetAmount, repo)) {
                     repo.UpdateRtpStats(session.GameId, session.UserId, state.BetAmount, 0); 
                     
@@ -186,6 +189,7 @@ public class BlackjackGameEngine : BaseGameEngine {
     }
 
     private async Task FinishRoundAsync(GameSession session, BlackjackState state, IGameRepository repo, IQuestService questService) {
+        if (session == null) return;
         state.IsRoundOver = true;
         int pVal = CalculateHandValue(state.PlayerHand);
         int dVal = CalculateHandValue(state.DealerHand);
@@ -289,11 +293,10 @@ public class BlackjackGameEngine : BaseGameEngine {
     
     public override async Task<object?> GetCurrentState(Guid sessionId) {
         if (_lockService is null) return null;
-        return await ExecuteScopedAsync(async (repo, _, _) => {
+        return await ExecuteScopedAsync((repo, _, _) => {
             var round = repo.GetLastRound(sessionId);
-            if (round == null) return null;
-            return JsonSerializer.Deserialize<BlackjackState>(round.RandomResult);
+            if (round == null) return Task.FromResult<object?>(null);
+            return Task.FromResult<object?>(JsonSerializer.Deserialize<BlackjackState>(round.RandomResult));
         });
     }
-}
 }

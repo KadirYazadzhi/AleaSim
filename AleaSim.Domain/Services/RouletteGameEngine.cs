@@ -84,15 +84,15 @@ public class RouletteGameEngine : BaseGameEngine {
             int nonce = state.Nonce++;
             session.GameState = JsonSerializer.Serialize(state);
 
-            var decision = BrainService.DecideOutcome(session.UserId, GameId, betAmount, repo);
+            var directive = BrainService.GetNextDirective(session.UserId, GameId, betAmount, repo);
             
             int number = 0;
             var allNumbers = Enumerable.Range(0, 37).ToList();
 
-            if (decision.DecisionType == "Random") {
+            if (directive.DecisionType == "Random") {
                 number = RngService.GetNextInt(session.Seed, nonce, 0, 37);
             }
-            else if (decision.TargetWinAmount > 0) {
+            else if (directive.TargetWinAmount > 0) {
                 var winningCandidates = allNumbers.Where(n => CalculatePayout(n, bets, mode) > 0).ToList();
                 if (winningCandidates.Any()) {
                     int idx = RngService.GetNextInt(session.Seed, nonce, 0, winningCandidates.Count);
@@ -129,7 +129,7 @@ public class RouletteGameEngine : BaseGameEngine {
             int winMultiplier = luckyNumbers.ContainsKey(number) ? luckyNumbers[number] : 0;
             decimal actualWin = CalculatePayout(number, bets, mode, winMultiplier);
 
-            bool isRandom = decision.DecisionType == "Random";
+            bool isRandom = directive.DecisionType == "Random";
             
             // Async Call
             if (actualWin > 0 && !await VaultService.CanAffordWinAsync(session.UserId, GameId, actualWin, repo, strictShadowCheck: !isRandom)) {
@@ -160,7 +160,7 @@ public class RouletteGameEngine : BaseGameEngine {
                     LuckyNumbers = luckyNumbers,
                     Multiplier = winMultiplier 
                 }),
-                DecisionType = decision.DecisionType,
+                DecisionType = directive.DecisionType,
                 ExecutedAt = DateTime.UtcNow,
                 ServerSeed = session.ServerSeed,
                 ServerSeedHash = session.ServerSeedHash,
@@ -221,11 +221,11 @@ public class RouletteGameEngine : BaseGameEngine {
     
     // Implemented Recovery!
     public override async Task<object?> GetCurrentState(Guid sessionId) {
-         return await ExecuteScopedAsync(async (repo, _, _) => {
+         return await ExecuteScopedAsync((repo, _, _) => {
             var round = repo.GetLastRound(sessionId);
-            if (round == null) return null;
+            if (round == null) return Task.FromResult<object?>(null);
             // For Roulette, previous state is just the last result (number)
-            return JsonSerializer.Deserialize<object>(round.RandomResult);
+            return Task.FromResult<object?>(JsonSerializer.Deserialize<object>(round.RandomResult));
         });
     }
 }
