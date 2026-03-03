@@ -42,7 +42,14 @@ public class LayoutService
         
         ApplySkinInternal(CurrentSkin);
         await _jsRuntime.InvokeVoidAsync("setTheme", IsDarkMode ? "dark" : "light");
+        UpdateGlobalBackground();
         OnMajorUpdate?.Invoke();
+    }
+
+    private void UpdateGlobalBackground() {
+        var theme = CurrentTheme;
+        var bg = IsDarkMode ? theme.PaletteDark.Background.ToString() : theme.PaletteLight.Background.ToString();
+        _jsRuntime.InvokeVoidAsync("aleaUtils.setBackgroundColor", bg);
     }
 
     public void SetSkinFromProfile(string preferencesJson) {

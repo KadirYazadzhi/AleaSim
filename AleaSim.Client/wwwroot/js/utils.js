@@ -9,7 +9,7 @@ window.aleaUtils = {
         document.body.removeChild(link);
     },
     setBackgroundColor: (color) => {
-        document.documentElement.style.backgroundColor = color;
+        document.documentElement.style.setProperty('--dynamic-bg', color);
         document.body.style.backgroundColor = color;
     }
 };

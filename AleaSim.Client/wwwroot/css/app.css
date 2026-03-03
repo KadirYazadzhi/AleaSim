@@ -12,10 +12,10 @@
 
 html, body {
     font-family: 'Montserrat', sans-serif;
-    background-color: var(--mud-palette-background) !important;
+    background-color: var(--dynamic-bg, var(--mud-palette-background)) !important;
     color: var(--mud-palette-text-primary) !important;
     scroll-behavior: smooth;
-    overflow: auto !important; /* Force scrolling to be enabled */
+    overflow: auto !important;
     min-height: 100%;
 }
 
