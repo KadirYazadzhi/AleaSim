@@ -1,6 +1,8 @@
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Abstractions;
 
 namespace AleaSim.Domain.Extensions;
 

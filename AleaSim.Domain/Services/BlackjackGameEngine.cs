@@ -289,7 +289,7 @@ public class BlackjackGameEngine : BaseGameEngine {
     public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome { GameRoundId = roundId });
     
     public override async Task<object?> GetCurrentState(Guid sessionId) {
-        if (_lockService is null) return null;
+        if (LockService is null) return null;
         return await ExecuteScopedAsync((repo, _, _) => {
             var round = repo.GetLastRound(sessionId);
             if (round == null) return Task.FromResult<object?>(null);

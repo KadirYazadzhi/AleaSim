@@ -12,7 +12,7 @@ using System.Text.Json;
 namespace AleaSim.Domain.Services;
 
 public class DiceGameEngine : BaseGameEngine {
-    public Guid GameIdGuid => Guid.Parse("77777777-7777-7777-7777-777777777777");
+    private readonly Guid _gameId = Guid.Parse("77777777-7777-7777-7777-777777777777");
     private readonly IMemoryCache _cache;
 
     public DiceGameEngine(
@@ -41,7 +41,7 @@ public class DiceGameEngine : BaseGameEngine {
             int roundNum = repo.GetRoundCount(sessionId) + 1;
             int nonce = roundNum;
 
-            var directive = BrainService.GetNextDirective(session.UserId, GameIdGuid, lastBet.Amount, repo);
+            var directive = BrainService.GetNextDirective(session.UserId, _gameId, lastBet.Amount, repo);
             
             DiceResultDto result = new DiceResultDto();
             
@@ -54,7 +54,7 @@ public class DiceGameEngine : BaseGameEngine {
             decimal winAmount = lastBet.Amount * result.PayoutMultiplier;
 
             // Strict pRTP check
-            if (winAmount > 0 && !await VaultService.CanAffordWinAsync(session.UserId, GameIdGuid, winAmount, repo, strictShadowCheck: directive.DecisionType != "Random")) {
+            if (winAmount > 0 && !await VaultService.CanAffordWinAsync(session.UserId, _gameId, winAmount, repo, strictShadowCheck: directive.DecisionType != "Random")) {
                 // Force loss if can't afford
                 result = ForceDiceLoss(session.Seed, nonce, betData);
                 winAmount = 0;
