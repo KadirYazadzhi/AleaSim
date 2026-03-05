@@ -36,7 +36,17 @@ public static class ServiceCollectionExtensions {
         services.AddSingleton<SlotGameEngine>();
         services.AddSingleton<RouletteGameEngine>();
         services.AddSingleton<BlackjackGameEngine>();
-        services.AddSingleton<DiceGameEngine>();
+        services.AddSingleton<DiceGameEngine>(sp => new DiceGameEngine(
+            sp.GetRequiredService<IRngService>(),
+            sp.GetRequiredService<IVaultService>(),
+            sp.GetRequiredService<IBrainService>(),
+            sp.GetRequiredService<IPromotionService>(),
+            sp.GetRequiredService<IJackpotService>(),
+            sp.GetRequiredService<IRealTimeService>(),
+            sp.GetRequiredService<IServiceScopeFactory>(),
+            sp.GetRequiredService<ILockService>(),
+            sp.GetRequiredService<IMemoryCache>()
+        ));
 
         // Game Factory Strategy
         services.AddSingleton<Func<string, IGame>>(serviceProvider => key => {

@@ -11,7 +11,6 @@ namespace AleaSim.Domain.Services;
 
 public class SlotGameEngine : BaseGameEngine {
     private readonly IMemoryCache _cache;
-    private readonly ILockService _lockService;
 
     // Default configuration (Fallback)
     private static readonly SlotGameConfig _defaultConfig = new SlotGameConfig {
@@ -39,10 +38,9 @@ public class SlotGameEngine : BaseGameEngine {
         }
     };
 
-    public SlotGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, IMemoryCache cache, ILockService lockService) 
-        : base(rng, vault, brain, promo, jackpot, realTime, scope) {
+    public SlotGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, IMemoryCache cache, ILockService lockService)
+        : base(rng, vault, brain, promo, jackpot, realTime, scope, lockService) {
         _cache = cache;
-        _lockService = lockService;
     }
 
     public enum BellType { Cash, Mini, Minor, Major }
@@ -112,7 +110,7 @@ public class SlotGameEngine : BaseGameEngine {
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
-        using var lockHandle = await _lockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
+        using var lockHandle = await LockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
         
         return await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
@@ -455,7 +453,7 @@ public class SlotGameEngine : BaseGameEngine {
     }
 
     public override async Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData) {
-        using var lockHandle = await _lockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
+        using var lockHandle = await LockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
         await ExecuteScopedAsync(async (repo, questService, levelService) => {
              var session = repo.GetSession(sessionId);
              if (session == null) throw new Exception("Session not found.");

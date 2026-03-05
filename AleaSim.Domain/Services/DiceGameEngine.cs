@@ -1,8 +1,10 @@
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Enums;
 using AleaSim.Domain.Interfaces;
+using AleaSim.Domain.Models;
 using AleaSim.Shared.Models;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -10,22 +12,24 @@ using System.Text.Json;
 namespace AleaSim.Domain.Services;
 
 public class DiceGameEngine : BaseGameEngine {
-    public override Guid GameId => Guid.Parse("77777777-7777-7777-7777-777777777777");
+    public Guid GameIdGuid => Guid.Parse("77777777-7777-7777-7777-777777777777");
     private readonly IMemoryCache _cache;
 
     public DiceGameEngine(
-        IServiceScopeFactory scopeFactory,
-        IRealTimeService realTime,
-        IBrainService brain,
-        IVaultService vault,
         IRngService rng,
+        IVaultService vault,
+        IBrainService brain,
+        IPromotionService promo,
+        IJackpotService jackpot,
+        IRealTimeService realTime,
+        IServiceScopeFactory scopeFactory,
         ILockService lockService,
-        IMemoryCache cache) : base(scopeFactory, realTime, brain, vault, rng, lockService) {
+        IMemoryCache cache) : base(rng, vault, brain, promo, jackpot, realTime, scopeFactory, lockService) {
         _cache = cache;
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
-        using var lockHandle = await _lockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
+        using var lockHandle = await LockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
 
         return await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
@@ -37,7 +41,7 @@ public class DiceGameEngine : BaseGameEngine {
             int roundNum = repo.GetRoundCount(sessionId) + 1;
             int nonce = roundNum;
 
-            var directive = BrainService.GetNextDirective(session.UserId, GameId, lastBet.Amount, repo);
+            var directive = BrainService.GetNextDirective(session.UserId, GameIdGuid, lastBet.Amount, repo);
             
             DiceResultDto result = new DiceResultDto();
             
@@ -50,7 +54,7 @@ public class DiceGameEngine : BaseGameEngine {
             decimal winAmount = lastBet.Amount * result.PayoutMultiplier;
 
             // Strict pRTP check
-            if (winAmount > 0 && !await VaultService.CanAffordWinAsync(session.UserId, GameId, winAmount, repo, strictShadowCheck: directive.DecisionType != "Random")) {
+            if (winAmount > 0 && !await VaultService.CanAffordWinAsync(session.UserId, GameIdGuid, winAmount, repo, strictShadowCheck: directive.DecisionType != "Random")) {
                 // Force loss if can't afford
                 result = ForceDiceLoss(session.Seed, nonce, betData);
                 winAmount = 0;
@@ -176,5 +180,5 @@ public class DiceGameEngine : BaseGameEngine {
 
     public override Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData) => Task.CompletedTask;
     public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome { GameRoundId = roundId });
-    public override async Task<object?> GetCurrentState(Guid sessionId) => await Task.FromResult<object?>(null);
+    public override Task<object?> GetCurrentState(Guid sessionId) => Task.FromResult<object?>(null);
 }

@@ -8,15 +8,12 @@ using System.Text.Json;
 namespace AleaSim.Domain.Services;
 
 public class RouletteGameEngine : BaseGameEngine {
-    private readonly ILockService _lockService;
     public class RouletteState { public int Nonce { get; set; } }
     private Guid GameId = Guid.Parse("00000000-0000-0000-0000-000000000002");
 
-    public RouletteGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, ILockService lockService) 
-        : base(rng, vault, brain, promo, jackpot, realTime, scope) {
-        _lockService = lockService;
+    public RouletteGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, ILockService lockService)
+        : base(rng, vault, brain, promo, jackpot, realTime, scope, lockService) {
     }
-
     public override async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string betData) {
         var bets = new List<RouletteBetDto>();
         try {
@@ -48,7 +45,7 @@ public class RouletteGameEngine : BaseGameEngine {
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
-        using var lockHandle = await _lockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
+        using var lockHandle = await LockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
 
         return await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);

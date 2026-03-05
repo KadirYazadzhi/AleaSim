@@ -15,8 +15,9 @@ public abstract class BaseGameEngine : IGame {
     protected readonly IJackpotService JackpotService;
     protected readonly IRealTimeService RealTimeService;
     protected readonly IServiceScopeFactory ScopeFactory;
+    protected readonly ILockService LockService;
 
-    protected BaseGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope) {
+    protected BaseGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, ILockService lockService) {
         RngService = rng;
         VaultService = vault;
         BrainService = brain;
@@ -24,6 +25,7 @@ public abstract class BaseGameEngine : IGame {
         JackpotService = jackpot;
         RealTimeService = realTime;
         ScopeFactory = scope;
+        LockService = lockService;
     }
 
     public virtual async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string betData) {

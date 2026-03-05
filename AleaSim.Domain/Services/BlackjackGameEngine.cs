@@ -8,13 +8,10 @@ using System.Collections.Concurrent;
 namespace AleaSim.Domain.Services;
 
 public class BlackjackGameEngine : BaseGameEngine {
-    private readonly ILockService _lockService;
 
-    public BlackjackGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, ILockService lockService) 
-        : base(rng, vault, brain, promo, jackpot, realTime, scope) {   
-        _lockService = lockService;
+    public BlackjackGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, ILockService lockService)
+        : base(rng, vault, brain, promo, jackpot, realTime, scope, lockService) {
     }
-
     public class BlackjackHand {
         public List<string> Cards { get; set; } = new();
         public decimal Bet { get; set; }
@@ -39,7 +36,7 @@ public class BlackjackGameEngine : BaseGameEngine {
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
-        using var lockHandle = await _lockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
+        using var lockHandle = await LockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
         
         return await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
@@ -90,7 +87,7 @@ public class BlackjackGameEngine : BaseGameEngine {
     }
 
     public override async Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData) {
-        using var lockHandle = await _lockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
+        using var lockHandle = await LockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
         
         await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
