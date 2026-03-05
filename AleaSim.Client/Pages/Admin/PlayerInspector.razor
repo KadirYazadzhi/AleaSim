@@ -13,7 +13,7 @@
         <MudItem xs="12" md="4">
             <MudPaper Class="pa-4">
                 <MudTextField @bind-Value="searchQuery" Label="Search Player (Username/Email)" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" OnAdornmentClick="Search" />
-                <MudList T="PlayerSearchResultDto" Class="mt-4" Clickable="true">
+                <MudList T="PlayerSearchResultDto" Class="mt-4">
                     @foreach (var p in searchResults)
                     {
                         <MudListItem OnClick="() => SelectPlayer(p)">

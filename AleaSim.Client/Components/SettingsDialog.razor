@@ -26,8 +26,8 @@
             <MudTabPanel Text="Security" Icon="@Icons.Material.Filled.Security">
                 <MudText Typo="Typo.subtitle2" Class="mb-4">Change Password</MudText>
                 <div class="d-flex flex-column gap-3 mb-6">
-                    <MudTextField @bind-Value="currentPassword" Label="Current Password" Variant="Variant.Outlined" InputType="InputType.Password" Dense="true" />
-                    <MudTextField @bind-Value="newPassword" Label="New Password" Variant="Variant.Outlined" InputType="InputType.Password" Dense="true" />
+                    <MudTextField @bind-Value="currentPassword" Label="Current Password" Variant="Variant.Outlined" InputType="InputType.Password" Margin="Margin.Dense" />
+                    <MudTextField @bind-Value="newPassword" Label="New Password" Variant="Variant.Outlined" InputType="InputType.Password" Margin="Margin.Dense" />
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangePassword" Disabled="@(string.IsNullOrEmpty(newPassword))">Update Password</MudButton>
                 </div>
 
@@ -112,8 +112,8 @@
                 
                 <MudText Typo="Typo.subtitle2" Class="mb-2">Loss Limits</MudText>
                 <div class="d-flex gap-4 mb-6">
-                    <MudNumericField @bind-Value="dailyLossLimit" Label="Daily Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" HideSpinButtons="true" Dense="true" />
-                    <MudNumericField @bind-Value="weeklyLossLimit" Label="Weekly Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" HideSpinButtons="true" Dense="true" />
+                    <MudNumericField @bind-Value="dailyLossLimit" Label="Daily Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" HideSpinButtons="true" Margin="Margin.Dense" />
+                    <MudNumericField @bind-Value="weeklyLossLimit" Label="Weekly Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" HideSpinButtons="true" Margin="Margin.Dense" />
                 </div>
 
                 <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" OnClick="SaveSettings" Class="mb-6">Save Limits</MudButton>

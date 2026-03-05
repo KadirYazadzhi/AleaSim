@@ -56,7 +56,7 @@
                 </div>
 
                 <MudText Typo="Typo.body1" Class="mb-1">Progress to Level @((profile?.Progression?.CurrentLevel ?? 0) + 1)</MudText>
-                <MudProgressLinear Color="Color.Info" Value="@(profile?.Progression?.ProgressPercentage ?? 0)" Height="20" Class="rounded-lg">
+                <MudProgressLinear Color="Color.Info" Value="@(profile?.Progression?.ProgressPercentage ?? 0)" Style="height:20px" Class="rounded-lg">
                     <ChildContent>
                         <MudText Typo="Typo.subtitle2" Color="Color.Dark">
                             <b>@((profile?.Progression?.CurrentXP ?? 0).ToString("N0")) / @((profile?.Progression?.NextLevelXP ?? 1).ToString("N0")) XP</b>
@@ -267,8 +267,9 @@
     }
 
     private string? GetLuckySymbol() {
+        if (profile == null) return null;
         try {
-            var affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile?.SymbolAffinityJson ?? "{}");
+            var affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile.SymbolAffinityJson ?? "{}");
             if (affinity == null || !affinity.Any()) return null;
             int symId = affinity.OrderByDescending(x => x.Value).First().Key;
             return symId switch { 1 => "🍒", 2 => "🍋", 3 => "🍊", 4 => "🍇", 5 => "🔔", 6 => "💎", 7 => "7️⃣", 8 => "🍀", 10 => "💰", _ => "💎" };

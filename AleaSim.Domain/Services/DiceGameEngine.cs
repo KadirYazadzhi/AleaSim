@@ -1,0 +1,180 @@
+using AleaSim.Domain.Entities;
+using AleaSim.Domain.Enums;
+using AleaSim.Domain.Interfaces;
+using AleaSim.Shared.Models;
+using Microsoft.Extensions.Caching.Memory;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+
+namespace AleaSim.Domain.Services;
+
+public class DiceGameEngine : BaseGameEngine {
+    public override Guid GameId => Guid.Parse("77777777-7777-7777-7777-777777777777");
+    private readonly IMemoryCache _cache;
+
+    public DiceGameEngine(
+        IServiceScopeFactory scopeFactory,
+        IRealTimeService realTime,
+        IBrainService brain,
+        IVaultService vault,
+        IRngService rng,
+        ILockService lockService,
+        IMemoryCache cache) : base(scopeFactory, realTime, brain, vault, rng, lockService) {
+        _cache = cache;
+    }
+
+    public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
+        using var lockHandle = await _lockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
+
+        return await ExecuteScopedAsync(async (repo, questService, levelService) => {
+            var session = repo.GetSession(sessionId);
+            if (session == null) throw new Exception("Session not found");
+            var lastBet = repo.GetLastBet(sessionId);
+            if (lastBet == null) throw new Exception("No bet found");
+
+            var betData = JsonSerializer.Deserialize<DiceBetDto>(lastBet.BetData) ?? new DiceBetDto();
+            int roundNum = repo.GetRoundCount(sessionId) + 1;
+            int nonce = roundNum;
+
+            var directive = BrainService.GetNextDirective(session.UserId, GameId, lastBet.Amount, repo);
+            
+            DiceResultDto result = new DiceResultDto();
+            
+            if (betData.Mode == "Slider") {
+                result = ResolveSliderDice(session.Seed, nonce, betData, directive);
+            } else {
+                result = ResolveMultiDice(session.Seed, nonce, betData, directive);
+            }
+
+            decimal winAmount = lastBet.Amount * result.PayoutMultiplier;
+
+            // Strict pRTP check
+            if (winAmount > 0 && !await VaultService.CanAffordWinAsync(session.UserId, GameId, winAmount, repo, strictShadowCheck: directive.DecisionType != "Random")) {
+                // Force loss if can't afford
+                result = ForceDiceLoss(session.Seed, nonce, betData);
+                winAmount = 0;
+            }
+
+            if (winAmount > 0) {
+                await VaultService.ProcessWinAsync(session.UserId, winAmount, repo);
+                await questService.UpdateProgressAsync(session.UserId, "WinAmount", winAmount, repo, RealTimeService, VaultService);
+            }
+            
+            await questService.UpdateProgressAsync(session.UserId, "SpinCount", 1, repo, RealTimeService, VaultService);
+            BrainService.UpdateProfile(session.UserId, lastBet.Amount, winAmount, repo);
+
+            var round = new GameRound {
+                Id = Guid.NewGuid(),
+                GameSessionId = sessionId,
+                RoundNumber = roundNum,
+                TotalBetAmount = lastBet.Amount,
+                TotalWinAmount = winAmount,
+                ExecutedAt = DateTime.UtcNow,
+                RandomResult = JsonSerializer.Serialize(result),
+                DecisionType = directive.DecisionType,
+                ServerSeed = session.ServerSeed ?? "",
+                ServerSeedHash = session.ServerSeedHash ?? "",
+                ClientSeed = session.ClientSeed ?? "",
+                Nonce = nonce
+            };
+
+            repo.SaveRound(round);
+            await RealTimeService.NotifyGameUpdate(session.UserId, new { Game = "Dice", Result = result });
+            return round;
+        });
+    }
+
+    private DiceResultDto ResolveSliderDice(int seed, int nonce, DiceBetDto bet, BrainDirective directive) {
+        decimal winChance = bet.Condition == "Over" ? (100 - bet.TargetValue) : bet.TargetValue;
+        if (winChance <= 0 || winChance >= 100) winChance = 50;
+
+        // House edge 1%
+        decimal multiplier = 99m / winChance;
+        
+        decimal roll = 0;
+        bool isWin = false;
+
+        if (directive.DecisionType == "Random") {
+            roll = (decimal)(RngService.GetNextDouble(seed, nonce) * 100);
+        } else if (directive.TargetWinAmount > 0) {
+            // Force Win
+            if (bet.Condition == "Over") roll = bet.TargetValue + 0.01m + (decimal)RngService.GetNextDouble(seed, nonce) * (100 - bet.TargetValue - 0.01m);
+            else roll = (decimal)RngService.GetNextDouble(seed, nonce) * (bet.TargetValue - 0.01m);
+        } else {
+            // Force Loss
+            if (bet.Condition == "Over") roll = (decimal)RngService.GetNextDouble(seed, nonce) * bet.TargetValue;
+            else roll = bet.TargetValue + (decimal)RngService.GetNextDouble(seed, nonce) * (100 - bet.TargetValue);
+        }
+
+        // Clamp
+        roll = Math.Round(roll, 2);
+        if (roll < 0) roll = 0;
+        if (roll > 100) roll = 100;
+
+        if (bet.Condition == "Over") isWin = roll > bet.TargetValue;
+        else isWin = roll < bet.TargetValue;
+
+        return new DiceResultDto {
+            ResultValue = roll,
+            IsWin = isWin,
+            PayoutMultiplier = isWin ? multiplier : 0
+        };
+    }
+
+    private DiceResultDto ResolveMultiDice(int seed, int nonce, DiceBetDto bet, BrainDirective directive) {
+        var dice = new List<int>();
+        var selected = bet.MultiDiceSelected ?? new List<int> { 6 };
+        
+        // Simulating 10 dice
+        for (int i = 0; i < 10; i++) {
+            dice.Add(RngService.GetNextInt(seed, nonce + i, 1, 7));
+        }
+
+        int hits = dice.Count(d => selected.Contains(d));
+        
+        // Multi-dice math: 10 dice, probability of hitting specific numbers.
+        // Let's say user selects 1 number (e.g. "6").
+        // P(hit at least 3) = ...
+        // For simplicity, let's use a dynamic multiplier based on hits.
+        // Hits: 0-2 (0x), 3 (2x), 4 (5x), 5 (10x), 6 (20x), 7 (50x), 8 (100x), 9 (250x), 10 (1000x)
+        
+        decimal multiplier = hits switch {
+            >= 10 => 1000,
+            9 => 250,
+            8 => 100,
+            7 => 50,
+            6 => 20,
+            5 => 10,
+            4 => 5,
+            3 => 2,
+            _ => 0
+        };
+
+        if (directive.DecisionType != "Random") {
+            // If Brain wants a win/loss, we might adjust hits, 
+            // but for now, we'll let Multi-Dice be purely RNG-heavy 
+            // unless we want to implement complex symbol-swapping.
+        }
+
+        return new DiceResultDto {
+            MultiDiceResults = dice,
+            IsWin = multiplier > 0,
+            PayoutMultiplier = multiplier
+        };
+    }
+
+    private DiceResultDto ForceDiceLoss(int seed, int nonce, DiceBetDto bet) {
+        if (bet.Mode == "Slider") {
+            decimal roll = bet.Condition == "Over" ? bet.TargetValue - 1 : bet.TargetValue + 1;
+            if (roll < 0) roll = 0; if (roll > 100) roll = 100;
+            return new DiceResultDto { ResultValue = roll, IsWin = false, PayoutMultiplier = 0 };
+        } else {
+            return new DiceResultDto { MultiDiceResults = new List<int> { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, IsWin = false, PayoutMultiplier = 0 };
+        }
+    }
+
+    public override Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData) => Task.CompletedTask;
+    public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome { GameRoundId = roundId });
+    public override async Task<object?> GetCurrentState(Guid sessionId) => await Task.FromResult<object?>(null);
+}

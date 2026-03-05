@@ -36,6 +36,7 @@ public static class ServiceCollectionExtensions {
         services.AddSingleton<SlotGameEngine>();
         services.AddSingleton<RouletteGameEngine>();
         services.AddSingleton<BlackjackGameEngine>();
+        services.AddSingleton<DiceGameEngine>();
 
         // Game Factory Strategy
         services.AddSingleton<Func<string, IGame>>(serviceProvider => key => {
@@ -43,6 +44,7 @@ public static class ServiceCollectionExtensions {
                 "slot" => serviceProvider.GetRequiredService<SlotGameEngine>(),
                 "roulette" => serviceProvider.GetRequiredService<RouletteGameEngine>(),
                 "blackjack" => serviceProvider.GetRequiredService<BlackjackGameEngine>(),
+                "dice" => serviceProvider.GetRequiredService<DiceGameEngine>(),
                 _ => throw new KeyNotFoundException($"Game engine '{key}' not found")
             };
         });

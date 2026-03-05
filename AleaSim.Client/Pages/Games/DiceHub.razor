@@ -1,0 +1,298 @@
+@page "/game/dice"
+@using AleaSim.Client.Services
+@using AleaSim.Shared.Models
+@using System.Text.Json
+@attribute [Authorize]
+
+@inject IGameService GameService
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject AudioService Audio
+@inject LayoutService LayoutService
+@implements IAsyncDisposable
+
+<PageTitle>Neon Dice | AleaSim</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-12 animate-fade-in">
+    <div class="d-flex justify-space-between align-center mb-8">
+        <div>
+            <MudText Typo="Typo.h3" Class="text-gradient fw-black">DICE HUB</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-70">High-speed cryptographic gaming.</MudText>
+        </div>
+        <div class="d-flex gap-4">
+            <MudToggleGroup T="string" @bind-Value="selectedMode" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Outline="true" Delimiters="true">
+                <MudToggleItem Value='@("Slider")'>CYBER SLIDER</MudToggleItem>
+                <MudToggleItem Value='@("Multi")'>GRID MULTIPLIER</MudToggleItem>
+            </MudToggleGroup>
+        </div>
+    </div>
+
+    <MudGrid Spacing="6">
+        <!-- Control Panel -->
+        <MudItem xs="12" md="4">
+            <MudPaper Class="glass-panel pa-6 rounded-xl" Elevation="0">
+                <MudNumericField @bind-Value="betAmount" Label="Bet Amount" Variant="Variant.Outlined" 
+                                 Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" 
+                                 Format="N2" Class="mb-6 custom-input" />
+
+                @if (selectedMode == "Slider") {
+                    <div class="d-flex justify-space-between mb-2">
+                        <MudText Typo="Typo.caption">ROLL @(isRollOver ? "OVER" : "UNDER")</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Primary" Class="fw-bold">@sliderTarget.ToString("F2")</MudText>
+                    </div>
+                    <MudSlider T="decimal" @bind-Value="sliderTarget" Min="2" Max="98" Step="0.01m" Color="Color.Primary" Class="mb-6" />
+                    
+                    <div class="d-flex gap-4 mb-6">
+                        <MudButton Variant="@(isRollOver ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" FullWidth="true" OnClick="() => isRollOver = true" Class="rounded-lg py-3">OVER</MudButton>
+                        <MudButton Variant="@(!isRollOver ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" FullWidth="true" OnClick="() => isRollOver = false" Class="rounded-lg py-3">UNDER</MudButton>
+                    </div>
+
+                    <div class="pa-4 rounded-lg bg-dark-transparent mb-6">
+                        <div class="d-flex justify-space-between mb-1">
+                            <MudText Typo="Typo.caption">WIN CHANCE</MudText>
+                            <MudText Typo="Typo.caption" Class="fw-bold">@WinChance.ToString("F2")%</MudText>
+                        </div>
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.caption">PAYOUT</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Success" Class="fw-bold">x@PayoutMultiplier.ToString("F4")</MudText>
+                        </div>
+                    </div>
+                } else {
+                    <MudText Typo="Typo.caption" Class="mb-2 d-block">SELECT TARGET NUMBERS</MudText>
+                    <div class="d-flex justify-space-between gap-2 mb-6">
+                        @for (int i = 1; i <= 6; i++) {
+                            int val = i;
+                            <MudAvatar Color="@(selectedMultiNumbers.Contains(val) ? Color.Primary : Color.Default)" 
+                                       Variant="@(selectedMultiNumbers.Contains(val) ? Variant.Filled : Variant.Outlined)"
+                                       Class="cursor-pointer hover-scale" 
+                                       @onclick="() => ToggleMultiNumber(val)">
+                                @val
+                            </MudAvatar>
+                        }
+                    </div>
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-6 rounded-lg">Target at least 3 hits for a payout.</MudAlert>
+                }
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" 
+                           OnClick="PlayDice" Disabled="@(isSpinning || betAmount <= 0)"
+                           Class="py-4 rounded-xl fw-black shadow-glow pulse-neon">
+                    @(isSpinning ? "ROLLING..." : "ROLL DICE")
+                </MudButton>
+
+                <MudSwitch @bind-Value="autoBet" Label="AUTO BET MODE" Color="Color.Secondary" Class="mt-4" />
+            </MudPaper>
+        </MudItem>
+
+        <!-- Visual Area -->
+        <MudItem xs="12" md="8">
+            <MudPaper Class="glass-panel pa-12 rounded-xl d-flex flex-column align-center justify-center position-relative overflow-hidden" Style="min-height: 400px;" Elevation="0">
+                
+                @if (selectedMode == "Slider") {
+                    <!-- Cyber Slider Visual -->
+                    <div class="dice-track mb-12">
+                        <div class="track-fill" style="left: @(isRollOver ? sliderTarget : 0)%; width: @(isRollOver ? (100-sliderTarget) : sliderTarget)%;"></div>
+                        <div class="track-pointer" style="left: @currentRoll% @(isSpinning ? "; transition: none" : "")">
+                            <div class="pointer-glow"></div>
+                            <MudText Typo="Typo.h5" Class="pointer-label">@currentRoll.ToString("F2")</MudText>
+                        </div>
+                        <div class="track-marks">
+                            <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+                        </div>
+                    </div>
+
+                    <div class='@($"result-display {(lastResultWasWin ? "win" : "loss")} {(isSpinning ? "spinning" : "")}")'>
+                        <MudText Typo="Typo.h1" Class="fw-black">@currentRoll.ToString("F2")</MudText>
+                    </div>
+                } else {
+                    <!-- Multi-Dice Visual Grid -->
+                    <div class="dice-grid">
+                        @for (int i = 0; i < 10; i++) {
+                            int idx = i;
+                            <div class='@($"dice-box {(multiResults.Count > idx && selectedMultiNumbers.Contains(multiResults[idx]) ? "hit" : "")}")'>
+                                @if (multiResults.Count > idx) {
+                                    <MudIcon Icon="@GetDiceIcon(multiResults[idx])" Size="Size.Large" />
+                                } else {
+                                    <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Large" Class="opacity-20" />
+                                }
+                            </div>
+                        }
+                    </div>
+                    
+                    @if (lastMultiHits > 0) {
+                        <div class="mt-8 text-center animate-bounce-subtle">
+                            <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black">@lastMultiHits HITS! (x@lastMultiplier)</MudText>
+                        </div>
+                    }
+                }
+
+                <!-- Decor -->
+                <div class="cyber-bg-text">DICE ENGINE 2.0</div>
+            </MudPaper>
+
+            <!-- Recent History -->
+            <div class="mt-6 d-flex gap-2 overflow-x-auto pb-2">
+                @foreach (var res in recentRolls) {
+                    <div class='@($"roll-history-item {(res.Win ? "win" : "loss")}")'>
+                        @res.Value.ToString("F2")
+                    </div>
+                }
+            </div>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<style>
+    .dice-track {
+        width: 100%; height: 12px; background: rgba(255,255,255,0.05); border-radius: 6px;
+        position: relative; margin: 40px 0;
+    }
+    .track-fill {
+        position: absolute; height: 100%; background: rgba(0, 242, 255, 0.2); border-radius: 6px;
+        box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+    }
+    .track-pointer {
+        position: absolute; top: 50%; transform: translate(-50%, -50%);
+        width: 4px; height: 40px; background: #fff; z-index: 10;
+        transition: left 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+    .pointer-glow {
+        position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+        width: 20px; height: 100%; background: #fff; filter: blur(10px); opacity: 0.5;
+    }
+    .pointer-label { position: absolute; top: -35px; left: 50%; transform: translateX(-50%); font-weight: 900; }
+    
+    .track-marks {
+        position: absolute; bottom: -25px; width: 100%; display: flex; justify-content: space-between;
+        padding: 0 5px; opacity: 0.4; font-size: 0.8rem; font-weight: bold;
+    }
+
+    .result-display { transition: transform 0.3s; }
+    .result-display.win { color: #39ff14; filter: drop-shadow(0 0 15px rgba(57, 255, 20, 0.5)); transform: scale(1.1); }
+    .result-display.loss { color: #ff0055; opacity: 0.8; }
+    .result-display.spinning { animation: pulse 0.2s infinite; }
+
+    .dice-grid {
+        display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; width: 100%; max-width: 500px;
+    }
+    .dice-box {
+        aspect-ratio: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px; display: flex; align-items: center; justify-content: center;
+        transition: all 0.3s;
+    }
+    .dice-box.hit {
+        background: rgba(0, 242, 255, 0.1); border-color: #00f2ff; color: #00f2ff;
+        box-shadow: 0 0 15px rgba(0, 242, 255, 0.3); transform: scale(1.05);
+    }
+
+    .roll-history-item {
+        padding: 4px 12px; border-radius: 6px; font-weight: 800; font-size: 0.8rem;
+        background: rgba(255,255,255,0.05);
+    }
+    .roll-history-item.win { color: #39ff14; }
+    .roll-history-item.loss { color: #ff0055; }
+
+    .cyber-bg-text {
+        position: absolute; bottom: 10px; right: 20px; font-size: 4rem; font-weight: 950;
+        opacity: 0.02; pointer-events: none; letter-spacing: -2px;
+    }
+
+    .shadow-glow { box-shadow: 0 0 20px rgba(var(--mud-palette-primary-rgb), 0.4); }
+</style>
+
+@code {
+    private string selectedMode = "Slider";
+    private decimal betAmount = 1.00m;
+    private decimal sliderTarget = 50.50m;
+    private bool isRollOver = true;
+    private List<int> selectedMultiNumbers = new() { 6 };
+    
+    private bool isSpinning = false;
+    private decimal currentRoll = 50.00m;
+    private List<int> multiResults = new();
+    private bool lastResultWasWin = false;
+    private int lastMultiHits = 0;
+    private decimal lastMultiplier = 0;
+    private bool autoBet = false;
+    private List<(decimal Value, bool Win)> recentRolls = new();
+
+    private decimal WinChance => isRollOver ? (100 - sliderTarget) : sliderTarget;
+    private decimal PayoutMultiplier => WinChance > 0 ? Math.Round(99m / WinChance, 4) : 0;
+
+    private Guid? sessionId;
+
+    protected override async Task OnInitializedAsync() {
+        var resp = await GameService.StartSession("dice");
+        sessionId = resp.SessionId;
+    }
+
+    private void ToggleMultiNumber(int num) {
+        if (selectedMultiNumbers.Contains(num)) {
+            if (selectedMultiNumbers.Count > 1) selectedMultiNumbers.Remove(num);
+        } else {
+            selectedMultiNumbers.Add(num);
+        }
+    }
+
+    private async Task PlayDice() {
+        if (sessionId == null || isSpinning) return;
+        isSpinning = true;
+        lastMultiHits = 0;
+        
+        var betData = new DiceBetDto {
+            Mode = selectedMode,
+            TargetValue = sliderTarget,
+            Condition = isRollOver ? "Over" : "Under",
+            MultiDiceSelected = selectedMultiNumbers
+        };
+
+        try {
+            var response = await GameService.PlaceBet("dice", sessionId.Value, betAmount, betData);
+            var result = JsonSerializer.Deserialize<DiceResultDto>(response.RandomResultJson);
+            
+            if (result != null) {
+                // UX Delay
+                await Task.Delay(300);
+                
+                if (selectedMode == "Slider") {
+                    currentRoll = result.ResultValue;
+                } else {
+                    multiResults = result.MultiDiceResults ?? new();
+                    lastMultiHits = multiResults.Count(d => selectedMultiNumbers.Contains(d));
+                }
+                
+                lastResultWasWin = result.IsWin;
+                lastMultiplier = result.PayoutMultiplier;
+                recentRolls.Insert(0, (selectedMode == "Slider" ? result.ResultValue : (decimal)lastMultiHits, result.IsWin));
+                if (recentRolls.Count > 10) recentRolls.RemoveAt(10);
+
+                if (result.IsWin) Audio.Play("win");
+                else Audio.Play("click");
+            }
+        } catch (Exception ex) {
+            Snackbar.Add(ex.Message, Severity.Error);
+            autoBet = false;
+        } finally {
+            isSpinning = false;
+            StateHasChanged();
+            
+            if (autoBet) {
+                await Task.Delay(500);
+                if (autoBet) await PlayDice();
+            }
+        }
+    }
+
+    private string GetDiceIcon(int val) => val switch {
+        1 => Icons.Material.Filled.LooksOne,
+        2 => Icons.Material.Filled.LooksTwo,
+        3 => Icons.Material.Filled.Looks3,
+        4 => Icons.Material.Filled.Looks4,
+        5 => Icons.Material.Filled.Looks5,
+        6 => Icons.Material.Filled.Looks6,
+        _ => Icons.Material.Filled.QuestionMark
+    };
+
+    public async ValueTask DisposeAsync() {
+        autoBet = false;
+    }
+}

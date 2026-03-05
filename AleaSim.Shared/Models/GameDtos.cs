@@ -102,6 +102,20 @@ public class DailyBonusResponse {
     public int SegmentIndex { get; set; }
 }
 
+public class DiceBetDto {
+    public string Mode { get; set; } = "Slider"; // "Slider" or "Multi"
+    public decimal TargetValue { get; set; } // Slider: 0-100
+    public string Condition { get; set; } = "Over"; // Slider: "Over", "Under"
+    public List<int>? MultiDiceSelected { get; set; } // Multi: Selected numbers 1-6
+}
+
+public class DiceResultDto {
+    public decimal ResultValue { get; set; } // Slider: 0.00-100.00
+    public List<int>? MultiDiceResults { get; set; } // Multi: 10 dice results
+    public decimal PayoutMultiplier { get; set; }
+    public bool IsWin { get; set; }
+}
+
 public class PlatformStatsDto {
     public decimal WeeklyJackpot { get; set; }
     public decimal TournamentPrizePool { get; set; }

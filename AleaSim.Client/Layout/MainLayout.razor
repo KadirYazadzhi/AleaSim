@@ -35,7 +35,7 @@
         
         <MudSpacer />
         
-        <AuthorizeView>
+        <AuthorizeView Context="authContext">
             <Authorized>
                 <div class="d-flex align-center gap-3">
                     <!-- Flow State Debug/Visualizer -->
@@ -68,7 +68,7 @@
                         <MudPopover Open="@_notificationsOpen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="pa-0 mt-2 glass-panel" Style="width: 320px;">
                             <div class="d-flex justify-space-between align-center pa-3 border-b border-white-10">
                                 <MudText Typo="Typo.h6">Notifications</MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.DoneAll" Size="Size.Small" OnClick="() => NotifService.MarkAllAsRead()" Title="Mark all as read" />
+                                <MudIconButton Icon="@Icons.Material.Filled.DoneAll" Size="Size.Small" OnClick="() => NotifService.MarkAllAsRead()" title="Mark all as read" />
                             </div>
                             <MudList T="string" Dense="true" Style="max-height: 300px; overflow-y: auto;">
                                 @if (!NotifService.History.Any()) {
@@ -134,6 +134,11 @@
         <NavMenu />
         <div class="mt-auto pa-4">
              <MudCard Class="glass-panel pa-3 text-center mb-4">
+                 <MudText Typo="Typo.caption" Class="d-block mb-1 mud-text-secondary">Weekly Jackpot</MudText>
+                 <MudText Typo="Typo.h6" Class="text-gradient font-black">@PlatformStats.Stats.WeeklyJackpot.ToString("C2")</MudText>
+             </MudCard>
+        </div>
+    </MudDrawer>
                  <MudText Typo="Typo.caption" Class="d-block mb-1 mud-text-secondary">Weekly Jackpot</MudText>
                  <MudText Typo="Typo.h6" Class="text-gradient font-black">@PlatformStats.Stats.WeeklyJackpot.ToString("C2")</MudText>
              </MudCard>

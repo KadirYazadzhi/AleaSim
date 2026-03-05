@@ -259,15 +259,16 @@
     }
 
     private async Task OpenGamble() {
+        if (gameState == null) return;
         var parameters = new DialogParameters { ["Amount"] = gameState.PendingGambleWin, ["SessionId"] = sessionId };
         var dialog = await DialogService.ShowAsync<GambleDialog>("Double or Nothing", parameters);
         var result = await dialog.Result;
 
-        if (!result.Canceled) {
+        if (result != null && !result.Canceled) {
             var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
             if (profile != null) balance = profile.TotalBalance;
             gameState.IsGambleActive = false; 
-        } else {
+        } else if (gameState != null) {
             gameState.IsGambleActive = false;
             var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
             if (profile != null) balance = profile.TotalBalance;
@@ -276,7 +277,7 @@
     }
 
     private async Task CollectWin() {
-        if (sessionId == null) return;
+        if (sessionId == null || gameState == null) return;
         await GameService.PerformAction("slot", sessionId.Value, "collect", "{}");
         gameState.IsGambleActive = false;
         var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
@@ -284,7 +285,7 @@
         StateHasChanged();
     }
 
-    public async ValueTask DisposeAsync() { }
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     public class SlotState {
         public bool IsBonusActive { get; set; }

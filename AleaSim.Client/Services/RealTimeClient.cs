@@ -17,6 +17,8 @@ public class RealTimeClient : IAsyncDisposable {
     public event Action<object>? OnGameUpdateReceived;
     public event Action<string, string, DateTime, string>? OnChatMessageReceived; // Added avatar
 
+    public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
+
     public async Task StartAsync(string token) {
         if (_hubConnection != null) {
             await _hubConnection.DisposeAsync();
@@ -45,6 +47,10 @@ public class RealTimeClient : IAsyncDisposable {
             OnGameUpdateReceived?.Invoke(data);
         });
 
+        _hubConnection.On<object>("ReceiveBigWin", (data) => {
+             // Handle complex object if needed, or stick to simple args
+        });
+
         _hubConnection.On<string, string, decimal, decimal>("ReceiveBigWin", (username, game, amount, mult) => {
             OnBigWinReceived?.Invoke(new BigWinEventArgs(username, game, amount, mult));
         });
@@ -54,6 +60,12 @@ public class RealTimeClient : IAsyncDisposable {
         });
 
         await _hubConnection.StartAsync();
+    }
+
+    public async Task StopAsync() {
+        if (_hubConnection != null) {
+            await _hubConnection.StopAsync();
+        }
     }
 
     public async Task SendChatMessage(string message) {

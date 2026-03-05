@@ -88,3 +88,7 @@ INSERT IGNORE INTO Quests (Id, Title, Description, GoalType, TargetValue, Reward
 (UUID(), 'Daily Spinner', 'Complete 50 spins on any slot', 'SpinCount', 50.00, 10.00, 1),
 (UUID(), 'High Stakes', 'Wager a total of $1,000', 'TotalWager', 1000.00, 50.00, 1),
 (UUID(), 'Big Win Hunter', 'Win a total of $500', 'WinAmount', 500.00, 25.00, 1);
+
+-- 10. Insert Neon Dice Game
+INSERT IGNORE INTO Games (Id, Title, Type, Provider, IsActive, Rtp, MinBet, MaxBet) VALUES
+('77777777-7777-7777-7777-777777777777', 'Neon Dice', 'dice', 'AleaSim Originals', 1, 99.0, 0.1, 1000.0);

@@ -80,5 +80,13 @@ public class AleaSimDbContext : DbContext {
             new Quest { Id = Guid.NewGuid(), Title = "High Stakes", Description = "Wager a total of $1,000", GoalType = "TotalWager", TargetValue = 1000, RewardAmount = 50, IsActive = true },
             new Quest { Id = Guid.NewGuid(), Title = "Big Win Hunter", Description = "Win a total of $500", GoalType = "WinAmount", TargetValue = 500, RewardAmount = 25, IsActive = true }
         );
+
+        // Seed Default Games
+        modelBuilder.Entity<Game>().HasData(
+            new Game { Id = Guid.Parse("11111111-1111-1111-1111-111111111111"), Title = "Clover Chase", Type = "slot", Provider = "AleaSim Originals", IsActive = true, Rtp = 96.5 },
+            new Game { Id = Guid.Parse("22222222-2222-2222-2222-222222222222"), Title = "Roulette Royale", Type = "roulette", Provider = "AleaSim Originals", IsActive = true, Rtp = 97.3 },
+            new Game { Id = Guid.Parse("33333333-3333-3333-3333-333333333333"), Title = "Blackjack High", Type = "blackjack", Provider = "AleaSim Originals", IsActive = true, Rtp = 99.2 },
+            new Game { Id = Guid.Parse("77777777-7777-7777-7777-777777777777"), Title = "Neon Dice", Type = "dice", Provider = "AleaSim Originals", IsActive = true, Rtp = 99.0 }
+        );
     }
 }

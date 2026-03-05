@@ -363,7 +363,7 @@
                 is2faEnabled = profile.IsTwoFactorEnabled;
                 dailyLossLimit = profile.DailyLossLimit;
                 weeklyLossLimit = profile.WeeklyLossLimit;
-                monthlyLossLimit = 0;
+                monthlyLossLimit = profile.MonthlyLossLimit ?? 0;
                 
                 var prefs = JsonSerializer.Deserialize<Dictionary<string, object>>(profile.PreferencesJson) ?? new();
                 turboMode = GetBool(prefs, "TurboMode");
@@ -452,9 +452,11 @@
         var response = await Http.PostAsync("api/Auth/2fa/toggle", null);
         if (response.IsSuccessStatusCode) {
             var res = await response.Content.ReadFromJsonAsync<TfaResponse>();
-            is2faEnabled = res.Enabled;
-            tfaSecret = res.Secret;
-            Snackbar.Add(is2faEnabled ? "2FA Protection Enabled" : "2FA Protection Disabled", Severity.Info);
+            if (res != null) {
+                is2faEnabled = res.Enabled;
+                tfaSecret = res.Secret;
+                Snackbar.Add(is2faEnabled ? "2FA Protection Enabled" : "2FA Protection Disabled", Severity.Info);
+            }
         }
     }
 
