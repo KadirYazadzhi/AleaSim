@@ -345,24 +345,46 @@
         LayoutService.OnBalanceUpdateSuppressionChanged += HandleSuppressionChanged;
         LayoutService.OnOptimisticDeduction += HandleOptimisticDeduction;
         
+        AuthStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+
         PlatformStats.StartPolling();
         PlatformStats.OnStatsUpdated += StateHasChanged;
 
+        await CheckAuthenticationState();
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task) {
+        await InvokeAsync(async () => {
+            await CheckAuthenticationState();
+            StateHasChanged();
+        });
+    }
+
+    private async Task CheckAuthenticationState() {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true) {
             await LoadProfile();
             
             try {
-                var token = await LocalStorage.GetItemAsync<string>("authToken");
-                if (!string.IsNullOrEmpty(token)) {
-                    await RealTime.StartAsync(token);
-                    RealTime.OnBigWinReceived += HandleBigWin;
-                    RealTime.OnGameUpdateReceived += HandleGameUpdate;
-                    RealTime.OnBalanceUpdated += HandleBalanceUpdate;
+                if (!RealTime.IsConnected) {
+                    var token = await LocalStorage.GetItemAsync<string>("authToken");
+                    if (!string.IsNullOrEmpty(token)) {
+                        await RealTime.StartAsync(token);
+                        RealTime.OnBigWinReceived += HandleBigWin;
+                        RealTime.OnGameUpdateReceived += HandleGameUpdate;
+                        RealTime.OnBalanceUpdated += HandleBalanceUpdate;
+                    }
                 }
             } catch (Exception ex) {
                 Console.WriteLine($"SignalR Connection failed: {ex.Message}");
-                // We don't show a snackbar here to avoid annoying the user on minor network blips
+            }
+        } else {
+            userProfile = null;
+            if (RealTime.IsConnected) {
+                RealTime.OnBigWinReceived -= HandleBigWin;
+                RealTime.OnGameUpdateReceived -= HandleGameUpdate;
+                RealTime.OnBalanceUpdated -= HandleBalanceUpdate;
+                await RealTime.StopAsync();
             }
         }
     }
@@ -372,10 +394,11 @@
         NotifService.OnNotificationsChanged -= StateHasChanged;
         GameService.OnFlowStateChanged -= HandleFlowStateChange;
         LayoutService.OnMajorUpdate -= StateHasChanged;
-        LayoutService.OnAvatarChanged -= HandleAvatarChanged; // Removed
+        LayoutService.OnAvatarChanged -= HandleAvatarChanged; 
         LayoutService.OnBalanceUpdateSuppressionChanged -= HandleSuppressionChanged;
         LayoutService.OnOptimisticDeduction -= HandleOptimisticDeduction;
         PlatformStats.OnStatsUpdated -= StateHasChanged;
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 
     private void HandleAvatarChanged(string newUrl) {
@@ -482,10 +505,6 @@
     }
 
     private async Task Logout() {
-        RealTime.OnBigWinReceived -= HandleBigWin;
-        RealTime.OnGameUpdateReceived -= HandleGameUpdate;
-        RealTime.OnBalanceUpdated -= HandleBalanceUpdate;
-        GameService.OnFlowStateChanged -= HandleFlowStateChange; 
         await AuthService.Logout();
         Navigation.NavigateTo("/");
     }
