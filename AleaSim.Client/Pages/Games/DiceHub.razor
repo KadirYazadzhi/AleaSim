@@ -20,7 +20,7 @@
             <MudText Typo="Typo.subtitle1" Class="opacity-70">High-speed cryptographic gaming.</MudText>
         </div>
         <div class="d-flex gap-4">
-            <MudToggleGroup T="string" @bind-Value="selectedMode" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Outline="true" Delimiters="true">
+            <MudToggleGroup T="string" @bind-Value="selectedMode" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Variant="Variant.Outlined" Delimiters="true">
                 <MudToggleItem Value='@("Slider")'>CYBER SLIDER</MudToggleItem>
                 <MudToggleItem Value='@("Multi")'>GRID MULTIPLIER</MudToggleItem>
             </MudToggleGroup>
@@ -246,7 +246,7 @@
         };
 
         try {
-            var response = await GameService.PlaceBet("dice", sessionId.Value, betAmount, betData);
+            var response = await GameService.PlaceBet("dice", sessionId.Value, betAmount, JsonSerializer.Serialize(betData));
             var result = JsonSerializer.Deserialize<DiceResultDto>(response.RandomResultJson);
             
             if (result != null) {
@@ -265,8 +265,8 @@
                 recentRolls.Insert(0, (selectedMode == "Slider" ? result.ResultValue : (decimal)lastMultiHits, result.IsWin));
                 if (recentRolls.Count > 10) recentRolls.RemoveAt(10);
 
-                if (result.IsWin) Audio.Play("win");
-                else Audio.Play("click");
+                if (result.IsWin) await Audio.PlayWin();
+                else await Audio.PlayClick();
             }
         } catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
@@ -292,7 +292,8 @@
         _ => Icons.Material.Filled.QuestionMark
     };
 
-    public async ValueTask DisposeAsync() {
+    public ValueTask DisposeAsync() {
         autoBet = false;
+        return ValueTask.CompletedTask;
     }
 }

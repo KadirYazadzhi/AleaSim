@@ -398,6 +398,7 @@
         return "Web Browser";
     }
 
+    private record UserProfileResponse(string Username, decimal TotalBalance, bool IsTwoFactorEnabled, decimal? DailyLossLimit, decimal? WeeklyLossLimit, decimal? MonthlyLossLimit, string PreferencesJson);
     private record SessionResponse(string IpAddress, string Device, DateTime LastActive, bool IsCurrent);
 
     private bool GetBool(Dictionary<string, object> dict, string key) => 

@@ -29,6 +29,7 @@ public class UserProfileResponse {
     public bool IsTwoFactorEnabled { get; set; }
     public decimal? DailyLossLimit { get; set; }
     public decimal? WeeklyLossLimit { get; set; }
+    public decimal? MonthlyLossLimit { get; set; }
     public string PreferencesJson { get; set; } = "{}";
     public DateTime? LockoutUntil { get; set; }
 }
@@ -52,6 +53,7 @@ public class UserDto {
     public bool IsTwoFactorEnabled { get; set; }
     public decimal? DailyLossLimit { get; set; }
     public decimal? WeeklyLossLimit { get; set; }
+    public decimal? MonthlyLossLimit { get; set; }
     public string PreferencesJson { get; set; } = "{}";
 }
 
