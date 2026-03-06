@@ -128,9 +128,9 @@ using (var scope = app.Services.CreateScope()) {
     // Seed Games if missing
     if (!db.Games.Any()) {
         db.Games.AddRange(
-            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000001"), Name = "Slot Machine", Type = "Slot", MinBet = 1, MaxBet = 1000, TargetRTP = (decimal)0.95, IsActive = true, PoolBalance = 1000000m },
-            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = "European Roulette", Type = "Roulette", MinBet = 1, MaxBet = 100000, TargetRTP = (decimal).97, IsActive = true, PoolBalance = 1000000m },
-            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000003"), Name = "Blackjack", Type = "Blackjack", MinBet = 5, MaxBet = 1000, TargetRTP = (decimal)0.99, IsActive = true }
+            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000001"), Name = "Slot Machine", Type = "Slot", Provider = "AleaSim Originals", MinBet = 1, MaxBet = 1000, TargetRTP = 0.95m, IsActive = true, PoolBalance = 1000000m },
+            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = "European Roulette", Type = "Roulette", Provider = "AleaSim Originals", MinBet = 1, MaxBet = 100000, TargetRTP = 0.97m, IsActive = true, PoolBalance = 1000000m },
+            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000003"), Name = "Blackjack", Type = "Blackjack", Provider = "AleaSim Originals", MinBet = 5, MaxBet = 1000, TargetRTP = 0.99m, IsActive = true }
         );
         db.SaveChanges();
     }

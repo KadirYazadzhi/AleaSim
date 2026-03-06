@@ -9,6 +9,7 @@ public class GameConfiguration : IEntityTypeConfiguration<Game> {
         builder.HasKey(g => g.Id);
         builder.Property(g => g.Name).IsRequired().HasMaxLength(100);
         builder.Property(g => g.Type).IsRequired().HasMaxLength(50);
+        builder.Property(g => g.Provider).IsRequired().HasMaxLength(100);
         builder.Property(g => g.MinBet).HasPrecision(18, 2);
         builder.Property(g => g.MaxBet).HasPrecision(18, 2);
     }

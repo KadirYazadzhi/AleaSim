@@ -32,10 +32,8 @@ public class AleaSimDbContext : DbContext {
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) {
-        // ... (existing configurations)
         modelBuilder.ApplyConfiguration(new Configurations.UserConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.GameConfiguration());
-        // modelBuilder.ApplyConfiguration(new Configurations.GameSessionConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.GameRoundConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.BetConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.OutcomeConfiguration());
@@ -44,7 +42,6 @@ public class AleaSimDbContext : DbContext {
         modelBuilder.ApplyConfiguration(new Configurations.JackpotConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.AuditEventConfiguration());
 
-        // Enforce Cascade Delete for cleanup
         modelBuilder.Entity<User>().HasMany(u => u.GameSessions).WithOne().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<User>().HasMany(u => u.Transactions).WithOne().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<User>().HasOne(u => u.Profile).WithOne(p => p.User).HasForeignKey<PlayerProfile>(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -55,7 +52,6 @@ public class AleaSimDbContext : DbContext {
             entity.Property(e => e.Value).HasMaxLength(500);
         });
 
-        // Seed Achievements
         modelBuilder.Entity<Achievement>().HasData(
             new Achievement { Id = Guid.NewGuid(), Name = "First Blood", Description = "Place your first bet", Icon = "🎯", ConditionType = "TotalBets", ConditionValue = 1 },
             new Achievement { Id = Guid.NewGuid(), Name = "High Roller", Description = "Wager more than $5,000 total", Icon = "💎", ConditionType = "TotalWagered", ConditionValue = 5000 },
@@ -64,7 +60,6 @@ public class AleaSimDbContext : DbContext {
             new Achievement { Id = Guid.NewGuid(), Name = "Veteran", Description = "Reach Level 10", Icon = "🎖️", ConditionType = "LevelReached", ConditionValue = 10 }
         );
 
-        // Seed Default Settings
         modelBuilder.Entity<GlobalSetting>().HasData(
             new GlobalSetting { Key = "GlobalTargetRtp", Value = "95.0", Description = "Target RTP percentage for the system", LastUpdated = DateTime.UtcNow },
             new GlobalSetting { Key = "EmergencyStop", Value = "false", Description = "Master switch to pause all games", LastUpdated = DateTime.UtcNow },
@@ -74,19 +69,17 @@ public class AleaSimDbContext : DbContext {
             new GlobalSetting { Key = "Content_Privacy", Value = "We value your privacy. Your data is encrypted...", Description = "Privacy Policy Content", LastUpdated = DateTime.UtcNow }
         );
 
-        // Seed Quests
         modelBuilder.Entity<Quest>().HasData(
             new Quest { Id = Guid.NewGuid(), Title = "Daily Spinner", Description = "Complete 50 spins on any slot", GoalType = "SpinCount", TargetValue = 50, RewardAmount = 10, IsActive = true },
             new Quest { Id = Guid.NewGuid(), Title = "High Stakes", Description = "Wager a total of $1,000", GoalType = "TotalWager", TargetValue = 1000, RewardAmount = 50, IsActive = true },
             new Quest { Id = Guid.NewGuid(), Title = "Big Win Hunter", Description = "Win a total of $500", GoalType = "WinAmount", TargetValue = 500, RewardAmount = 25, IsActive = true }
         );
 
-        // Seed Default Games
         modelBuilder.Entity<Game>().HasData(
-            new Game { Id = Guid.Parse("11111111-1111-1111-1111-111111111111"), Title = "Clover Chase", Type = "slot", Provider = "AleaSim Originals", IsActive = true, Rtp = 96.5 },
-            new Game { Id = Guid.Parse("22222222-2222-2222-2222-222222222222"), Title = "Roulette Royale", Type = "roulette", Provider = "AleaSim Originals", IsActive = true, Rtp = 97.3 },
-            new Game { Id = Guid.Parse("33333333-3333-3333-3333-333333333333"), Title = "Blackjack High", Type = "blackjack", Provider = "AleaSim Originals", IsActive = true, Rtp = 99.2 },
-            new Game { Id = Guid.Parse("77777777-7777-7777-7777-777777777777"), Title = "Neon Dice", Type = "dice", Provider = "AleaSim Originals", IsActive = true, Rtp = 99.0 }
+            new Game { Id = Guid.Parse("11111111-1111-1111-1111-111111111111"), Name = "Clover Chase", Type = "slot", Provider = "AleaSim Originals", IsActive = true, TargetRTP = 0.965m },
+            new Game { Id = Guid.Parse("22222222-2222-2222-2222-222222222222"), Name = "Roulette Royale", Type = "roulette", Provider = "AleaSim Originals", IsActive = true, TargetRTP = 0.973m },
+            new Game { Id = Guid.Parse("33333333-3333-3333-3333-333333333333"), Name = "Blackjack High", Type = "blackjack", Provider = "AleaSim Originals", IsActive = true, TargetRTP = 0.992m },
+            new Game { Id = Guid.Parse("77777777-7777-7777-7777-777777777777"), Name = "Neon Dice", Type = "dice", Provider = "AleaSim Originals", IsActive = true, TargetRTP = 0.990m }
         );
     }
 }
