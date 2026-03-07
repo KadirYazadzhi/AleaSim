@@ -38,7 +38,7 @@ public class SentinelBackgroundService : BackgroundService {
         }
     }
 
-    private async Task ScanForAnomalies() {
+    private Task ScanForAnomalies() {
         using var scope = _scopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         
@@ -63,6 +63,7 @@ public class SentinelBackgroundService : BackgroundService {
         // This would require a group-by logic on recent bets in repo.
         // For MVP, we log the scan action.
         _logger.LogDebug("Sentinel scan complete. No critical threats found.");
+        return Task.CompletedTask;
     }
 
     private void AddAlert(SentinelAlertDto alert) {

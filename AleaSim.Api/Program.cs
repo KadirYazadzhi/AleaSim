@@ -169,15 +169,15 @@ using (var scope = app.Services.CreateScope()) {
         var rdb = redis.GetDatabase();
         var allJackpots = db.Jackpots.ToList();
         foreach(var j in allJackpots) {
-            string key = $"jackpot:{j.Id}";
-            var exists = rdb.KeyExists(key);
+            string jackpotKey = $"jackpot:{j.Id}";
+            var exists = rdb.KeyExists(jackpotKey);
             if (!exists) {
-                rdb.StringSet(key, (double)j.CurrentValue);
+                rdb.StringSet(jackpotKey, (double)j.CurrentValue);
             } else {
                 // If Redis value is suspiciously low (e.g. < 10% of DB value), force sync from DB
-                var rval = (decimal)(double)rdb.StringGet(key);
+                var rval = (decimal)(double)rdb.StringGet(jackpotKey);
                 if (rval < j.CurrentValue * 0.1m) {
-                     rdb.StringSet(key, (double)j.CurrentValue);
+                     rdb.StringSet(jackpotKey, (double)j.CurrentValue);
                 }
             }
         }
