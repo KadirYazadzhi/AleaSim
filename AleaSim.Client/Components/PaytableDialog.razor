@@ -6,14 +6,21 @@
     <TitleContent>
         <MudText Typo="Typo.h5" Class="fw-black text-gradient">CLOVER CHASE PAYTABLE</MudText>
     </TitleContent>
-    <DialogContent>
+    <DialogContent Style="min-height: 550px;">
         <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
             <!-- Tab 1: Symbol Payouts -->
             <MudTabPanel Text="SYMBOLS" Icon="@Icons.Material.Filled.TableChart">
                 <MudGrid Spacing="2">
                     @foreach (var sym in SymbolPayouts) {
                         <MudItem xs="6" sm="4">
-                            <MudPaper Class="pa-3 text-center glass-panel h-100">
+                            <MudPaper Class="pa-3 text-center glass-panel h-100 position-relative">
+                                @if (!string.IsNullOrEmpty(sym.Description))
+                                {
+                                    <MudTooltip Text="@sym.Description" Placement="Placement.Top" Arrow="true" Color="Color.Dark">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small" Color="Color.Info" 
+                                                       Style="position: absolute; top: 4px; right: 4px; padding: 2px;" />
+                                    </MudTooltip>
+                                }
                                 <img src="images/slots/@(sym.File)" style="width: 50px; height: 50px;" class="mb-2" />
                                 <div class="d-flex flex-column gap-1">
                                     <MudText Typo="Typo.caption" Class="d-flex justify-space-between"><span>5x</span> <b class="mud-text-primary">@sym.P5.ToString("F1")x</b></MudText>
@@ -57,24 +64,24 @@
 <style>
     .paytable-dialog { background: rgba(15, 23, 42, 0.95) !important; backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px !important; }
     .fw-black { font-weight: 900; }
-    .paylines-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
-    .line-mini-map { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 8px; position: relative; }
-    .line-number { position: absolute; top: 2px; right: 4px; font-size: 0.6rem; font-weight: 900; color: var(--mud-palette-primary); }
-    .dots-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(4, 1fr); gap: 2px; }
-    .dot { width: 4px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 50%; }
-    .dot.active { background: #00f2ff; box-shadow: 0 0 5px #00f2ff; transform: scale(1.5); }
+    .paylines-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .line-mini-map { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 12px; position: relative; border: 1px solid rgba(255,255,255,0.05); }
+    .line-number { position: absolute; top: 4px; right: 6px; font-size: 0.7rem; font-weight: 900; color: var(--mud-palette-primary); }
+    .dots-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(4, 1fr); gap: 4px; }
+    .dot { width: 6px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 50%; }
+    .dot.active { background: #00f2ff; box-shadow: 0 0 8px #00f2ff; transform: scale(1.3); }
 </style>
 
 @code {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     void Close() => MudDialog.Close();
 
-    private record SymbolInfo(string File, decimal P3, decimal P4, decimal P5);
+    private record SymbolInfo(string File, decimal P3, decimal P4, decimal P5, string? Description = null);
     private List<SymbolInfo> SymbolPayouts = new() {
-        new SymbolInfo("seven.png", 20m, 100m, 1000m),
-        new SymbolInfo("clover.png", 10m, 50m, 500m),
+        new SymbolInfo("seven.png", 20m, 100m, 1000m, "Golden Seven: The highest paying symbol. Acts as Wild for all fruit symbols."),
+        new SymbolInfo("clover.png", 10m, 50m, 500m, "Clover Wild: Substitutes for all symbols except Scatter. 4+ trigger Respins phase."),
+        new SymbolInfo("bell.png", 3m, 15m, 50m, "Bell Scatter: Triggers the Bell Bonus during Respins if 5+ Clovers are collected."),
         new SymbolInfo("apple.png", 5m, 25m, 100m),
-        new SymbolInfo("bell.png", 3m, 15m, 50m),
         new SymbolInfo("watermelon.png", 2m, 10m, 25m),
         new SymbolInfo("grape.png", 2m, 10m, 25m),
         new SymbolInfo("plum.png", 1m, 5m, 10m),
