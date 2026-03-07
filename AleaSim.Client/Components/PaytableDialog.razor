@@ -66,11 +66,11 @@
 
 <style>
     .paytable-dialog { 
-        background: rgba(15, 23, 42, 0.98) !important; 
+        background: var(--mud-palette-surface) !important; 
         backdrop-filter: blur(20px); 
-        border: 1px solid rgba(255,255,255,0.1); 
+        border: 1px solid var(--mud-palette-divider); 
         border-radius: 24px !important;
-        width: 850px !important; /* Standardized width */
+        width: 850px !important;
         max-width: 95vw;
     }
     .dialog-fixed-container {
@@ -79,8 +79,15 @@
         overflow-x: hidden;
     }
     .fw-black { font-weight: 900; }
-    .symbol-card { transition: transform 0.2s; overflow: visible !important; }
-    .symbol-card:hover { transform: translateY(-4px); background: rgba(255,255,255,0.08) !important; }
+    .symbol-card { 
+        transition: transform 0.2s; 
+        overflow: visible !important; 
+        border: 1px solid var(--mud-palette-divider) !important;
+    }
+    .symbol-card:hover { 
+        transform: translateY(-4px); 
+        background: var(--mud-palette-action-default-hover) !important; 
+    }
     
     .info-btn-container { 
         position: absolute; 
@@ -88,7 +95,9 @@
         right: 8px; 
         z-index: 50;
         cursor: help;
+        opacity: 0.6;
     }
+    .info-btn-container:hover { opacity: 1; }
 
     .paylines-grid { 
         display: grid; 
@@ -96,20 +105,38 @@
         gap: 24px; 
     }
     .line-mini-map { 
-        background: rgba(0,0,0,0.4); 
+        background: var(--mud-palette-background-grey); 
         border-radius: 12px; 
         padding: 20px; 
         position: relative; 
-        border: 1px solid rgba(255,255,255,0.1);
-        box-shadow: inset 0 0 15px rgba(0,0,0,0.6);
+        border: 1px solid var(--mud-palette-divider);
     }
-    .line-number { position: absolute; top: 6px; right: 10px; font-size: 0.9rem; font-weight: 900; color: #00f2ff; }
+    .line-number { 
+        position: absolute; 
+        top: 6px; 
+        right: 10px; 
+        font-size: 0.9rem; 
+        font-weight: 900; 
+        color: var(--mud-palette-primary); 
+    }
     .dots-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(4, 1fr); gap: 8px; }
-    .dot { width: 12px; height: 12px; background: rgba(255,255,255,0.05); border-radius: 50%; transition: all 0.3s; }
+    .dot { 
+        width: 12px; 
+        height: 12px; 
+        background: var(--mud-palette-action-disabled); 
+        border-radius: 50%; 
+        transition: all 0.3s; 
+    }
     .dot.active { 
-        background: #00f2ff; 
-        box-shadow: 0 0 15px #00f2ff, 0 0 25px rgba(0,242,255,0.4); 
+        background: var(--mud-palette-primary); 
+        box-shadow: 0 0 15px var(--mud-palette-primary); 
         transform: scale(1.4); 
+    }
+    
+    .text-gradient {
+        background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
 </style>
 
