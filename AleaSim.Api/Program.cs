@@ -163,6 +163,26 @@ using (var scope = app.Services.CreateScope()) {
         db.SaveChanges();
     }
 
+    // SYNC JACKPOTS TO REDIS (Cold Start Fix)
+    try {
+        var redis = scope.ServiceProvider.GetRequiredService<IRedisService>();
+        var rdb = redis.GetDatabase();
+        var allJackpots = db.Jackpots.ToList();
+        foreach(var j in allJackpots) {
+            string key = $"jackpot:{j.Id}";
+            var exists = rdb.KeyExists(key);
+            if (!exists) {
+                rdb.StringSet(key, (double)j.CurrentValue);
+            } else {
+                // If Redis value is suspiciously low (e.g. < 10% of DB value), force sync from DB
+                var rval = (decimal)(double)rdb.StringGet(key);
+                if (rval < j.CurrentValue * 0.1m) {
+                     rdb.StringSet(key, (double)j.CurrentValue);
+                }
+            }
+        }
+    } catch { /* Redis might not be ready */ }
+
     // Seed Admin if missing
     if (!db.Users.Any(u => u.Username == "admin")) {
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();

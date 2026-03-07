@@ -97,11 +97,12 @@
     }
 
     private void UpdateLocalValue(JackpotDto dto) {
-        if (dto.Name.Contains("Spades")) spades = dto.CurrentValue;
+        if (dto.Tier == "Spades") spades = dto.CurrentValue;
+        else if (dto.Tier == "Hearts") hearts = dto.CurrentValue;
+        else if (dto.Tier == "Diamonds") diamonds = dto.CurrentValue;
+        else if (dto.Tier == "Clubs") clubs = dto.CurrentValue;
+        else if (dto.Name.Contains("Spades")) spades = dto.CurrentValue;
         else if (dto.Name.Contains("Hearts")) hearts = dto.CurrentValue;
-        else if (dto.Name.Contains("Diamonds")) diamonds = dto.CurrentValue;
-        else if (dto.Name.Contains("Clubs")) clubs = dto.CurrentValue;
-        else if (dto.IsGlobal) spades = dto.CurrentValue; // Fallback
     }
 
     public void Dispose() {

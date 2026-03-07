@@ -262,7 +262,8 @@ public class GameController : ControllerBase {
             Name = j.Name,
             CurrentValue = j.CurrentValue,
             MustDropAt = j.MustDropAt,
-            IsGlobal = j.IsGlobal
+            IsGlobal = j.IsGlobal,
+            Tier = j.Tier.ToString()
         }).ToList();
         return Ok(result);
     }

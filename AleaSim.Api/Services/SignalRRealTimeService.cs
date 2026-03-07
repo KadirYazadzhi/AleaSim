@@ -18,7 +18,8 @@ public class SignalRRealTimeService : IRealTimeService {
             Name = jackpot.Name,
             CurrentValue = jackpot.CurrentValue,
             MustDropAt = jackpot.MustDropAt,
-            IsGlobal = jackpot.IsGlobal
+            IsGlobal = jackpot.IsGlobal,
+            Tier = jackpot.Tier.ToString()
         };
         await _hubContext.Clients.All.SendAsync("ReceiveJackpotUpdate", dto);
     }
