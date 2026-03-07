@@ -212,7 +212,7 @@
         try {
             await Audio.PlaySpin();
             
-            var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount, $"{{\"Denomination\":{denomination}}}");
+            var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount, new { Denomination = denomination });
             
             await JSRuntime.InvokeVoidAsync("slotEngine.spin", result.RandomResultJson);
             

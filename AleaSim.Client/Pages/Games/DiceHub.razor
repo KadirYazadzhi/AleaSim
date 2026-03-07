@@ -246,7 +246,7 @@
         };
 
         try {
-            var response = await GameService.PlaceBet("dice", sessionId.Value, betAmount, JsonSerializer.Serialize(betData));
+            var response = await GameService.PlaceBet("dice", sessionId.Value, betAmount, betData);
             var result = JsonSerializer.Deserialize<DiceResultDto>(response.RandomResultJson);
             
             if (result != null) {

@@ -350,8 +350,7 @@
                 Bets = currentBets,
                 Mode = selectedMode
             };
-            var betData = JsonSerializer.Serialize(betPayload);
-            var result = await GameService.PlaceBet("roulette", sessionId.Value, totalWager, betData);
+            var result = await GameService.PlaceBet("roulette", sessionId.Value, totalWager, betPayload);
             
             var resultData = JsonSerializer.Deserialize<RouletteResult>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             

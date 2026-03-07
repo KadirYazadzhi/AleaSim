@@ -162,7 +162,7 @@
             balance -= betAmount;
             layoutService.DeductOptimisticBalance(betAmount); 
             
-            var result = await GameService.PlaceBet("blackjack", sessionId.Value, betAmount);
+            var result = await GameService.PlaceBet("blackjack", sessionId.Value, betAmount, new { });
             var state = JsonSerializer.Deserialize<BlackjackStateUI>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (state != null) await UpdateUI(state);
             
