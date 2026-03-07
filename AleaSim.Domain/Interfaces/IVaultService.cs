@@ -35,4 +35,14 @@ public interface IVaultService {
     /// Converts Bonus to Real Balance at 10% rate if > 100. Else forfeits.
     /// </summary>
     Task<bool> CashoutBonusAsync(Guid userId, IGameRepository repo);
+
+    /// <summary>
+    /// Returns current claimable cashback for the user.
+    /// </summary>
+    decimal GetPendingCashback(Guid userId, IGameRepository repo);
+
+    /// <summary>
+    /// Transfers PendingCashback to User Balance and resets it.
+    /// </summary>
+    Task<decimal> ClaimCashbackAsync(Guid userId, IGameRepository repo);
 }

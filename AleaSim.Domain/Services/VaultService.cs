@@ -75,6 +75,11 @@ public class VaultService : IVaultService {
             if (profile != null) {
                 if (user.WageringRequirement == 0) {
                      profile.ShadowBalance += amount * 0.95m;
+                     
+                     // 10% Base Cashback + Level Bonus
+                     decimal rate = 0.10m + (profile.CashbackLevel * 0.01m);
+                     profile.PendingCashback += amount * rate;
+                     
                      repo.UpdatePlayerProfile(profile);
                 }
             }
@@ -113,6 +118,10 @@ public class VaultService : IVaultService {
 
         if (profile != null && user.WageringRequirement == 0) {
             profile.ShadowBalance -= amount;
+            
+            decimal rate = 0.10m + (profile.CashbackLevel * 0.01m);
+            profile.PendingCashback = Math.Max(0, profile.PendingCashback - (amount * rate));
+
             repo.UpdatePlayerProfile(profile);
         }
 
@@ -205,6 +214,35 @@ public class VaultService : IVaultService {
 
         _ = _realTime.NotifyBalanceUpdate(userId, user.Balance, 0);
         return true;
+    }
+
+    public decimal GetPendingCashback(Guid userId, IGameRepository repo) {
+        var profile = repo.GetPlayerProfile(userId);
+        return profile?.PendingCashback ?? 0;
+    }
+
+    public async Task<decimal> ClaimCashbackAsync(Guid userId, IGameRepository repo) {
+        using var lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(5));
+        
+        var profile = repo.GetPlayerProfile(userId);
+        var user = repo.GetUser(userId);
+        
+        if (profile == null || user == null || profile.PendingCashback < 0.01m) return 0;
+
+        decimal amount = Math.Round(profile.PendingCashback, 2);
+        profile.PendingCashback = 0;
+        user.Balance += amount;
+        
+        repo.UpdatePlayerProfile(profile);
+        repo.UpdateUser(user);
+
+        repo.SaveTransaction(new Transaction {
+            Id = Guid.NewGuid(), UserId = userId, Amount = amount, Type = TransactionType.Bonus, 
+            Description = "Cashback Claim", Timestamp = DateTime.UtcNow, ResultingBalance = user.Balance
+        });
+
+        _ = _realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance);
+        return amount;
     }
 
     private void CheckWageringCompletion(User user) {

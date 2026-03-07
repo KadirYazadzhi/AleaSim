@@ -109,6 +109,29 @@ public class VaultController : ControllerBase {
         catch (UnauthorizedAccessException) { return Unauthorized(); }
     }
 
+    [HttpGet("cashback")]
+    public IActionResult GetPendingCashback() {
+        try {
+            var userId = GetUserIdOrThrow();
+            var amount = _vault.GetPendingCashback(userId, _repo);
+            return Ok(new { Amount = amount });
+        }
+        catch (UnauthorizedAccessException) { return Unauthorized(); }
+    }
+
+    [HttpPost("cashback/claim")]
+    public IActionResult ClaimCashback() {
+        try {
+            var userId = GetUserIdOrThrow();
+            var amount = _vault.ClaimCashbackAsync(userId, _repo).GetAwaiter().GetResult();
+            
+            if (amount <= 0) return BadRequest("No pending cashback to claim.");
+            
+            return Ok(new { ClaimedAmount = amount, Message = $"Successfully claimed {amount:C} cashback!" });
+        }
+        catch (UnauthorizedAccessException) { return Unauthorized(); }
+    }
+
     private Guid GetUserIdOrThrow() {
         var idClaim = User.FindFirst(ClaimTypes.NameIdentifier);
         if (idClaim == null || !Guid.TryParse(idClaim.Value, out var id)) {

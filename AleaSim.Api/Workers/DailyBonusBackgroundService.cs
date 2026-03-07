@@ -59,14 +59,8 @@ public class DailyBonusBackgroundService : BackgroundService {
                 decimal bonusAmount = 0;
                 string type = "";
 
-                if (stat.NetResult < 0) {
-                    var profile = repo.GetPlayerProfile(stat.UserId);
-                    decimal cashbackPercent = 0.10m + ((profile?.CashbackLevel ?? 0) * 0.01m);
-                    decimal loss = Math.Abs(stat.NetResult);
-                    bonusAmount = loss * cashbackPercent;
-                    type = "Cashback";
-                }
-                else if (stat.NetResult > 0) {
+                if (stat.NetResult > 0) {
+                    // Loyalty reward for winners (5% of daily profit)
                     bonusAmount = stat.NetResult * 0.05m;
                     type = "Loyalty Reward";
                 }

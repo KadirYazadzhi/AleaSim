@@ -271,8 +271,17 @@
                         <MudPaper Class="pa-6 rounded-xl gradient-bg-blue position-relative overflow-hidden elevation-10" Elevation="0">
                             <div style="position: relative; z-index: 2;">
                                 <MudText Typo="Typo.subtitle2" Class="text-white opacity-80 mb-1">Weekly Benefit</MudText>
-                                <MudText Typo="Typo.h5" Class="text-white fw-black mb-3">10% CASHBACK</MudText>
-                                <MudButton Variant="Variant.Outlined" Color="Color.Surface" Size="Size.Small" Class="rounded-lg border-2 fw-bold">CLAIM NOW</MudButton>
+                                <MudText Typo="Typo.h5" Class="text-white fw-black mb-3">
+                                    @(pendingCashback > 0 ? pendingCashback.ToString("C2") : "10%") CASHBACK
+                                </MudText>
+                                <MudButton Variant="Variant.Outlined" 
+                                           Color="Color.Surface" 
+                                           Size="Size.Small" 
+                                           Class="rounded-lg border-2 fw-bold"
+                                           OnClick="ClaimCashback"
+                                           Disabled="@(pendingCashback < 0.01m)">
+                                    @(pendingCashback > 0 ? "CLAIM NOW" : "NO PENDING")
+                                </MudButton>
                             </div>
                             <MudIcon Icon="@Icons.Material.Filled.Savings" Style="position: absolute; right: -20px; bottom: -20px; font-size: 8rem; opacity: 0.1; color: white;" />
                         </MudPaper>
@@ -809,6 +818,7 @@
     private string selectedCategory = "Lobby";
     private string _searchTerm = "";
     private MudTextField<string>? searchField;
+    private decimal pendingCashback = 0;
 
     public string SearchTerm {
         get => _searchTerm;
@@ -840,6 +850,7 @@
         
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true) {
+            await LoadCashback();
             try {
                 var response = await Http.PostAsync("api/Game/streak/claim", null);
                 if (response.IsSuccessStatusCode) {
@@ -887,6 +898,32 @@
         await DialogService.ShowAsync<BonusWheel>("Daily Luck Wheel", options);
     }
 
+    private async Task LoadCashback() {
+        try {
+            var res = await Http.GetFromJsonAsync<CashbackResponse>("api/Vault/cashback");
+            if (res != null) pendingCashback = res.Amount;
+        } catch { }
+    }
+
+    private async Task ClaimCashback() {
+        try {
+            var response = await Http.PostAsync("api/Vault/cashback/claim", null);
+            if (response.IsSuccessStatusCode) {
+                var res = await response.Content.ReadFromJsonAsync<ClaimResponse>();
+                Snackbar.Add(res?.Message ?? "Cashback claimed!", Severity.Success);
+                pendingCashback = 0;
+                StateHasChanged();
+            } else {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add("Could not claim: " + error, Severity.Warning);
+            }
+        } catch (Exception ex) {
+            Snackbar.Add("Error claiming cashback: " + ex.Message, Severity.Error);
+        }
+    }
+
+    public class CashbackResponse { public decimal Amount { get; set; } }
+    public class ClaimResponse { public decimal ClaimedAmount { get; set; } public string Message { get; set; } = ""; }
     public class StreakResult { public int Streak { get; set; } public decimal Amount { get; set; } public string Message { get; set; } = ""; }
     public class GameItem {
         public string Title { get; set; }

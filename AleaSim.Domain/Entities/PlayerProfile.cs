@@ -37,6 +37,9 @@ public class PlayerProfile {
     // --- Persona & Affinity ---
     public string SymbolAffinityJson { get; set; } = "{}"; // Map of SymbolID -> Score
 
+    // --- RPG Progression ---
+    public decimal PendingCashback { get; set; } = 0m; // Claimable funds from losses
+
     // --- Skill Tree / Perks ---
     public int LuckyCloverLevel { get; set; } = 0; // Each level +1% chance
     public int CashbackLevel { get; set; } = 0;    // Each level +1% cashback
