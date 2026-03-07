@@ -235,6 +235,7 @@
             if (gridData != null) {
                 gameState.IsBonusActive = gridData.IsBonusActive;
                 gameState.IsRespinActive = gridData.IsRespinActive;
+                gameState.BonusLives = gridData.BonusLives;
                 gameState.IsGambleActive = lastWin > 0 && !gameState.IsBonusActive && !gameState.IsRespinActive; 
                 gameState.PendingGambleWin = lastWin;
                 wasNudged = gridData.WasNudged;
@@ -304,6 +305,7 @@
     public class SlotStateResponse {
         public bool IsBonusActive { get; set; }
         public bool IsRespinActive { get; set; }
+        public int BonusLives { get; set; }
         public bool WasNudged { get; set; }
     }
 }

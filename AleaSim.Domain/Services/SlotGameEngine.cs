@@ -259,7 +259,17 @@ public class SlotGameEngine : BaseGameEngine {
             var round = new GameRound {
                 Id = Guid.NewGuid(), GameSessionId = sessionId, TotalBetAmount = currentBet, TotalWinAmount = totalWin,
                 RoundNumber = roundCount + 1,
-                RandomResult = JsonSerializer.Serialize(new { Grid = state.Grid, state.IsRespinActive, state.IsBonusActive, state.WasNudged, BonusTotal = state.BonusBells.Sum(x=>x.Value), state.Denomination, BonusBells = state.BonusBells }),
+                RandomResult = JsonSerializer.Serialize(new { 
+                    Grid = state.Grid, 
+                    state.IsRespinActive, 
+                    state.IsBonusActive, 
+                    state.WasNudged, 
+                    state.BonusLives,
+                    BonusTotal = state.BonusBells.Sum(x=>x.Value), 
+                    state.Denomination, 
+                    BonusBells = state.BonusBells,
+                    WinningLines = GetWinningLines(state.Grid, state.LockedBet, config)
+                }),
                 DecisionType = directive.DecisionType, ExecutedAt = DateTime.UtcNow,
                 ShadowBrainResult = JsonSerializer.Serialize(shadowDirective),
                 ServerSeed = session.ServerSeed,
@@ -440,6 +450,33 @@ public class SlotGameEngine : BaseGameEngine {
             }
         }
         return win;
+    }
+
+    private List<object> GetWinningLines(int[][] grid, decimal bet, SlotGameConfig config) {
+        var lines = new List<object>();
+        for (int i = 0; i < config.Paylines.Length; i++) {
+            var line = config.Paylines[i];
+            int match = grid[line[0]][0]; int count = 1;
+            if (match == config.WildSymbol || match == config.GoldenSymbol) match = -1;
+            
+            for (int c = 1; c < config.Cols; c++) {
+                if (IsMatch(match, grid[line[c]][c], out int res, config)) { 
+                    count++; 
+                    if (match == -1 && res != config.WildSymbol && res != config.GoldenSymbol) match = res; 
+                }
+                else break;
+            }
+            if (count >= 3) { 
+                int sym = (match == -1) ? config.WildSymbol : match; 
+                if (config.Paytable.ContainsKey(sym)) {
+                       int index = count - 3;
+                       if (index >= 0 && index < config.Paytable[sym].Length) {
+                           lines.Add(new { LineIndex = i, SymbolId = sym, Count = count, Payout = bet * config.Paytable[sym][index] });
+                       }
+                }
+            }
+        }
+        return lines;
     }
 
     private bool IsMatch(int target, int candidate, out int result, SlotGameConfig config) {

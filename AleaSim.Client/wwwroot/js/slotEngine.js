@@ -3,10 +3,18 @@ window.slotEngine = {
     app: null,
     reels: [],
     textures: {},
+    winGraphics: null, // Layer for win lines
     symbolSize: 100,
     reelWidth: 160,
     rows: 4,
     cols: 5,
+    paylines: [
+        [0,0,0,0,0], [1,1,1,1,1], [2,2,2,2,2], [3,3,3,3,3],
+        [0,1,2,1,0], [1,2,3,2,1], [2,1,0,1,2], [3,2,1,2,3],
+        [0,1,0,1,0], [1,0,1,0,1], [2,3,2,3,2], [3,2,3,2,3],
+        [0,0,1,0,0], [1,1,2,1,1], [2,2,3,2,2], [1,1,0,1,1],
+        [2,2,1,2,2], [1,0,0,0,1], [2,3,3,3,2], [0,1,1,1,0]
+    ],
     running: false,
     performance: {
         turbo: false,
@@ -38,6 +46,9 @@ window.slotEngine = {
             antialias: !lowGraphics
         });
         el.appendChild(window.slotEngine.app.view);
+
+        window.slotEngine.winGraphics = new PIXI.Graphics();
+        window.slotEngine.app.stage.addChild(window.slotEngine.winGraphics);
 
         // Load Textures using PIXI.Assets (v7+)
         const symbolFiles = {
@@ -120,11 +131,11 @@ window.slotEngine = {
     spin: (resultJson) => {
         if (window.slotEngine.running) return;
         window.slotEngine.running = true;
+        window.slotEngine.clearWinLines(); // Clear previous lines
         
         const data = JSON.parse(resultJson);
         const grid = data.Grid; 
-        
-        // Convert Server (Row-Major) to Reel (Col-Major)
+        window.slotEngine.lastWinningLines = data.WinningLines || [];
         // Grid[Row][Col] -> Reel[Col][Row]
         const finalSymbols = [];
         for(let c=0; c < 5; c++) {
@@ -245,6 +256,50 @@ window.slotEngine = {
             }
         });
 
-        if (activeReels === 0) window.slotEngine.running = false;
+        if (activeReels === 0) {
+            window.slotEngine.running = false;
+            if (window.slotEngine.lastWinningLines && window.slotEngine.lastWinningLines.length > 0) {
+                window.slotEngine.drawWinLines(window.slotEngine.lastWinningLines);
+            }
+        }
+    },
+
+    clearWinLines: () => {
+        if (window.slotEngine.winGraphics) {
+            window.slotEngine.winGraphics.clear();
+        }
+    },
+
+    drawWinLines: (winningLines) => {
+        const { winGraphics, paylines, reelWidth, symbolSize } = window.slotEngine;
+        winGraphics.clear();
+        
+        winningLines.forEach((win, index) => {
+            const lineData = paylines[win.LineIndex];
+            if (!lineData) return;
+
+            winGraphics.lineStyle(6, 0x00f2ff, 0.8); // Cyan neon line
+            
+            // Starting point (center of first symbol)
+            const startX = 40 + (reelWidth / 2);
+            const startY = 40 + (lineData[0] * symbolSize) + (symbolSize / 2);
+            winGraphics.moveTo(startX, startY);
+
+            // Draw through matching columns
+            for (let c = 1; c < win.Count; c++) {
+                const x = 40 + (c * reelWidth) + (reelWidth / 2);
+                const y = 40 + (lineData[c] * symbolSize) + (symbolSize / 2);
+                winGraphics.lineTo(x, y);
+            }
+
+            // Optional: Glow effect (draw a wider faint line behind)
+            winGraphics.lineStyle(12, 0x00f2ff, 0.2);
+            winGraphics.moveTo(startX, startY);
+            for (let c = 1; c < win.Count; c++) {
+                const x = 40 + (c * reelWidth) + (reelWidth / 2);
+                const y = 40 + (lineData[c] * symbolSize) + (symbolSize / 2);
+                winGraphics.lineTo(x, y);
+            }
+        });
     }
 };
