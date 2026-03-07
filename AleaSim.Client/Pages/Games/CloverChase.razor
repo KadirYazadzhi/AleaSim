@@ -196,11 +196,16 @@
         // Sync performance mode just in case it was changed in settings dialog
         await SetEnginePerformance();
 
-        // Logic: Features (Respin/Bonus) are FREE (cost was paid in the triggering spin)
-        var betAmount = (gameState.IsBonusActive || gameState.IsRespinActive) ? 0 : (creditsBet * denomination);
+        // Logic: Bonus features are FREE, but Respins are PAID (as per Design Specs)
+        var betAmount = gameState.IsBonusActive ? 0 : (creditsBet * denomination);
 
         // Optimistic local update area
         if (betAmount > 0) {
+            if (balance < betAmount) {
+                Snackbar.Add("Insufficient Balance for Respin!", Severity.Warning);
+                isSpinning = false;
+                return;
+            }
             balance -= betAmount;
             layoutService.DeductOptimisticBalance(betAmount); // Update Navbar immediately
             StateHasChanged();

@@ -61,7 +61,7 @@ public class GameDirector : IGameDirector {
                  throw new Exception("You are spinning too fast! Please wait.");
             }
         }
-        if (amount <= 0) throw new ArgumentException("Bet amount must be positive.");
+        if (amount < 0) throw new ArgumentException("Bet amount cannot be negative.");
         var gameEngine = _gameResolver(gameType);
         
         SpinProfile profile = SpinProfile.Standard;
