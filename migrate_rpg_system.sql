@@ -90,5 +90,5 @@ INSERT IGNORE INTO Quests (Id, Title, Description, GoalType, TargetValue, Reward
 ('00000000-0000-0000-0000-000000000013', 'Big Win Hunter', 'Win a total of $500', 'WinAmount', 500.00, 25.00, 1);
 
 -- 10. Insert Neon Dice Game
-INSERT IGNORE INTO Games (Id, Title, Type, Provider, IsActive, Rtp, MinBet, MaxBet) VALUES
-('77777777-7777-7777-7777-777777777777', 'Neon Dice', 'dice', 'AleaSim Originals', 1, 99.0, 0.1, 1000.0);
+INSERT IGNORE INTO Games (Id, Title, Type, Provider, IsActive, Rtp, MinBet, MaxBet, PoolBalance) VALUES
+('77777777-7777-7777-7777-777777777777', 'Neon Dice', 'dice', 'AleaSim Originals', 1, 99.0, 0.1, 1000.0, 1000000.00);

@@ -134,7 +134,7 @@
             <div class="mt-6 d-flex gap-2 overflow-x-auto pb-2">
                 @foreach (var res in recentRolls) {
                     <div class='@($"roll-history-item {(res.Win ? "win" : "loss")}")'>
-                        @(res.Value.ToString("F2"))
+                        @res.Label
                     </div>
                 }
             </div>
@@ -235,7 +235,7 @@
     private int lastMultiHits = 0;
     private decimal lastMultiplier = 0;
     private bool autoBet = false;
-    private List<(decimal Value, bool Win)> recentRolls = new();
+    private List<(string Label, bool Win)> recentRolls = new();
 
     private decimal WinChance => isRollOver ? (100 - sliderTarget) : sliderTarget;
     private decimal PayoutMultiplier => WinChance > 0 ? Math.Round(99m / WinChance, 4) : 0;
@@ -275,16 +275,19 @@
                 // UX Delay
                 await Task.Delay(300);
                 
-                if (selectedMode == "Slider") {
+                string historyLabel = "";
+                if (selectedMode.Equals("Slider", StringComparison.OrdinalIgnoreCase)) {
                     currentRoll = result.ResultValue;
+                    historyLabel = currentRoll.ToString("F2");
                 } else {
                     multiResults = result.MultiDiceResults ?? new();
                     lastMultiHits = multiResults.Count(d => selectedMultiNumbers.Contains(d));
+                    historyLabel = $"{lastMultiHits}H";
                 }
                 
                 lastResultWasWin = result.IsWin;
                 lastMultiplier = result.PayoutMultiplier;
-                recentRolls.Insert(0, (selectedMode == "Slider" ? result.ResultValue : (decimal)lastMultiHits, result.IsWin));
+                recentRolls.Insert(0, (historyLabel, result.IsWin));
                 if (recentRolls.Count > 10) recentRolls.RemoveAt(10);
 
                 if (result.IsWin) await Audio.PlayWin();
