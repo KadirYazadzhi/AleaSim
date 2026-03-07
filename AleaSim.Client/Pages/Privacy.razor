@@ -1,42 +1,83 @@
 @page "/privacy"
 @using AleaSim.Client.Services
 @inject LayoutService LayoutService
-@inject HttpClient Http
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-12 mb-16">
-    <MudText Typo="Typo.h3" Class="text-gradient fw-black mb-4">PRIVACY POLICY</MudText>
-    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-8">Last Updated: March 2026</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-12 mb-16 animate-fade-in">
+    <div class="text-center mb-10">
+        <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Large" Color="Color.Secondary" Style="font-size: 4rem;" class="mb-4" />
+        <MudText Typo="Typo.h2" Class="text-gradient-alt fw-black mb-2">PRIVACY POLICY</MudText>
+        <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Your privacy and data security are our top priorities.</MudText>
+    </div>
 
-    <MudPaper Class="pa-8 rounded-xl glass-panel" Elevation="0">
-        <div class="dynamic-content">
-            @((MarkupString)_content)
+    <MudStack Spacing="6">
+        <MudPaper Class="pa-8 rounded-xl glass-panel relative overflow-hidden" Elevation="0">
+            <div class="accent-line-alt"></div>
+            <MudText Typo="Typo.h5" Class="fw-bold mb-4 mud-text-secondary">1. Data Collection</MudText>
+            <MudText Typo="Typo.body1" Class="mud-text-secondary mb-4">
+                We collect information necessary to provide and improve our services, including your username, email address, and transaction history. We do not store sensitive payment credentials on our servers.
+            </MudText>
+        </MudPaper>
+
+        <MudPaper Class="pa-8 rounded-xl glass-panel relative overflow-hidden" Elevation="0">
+            <div class="accent-line-alt"></div>
+            <MudText Typo="Typo.h5" Class="fw-bold mb-4 mud-text-secondary">2. Use of Information</MudText>
+            <MudText Typo="Typo.body1" Class="mud-text-secondary mb-4">
+                Your data is used to personalize your experience, process transactions, and maintain the security of our platform. Our AI engine ("The Brain") analyzes play patterns to provide dynamic challenges and ensure fair play.
+            </MudText>
+        </MudPaper>
+
+        <MudPaper Class="pa-8 rounded-xl glass-panel relative overflow-hidden" Elevation="0">
+            <div class="accent-line-alt"></div>
+            <MudText Typo="Typo.h5" Class="fw-bold mb-4 mud-text-secondary">3. Data Security</MudText>
+            <MudText Typo="Typo.body1" Class="mud-text-secondary mb-4">
+                We implement industry-standard security measures, including end-to-end encryption and multi-factor authentication, to protect your personal information from unauthorized access or disclosure.
+            </MudText>
+        </MudPaper>
+
+        <MudPaper Class="pa-8 rounded-xl glass-panel relative overflow-hidden" Elevation="0">
+            <div class="accent-line-alt"></div>
+            <MudText Typo="Typo.h5" Class="fw-bold mb-4 mud-text-secondary">4. Cookies & Tracking</MudText>
+            <MudText Typo="Typo.body1" Class="mud-text-secondary mb-4">
+                AleaSim uses cookies to maintain your session and remember your preferences. These cookies are essential for the core functionality of the platform.
+            </MudText>
+        </MudPaper>
+
+        <MudPaper Class="pa-8 rounded-xl glass-panel relative overflow-hidden" Elevation="0">
+            <div class="accent-line-alt"></div>
+            <MudText Typo="Typo.h5" Class="fw-bold mb-4 mud-text-secondary">5. Your Rights</MudText>
+            <MudText Typo="Typo.body1" Class="mud-text-secondary mb-4">
+                You have the right to access, correct, or delete your personal data. You can manage your account settings directly through the profile panel or by contacting our support team.
+            </MudText>
+        </MudPaper>
+
+        <div class="text-center mt-8">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">If you have any questions regarding this policy, please contact us at support@aleasim.com</MudText>
         </div>
-    </MudPaper>
+    </MudStack>
 </MudContainer>
-
-@code {
-    private string _content = "Loading privacy policy...";
-    protected override async Task OnInitializedAsync() {
-        try {
-            var settings = await Http.GetFromJsonAsync<List<AleaSim.Client.Pages.Admin.Settings.GlobalSettingDto>>("api/Admin/settings/global");
-            var priv = settings?.FirstOrDefault(s => s.Key == "Content_Privacy");
-            if (priv != null) _content = priv.Value;
-        } catch { _content = "Error loading privacy policy."; }
-    }
-}
 
 <style>
     .fw-black { font-weight: 900; }
     .fw-bold { font-weight: 700; }
-    .text-gradient {
-        background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary));
+    .text-gradient-alt {
+        background: linear-gradient(to right, var(--mud-palette-secondary), var(--mud-palette-info));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
     .glass-panel {
-        background-color: @(LayoutService.IsDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.05)");
+        background-color: var(--mud-palette-surface);
         backdrop-filter: blur(10px);
         border: 1px solid var(--mud-palette-divider);
+        position: relative;
     }
-    .dynamic-content { line-height: 1.6; white-space: pre-wrap; }
+    .accent-line-alt {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(to bottom, var(--mud-palette-secondary), var(--mud-palette-info));
+    }
+    .animate-fade-in { animation: fadeIn 0.6s ease-out; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>

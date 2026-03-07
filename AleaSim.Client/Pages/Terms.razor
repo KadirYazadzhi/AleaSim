@@ -1,29 +1,63 @@
 @page "/terms"
 @using AleaSim.Client.Services
 @inject LayoutService LayoutService
-@inject HttpClient Http
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-12 mb-16">
-    <MudText Typo="Typo.h3" Class="text-gradient fw-black mb-4">TERMS OF SERVICE</MudText>
-    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-8">Last Updated: March 2026</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-12 mb-16 animate-fade-in">
+    <div class="text-center mb-10">
+        <MudIcon Icon="@Icons.Material.Filled.Gavel" Size="Size.Large" Color="Color.Primary" Style="font-size: 4rem;" class="mb-4" />
+        <MudText Typo="Typo.h2" Class="text-gradient fw-black mb-2">TERMS OF SERVICE</MudText>
+        <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Please read these terms carefully before using AleaSim.</MudText>
+    </div>
 
-    <MudPaper Class="pa-8 rounded-xl glass-panel" Elevation="0">
-        <div class="dynamic-content">
-            @((MarkupString)_content)
+    <MudStack Spacing="6">
+        <MudPaper Class="pa-8 rounded-xl glass-panel relative overflow-hidden" Elevation="0">
+            <div class="accent-line"></div>
+            <MudText Typo="Typo.h5" Class="fw-bold mb-4 mud-text-primary">1. Acceptance of Terms</MudText>
+            <MudText Typo="Typo.body1" Class="mud-text-secondary mb-4">
+                By accessing or using the AleaSim platform, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this site.
+            </MudText>
+        </MudPaper>
+
+        <MudPaper Class="pa-8 rounded-xl glass-panel relative overflow-hidden" Elevation="0">
+            <div class="accent-line"></div>
+            <MudText Typo="Typo.h5" Class="fw-bold mb-4 mud-text-primary">2. Eligibility & Account</MudText>
+            <MudText Typo="Typo.body1" Class="mud-text-secondary mb-4">
+                You must be at least 18 years of age (or the legal age of majority in your jurisdiction) to use our services. You are responsible for maintaining the confidentiality of your account and password and for restricting access to your computer.
+            </MudText>
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="rounded-lg border-2">
+                Multi-accounting is strictly prohibited and will lead to immediate account termination and forfeiture of funds.
+            </MudAlert>
+        </MudPaper>
+
+        <MudPaper Class="pa-8 rounded-xl glass-panel relative overflow-hidden" Elevation="0">
+            <div class="accent-line"></div>
+            <MudText Typo="Typo.h5" Class="fw-bold mb-4 mud-text-primary">3. Fair Play & Provable Fairness</MudText>
+            <MudText Typo="Typo.body1" Class="mud-text-secondary mb-4">
+                AleaSim utilizes a cryptographically secure RNG system. Every outcome is verifiable by the user. Any attempt to manipulate, exploit bugs, or use automated software (bots) to gain an unfair advantage is a violation of these terms.
+            </MudText>
+        </MudPaper>
+
+        <MudPaper Class="pa-8 rounded-xl glass-panel relative overflow-hidden" Elevation="0">
+            <div class="accent-line"></div>
+            <MudText Typo="Typo.h5" Class="fw-bold mb-4 mud-text-primary">4. Deposits & Withdrawals</MudText>
+            <MudText Typo="Typo.body1" Class="mud-text-secondary mb-4">
+                All transactions are processed through our automated vault system. While we strive for instant processing, network conditions may cause delays. Users are responsible for ensuring their wallet addresses are correct.
+            </MudText>
+        </MudPaper>
+
+        <MudPaper Class="pa-8 rounded-xl glass-panel relative overflow-hidden" Elevation="0">
+            <div class="accent-line"></div>
+            <MudText Typo="Typo.h5" Class="fw-bold mb-4 mud-text-primary">5. Responsible Gaming</MudText>
+            <MudText Typo="Typo.body1" Class="mud-text-secondary mb-4">
+                AleaSim provides tools for self-exclusion and loss limits. We encourage our players to gamble responsibly. Gambling should be treated as entertainment, not a way to make money.
+            </MudText>
+        </MudPaper>
+
+        <div class="text-center mt-8">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">© 2026 AleaSim Intelligent Gaming. All rights reserved.</MudText>
         </div>
-    </MudPaper>
+    </MudStack>
 </MudContainer>
-
-@code {
-    private string _content = "Loading terms...";
-    protected override async Task OnInitializedAsync() {
-        try {
-            var settings = await Http.GetFromJsonAsync<List<AleaSim.Client.Pages.Admin.Settings.GlobalSettingDto>>("api/Admin/settings/global");
-            var terms = settings?.FirstOrDefault(s => s.Key == "Content_Terms");
-            if (terms != null) _content = terms.Value;
-        } catch { _content = "Error loading terms."; }
-    }
-}
 
 <style>
     .fw-black { font-weight: 900; }
@@ -34,9 +68,19 @@
         -webkit-text-fill-color: transparent;
     }
     .glass-panel {
-        background-color: @(LayoutService.IsDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.05)");
+        background-color: var(--mud-palette-surface);
         backdrop-filter: blur(10px);
         border: 1px solid var(--mud-palette-divider);
+        position: relative;
     }
-    .dynamic-content { line-height: 1.6; white-space: pre-wrap; }
+    .accent-line {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(to bottom, var(--mud-palette-primary), var(--mud-palette-secondary));
+    }
+    .animate-fade-in { animation: fadeIn 0.6s ease-out; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
