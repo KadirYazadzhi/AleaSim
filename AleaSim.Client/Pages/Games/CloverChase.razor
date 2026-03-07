@@ -26,6 +26,12 @@
                 <div id="pixi-slot-container" style="width: 100%; height: 480px; background: #000; display: flex; justify-content: center; align-items: center;">
                     <!-- Canvas will be injected here by PixiJS -->
                 </div>
+                
+                <!-- Info Button -->
+                <div style="position: absolute; top: 10px; right: 10px; z-index: 101;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Inherit" Class="glass-panel rounded-circle p-2" OnClick="OpenPaytable" title="View Paytable & Lines" />
+                </div>
+
                 <div class="win-light @(lastWin > 0 ? "active" : "")"></div>
                 
                 @if (gameState.IsRespinActive) {
@@ -63,11 +69,12 @@
         <!-- Controls -->
         <MudItem xs="12" lg="3">
             <MudPaper Class="pa-6" Style="background: #222; color: white; height: 100%; border-left: 4px solid #444;">
-                <div class="credits-display mb-6">
+                <div class="credits-display mb-2">
                     <MudText Typo="Typo.h5" Align="Align.Center" Style="color: #ffeb3b; font-weight: 900; font-family: monospace;">
                         CREDITS: @((balance / (denomination > 0 ? denomination : 0.01m)).ToString("N0"))
                     </MudText>
                 </div>
+                <MudText Typo="Typo.caption" Class="d-block text-center opacity-50 mb-4" Style="letter-spacing: 1px;">20 FIXED PAYLINES</MudText>
 
                 <MudSelect T="decimal" Label="Denomination" @bind-Value="denomination" Variant="Variant.Filled" Class="mb-4" 
                            Disabled="@(isSpinning || gameState.IsBonusActive || gameState.IsRespinActive || gameState.IsGambleActive)">
@@ -151,6 +158,11 @@
         } catch {
             // Fallback if script hasn't updated in browser cache yet
         }
+    }
+
+    private async Task OpenPaytable() {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, NoHeader = true };
+        await DialogService.ShowAsync<PaytableDialog>("", options);
     }
 
     private async Task LoadData()
