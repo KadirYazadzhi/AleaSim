@@ -40,13 +40,26 @@ window.slotEngine = {
         el.appendChild(window.slotEngine.app.view);
 
         // Load Textures using PIXI.Assets (v7+)
-        for (let i = 1; i <= 12; i++) {
-            if (i === 9) continue; 
-            PIXI.Assets.add(`sym${i}`, `images/slots/${i}.png`);
+        const symbolFiles = {
+            1: 'cherries.png',
+            2: 'lemon.png',
+            3: 'orange.png',
+            4: 'plum.png',
+            5: 'grape.png',
+            6: 'watermelon.png',
+            7: 'apple.png',
+            8: 'clover.png',
+            9: 'bell.png',
+            10: 'star.png',
+            11: 'coin.png',
+            12: 'seven.png'
+        };
+
+        for (const [id, file] of Object.entries(symbolFiles)) {
+            PIXI.Assets.add(`sym${id}`, `images/slots/${file}`);
         }
 
-        const keys = [];
-        for(let i=1; i<=12; i++) { if(i!==9) keys.push(`sym${i}`); }
+        const keys = Object.keys(symbolFiles).map(id => `sym${id}`);
         
         try {
             window.slotEngine.textures = await PIXI.Assets.load(keys);
@@ -76,7 +89,7 @@ window.slotEngine = {
             };
 
             for (let r = 0; r < 5; r++) { 
-                const id = Math.floor(Math.random() * 8) + 1;
+                const id = Math.floor(Math.random() * 12) + 1;
                 const tex = window.slotEngine.textures[`sym${id}`];
                 
                 // Fallback graphic if texture fails
@@ -162,7 +175,7 @@ window.slotEngine = {
                     // Visual slots: 0 (top), 1, 2, 3. 
                     // However, sprites cycle. 
                     
-                    let nextId = Math.floor(Math.random() * 8) + 1; // Default random
+                    let nextId = Math.floor(Math.random() * 12) + 1; // Default random
                     
                     if (reel.stopping) {
                         // When stopping, we want to start injecting the target symbols.
@@ -207,7 +220,7 @@ window.slotEngine = {
                         if (idx < 4 && reel.targetSymbols) {
                             targetId = reel.targetSymbols[idx];
                         } else {
-                            targetId = Math.floor(Math.random() * 8) + 1; // Buffer
+                            targetId = Math.floor(Math.random() * 12) + 1; // Buffer
                         }
                         
                         const tex = window.slotEngine.textures[`sym${targetId}`];

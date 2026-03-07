@@ -271,7 +271,7 @@
             var affinity = JsonSerializer.Deserialize<Dictionary<int, double>>(profile.SymbolAffinityJson ?? "{}");
             if (affinity == null || !affinity.Any()) return null;
             int symId = affinity.OrderByDescending(x => x.Value).First().Key;
-            return symId switch { 1 => "🍒", 2 => "🍋", 3 => "🍊", 4 => "🍇", 5 => "🔔", 6 => "💎", 7 => "7️⃣", 8 => "🍀", 10 => "💰", _ => "💎" };
+            return symId switch { 1 => "🍒", 2 => "🍋", 3 => "🍊", 4 => "🫐", 5 => "🍇", 6 => "🍉", 7 => "🍎", 8 => "🍀", 9 => "🔔", 10 => "⭐", 11 => "💰", 12 => "7️⃣", _ => "💎" };
         } catch { return null; }
     }
 
