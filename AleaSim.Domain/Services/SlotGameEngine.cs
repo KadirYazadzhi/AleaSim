@@ -91,7 +91,8 @@ public class SlotGameEngine : BaseGameEngine {
         decimal denom = 0.01m; 
         try { 
             var json = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(betData);
-            if (json.TryGetProperty("Denomination", out var d)) denom = d.GetDecimal();
+            if (json.TryGetProperty("Denomination", out var d) || json.TryGetProperty("denomination", out d)) 
+                denom = d.GetDecimal();
         } catch {}
 
         decimal dynamicMinBet = Math.Round(10 * denom, 2);

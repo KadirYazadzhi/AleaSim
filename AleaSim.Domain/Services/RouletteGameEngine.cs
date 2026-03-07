@@ -24,11 +24,12 @@ public class RouletteGameEngine : BaseGameEngine {
                     jsonToParse = JsonSerializer.Deserialize<string>(betData) ?? "[]";
                 }
 
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 using var doc = JsonDocument.Parse(jsonToParse);
                 if (doc.RootElement.ValueKind == JsonValueKind.Array) {
-                    bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(jsonToParse) ?? new();
-                } else if (doc.RootElement.TryGetProperty("Bets", out var betsEl)) {
-                    bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(betsEl.GetRawText()) ?? new();
+                    bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(jsonToParse, options) ?? new();
+                } else if (doc.RootElement.TryGetProperty("Bets", out var betsEl) || doc.RootElement.TryGetProperty("bets", out betsEl)) {
+                    bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(betsEl.GetRawText(), options) ?? new();
                 }
             }
         } catch { throw new Exception("Invalid bet data format."); }
@@ -37,7 +38,7 @@ public class RouletteGameEngine : BaseGameEngine {
         
         // 2. Validate Limits
         if (totalBet > 100000) throw new Exception("Total table bet exceeds $100,000.00 limit.");
-        if (bets.Any(x => x.Type == "number" && x.Amount > 100)) throw new Exception("Single number bet exceeds $100.00 limit.");
+        if (bets.Any(x => x.Type.Equals("number", StringComparison.OrdinalIgnoreCase) && x.Amount > 100)) throw new Exception("Single number bet exceeds $100.00 limit.");
         if (Math.Round(totalBet, 2) != Math.Round(amount, 2)) throw new Exception("Bet Integrity Error: Declared bets do not match total amount.");
 
         // 3. Deduct money only if valid
@@ -63,13 +64,14 @@ public class RouletteGameEngine : BaseGameEngine {
                         jsonToParse = JsonSerializer.Deserialize<string>(jsonToParse) ?? "[]";
                     }
 
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                     using var doc = JsonDocument.Parse(jsonToParse);
                     if (doc.RootElement.ValueKind == JsonValueKind.Array) {
-                        bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(jsonToParse) ?? new();
+                        bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(jsonToParse, options) ?? new();
                     } else {
-                        if (doc.RootElement.TryGetProperty("Bets", out var betsEl)) 
-                            bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(betsEl.GetRawText()) ?? new();
-                        if (doc.RootElement.TryGetProperty("Mode", out var modeEl)) 
+                        if (doc.RootElement.TryGetProperty("Bets", out var betsEl) || doc.RootElement.TryGetProperty("bets", out betsEl)) 
+                            bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(betsEl.GetRawText(), options) ?? new();
+                        if (doc.RootElement.TryGetProperty("Mode", out var modeEl) || doc.RootElement.TryGetProperty("mode", out modeEl)) 
                             mode = modeEl.GetString() ?? "Classic";
                     }
                 }
@@ -86,7 +88,7 @@ public class RouletteGameEngine : BaseGameEngine {
             int number = 0;
             var allNumbers = Enumerable.Range(0, 37).ToList();
 
-            if (directive.DecisionType == "Random") {
+            if (directive.DecisionType.Equals("Random", StringComparison.OrdinalIgnoreCase)) {
                 number = RngService.GetNextInt(session.Seed, nonce, 0, 37);
             }
             else if (directive.TargetWinAmount > 0) {
@@ -110,7 +112,7 @@ public class RouletteGameEngine : BaseGameEngine {
             
             // --- Multiplier Logic (Extreme Mode) ---
             var luckyNumbers = new Dictionary<int, int>();
-            if (mode == "Extreme") {
+            if (mode.Equals("Extreme", StringComparison.OrdinalIgnoreCase)) {
                 // Use nonce-based seeds for randomness every spin
                 int count = RngService.GetNextInt(session.Seed, nonce + 500, 1, 6); // 1-5 numbers
                 for (int i = 0; i < count; i++) {
@@ -126,7 +128,7 @@ public class RouletteGameEngine : BaseGameEngine {
             int winMultiplier = luckyNumbers.ContainsKey(number) ? luckyNumbers[number] : 0;
             decimal actualWin = CalculatePayout(number, bets, mode, winMultiplier);
 
-            bool isRandom = directive.DecisionType == "Random";
+            bool isRandom = directive.DecisionType.Equals("Random", StringComparison.OrdinalIgnoreCase);
             
             // Async Call
             if (actualWin > 0 && !await VaultService.CanAffordWinAsync(session.UserId, GameId, actualWin, repo, strictShadowCheck: !isRandom)) {
@@ -177,32 +179,32 @@ public class RouletteGameEngine : BaseGameEngine {
 
     private decimal CalculatePayout(int number, List<RouletteBetDto> bets, string mode = "Classic", int activeMultiplier = 0) {
         decimal total = 0;
-        decimal straightUpMult = (mode == "Extreme") ? 30m : 36m;
+        decimal straightUpMult = mode.Equals("Extreme", StringComparison.OrdinalIgnoreCase) ? 30m : 36m;
 
         foreach (var bet in bets) {
             bool win = false;
             decimal mult = 0;
 
-            if (bet.Type == "number" && int.TryParse(bet.Value, out int target) && target == number) {
+            if (bet.Type.Equals("number", StringComparison.OrdinalIgnoreCase) && int.TryParse(bet.Value, out int target) && target == number) {
                 win = true; 
                 mult = (activeMultiplier > 0) ? (decimal)activeMultiplier : straightUpMult;
             }
-            else if (bet.Type == "color") {
+            else if (bet.Type.Equals("color", StringComparison.OrdinalIgnoreCase)) {
                 bool isRed = new[] { 1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36 }.Contains(number);
                 if (number == 0) {
                     total += bet.Amount * 0.5m;
                 }
-                else if ((bet.Value == "red" && isRed) || (bet.Value == "black" && !isRed)) {
+                else if ((bet.Value.Equals("red", StringComparison.OrdinalIgnoreCase) && isRed) || (bet.Value.Equals("black", StringComparison.OrdinalIgnoreCase) && !isRed)) {
                     win = true; mult = 2m;
                 }
             }
-            else if (bet.Type == "evenodd") {
+            else if (bet.Type.Equals("evenodd", StringComparison.OrdinalIgnoreCase)) {
                 if (number == 0) {
                     total += bet.Amount * 0.5m;
                 }
                 else {
                     bool isEven = number % 2 == 0;
-                    if ((bet.Value == "even" && isEven) || (bet.Value == "odd" && !isEven)) {
+                    if ((bet.Value.Equals("even", StringComparison.OrdinalIgnoreCase) && isEven) || (bet.Value.Equals("odd", StringComparison.OrdinalIgnoreCase) && !isEven)) {
                         win = true; mult = 2m;
                     }
                 }

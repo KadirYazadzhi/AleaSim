@@ -37,7 +37,8 @@ public class DiceGameEngine : BaseGameEngine {
             var lastBet = repo.GetLastBet(sessionId);
             if (lastBet == null) throw new Exception("No bet found");
 
-            var betData = JsonSerializer.Deserialize<DiceBetDto>(lastBet.BetData) ?? new DiceBetDto();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var betData = JsonSerializer.Deserialize<DiceBetDto>(lastBet.BetData, options) ?? new DiceBetDto();
             int roundNum = repo.GetRoundCount(sessionId) + 1;
             int nonce = roundNum;
 
@@ -45,7 +46,7 @@ public class DiceGameEngine : BaseGameEngine {
             
             DiceResultDto result = new DiceResultDto();
             
-            if (betData.Mode == "Slider") {
+            if (betData.Mode.Equals("Slider", StringComparison.OrdinalIgnoreCase)) {
                 result = ResolveSliderDice(session.Seed, nonce, betData, directive);
             } else {
                 result = ResolveMultiDice(session.Seed, nonce, betData, directive);
@@ -90,7 +91,7 @@ public class DiceGameEngine : BaseGameEngine {
     }
 
     private DiceResultDto ResolveSliderDice(int seed, int nonce, DiceBetDto bet, BrainDirective directive) {
-        decimal winChance = bet.Condition == "Over" ? (100 - bet.TargetValue) : bet.TargetValue;
+        decimal winChance = bet.Condition.Equals("Over", StringComparison.OrdinalIgnoreCase) ? (100 - bet.TargetValue) : bet.TargetValue;
         if (winChance <= 0 || winChance >= 100) winChance = 50;
 
         // House edge 1%
@@ -99,15 +100,15 @@ public class DiceGameEngine : BaseGameEngine {
         decimal roll = 0;
         bool isWin = false;
 
-        if (directive.DecisionType == "Random") {
+        if (directive.DecisionType.Equals("Random", StringComparison.OrdinalIgnoreCase)) {
             roll = (decimal)(RngService.GetNextDouble(seed, nonce) * 100);
         } else if (directive.TargetWinAmount > 0) {
             // Force Win
-            if (bet.Condition == "Over") roll = bet.TargetValue + 0.01m + (decimal)RngService.GetNextDouble(seed, nonce) * (100 - bet.TargetValue - 0.01m);
+            if (bet.Condition.Equals("Over", StringComparison.OrdinalIgnoreCase)) roll = bet.TargetValue + 0.01m + (decimal)RngService.GetNextDouble(seed, nonce) * (100 - bet.TargetValue - 0.01m);
             else roll = (decimal)RngService.GetNextDouble(seed, nonce) * (bet.TargetValue - 0.01m);
         } else {
             // Force Loss
-            if (bet.Condition == "Over") roll = (decimal)RngService.GetNextDouble(seed, nonce) * bet.TargetValue;
+            if (bet.Condition.Equals("Over", StringComparison.OrdinalIgnoreCase)) roll = (decimal)RngService.GetNextDouble(seed, nonce) * bet.TargetValue;
             else roll = bet.TargetValue + (decimal)RngService.GetNextDouble(seed, nonce) * (100 - bet.TargetValue);
         }
 
@@ -116,7 +117,7 @@ public class DiceGameEngine : BaseGameEngine {
         if (roll < 0) roll = 0;
         if (roll > 100) roll = 100;
 
-        if (bet.Condition == "Over") isWin = roll > bet.TargetValue;
+        if (bet.Condition.Equals("Over", StringComparison.OrdinalIgnoreCase)) isWin = roll > bet.TargetValue;
         else isWin = roll < bet.TargetValue;
 
         return new DiceResultDto {
@@ -169,8 +170,8 @@ public class DiceGameEngine : BaseGameEngine {
     }
 
     private DiceResultDto ForceDiceLoss(int seed, int nonce, DiceBetDto bet) {
-        if (bet.Mode == "Slider") {
-            decimal roll = bet.Condition == "Over" ? bet.TargetValue - 1 : bet.TargetValue + 1;
+        if (bet.Mode.Equals("Slider", StringComparison.OrdinalIgnoreCase)) {
+            decimal roll = bet.Condition.Equals("Over", StringComparison.OrdinalIgnoreCase) ? bet.TargetValue - 1 : bet.TargetValue + 1;
             if (roll < 0) roll = 0; if (roll > 100) roll = 100;
             return new DiceResultDto { ResultValue = roll, IsWin = false, PayoutMultiplier = 0 };
         } else {
