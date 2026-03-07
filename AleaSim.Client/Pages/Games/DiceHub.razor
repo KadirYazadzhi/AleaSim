@@ -54,7 +54,7 @@
                         </div>
                         <div class="d-flex justify-space-between">
                             <MudText Typo="Typo.caption">PAYOUT</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Success" Class="fw-bold">x@PayoutMultiplier.ToString("F4")</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Success" Class="fw-bold">x@(PayoutMultiplier.ToString("F4"))</MudText>
                         </div>
                     </div>
                 } else {
@@ -62,15 +62,14 @@
                     <div class="d-flex justify-space-between gap-2 mb-6">
                         @for (int i = 1; i <= 6; i++) {
                             int val = i;
-                            <MudAvatar Color="@(selectedMultiNumbers.Contains(val) ? Color.Primary : Color.Default)" 
-                                       Variant="@(selectedMultiNumbers.Contains(val) ? Variant.Filled : Variant.Outlined)"
-                                       Class="cursor-pointer hover-scale" 
-                                       @onclick="() => ToggleMultiNumber(val)">
-                                @val
-                            </MudAvatar>
+                            <div class='@($"dice-selector {(selectedMultiNumbers.Contains(val) ? "active" : "")}")' @onclick="() => ToggleMultiNumber(val)">
+                                <div class='@($"die-face face-{val} small")'>
+                                    @for(int d=0; d<val; d++) { <span class="dot"></span> }
+                                </div>
+                            </div>
                         }
                     </div>
-                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-6 rounded-lg">Target at least 3 hits for a payout.</MudAlert>
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-6 rounded-lg" Style="font-size: 0.7rem;">Match at least 2 dice for a payout.</MudAlert>
                 }
 
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" 
@@ -91,9 +90,9 @@
                     <!-- Cyber Slider Visual -->
                     <div class="dice-track mb-12">
                         <div class="track-fill" style="left: @(isRollOver ? sliderTarget : 0)%; width: @(isRollOver ? (100-sliderTarget) : sliderTarget)%;"></div>
-                        <div class="track-pointer" style="left: @currentRoll% @(isSpinning ? "; transition: none" : "")">
+                        <div class="track-pointer" style="left: @(currentRoll)%">
                             <div class="pointer-glow"></div>
-                            <MudText Typo="Typo.h5" Class="pointer-label">@currentRoll.ToString("F2")</MudText>
+                            <MudText Typo="Typo.h5" Class="pointer-label">@(currentRoll.ToString("F2"))</MudText>
                         </div>
                         <div class="track-marks">
                             <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
@@ -101,18 +100,20 @@
                     </div>
 
                     <div class='@($"result-display {(lastResultWasWin ? "win" : "loss")} {(isSpinning ? "spinning" : "")}")'>
-                        <MudText Typo="Typo.h1" Class="fw-black">@currentRoll.ToString("F2")</MudText>
+                        <MudText Typo="Typo.h1" Class="fw-black">@(currentRoll.ToString("F2"))</MudText>
                     </div>
                 } else {
                     <!-- Multi-Dice Visual Grid -->
                     <div class="dice-grid">
                         @for (int i = 0; i < 10; i++) {
                             int idx = i;
-                            <div class='@($"dice-box {(multiResults.Count > idx && selectedMultiNumbers.Contains(multiResults[idx]) ? "hit" : "")}")'>
+                            <div class='@($"dice-wrapper {(multiResults.Count > idx && selectedMultiNumbers.Contains(multiResults[idx]) ? "hit" : "")}")'>
                                 @if (multiResults.Count > idx) {
-                                    <MudIcon Icon="@GetDiceIcon(multiResults[idx])" Size="Size.Large" />
+                                    <div class='@($"die-face face-{multiResults[idx]}")'>
+                                        @for(int d=0; d<multiResults[idx]; d++) { <span class="dot"></span> }
+                                    </div>
                                 } else {
-                                    <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Large" Class="opacity-20" />
+                                    <div class="die-face unknown">?</div>
                                 }
                             </div>
                         }
@@ -120,7 +121,7 @@
                     
                     @if (lastMultiHits > 0) {
                         <div class="mt-8 text-center animate-bounce-subtle">
-                            <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black">@lastMultiHits HITS! (x@lastMultiplier)</MudText>
+                            <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black">@lastMultiHits HITS! (x@(lastMultiplier.ToString("F2")))</MudText>
                         </div>
                     }
                 }
@@ -133,7 +134,7 @@
             <div class="mt-6 d-flex gap-2 overflow-x-auto pb-2">
                 @foreach (var res in recentRolls) {
                     <div class='@($"roll-history-item {(res.Win ? "win" : "loss")}")'>
-                        @res.Value.ToString("F2")
+                        @(res.Value.ToString("F2"))
                     </div>
                 }
             </div>
@@ -142,6 +143,36 @@
 </MudContainer>
 
 <style>
+    /* Die Visuals */
+    .die-face {
+        width: 60px; height: 60px; background: white; border-radius: 10px;
+        position: relative; display: grid; grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr); padding: 8px; gap: 4px;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .die-face.small { width: 36px; height: 36px; padding: 4px; border-radius: 6px; }
+    .die-face.unknown { display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #333; font-weight: 900; }
+    
+    .dot { background: #333; border-radius: 50%; width: 100%; height: 100%; }
+    
+    /* Dice Positions */
+    .face-1 .dot:nth-child(1) { grid-area: 2 / 2; }
+    .face-2 .dot:nth-child(1) { grid-area: 1 / 1; } .face-2 .dot:nth-child(2) { grid-area: 3 / 3; }
+    .face-3 .dot:nth-child(1) { grid-area: 1 / 1; } .face-3 .dot:nth-child(2) { grid-area: 2 / 2; } .face-3 .dot:nth-child(3) { grid-area: 3 / 3; }
+    .face-4 .dot:nth-child(1) { grid-area: 1 / 1; } .face-4 .dot:nth-child(2) { grid-area: 1 / 3; } .face-4 .dot:nth-child(3) { grid-area: 3 / 1; } .face-4 .dot:nth-child(4) { grid-area: 3 / 3; }
+    .face-5 .dot:nth-child(1) { grid-area: 1 / 1; } .face-5 .dot:nth-child(2) { grid-area: 1 / 3; } .face-5 .dot:nth-child(3) { grid-area: 2 / 2; } .face-5 .dot:nth-child(4) { grid-area: 3 / 1; } .face-5 .dot:nth-child(5) { grid-area: 3 / 3; }
+    .face-6 .dot:nth-child(1) { grid-area: 1 / 1; } .face-6 .dot:nth-child(2) { grid-area: 1 / 3; } .face-6 .dot:nth-child(3) { grid-area: 2 / 1; } .face-6 .dot:nth-child(4) { grid-area: 2 / 3; } .face-6 .dot:nth-child(5) { grid-area: 3 / 1; } .face-6 .dot:nth-child(6) { grid-area: 3 / 3; }
+
+    .dice-selector { 
+        padding: 4px; border: 2px solid transparent; border-radius: 12px; cursor: pointer; transition: all 0.2s; 
+    }
+    .dice-selector.active { border-color: var(--mud-palette-primary); background: rgba(var(--mud-palette-primary-rgb), 0.1); }
+    .dice-selector:hover { transform: translateY(-3px); }
+
+    .dice-wrapper { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .dice-wrapper.hit .die-face { background: #00f2ff; box-shadow: 0 0 20px #00f2ff; }
+    .dice-wrapper.hit .dot { background: #000; }
+
     .dice-track {
         width: 100%; height: 12px; background: rgba(255,255,255,0.05); border-radius: 6px;
         position: relative; margin: 40px 0;
@@ -172,16 +203,7 @@
     .result-display.spinning { animation: pulse 0.2s infinite; }
 
     .dice-grid {
-        display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; width: 100%; max-width: 500px;
-    }
-    .dice-box {
-        aspect-ratio: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 12px; display: flex; align-items: center; justify-content: center;
-        transition: all 0.3s;
-    }
-    .dice-box.hit {
-        background: rgba(0, 242, 255, 0.1); border-color: #00f2ff; color: #00f2ff;
-        box-shadow: 0 0 15px rgba(0, 242, 255, 0.3); transform: scale(1.05);
+        display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.5rem; width: 100%; max-width: 500px;
     }
 
     .roll-history-item {

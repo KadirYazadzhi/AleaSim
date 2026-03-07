@@ -42,7 +42,7 @@ public class DiceGameEngine : BaseGameEngine {
             int roundNum = repo.GetRoundCount(sessionId) + 1;
             int nonce = roundNum;
 
-            var directive = BrainService.GetNextDirective(session.UserId, _gameId, lastBet.Amount, repo);
+            var directive = BrainService.DecideOutcome(session.UserId, _gameId, lastBet.Amount, repo);
             
             DiceResultDto result = new DiceResultDto();
             
@@ -138,21 +138,21 @@ public class DiceGameEngine : BaseGameEngine {
 
         int hits = dice.Count(d => selected.Contains(d));
         
-        // Multi-dice math: 10 dice, probability of hitting specific numbers.
-        // Let's say user selects 1 number (e.g. "6").
-        // P(hit at least 3) = ...
-        // For simplicity, let's use a dynamic multiplier based on hits.
-        // Hits: 0-2 (0x), 3 (2x), 4 (5x), 5 (10x), 6 (20x), 7 (50x), 8 (100x), 9 (250x), 10 (1000x)
+        // Multi-dice balanced math for 10 dice:
+        // User selects target numbers. Hits are counted.
+        // We need frequent wins to keep user engaged.
         
         decimal multiplier = hits switch {
-            >= 10 => 1000,
-            9 => 250,
-            8 => 100,
-            7 => 50,
-            6 => 20,
-            5 => 10,
-            4 => 5,
-            3 => 2,
+            >= 10 => 500,
+            9 => 100,
+            8 => 50,
+            7 => 20,
+            6 => 10,
+            5 => 5,
+            4 => 2,
+            3 => 1.5m,
+            2 => 1.1m, // Small profit
+            1 => 0.5m, // Half back (keeps them playing)
             _ => 0
         };
 
