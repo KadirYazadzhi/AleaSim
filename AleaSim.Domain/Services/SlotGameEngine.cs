@@ -470,7 +470,14 @@ public class SlotGameEngine : BaseGameEngine {
              }
              else if (action.ToLower() == "gamble") {
                  if (!state.IsGambleActive || state.PendingGambleWin <= 0) throw new Exception("Gamble not available.");
-                 string choice = actionData.ToLower(); 
+                 
+                 string choice = "";
+                 try {
+                     using var doc = JsonDocument.Parse(actionData);
+                     choice = doc.RootElement.ValueKind == JsonValueKind.String ? doc.RootElement.GetString() ?? "" : actionData;
+                 } catch { choice = actionData; }
+                 
+                 choice = choice.ToLower();
                  if (choice != "red" && choice != "black") throw new Exception("Invalid gamble choice.");
 
                  if (!await VaultService.ProcessBetAsync(userId, state.PendingGambleWin, repo)) {

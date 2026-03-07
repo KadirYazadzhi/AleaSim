@@ -8,7 +8,7 @@ namespace AleaSim.Domain.Services;
 public interface IGameDirector {
     Task<GameSession> StartSession(string gameType, Guid userId, string? clientSeed = null);
     Task<GameRound> PlayRound(string gameType, Guid userId, Guid sessionId, decimal amount, object betData);
-    Task<object> ProcessAction(string gameType, Guid userId, Guid sessionId, string action, string actionData);
+    Task<object> ProcessAction(string gameType, Guid userId, Guid sessionId, string action, object? actionData);
     Task<object?> GetCurrentState(string gameType, Guid sessionId);
 }
 
@@ -64,7 +64,6 @@ public class GameDirector : IGameDirector {
         if (amount <= 0) throw new ArgumentException("Bet amount must be positive.");
         var gameEngine = _gameResolver(gameType);
         
-        
         SpinProfile profile = SpinProfile.Standard;
 
         // Example: Whale Detection
@@ -72,7 +71,7 @@ public class GameDirector : IGameDirector {
             profile = SpinProfile.HighVolatility;
         }
 
-        string betDataString = JsonSerializer.Serialize(betData);
+        string betDataString = betData != null ? JsonSerializer.Serialize(betData) : "{}";
         
         // 2. PLACE BET (Now Secure)
         await gameEngine.PlaceBet(userId, sessionId, amount, betDataString);
@@ -97,9 +96,10 @@ public class GameDirector : IGameDirector {
         return round;
     }
 
-    public async Task<object> ProcessAction(string gameType, Guid userId, Guid sessionId, string action, string actionData) {
+    public async Task<object> ProcessAction(string gameType, Guid userId, Guid sessionId, string action, object? actionData) {
         var gameEngine = _gameResolver(gameType);
-        await gameEngine.ProcessAction(userId, sessionId, action, actionData);
+        string dataString = actionData != null ? JsonSerializer.Serialize(actionData) : "{}";
+        await gameEngine.ProcessAction(userId, sessionId, action, dataString);
         return await gameEngine.GetCurrentState(sessionId) ?? new { };
     }
 }

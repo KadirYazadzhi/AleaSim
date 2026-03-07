@@ -25,7 +25,7 @@ public class StartSessionResponse {
 
 public class PlaceBetRequest {
     public decimal Amount { get; set; }
-    public string BetData { get; set; } = string.Empty;
+    public object? BetData { get; set; } 
 }
 
 public class PlaceBetResponse {
@@ -49,7 +49,7 @@ public class PlaceBetResponse {
 
 public class GameActionRequest {
     public string Action { get; set; } = string.Empty;
-    public string ActionData { get; set; } = string.Empty;
+    public object? ActionData { get; set; } 
 }
 
 public class GameActionResponse {
