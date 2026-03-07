@@ -371,6 +371,12 @@ public class GameController : ControllerBase {
         if (idClaim == null || !Guid.TryParse(idClaim.Value, out var id)) {
             throw new UnauthorizedAccessException("Invalid User Token");
         }
+        
+        // Ensure user still exists in DB (e.g. after DB reset)
+        if (_repo.GetUser(id) == null) {
+            throw new UnauthorizedAccessException("User no longer exists");
+        }
+
         return id;
     }
 }

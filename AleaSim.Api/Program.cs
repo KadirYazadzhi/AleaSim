@@ -161,8 +161,9 @@ using (var scope = app.Services.CreateScope()) {
     // Seed Admin if missing
     if (!db.Users.Any(u => u.Username == "admin")) {
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+        var adminId = Guid.Parse("00000000-0000-0000-0000-000000000001"); // Stable non-empty ID
         db.Users.Add(new AleaSim.Domain.Entities.User {
-            Id = Guid.NewGuid(),
+            Id = adminId,
             Username = "admin",
             PasswordHash = hasher.HashPassword("admin"), // Hashed password
             Email = "admin@aleasim.com",

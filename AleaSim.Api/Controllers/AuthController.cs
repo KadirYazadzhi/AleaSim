@@ -375,6 +375,11 @@ public class AuthController : ControllerBase {
         if (idClaim == null || !Guid.TryParse(idClaim.Value, out var id)) {
             throw new UnauthorizedAccessException("Invalid User Token");
         }
+
+        if (_repository.GetUser(id) == null) {
+            throw new UnauthorizedAccessException("User no longer exists");
+        }
+
         return id;
     }
 }
