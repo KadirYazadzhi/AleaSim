@@ -12,13 +12,13 @@
 
 <PageTitle>AleaSim | Premium Crypto Casino</PageTitle>
 
-<AuthorizeView>
+<AuthorizeView Context="homeContext">
     <Authorized>
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="px-4 pt-12">
             <!-- Header & Daily Bonus -->
             <div class="d-flex justify-space-between align-center mb-8 animate-fade-in">
                 <div>
-                    <MudText Typo="Typo.h4" Style="font-weight: 900;" Color="Color.Inherit" Class="mb-1">Welcome, @context.User.Identity?.Name!</MudText>
+                    <MudText Typo="Typo.h4" Style="font-weight: 900;" Color="Color.Inherit" Class="mb-1">Welcome, @homeContext.User.Identity?.Name!</MudText>
                     <MudText Typo="Typo.body1" Color="Color.Secondary">Ready to challenge the odds today?</MudText>
                 </div>
                 <MudButton Variant="Variant.Filled" 
@@ -241,11 +241,9 @@
                 <MudItem xs="12" md="4" lg="3">
                     <MudStack Spacing="4">
                         <!-- Quests Widget (Moved from sidebar drawer) -->
-                        <AuthorizeView>
-                            <div class="animate-fade-in">
-                                <QuestWidget />
-                            </div>
-                        </AuthorizeView>
+                        <div class="animate-fade-in">
+                            <QuestWidget />
+                        </div>
 
                         <!-- Jackpot Widget -->
                         <div class="glass-panel rounded-xl pa-1 overflow-hidden animate-fade-in" style="animation-delay: 0.05s;">

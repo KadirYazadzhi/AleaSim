@@ -20,7 +20,7 @@
             <MudText Typo="Typo.subtitle1" Class="opacity-70">High-speed cryptographic gaming.</MudText>
         </div>
         <div class="d-flex gap-4">
-            <MudToggleGroup T="string" @bind-Value="selectedMode" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Variant="Variant.Outlined" Delimiters="true">
+            <MudToggleGroup T="string" @bind-Value="selectedMode" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Delimiters="true">
                 <MudToggleItem Value='@("Slider")'>CYBER SLIDER</MudToggleItem>
                 <MudToggleItem Value='@("Multi")'>GRID MULTIPLIER</MudToggleItem>
             </MudToggleGroup>

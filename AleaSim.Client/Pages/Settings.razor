@@ -371,8 +371,8 @@
                 isIncognito = GetBool(prefs, "IsIncognito");
                 hideBalance = GetBool(prefs, "HideBalance");
                 isPrivateProfile = GetBool(prefs, "IsPrivate");
-                selectedSkin = prefs.ContainsKey("Skin") ? prefs["Skin"].ToString() : "Default";
-                selectedTitle = prefs.ContainsKey("Title") ? prefs["Title"].ToString() : "None";
+                selectedSkin = prefs.ContainsKey("Skin") ? prefs["Skin"]?.ToString() ?? "Default" : "Default";
+                selectedTitle = prefs.ContainsKey("Title") ? prefs["Title"]?.ToString() ?? "None" : "None";
             }
 
             // Fetch Real Sessions
@@ -398,7 +398,6 @@
         return "Web Browser";
     }
 
-    private record UserProfileResponse(string Username, decimal TotalBalance, bool IsTwoFactorEnabled, decimal? DailyLossLimit, decimal? WeeklyLossLimit, decimal? MonthlyLossLimit, string PreferencesJson);
     private record SessionResponse(string IpAddress, string Device, DateTime LastActive, bool IsCurrent);
 
     private bool GetBool(Dictionary<string, object> dict, string key) => 

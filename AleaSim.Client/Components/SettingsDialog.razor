@@ -241,9 +241,11 @@
         var response = await Http.PostAsync("api/Auth/2fa/toggle", null);
         if (response.IsSuccessStatusCode) {
             var res = await response.Content.ReadFromJsonAsync<TfaResponse>();
-            is2faEnabled = res.Enabled;
-            tfaSecret = res.Secret;
-            Snackbar.Add(is2faEnabled ? "2FA Enabled" : "2FA Disabled", Severity.Info);
+            if (res != null) {
+                is2faEnabled = res.Enabled;
+                tfaSecret = res.Secret;
+                Snackbar.Add(is2faEnabled ? "2FA Enabled" : "2FA Disabled", Severity.Info);
+            }
         }
     }
 

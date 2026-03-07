@@ -1,5 +1,5 @@
 <MudNavMenu Class="pt-4">
-    <AuthorizeView>
+    <AuthorizeView Context="navContext">
         <Authorized>
             <div class="px-4 mb-2">
                 <MudText Typo="Typo.subtitle2" Class="text-gray-500 fw-bold uppercase tracking-wider mb-2" Style="font-size: 0.7rem;">CASINO</MudText>
@@ -19,7 +19,7 @@
             <MudNavLink Href="profile" Icon="@Icons.Material.Filled.Person">Profile</MudNavLink>
             <MudNavLink Href="fairness" Icon="@Icons.Material.Filled.VerifiedUser">Fairness</MudNavLink>
 
-            @if (context.User.IsInRole("Admin"))
+            @if (navContext.User.IsInRole("Admin"))
             {
                 <div class="px-4 mt-6 mb-2">
                     <MudText Typo="Typo.subtitle2" Class="text-warning fw-bold uppercase tracking-wider mb-2" Style="font-size: 0.7rem;">ADMIN PANEL</MudText>
