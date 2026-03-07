@@ -23,11 +23,20 @@ public class ExceptionHandlingMiddleware {
 
     private static Task HandleExceptionAsync(HttpContext context, Exception exception) {
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+        
+        var statusCode = HttpStatusCode.InternalServerError;
+        var message = "An internal error occurred. Please try again later.";
+
+        if (exception is UnauthorizedAccessException) {
+            statusCode = HttpStatusCode.Unauthorized;
+            message = exception.Message;
+        }
+
+        context.Response.StatusCode = (int)statusCode;
 
         var response = new {
             error = exception.Message,
-            detail = "An internal error occurred. Please try again later."
+            detail = message
         };
 
         return context.Response.WriteAsync(JsonSerializer.Serialize(response));
