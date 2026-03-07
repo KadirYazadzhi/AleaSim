@@ -15,10 +15,10 @@ public class SlotGameEngine : BaseGameEngine {
     // Default configuration (Fallback)
     private static readonly SlotGameConfig _defaultConfig = new SlotGameConfig {
         Rows = 4, Cols = 5, PaylinesCount = 20,
-        WildSymbol = 8, ScatterSymbol = 10, CollectSymbol = 11, GoldenSymbol = 12,
+        WildSymbol = 8, ScatterSymbol = 9, CollectSymbol = 11, GoldenSymbol = 12,
         BaseStrip = new[] { 
             1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 5, 6, 5, 6, 
-            7, 7, 1, 2, 3, 4, 9, 9, 1, 2, 3, 4, 8, 1, 2, 3, 4, 10, 11, 12, 1, 2, 3, 4
+            7, 7, 1, 2, 3, 4, 12, 12, 1, 2, 3, 4, 8, 1, 2, 3, 4, 10, 11, 12, 1, 2, 3, 4
         },
         Paylines = new[] {
             new[] {0,0,0,0,0}, new[] {1,1,1,1,1}, new[] {2,2,2,2,2}, new[] {3,3,3,3,3},
@@ -28,11 +28,11 @@ public class SlotGameEngine : BaseGameEngine {
             new[] {2,2,1,2,2}, new[] {1,0,0,0,1}, new[] {2,3,3,3,2}, new[] {0,1,1,1,0}
         },
         Paytable = new Dictionary<int, decimal[]> {
-            { 1, new[] { 0.1m, 0.2m, 1.0m } }, { 2, new[] { 0.1m, 0.2m, 1.0m } },
-            { 3, new[] { 0.2m, 0.5m, 2.0m } }, { 4, new[] { 0.2m, 0.5m, 2.0m } },
-            { 5, new[] { 0.5m, 1.0m, 5.0m } }, { 6, new[] { 0.5m, 1.0m, 5.0m } },
-            { 7, new[] { 1.0m, 5.0m, 10.0m } }, { 8, new[] { 2.0m, 10.0m, 25.0m } },
-            { 9, new[] { 5.0m, 20.0m, 50.0m } }, { 12, new[] { 10.0m, 50.0m, 100.0m } }
+            { 1, new[] { 0.2m, 0.5m, 2.0m } }, { 2, new[] { 0.2m, 0.5m, 2.0m } },
+            { 3, new[] { 0.5m, 1.0m, 5.0m } }, { 4, new[] { 0.5m, 1.0m, 5.0m } },
+            { 5, new[] { 1.0m, 2.0m, 10.0m } }, { 6, new[] { 1.0m, 2.0m, 10.0m } },
+            { 7, new[] { 2.0m, 10.0m, 50.0m } }, { 8, new[] { 5.0m, 25.0m, 250.0m } },
+            { 12, new[] { 10.0m, 50.0m, 100.0m } }
         }
     };
 
@@ -358,7 +358,7 @@ public class SlotGameEngine : BaseGameEngine {
         }
 
         if (state.IsRespinActive && state.RespinLives <= 0) {
-             if (state.StickyClovers.Count >= 6) { // 6+ symbols to trigger Bonus (was 5)
+             if (state.StickyClovers.Count >= 5) { // 5+ symbols to trigger Bonus
                  state.IsBonusActive = true; 
                  state.BonusLives = 3; 
                  state.IsRespinActive = false; 
@@ -442,12 +442,30 @@ public class SlotGameEngine : BaseGameEngine {
         return win;
     }
 
-    private bool IsMatch(int t, int c, out int r, SlotGameConfig config) {
-        r = t; if (t == -1) { r = c; return true; }
-        if (t == c || c == config.WildSymbol || c == config.GoldenSymbol) return true;
-        // Check "Seven" and "Wild Seven" logic if applicable, otherwise strict match
-        // Assuming Wild logic is generic now:
-        return false;
+    private bool IsMatch(int target, int candidate, out int result, SlotGameConfig config) {
+        result = target;
+        if (target == -1) { result = candidate; return true; }
+        
+        // Clover (8) is Universal Wild (Fruits + Sevens)
+        if (candidate == config.WildSymbol) {
+            // Can substitute for anything standard
+            if ((target >= 1 && target <= 7) || target == config.GoldenSymbol) return true;
+            return false;
+        }
+        if (target == config.WildSymbol) { 
+            // If target was wild, candidate becomes the new target
+            result = candidate; 
+            return true; 
+        }
+
+        // Seven (12) is Wild for Fruits (1-7) only
+        if (candidate == config.GoldenSymbol && target >= 1 && target <= 7) return true;
+        if (target == config.GoldenSymbol && candidate >= 1 && candidate <= 7) { 
+            result = candidate; 
+            return true; 
+        }
+
+        return target == candidate;
     }
 
     private bool CheckBrainCompliance(BrainDirective d, decimal w, decimal b) {
