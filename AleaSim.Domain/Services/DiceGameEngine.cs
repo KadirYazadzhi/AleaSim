@@ -62,6 +62,11 @@ public class DiceGameEngine : BaseGameEngine {
             }
 
             if (winAmount > 0) {
+                var game = repo.GetGame(_gameId);
+                if (game != null) {
+                    game.PoolBalance -= winAmount;
+                    repo.UpdateGame(game);
+                }
                 await VaultService.ProcessWinAsync(session.UserId, winAmount, repo);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", winAmount, repo, RealTimeService, VaultService);
             }

@@ -139,6 +139,11 @@ public class RouletteGameEngine : BaseGameEngine {
             }
 
             if (actualWin > 0) {
+                var game = repo.GetGame(GameId);
+                if (game != null) {
+                    game.PoolBalance -= actualWin;
+                    repo.UpdateGame(game);
+                }
                 await VaultService.ProcessWinAsync(session.UserId, actualWin, repo);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", actualWin, repo, RealTimeService, VaultService);
             }

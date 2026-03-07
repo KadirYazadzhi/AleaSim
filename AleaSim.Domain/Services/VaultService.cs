@@ -108,6 +108,9 @@ public class VaultService : IVaultService {
         var profile = repo.GetPlayerProfile(userId);
         if (user == null) return;
 
+        // Note: Deduction from PoolBalance should ideally happen in the Engine or we need GameId here.
+        // For now, we update the user balance.
+
         if (profile != null && user.WageringRequirement == 0) {
             profile.ShadowBalance -= amount;
             repo.UpdatePlayerProfile(profile);
@@ -132,10 +135,7 @@ public class VaultService : IVaultService {
         _ = _realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance);
     }
 
-    public async Task<bool> CanAffordWinAsync(Guid userId, Guid gameId, decimal winAmount, IGameRepository repo, bool strictShadowCheck = true) {
-        // Just reading values, theoretically requires lock if strict consistency is needed, 
-        // but for performance we might skip lock here since we don't write.
-        // However, to be safe:
+    public async Task<bool> CanAffordWinAsync(Guid userId, Guid gameId, decimal winAmount, IGameRepository repo, bool strictShadowCheck = false) {
         using var lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(2));
         
         var game = repo.GetGame(gameId);
@@ -143,9 +143,12 @@ public class VaultService : IVaultService {
         if (game == null) return false;
         
         bool casinoCanAfford = game.PoolBalance >= winAmount;
-        bool userHasShadowCredit = profile == null || profile.ShadowBalance >= winAmount;
         
+        // If not strict, we only care about the casino funds
         if (!strictShadowCheck) return casinoCanAfford;
+
+        // Strict mode (Shadow Testing)
+        bool userHasShadowCredit = profile == null || profile.ShadowBalance >= winAmount;
         return casinoCanAfford && userHasShadowCredit;
     }
 
