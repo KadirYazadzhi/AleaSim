@@ -239,10 +239,9 @@ public class AuthController : ControllerBase {
              Username = request.Username,
              Email = request.Email,
              PasswordHash = _passwordHasher.HashPassword(request.Password), 
-             Role = Role.User,
-             Balance = 1000m,
-             AvatarUrl = $"https://api.dicebear.com/7.x/bottts/svg?seed={request.Username}",
-             CreatedAt = DateTime.UtcNow,
+                            Role = Role.User,
+                            Balance = 5000m,
+                            AvatarUrl = $"https://api.dicebear.com/7.x/bottts/svg?seed={request.Username}",             CreatedAt = DateTime.UtcNow,
              IsActive = true
          };
          

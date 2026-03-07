@@ -137,7 +137,11 @@ using (var scope = app.Services.CreateScope()) {
     }
 
     // Seed Global Jackpots if missing
-    if (!db.Jackpots.Any(j => j.IsGlobal)) {
+    if (!db.Jackpots.Any(j => j.IsGlobal && j.CurrentValue > 0)) {
+        // Clear empty/old global jackpots to avoid duplicates with 0 values
+        var oldGlobals = db.Jackpots.Where(j => j.IsGlobal).ToList();
+        if (oldGlobals.Any()) db.Jackpots.RemoveRange(oldGlobals);
+
         db.Jackpots.AddRange(
             new AleaSim.Domain.Entities.Jackpot { 
                 Id = Guid.NewGuid(), Name = "Global MEGA Spades", Tier = AleaSim.Domain.Entities.JackpotTier.Spades, 
@@ -169,7 +173,7 @@ using (var scope = app.Services.CreateScope()) {
             PasswordHash = hasher.HashPassword("admin"), // Hashed password
             Email = "admin@aleasim.com",
             Role = AleaSim.Domain.Enums.Role.Admin,
-            Balance = 1000000m,
+            Balance = 5000m,
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
