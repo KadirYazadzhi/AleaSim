@@ -130,35 +130,118 @@
             </MudPaper>
         </MudItem>
 
+        <!-- Lifetime Metrics Grid -->
+        <MudItem xs="12">
+            <MudGrid>
+                <MudItem xs="6" sm="3">
+                    <MudPaper Class="pa-4 text-center glass-panel h-100" Elevation="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">TOTAL DEPOSITS</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-black">@((profile?.TotalWagered * 0.2m)?.ToString("C0"))</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudPaper Class="pa-4 text-center glass-panel h-100" Elevation="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">BIGGEST WIN</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-black text-success">@profile?.BiggestWin.ToString("C0")</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudPaper Class="pa-4 text-center glass-panel h-100" Elevation="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">LUCKY SYMBOL</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-black">@GetLuckySymbol()</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudPaper Class="pa-4 text-center glass-panel h-100" Elevation="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">ACCOUNT AGE</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-black">@(profile?.CurrentStreak ?? 1)d</MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudItem>
+
         <!-- Advanced Analytics -->
         <MudItem xs="12">
             <MudPaper Class="pa-6" Elevation="2">
                 <MudText Typo="Typo.h5" Class="fw-black mb-6">Advanced Player Insights</MudText>
                 <MudGrid>
                     <MudItem xs="12" md="4">
-                        <div class="pa-4 rounded-lg bg-dark-lighten text-center border-1 border-solid border-mud-palette-divider" style="background: var(--mud-palette-background-grey);">
-                            <MudIcon Icon="@Icons.Material.Filled.Favorite" Color="Color.Error" Style="font-size: 3rem;" Class="mb-2" />
-                            <MudText Typo="Typo.h6">@profile?.FavoriteGame</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Most Played Game</MudText>
-                            
-                            <MudDivider Class="my-4" />
-                            
-                                                          <MudIcon Icon="@Icons.Material.Filled.Speed" Color="Color.Info" Style="font-size: 2rem;" Class="mb-1" />
-                                                          <MudText Typo="Typo.h6">@((profile != null && profile.TotalWon > 0 && profile.TotalWagered > 0) ? (profile.TotalWon / profile.TotalWagered * 100).ToString("F1") : "0.0")%</MudText>
-                                                          <MudText Typo="Typo.caption" Color="Color.Secondary">Your Personal RTP</MudText>                        </div>
-                    </MudItem>
-                    <MudItem xs="12" md="8">
-                        @if (Series.Any() && Series[0].Data.Any())
-                        {
-                            <MudChart ChartType="ChartType.Line" ChartSeries="@Series" XAxisLabels="@Labels" Width="100%" Height="200px" ChartOptions="@options" />
-                        }
-                        else
-                        {
-                            <div class="d-flex align-center justify-center" style="height: 200px; background: rgba(0,0,0,0.05); border-radius: 8px;">
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">Not enough data for performance chart yet.</MudText>
+                        <MudStack Spacing="4">
+                            <div class="pa-4 rounded-lg text-center border-1 border-solid border-mud-palette-divider" style="background: var(--mud-palette-background-grey);">
+                                <MudIcon Icon="@Icons.Material.Filled.Favorite" Color="Color.Error" Style="font-size: 2.5rem;" Class="mb-1" />
+                                <MudText Typo="Typo.h6">@profile?.FavoriteGame</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Most Played Game</MudText>
                             </div>
-                        }
-                        <MudText Typo="Typo.caption" Align="Align.Center" Class="d-block mt-2">Net Profit/Loss Trend (Last 7 Rounds)</MudText>
+                            
+                            <div class="pa-4 rounded-lg text-center border-1 border-solid border-mud-palette-divider" style="background: var(--mud-palette-background-grey);">
+                                <MudIcon Icon="@Icons.Material.Filled.Speed" Color="Color.Info" Style="font-size: 2.5rem;" Class="mb-1" />
+                                <MudText Typo="Typo.h6">@((profile != null && profile.TotalWagered > 0) ? (profile.TotalWon / profile.TotalWagered * 100).ToString("F1") : "0.0")%</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Personal RTP (Lifetime)</MudText>
+                            </div>
+
+                            <div class="pa-4 rounded-lg text-center border-1 border-solid border-mud-palette-divider" style="background: var(--mud-palette-background-grey);">
+                                <MudIcon Icon="@(profile?.LuckFactor >= 1 ? Icons.Material.Filled.AutoFixHigh : Icons.Material.Filled.AutoFixOff)" 
+                                         Color="@(profile?.LuckFactor >= 1 ? Color.Success : Color.Warning)" 
+                                         Style="font-size: 2.5rem;" Class="mb-1" />
+                                <MudText Typo="Typo.h6">@(profile?.LuckFactor.ToString("F2") ?? "1.00")</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Luck Factor (Baseline: 1.0)</MudText>
+                            </div>
+                        </MudStack>
+                    </MudItem>
+                    
+                    <MudItem xs="12" md="8">
+                        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4" Class="border-1 border-solid border-mud-palette-divider rounded-lg">
+                            <MudTabPanel Text="PERFORMANCE TREND" Icon="@Icons.Material.Filled.TrendingUp">
+                                @if (Series.Any() && Series[0].Data.Any())
+                                {
+                                    <MudChart ChartType="ChartType.Line" ChartSeries="@Series" XAxisLabels="@Labels" Width="100%" Height="250px" ChartOptions="@options" />
+                                    <MudText Typo="Typo.caption" Align="Align.Center" Class="d-block mt-2">Net Profit/Loss Trend (Last 7 Rounds)</MudText>
+                                }
+                                else
+                                {
+                                    <div class="d-flex align-center justify-center" style="height: 250px; background: rgba(0,0,0,0.05); border-radius: 8px;">
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Not enough data for performance chart yet.</MudText>
+                                    </div>
+                                }
+                            </MudTabPanel>
+                            <MudTabPanel Text="BEHAVIORAL REPORT" Icon="@Icons.Material.Filled.Psychology">
+                                <MudGrid>
+                                    <MudItem xs="12" sm="6">
+                                        <MudText Typo="Typo.subtitle2" Class="mb-1">Volatility Score</MudText>
+                                        <MudProgressLinear Color="@GetVolatilityColor(profile?.VolatilityScore ?? 5)" Value="@((profile?.VolatilityScore ?? 5) * 10)" Class="my-2" Style="height:12px" />
+                                        <div class="d-flex justify-space-between">
+                                            <MudText Typo="Typo.caption">LOW RISK</MudText>
+                                            <MudText Typo="Typo.caption">DEGEN MODE</MudText>
+                                        </div>
+                                    </MudItem>
+                                    <MudItem xs="12" sm="6">
+                                        <MudText Typo="Typo.subtitle2" Class="mb-1">Spin Cadence</MudText>
+                                        <MudText Typo="Typo.h6">@profile?.AvgSpinInterval.ToString("F1")s</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Avg. Seconds Between Spins</MudText>
+                                    </MudItem>
+                                    <MudItem xs="12">
+                                        <MudDivider Class="my-2" />
+                                        <MudGrid>
+                                            <MudItem xs="4">
+                                                <MudText Typo="Typo.subtitle2">Biggest Win</MudText>
+                                                <MudText Typo="Typo.h6" Color="Color.Success">@profile?.BiggestWin.ToString("C0")</MudText>
+                                            </MudItem>
+                                            <MudItem xs="4">
+                                                <MudText Typo="Typo.subtitle2">Max Loss Streak</MudText>
+                                                <MudText Typo="Typo.h6" Color="Color.Error">@profile?.LossStreak</MudText>
+                                            </MudItem>
+                                            <MudItem xs="4">
+                                                <MudText Typo="Typo.subtitle2">Pending Cashback</MudText>
+                                                <MudText Typo="Typo.h6" Color="Color.Info">@profile?.PendingCashback.ToString("C2")</MudText>
+                                            </MudItem>
+                                        </MudGrid>
+                                    </MudItem>
+                                </MudGrid>
+                                <MudAlert Severity="Severity.Info" Class="mt-4" Dense="true">
+                                    Our AI "The Brain" analyzes these patterns to adapt the game's flow state to your style.
+                                </MudAlert>
+                            </MudTabPanel>
+                        </MudTabs>
                     </MudItem>
                 </MudGrid>
             </MudPaper>
@@ -296,6 +379,13 @@
         VipTier.Platinum => Icons.Material.Filled.AutoAwesome,
         VipTier.Gold => Icons.Material.Filled.MilitaryTech,
         _ => Icons.Material.Filled.Stars
+    };
+
+    private Color GetVolatilityColor(int? score) => (score ?? 5) switch {
+        <= 3 => Color.Success,
+        <= 6 => Color.Info,
+        <= 8 => Color.Warning,
+        _ => Color.Error
     };
 }
 

@@ -176,29 +176,43 @@ public class AuthController : ControllerBase {
             .OrderByDescending(s => s.StartedAt)
             .FirstOrDefault();
 
-        return Ok(new {
-            user.Username,
-            user.Balance,
-            user.BonusBalance,
+        var biggestWin = userRounds.Any() ? userRounds.Max(r => r.WinAmount) : 0;
+        var avgWin = userRounds.Any(r => r.WinAmount > 0) ? userRounds.Where(r => r.WinAmount > 0).Average(r => r.WinAmount) : 0;
+        var personalRtp = rtpStats.TotalWagered > 0 ? (double)(rtpStats.TotalPaid / rtpStats.TotalWagered) : 0;
+        var luckFactor = personalRtp / 0.96; // 1.0 is "on track", > 1.0 is lucky
+
+        return Ok(new UserProfileResponse {
+            Username = user.Username,
+            Balance = user.Balance,
+            BonusBalance = user.BonusBalance,
             AvatarUrl = string.IsNullOrEmpty(user.AvatarUrl) ? $"https://api.dicebear.com/7.x/bottts/svg?seed={user.Username}" : user.AvatarUrl,
             ActiveGameStateJson = activeSession?.GameState,
-            Role = user.Role.ToString(),
+            // Role = user.Role.ToString(), // Not in UserProfileResponse yet, but UserDto has it
 
             TotalWagered = rtpStats.TotalWagered,
             TotalWon = rtpStats.TotalPaid,
-            TotalRounds = rtpStats.TotalRounds,
+            TotalRounds = (int)rtpStats.TotalRounds,
             FavoriteGame = favGame,
             RecentWinLossTrend = trend,
 
-            user.DailyLossLimit,
-            user.WeeklyLossLimit,
-            user.IsTwoFactorEnabled,
-            user.PreferencesJson,
-            user.LockoutUntil,
+            DailyLossLimit = user.DailyLossLimit,
+            WeeklyLossLimit = user.WeeklyLossLimit,
+            IsTwoFactorEnabled = user.IsTwoFactorEnabled,
+            PreferencesJson = user.PreferencesJson,
+            LockoutUntil = user.LockoutUntil,
 
             LuckyCloverLevel = userProfile?.LuckyCloverLevel ?? 0,
             CashbackLevel = userProfile?.CashbackLevel ?? 0,
             XpBoostLevel = userProfile?.XpBoostLevel ?? 0,
+            
+            VolatilityScore = userProfile?.VolatilityScore ?? 5,
+            ChurnRiskScore = userProfile?.ChurnRiskScore ?? 0,
+            BiggestWin = biggestWin,
+            PendingCashback = userProfile?.PendingCashback ?? 0,
+            AvgSpinInterval = userProfile?.AvgSpinInterval ?? 5,
+            LossStreak = userProfile?.LossStreak ?? 0,
+            LuckFactor = (decimal)luckFactor,
+
             Progression = new UserProgressionDto {
                 CurrentLevel = prog.CurrentLevel,
                 CurrentXP = prog.CurrentXP,
@@ -211,7 +225,7 @@ public class AuthController : ControllerBase {
                 Description = a.Achievement.Description,
                 Icon = a.Achievement.Icon,
                 UnlockedAt = a.UnlockedAt
-            })
+            }).ToList()
         });
     }
     

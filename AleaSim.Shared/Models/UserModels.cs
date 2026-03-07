@@ -25,6 +25,15 @@ public class UserProfileResponse {
     public string FavoriteGame { get; set; } = "N/A";
     public List<double> RecentWinLossTrend { get; set; } = new();
 
+    // Advanced Insights
+    public int VolatilityScore { get; set; }
+    public double ChurnRiskScore { get; set; }
+    public decimal BiggestWin { get; set; }
+    public decimal PendingCashback { get; set; }
+    public double AvgSpinInterval { get; set; }
+    public int LossStreak { get; set; }
+    public decimal LuckFactor { get; set; }
+
     // Settings
     public bool IsTwoFactorEnabled { get; set; }
     public decimal? DailyLossLimit { get; set; }
