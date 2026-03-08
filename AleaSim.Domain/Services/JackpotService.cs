@@ -23,8 +23,8 @@ public class JackpotService : IJackpotService {
         foreach (var j in jackpots) {
             bool shouldContribute = j.IsGlobal || (j.GameId == gameId);
             
-            // All tiers are progressive now to avoid confusion, but we focus on MEGA/MAJOR
-            if (shouldContribute) {
+            // Only Spades (MEGA) and Hearts (MAJOR) are progressive
+            if (shouldContribute && (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts)) {
                 decimal increase = betAmount * j.ContributionRate;
                 string redisKey = $"jackpot:{j.Id}"; // Use ID for absolute uniqueness
 

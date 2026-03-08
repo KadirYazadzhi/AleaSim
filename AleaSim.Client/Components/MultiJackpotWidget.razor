@@ -57,9 +57,8 @@
                     <span class="suit-bg">♦</span>
                 </div>
                 <div class="info-section">
-                    <MudText Typo="Typo.caption" Class="jackpot-label">MINOR DAILY</MudText>
-                    <MudText Typo="Typo.h4" Class="jackpot-value minor-text text-compact">@diamonds.ToString("C2")</MudText>
-                </div>
+                                    <MudText Typo="Typo.caption" Class="jackpot-label">MINOR DAILY</MudText>
+                                    <MudText Typo="Typo.h4" Class="jackpot-value minor-text text-compact">@GetMinorValue().ToString("C2")</MudText>                </div>
             </div>
             <div class="card-footer">
                 <div class="progress-bar-container">
@@ -77,9 +76,8 @@
                     <span class="suit-bg">♣</span>
                 </div>
                 <div class="info-section">
-                    <MudText Typo="Typo.caption" Class="jackpot-label">MINI HOURLY</MudText>
-                    <MudText Typo="Typo.h4" Class="jackpot-value mini-text text-compact">@clubs.ToString("C2")</MudText>
-                </div>
+                                    <MudText Typo="Typo.caption" Class="jackpot-label">MINI HOURLY</MudText>
+                                    <MudText Typo="Typo.h4" Class="jackpot-value mini-text text-compact">@GetMiniValue().ToString("C2")</MudText>                </div>
             </div>
             <div class="card-footer">
                 <div class="progress-bar-container">
@@ -93,11 +91,11 @@
         <div class="mini-jackpots-grid mt-2">
             <div class="mini-jackpot diamond-border">
                 <span class="mini-suit">♦</span>
-                <span class="mini-val">@diamonds.ToString("C0")</span>
+                <span class="mini-val">@GetMinorValue().ToString("C0")</span>
             </div>
             <div class="mini-jackpot club-border">
                 <span class="mini-suit">♣</span>
-                <span class="mini-val">@clubs.ToString("C0")</span>
+                <span class="mini-val">@GetMiniValue().ToString("C0")</span>
             </div>
         </div>
     }
@@ -328,11 +326,12 @@
     private void UpdateLocalValue(JackpotDto dto) {
         if (dto.Tier == "Spades") spades = dto.CurrentValue;
         else if (dto.Tier == "Hearts") hearts = dto.CurrentValue;
-        else if (dto.Tier == "Diamonds") diamonds = dto.CurrentValue;
-        else if (dto.Tier == "Clubs") clubs = dto.CurrentValue;
         else if (dto.Name.Contains("Spades")) spades = dto.CurrentValue;
         else if (dto.Name.Contains("Hearts")) hearts = dto.CurrentValue;
     }
+
+    private decimal GetMinorValue() => Denomination * 5000;
+    private decimal GetMiniValue() => Denomination * 1000;
 
     public void Dispose() {
         RealTime.OnJackpotUpdated -= HandleUpdate;
