@@ -1,0 +1,281 @@
+@page "/game/baccarat"
+@using System.Text.Json
+@using AleaSim.Shared.Models
+@using AleaSim.Client.Services
+@implements IAsyncDisposable
+@inject IGameService GameService
+@inject AudioService Audio
+@inject RealTimeClient RealTime
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IAuthService AuthService
+@inject LayoutService layoutService
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudGrid Justify="Justify.Center">
+        <MudItem xs="12" lg="9">
+            <MudPaper Class="pa-8" Style="background: radial-gradient(circle, #1a472a 0%, #0d2b1a 100%); border: 12px solid #3d2b1f; border-radius: 50% 50% 10% 10% / 20% 20% 10% 10%; min-height: 550px; position: relative; color: white; overflow: hidden;">
+                
+                <div class="d-flex justify-space-around mb-12">
+                    <!-- Banker Hand -->
+                    <div class="text-center">
+                        <MudText Typo="Typo.h6" Class="mb-2" Style="opacity: 0.7; letter-spacing: 2px;">BANKER</MudText>
+                        <div class="d-flex justify-center gap-2">
+                            @foreach (var card in bankerHand)
+                            {
+                                <div @key="card" class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "") animate-draw">
+                                    @FormatCard(card)
+                                </div>
+                            }
+                        </div>
+                        @if (bankerHand.Any()) {
+                            <MudText Typo="Typo.h5" Color="Color.Error" Class="mt-2 fw-black">Score: @bankerScore</MudText>
+                        }
+                    </div>
+
+                    <!-- Player Hand -->
+                    <div class="text-center">
+                        <MudText Typo="Typo.h6" Class="mb-2" Style="opacity: 0.7; letter-spacing: 2px;">PLAYER</MudText>
+                        <div class="d-flex justify-center gap-2">
+                            @foreach (var card in playerHand)
+                            {
+                                <div @key="card" class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "") animate-draw">
+                                    @FormatCard(card)
+                                </div>
+                            }
+                        </div>
+                        @if (playerHand.Any()) {
+                            <MudText Typo="Typo.h5" Color="Color.Info" Class="mt-2 fw-black">Score: @playerScore</MudText>
+                        }
+                    </div>
+                </div>
+
+                <div class="table-center">
+                    <div class="betting-areas">
+                        <div class='@($"bet-zone tie {(selectedBet == "Tie" ? "active" : "")}")' @onclick='() => SelectBet("Tie")'>
+                            <MudText Typo="Typo.h6">TIE</MudText>
+                            <MudText Typo="Typo.caption">PAYS 8:1</MudText>
+                        </div>
+                        <div class="d-flex gap-4 justify-center mt-4">
+                            <div class='@($"bet-zone banker {(selectedBet == "Banker" ? "active" : "")}")' @onclick='() => SelectBet("Banker")'>
+                                <MudText Typo="Typo.h6">BANKER</MudText>
+                                <MudText Typo="Typo.caption">1:1 (5% Com)</MudText>
+                            </div>
+                            <div class='@($"bet-zone player {(selectedBet == "Player" ? "active" : "")}")' @onclick='() => SelectBet("Player")'>
+                                <MudText Typo="Typo.h6">PLAYER</MudText>
+                                <MudText Typo="Typo.caption">PAYS 1:1</MudText>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(gameResult))
+                {
+                    <div class="result-overlay">
+                        <MudText Typo="Typo.h2" Class="fw-black result-text">@gameResult.ToUpper()</MudText>
+                    </div>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" lg="3">
+            <MudPaper Class="pa-6 d-flex flex-column gap-4 glass-panel">
+                <div class="text-center">
+                    <MudText Typo="Typo.h6" Class="opacity-70">BALANCE</MudText>
+                    <MudText Typo="Typo.h4" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
+                </div>
+                
+                <MudDivider />
+
+                <MudNumericField @bind-Value="betAmount" Label="Bet Amount" Variant="Variant.Outlined" Min="1" Max="5000" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Disabled="@isDealing" />
+
+                <div class="d-flex flex-column gap-2 mt-4">
+                    <MudText Typo="Typo.caption" Align="Align.Center" Class="mb-1">Selected: <b class="mud-text-primary">@selectedBet.ToUpper()</b></MudText>
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               Size="Size.Large" 
+                               OnClick="OnDeal" 
+                               Disabled="@(isDealing || betAmount <= 0)" 
+                               Style="height: 80px; font-weight: 900; font-size: 1.5rem;">
+                        @(isDealing ? "DEALING..." : "DEAL")
+                    </MudButton>
+                </div>
+
+                <div class="mt-4">
+                    <MudText Typo="Typo.subtitle2" Class="opacity-50 mb-2">History</MudText>
+                    <div class="d-flex flex-wrap gap-1">
+                        @foreach (var res in history.TakeLast(10))
+                        {
+                            <div class='@($"history-dot {res.ToLower()}")' title="@res">@res[0]</div>
+                        }
+                    </div>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<style>
+    .fw-black { font-weight: 900; }
+    .playing-card {
+        width: 80px; height: 120px; background: white; border-radius: 8px; color: black;
+        display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #ddd;
+        transition: all 0.3s;
+    }
+    .playing-card.red { color: #b30000; }
+    
+    .table-center { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); width: 100%; }
+    .betting-areas { display: flex; flex-direction: column; align-items: center; }
+    
+    .bet-zone {
+        width: 140px; height: 80px; border: 2px solid rgba(255,255,255,0.2); border-radius: 12px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.05);
+    }
+    .bet-zone:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.5); }
+    .bet-zone.active { background: rgba(255, 235, 59, 0.2); border-color: #ffeb3b; box-shadow: 0 0 15px rgba(255, 235, 59, 0.3); }
+    .bet-zone.tie { width: 300px; height: 60px; }
+
+    .result-overlay { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 100; text-align: center; width: 100%; pointer-events: none; }
+    .result-text { text-shadow: 0 0 20px rgba(0,0,0,0.8); animation: resultPop 0.5s cubic-bezier(0.17, 0.89, 0.32, 1.49); color: #ffeb3b; }
+
+    .history-dot { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 900; color: white; }
+    .history-dot.player { background: #2196f3; }
+    .history-dot.banker { background: #f44336; }
+    .history-dot.tie { background: #4caf50; }
+
+    .animate-draw { animation: drawCard 0.4s ease-out; }
+    @@keyframes drawCard { from { transform: translateY(-100px) rotate(15deg); opacity: 0; } to { transform: translateY(0) rotate(0); opacity: 1; } }
+    @@keyframes resultPop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+</style>
+
+@code {
+    private List<string> playerHand = new();
+    private List<string> bankerHand = new();
+    private int playerScore = 0;
+    private int bankerScore = 0;
+    private decimal balance = 0;
+    private decimal betAmount = 10.0m;
+    private string selectedBet = "Player";
+    private bool isDealing = false;
+    private string gameResult = "";
+    private List<string> history = new();
+    private Guid? sessionId;
+
+    protected override async Task OnInitializedAsync() {
+        await Audio.Init();
+        await RefreshBalance();
+    }
+
+    private async Task RefreshBalance() {
+        try {
+            var user = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+            if (user != null) balance = user.TotalBalance;
+            StateHasChanged();
+        } catch { }
+    }
+
+    private void SelectBet(string type) {
+        if (isDealing) return;
+        selectedBet = type;
+        Audio.PlayClick();
+    }
+
+    private async Task OnDeal() {
+        if (isDealing) return;
+        
+        if (sessionId == null) {
+            try {
+                var res = await GameService.StartSession("baccarat");
+                sessionId = res.SessionId;
+            } catch { Snackbar.Add("Connection error", Severity.Error); return; }
+        }
+
+        if (betAmount > balance) {
+            Snackbar.Add("Insufficient funds", Severity.Warning);
+            return;
+        }
+
+        isDealing = true;
+        gameResult = "";
+        playerHand.Clear();
+        bankerHand.Clear();
+        playerScore = 0;
+        bankerScore = 0;
+        
+        layoutService.SetBalanceUpdateSuppression(true);
+        StateHasChanged();
+
+        try {
+            await Audio.PlaySpin();
+            balance -= betAmount;
+            layoutService.DeductOptimisticBalance(betAmount);
+
+            var result = await GameService.PlaceBet("baccarat", sessionId.Value, betAmount, new { Type = selectedBet });
+            var state = JsonSerializer.Deserialize<BaccaratStateUI>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            
+            if (state != null) {
+                // Animated Deal Simulation
+                for (int i = 0; i < 2; i++) {
+                    playerHand.Add(state.PlayerHand[i]);
+                    await Task.Delay(300); StateHasChanged();
+                    bankerHand.Add(state.BankerHand[i]);
+                    await Task.Delay(300); StateHasChanged();
+                }
+                
+                playerScore = state.PlayerScore;
+                bankerScore = state.BankerScore;
+
+                // Third Cards
+                if (state.PlayerHand.Count > 2) {
+                    await Task.Delay(500);
+                    playerHand.Add(state.PlayerHand[2]);
+                    StateHasChanged();
+                }
+                if (state.BankerHand.Count > 2) {
+                    await Task.Delay(500);
+                    bankerHand.Add(state.BankerHand[2]);
+                    StateHasChanged();
+                }
+
+                gameResult = state.Outcome == "Tie" ? "TIE!" : $"{state.Outcome} WINS!";
+                history.Add(state.Outcome);
+                
+                if (state.Outcome == selectedBet) {
+                    await Audio.PlayWin();
+                    Snackbar.Add($"Winner! You won on {selectedBet}", Severity.Success);
+                }
+
+                await Task.Delay(1000);
+                await RefreshBalance();
+            }
+        }
+        catch (Exception ex) {
+            Snackbar.Add(ex.Message, Severity.Error);
+            await RefreshBalance();
+        }
+        finally {
+            isDealing = false;
+            layoutService.SetBalanceUpdateSuppression(false);
+            StateHasChanged();
+        }
+    }
+
+    private string FormatCard(string card) {
+        if (string.IsNullOrEmpty(card)) return "";
+        string rank = card.Substring(0, card.Length - 1);
+        string suit = card.Substring(card.Length - 1) switch { "H" => "♥", "D" => "♦", "C" => "♣", "S" => "♠", _ => "" };
+        return rank + suit;
+    }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+    public class BaccaratStateUI {
+        public List<string> PlayerHand { get; set; } = new();
+        public List<string> BankerHand { get; set; } = new();
+        public int PlayerScore { get; set; }
+        public int BankerScore { get; set; }
+        public string Outcome { get; set; } = "";
+    }
+}
