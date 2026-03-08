@@ -3,89 +3,127 @@
 @inject ISnackbar Snackbar
 @implements IDisposable
 
-<MudPaper Class="glass-panel pa-3 rounded-xl compact-missions" Elevation="0">
-    <div class="d-flex align-center mb-3">
-        <MudIcon Icon="@Icons.Material.Filled.FlashOn" Color="Color.Warning" Size="Size.Small" Class="mr-2" />
-        <MudText Typo="Typo.caption" Class="fw-black tracking-wider uppercase">Active Missions</MudText>
-    </div>
-
-    @if (isLoading && !quests.Any())
-    {
-        <div class="d-flex justify-center pa-2">
-            <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+@if (Compact)
+{
+    <!-- COMPACT SIDEBAR DESIGN -->
+    <MudPaper Class="pa-3 rounded-xl compact-missions mb-4 mx-2" Elevation="0" Style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+        <div class="d-flex align-center mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.FlashOn" Color="Color.Warning" Size="Size.Small" Class="mr-2" />
+            <MudText Typo="Typo.caption" Class="fw-black tracking-wider uppercase opacity-70">Missions</MudText>
         </div>
-    }
-    else if (!quests.Any())
-    {
-        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block text-center pa-2 opacity-50">No missions available.</MudText>
-    }
-    else
-    {
-        <div class="d-flex flex-column gap-2">
-            @foreach (var q in quests)
-            {
-                <div @key="q.Id" class="mission-item animate-fade-in">
-                    <div class="d-flex justify-space-between mb-1">
-                        <MudText Typo="Typo.caption" Class="fw-bold mission-title">@q.Title</MudText>
-                        <MudText Typo="Typo.caption" Class="fw-black text-success" Style="font-size: 0.65rem;">+@q.RewardAmount.ToString("C0")</MudText>
-                    </div>
-                    <div class="progress-wrapper">
-                        <MudProgressLinear Color="@(q.IsCompleted ? Color.Success : Color.Info)" 
-                                         Value="@q.Percentage" 
-                                         Size="Size.Small" 
-                                         Class="rounded-pill quest-bar" />
-                        <div class="progress-text">
-                            @($"{q.CurrentValue:N0}/{q.TargetValue:N0}")
+
+        @if (isLoading && !quests.Any())
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Size="Size.Small" Class="rounded-pill" />
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-2">
+                @foreach (var q in quests)
+                {
+                    <div @key="q.Id" class="mission-item animate-fade-in">
+                        <div class="progress-wrapper">
+                            <MudProgressLinear Color="@(q.IsCompleted ? Color.Success : Color.Info)" 
+                                             Value="@q.Percentage" 
+                                             Size="Size.Small" 
+                                             Rounded="true"
+                                             Class="quest-bar-compact" />
+                            <div class="progress-text-compact">
+                                @q.Title (@q.Percentage.ToString("F0")%)
+                            </div>
                         </div>
                     </div>
-                </div>
-            }
+                }
+            </div>
+        }
+    </MudPaper>
+}
+else
+{
+    <!-- CLASSIC HOME PAGE DESIGN -->
+    <MudPaper Class="pa-6 rounded-xl glass-panel" Elevation="0">
+        <div class="d-flex align-center mb-6">
+            <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Info" Class="mr-3" />
+            <MudText Typo="Typo.h6" Class="fw-black">ACTIVE MISSIONS</MudText>
         </div>
-    }
-</MudPaper>
+
+        @if (isLoading && !quests.Any())
+        {
+            <div class="d-flex justify-center pa-4">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (!quests.Any())
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary text-center">No active missions. Play more to unlock!</MudText>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-5">
+                @foreach (var q in quests)
+                {
+                    <div @key="q.Id" class="mission-item animate-fade-in">
+                        <div class="d-flex justify-space-between align-center mb-2">
+                            <div>
+                                <MudText Typo="Typo.body2" Class="fw-bold mb-0">@q.Title</MudText>
+                                <MudText Typo="Typo.caption" Class="opacity-60">@q.Description</MudText>
+                            </div>
+                            <div class="text-end">
+                                <MudText Typo="Typo.subtitle2" Color="Color.Success" Class="fw-black">+@q.RewardAmount.ToString("C0")</MudText>
+                            </div>
+                        </div>
+                        <MudProgressLinear Color="@(q.IsCompleted ? Color.Success : Color.Info)" 
+                                         Value="@q.Percentage" 
+                                         Size="Size.Medium" 
+                                         Rounded="true"
+                                         Class="quest-bar-classic" />
+                        <div class="d-flex justify-space-between mt-1">
+                            <MudText Typo="Typo.caption" Class="opacity-50">Progress</MudText>
+                            <MudText Typo="Typo.caption" Class="fw-bold">@($"{q.CurrentValue:N0} / {q.TargetValue:N0}")</MudText>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </MudPaper>
+}
 
 <style>
-    .compact-missions {
-        background: rgba(255,255,255,0.02);
-        border: 1px solid rgba(255,255,255,0.05);
-    }
     .fw-black { font-weight: 900; }
-    .mission-title { font-size: 0.7rem !important; opacity: 0.8; }
     
-    .progress-wrapper { position: relative; height: 12px; }
-    .quest-bar { height: 12px !important; }
+    /* Rounded Bars */
+    .quest-bar-compact .mud-progress-linear-bar, .quest-bar-classic .mud-progress-linear-bar {
+        border-radius: 20px !important;
+    }
+    .quest-bar-compact, .quest-bar-classic {
+        border-radius: 20px !important;
+        background-color: rgba(255,255,255,0.05) !important;
+    }
+
+    .progress-wrapper { position: relative; height: 16px; }
+    .quest-bar-compact { height: 16px !important; }
     
-    .progress-text {
+    .progress-text-compact {
         position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        inset: 0;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 0.6rem;
         font-weight: 900;
         color: white;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
         pointer-events: none;
+        text-transform: uppercase;
     }
 
-    .mission-item {
-        transition: all 0.5s ease;
-    }
-
-    .animate-fade-in {
-        animation: questFadeIn 0.6s ease-out forwards;
-    }
-
-    @@keyframes questFadeIn {
-        from { opacity: 0; transform: translateX(-10px); }
-        to { opacity: 1; transform: translateX(0); }
-    }
+    .animate-fade-in { animation: questFadeIn 0.6s ease-out forwards; }
+    @keyframes questFadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 
 @code {
+    [Parameter] public bool Compact { get; set; } = false;
+
     private List<QuestProgressDto> quests = new();
     private bool isLoading = true;
     private System.Threading.Timer? _timer;
@@ -93,7 +131,6 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadQuests();
-        // Poll every 5 seconds for snappier updates and auto-replacement
         _timer = new System.Threading.Timer(async _ => await InvokeAsync(LoadQuests), null, 5000, 5000);
     }
 
@@ -102,7 +139,7 @@
         try {
             var newQuests = await Http.GetFromJsonAsync<List<QuestProgressDto>>("api/Game/quests") ?? new();
             
-            // Check for completions to show snackbar
+            // Notification Logic
             foreach(var nq in newQuests) {
                 var old = quests.FirstOrDefault(oq => oq.Id == nq.Id);
                 if (old != null && !old.IsCompleted && nq.IsCompleted) {
