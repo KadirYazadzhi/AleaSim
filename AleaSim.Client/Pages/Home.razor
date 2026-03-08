@@ -241,9 +241,12 @@
                 <MudItem xs="12" md="4" lg="3">
                     <MudStack Spacing="4">
                         <!-- Quests Widget (Moved from sidebar drawer) -->
-                        <div class="animate-fade-in">
-                            <QuestWidget />
-                        </div>
+                        @if (!homeContext.User.IsInRole("Admin"))
+                        {
+                            <div class="animate-fade-in">
+                                <QuestWidget />
+                            </div>
+                        }
 
                         <!-- Jackpot Widget -->
                         <div class="glass-panel rounded-xl pa-1 overflow-hidden animate-fade-in" style="animation-delay: 0.05s;">

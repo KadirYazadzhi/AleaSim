@@ -74,6 +74,17 @@ public class SimulationService : ISimulationService {
                     betData = JsonSerializer.Serialize(new { Bets = bets, Mode = mode });
                 } else if (request.GameType.Equals("Slot", StringComparison.OrdinalIgnoreCase)) {
                     betData = "{\"Denomination\":0.01}";
+                } else if (request.GameType.Equals("Blackjack", StringComparison.OrdinalIgnoreCase)) {
+                    betData = "{}"; // Standard bet
+                } else if (request.GameType.Equals("Baccarat", StringComparison.OrdinalIgnoreCase)) {
+                    betData = JsonSerializer.Serialize(new { Type = "Player" });
+                } else if (request.GameType.Equals("Dice", StringComparison.OrdinalIgnoreCase)) {
+                    betData = JsonSerializer.Serialize(new { 
+                        Type = "Slider", 
+                        Target = 50.50m, 
+                        IsOver = true,
+                        Mode = "Slider"
+                    });
                 }
 
                 // 2. Place Bet (if not in a pending feature like Free Spins)
@@ -83,6 +94,16 @@ public class SimulationService : ISimulationService {
                 }
 
                 var round = await engine.ResolveRound(session.Id);
+                
+                // For Blackjack, we need to handle actions if the round is not over
+                if (request.GameType.Equals("Blackjack", StringComparison.OrdinalIgnoreCase)) {
+                    // Simple simulation logic: Always Stand immediately for simplicity in mass simulation
+                    // or implement basic strategy. For now, Stand to resolve.
+                    if (round.RandomResult.Contains("\"IsRoundOver\":false")) {
+                         await engine.ProcessAction(dummyUser.Id, session.Id, "Stand", "{}");
+                         round = await engine.ResolveRound(session.Id); // Get final state
+                    }
+                }
                 // ... (multi-step logic)
 
                 totalWin += round.TotalWinAmount;

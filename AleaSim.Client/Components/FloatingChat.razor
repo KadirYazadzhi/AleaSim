@@ -6,32 +6,35 @@
 
 <AuthorizeView>
     <Authorized>
-        <div class="floating-chat-root">
-            @if (isOpen)
-            {
-                <div class="chat-window-popup animate-pop-in">
-                    <div class="chat-header-bar pa-3 d-flex align-center justify-space-between">
-                        <div class="d-flex align-center gap-2">
-                            <div class="online-indicator"></div>
-                            <MudText Typo="Typo.subtitle2" Class="fw-black text-white">ALEA CHAT</MudText>
+        @if (!Navigation.Uri.EndsWith("/chat"))
+        {
+            <div class="floating-chat-root">
+                @if (isOpen)
+                {
+                    <div class="chat-window-popup animate-pop-in">
+                        <div class="chat-header-bar pa-3 d-flex align-center justify-space-between">
+                            <div class="d-flex align-center gap-2">
+                                <div class="online-indicator"></div>
+                                <MudText Typo="Typo.subtitle2" Class="fw-black text-white">ALEA CHAT</MudText>
+                            </div>
+                            <div class="d-flex align-center">
+                                <MudIconButton Icon="@Icons.Material.Filled.OpenInFull" Size="Size.Small" Class="text-white opacity-70" OnClick="OpenFullChat" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Class="text-white opacity-70" OnClick="ToggleChat" />
+                            </div>
                         </div>
-                        <div class="d-flex align-center">
-                            <MudIconButton Icon="@Icons.Material.Filled.OpenInFull" Size="Size.Small" Class="text-white opacity-70" OnClick="OpenFullChat" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Class="text-white opacity-70" OnClick="ToggleChat" />
+                        <div class="chat-body-viewport">
+                            <ChatWidget />
                         </div>
                     </div>
-                    <div class="chat-body-viewport">
-                        <ChatWidget />
-                    </div>
-                </div>
-            }
+                }
 
-            <button class='@($"chat-trigger-btn shadow-2xl {(isOpen ? "active" : "")}")' @onclick="ToggleChat">
-                @if (isOpen) { <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Style="font-size: 2rem;" /> }
-                else { <MudIcon Icon="@Icons.Material.Filled.ChatBubble" Style="font-size: 1.8rem;" /> }
-                <div class="unread-badge"></div>
-            </button>
-        </div>
+                <button class='@($"chat-trigger-btn shadow-2xl {(isOpen ? "active" : "")}")' @onclick="ToggleChat">
+                    @if (isOpen) { <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Style="font-size: 2rem;" /> }
+                    else { <MudIcon Icon="@Icons.Material.Filled.ChatBubble" Style="font-size: 1.8rem;" /> }
+                    <div class="unread-badge"></div>
+                </button>
+            </div>
+        }
     </Authorized>
 </AuthorizeView>
 

@@ -133,7 +133,7 @@
     <MudDrawer @bind-Open="@LayoutService.IsDrawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0" Variant="DrawerVariant.Responsive" Class="sidebar-blur">
         <NavMenu />
         <div class="mt-auto pa-4">
-             @if (userProfile != null) {
+             @if (userProfile != null && userProfile.Role != "Admin") {
                  <div class="mb-4">
                      <QuestWidget Compact="true" />
                  </div>

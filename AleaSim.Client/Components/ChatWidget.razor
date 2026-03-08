@@ -9,6 +9,13 @@
 
 <div class="chat-main-container d-flex flex-column h-100">
     <div class="chat-messages-viewport flex-grow-1 custom-scroll pa-4" id="chat-box">
+        @if (!messages.Any() && !isLoading)
+        {
+            <div class="d-flex flex-column align-center justify-center h-100 opacity-30 py-12">
+                <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" Style="font-size: 3rem;" class="mb-2" />
+                <MudText Typo="Typo.body2">No messages yet. Be the first!</MudText>
+            </div>
+        }
         @foreach (var msg in messages)
         {
             bool isMe = msg.SenderUsername == currentUsername;
@@ -117,6 +124,7 @@
     private List<ChatMessageDto> messages = new();
     private string newMessage = "";
     private string currentUsername = "";
+    private bool isLoading = true;
 
     protected override async Task OnInitializedAsync() {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -139,6 +147,7 @@
                 _ = ScrollToBottom();
             }
         } catch { }
+        finally { isLoading = false; }
     }
 
     private void HandleGlobalMessage(string user, string msg, DateTime time, string avatar) {

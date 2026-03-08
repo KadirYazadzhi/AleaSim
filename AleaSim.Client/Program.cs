@@ -23,9 +23,9 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 // Configure HttpClient with RefreshTokenHandler
 builder.Services.AddTransient<RefreshTokenHandler>();
 
-builder.Services.AddHttpClient("AleaSim.Api", client => {
-    client.BaseAddress = new Uri("http://localhost:5286");
-    client.Timeout = TimeSpan.FromMinutes(10);
+builder.Services.AddHttpClient("AleaSim.Api", client => { 
+    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress); 
+    client.Timeout = TimeSpan.FromMinutes(10); 
 })
 .AddHttpMessageHandler<RefreshTokenHandler>();
 
