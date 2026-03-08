@@ -41,45 +41,44 @@
 else
 {
     <!-- CLASSIC HOME PAGE DESIGN -->
-    <MudPaper Class="pa-6 rounded-xl glass-panel" Elevation="0">
-        <div class="d-flex align-center mb-6">
-            <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Info" Class="mr-3" />
-            <MudText Typo="Typo.h6" Class="fw-black">ACTIVE MISSIONS</MudText>
+    <MudPaper Class="pa-4 rounded-xl glass-panel" Elevation="0">
+        <div class="d-flex align-center mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Info" Size="Size.Small" Class="mr-2" />
+            <MudText Typo="Typo.subtitle2" Class="fw-black">ACTIVE MISSIONS</MudText>
         </div>
 
         @if (isLoading && !quests.Any())
         {
-            <div class="d-flex justify-center pa-4">
-                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            <div class="d-flex justify-center pa-2">
+                <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
             </div>
         }
         else if (!quests.Any())
         {
-            <MudText Typo="Typo.body2" Class="mud-text-secondary text-center">No active missions. Play more to unlock!</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary text-center d-block">No active missions.</MudText>
         }
         else
         {
-            <div class="d-flex flex-column gap-5">
+            <div class="d-flex flex-column gap-4">
                 @foreach (var q in quests)
                 {
                     <div @key="q.Id" class="mission-item animate-fade-in">
-                        <div class="d-flex justify-space-between align-center mb-2">
+                        <div class="d-flex justify-space-between align-center mb-1">
                             <div>
-                                <MudText Typo="Typo.body2" Class="fw-bold mb-0">@q.Title</MudText>
-                                <MudText Typo="Typo.caption" Class="opacity-60">@q.Description</MudText>
+                                <MudText Typo="Typo.caption" Class="fw-bold mb-0">@q.Title</MudText>
                             </div>
                             <div class="text-end">
-                                <MudText Typo="Typo.subtitle2" Color="Color.Success" Class="fw-black">+@q.RewardAmount.ToString("C0")</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Success" Class="fw-black">+@q.RewardAmount.ToString("C0")</MudText>
                             </div>
                         </div>
                         <MudProgressLinear Color="@(q.IsCompleted ? Color.Success : Color.Info)" 
                                          Value="@q.Percentage" 
-                                         Size="Size.Medium" 
+                                         Size="Size.Small" 
                                          Rounded="true"
                                          Class="quest-bar-classic" />
                         <div class="d-flex justify-space-between mt-1">
-                            <MudText Typo="Typo.caption" Class="opacity-50">Progress</MudText>
-                            <MudText Typo="Typo.caption" Class="fw-bold">@($"{q.CurrentValue:N0} / {q.TargetValue:N0}")</MudText>
+                            <MudText Typo="Typo.caption" Class="opacity-50" Style="font-size: 0.65rem;">@q.Description</MudText>
+                            <MudText Typo="Typo.caption" Class="fw-bold" Style="font-size: 0.65rem;">@($"{q.CurrentValue:N0}/{q.TargetValue:N0}")</MudText>
                         </div>
                     </div>
                 }
@@ -93,10 +92,10 @@ else
     
     /* Rounded Bars */
     .quest-bar-compact .mud-progress-linear-bar, .quest-bar-classic .mud-progress-linear-bar {
-        border-radius: 20px !important;
+        border-radius: 50px !important;
     }
     .quest-bar-compact, .quest-bar-classic {
-        border-radius: 20px !important;
+        border-radius: 50px !important;
         background-color: rgba(255,255,255,0.05) !important;
     }
 
