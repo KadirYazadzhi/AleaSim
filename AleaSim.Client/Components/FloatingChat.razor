@@ -1,0 +1,103 @@
+@using AleaSim.Client.Services
+@using AleaSim.Shared.Models
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@implements IDisposable
+
+<AuthorizeView>
+    <Authorized>
+        <div class="floating-chat-container">
+            @if (isOpen)
+            {
+                <div class="chat-popup animate-pop-in">
+                    <div class="chat-popup-header">
+                        <MudText Typo="Typo.subtitle2" Class="fw-bold">Community Chat</MudText>
+                        <div class="d-flex gap-1">
+                            <MudIconButton Icon="@Icons.Material.Filled.OpenInFull" Size="Size.Small" Color="Color.Inherit" OnClick="OpenFullChat" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Inherit" OnClick="ToggleChat" />
+                        </div>
+                    </div>
+                    <div class="chat-popup-body">
+                        <ChatWidget />
+                    </div>
+                </div>
+            }
+
+            <MudFab Color="Color.Primary" 
+                    StartIcon="@(isOpen ? Icons.Material.Filled.Close : Icons.Material.Filled.Chat)" 
+                    OnClick="ToggleChat" 
+                    Class="chat-fab shadow-lg" />
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+<style>
+    .floating-chat-container {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 16px;
+    }
+
+    .chat-fab {
+        width: 64px !important;
+        height: 64px !important;
+        border-radius: 50% !important;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    }
+    .chat-fab:hover { transform: scale(1.1); }
+
+    .chat-popup {
+        width: 350px;
+        height: 500px;
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-divider);
+        border-radius: 20px;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        backdrop-filter: blur(20px);
+    }
+
+    .chat-popup-header {
+        background: var(--mud-palette-primary);
+        color: white;
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .chat-popup-body {
+        flex-grow: 1;
+        overflow: hidden;
+    }
+
+    .animate-pop-in {
+        animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        transform-origin: bottom right;
+    }
+
+    @@keyframes popIn {
+        from { opacity: 0; transform: scale(0.5) translateY(20px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+</style>
+
+@code {
+    private bool isOpen = false;
+
+    private void ToggleChat() => isOpen = !isOpen;
+
+    private void OpenFullChat() {
+        isOpen = false;
+        Navigation.NavigateTo("/chat");
+    }
+
+    public void Dispose() { }
+}

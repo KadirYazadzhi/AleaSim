@@ -26,7 +26,6 @@
             <MudNavLink Href="game/baccarat" Icon="@Icons.Material.Filled.TableChart">Baccarat</MudNavLink>
 
             <MudNavLink Href="leaderboard" Icon="@Icons.Material.Filled.Leaderboard">Leaderboard</MudNavLink>
-            <MudNavLink Href="#" OnClick="OpenSupportChat" Icon="@Icons.Material.Filled.SupportAgent">Support Chat</MudNavLink>
 
             <div class="px-4 mt-6 mb-2">
                 <MudText Typo="Typo.subtitle2" Class="text-gray-500 fw-bold uppercase tracking-wider mb-2" Style="font-size: 0.7rem;">ACCOUNT</MudText>
@@ -61,15 +60,4 @@
 @code {
     [Inject] IAuthService AuthService { get; set; } = default!;
     [Inject] NavigationManager Navigation { get; set; } = default!;
-    [Inject] IDialogService DialogService { get; set; } = default!;
-
-    private async Task OpenSupportChat() {
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-        var parameters = new DialogParameters { 
-            ["OtherUserId"] = Guid.Parse("00000000-0000-0000-0000-000000000001"),
-            ["OtherUserName"] = "System Admin",
-            ["OtherUserAvatar"] = "https://api.dicebear.com/7.x/bottts/svg?seed=Admin"
-        };
-        await DialogService.ShowAsync<PrivateChatDialog>("Support Chat", parameters, options);
-    }
 }

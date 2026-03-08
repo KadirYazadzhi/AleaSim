@@ -1,0 +1,117 @@
+@using AleaSim.Shared.Models
+@using AleaSim.Client.Services
+@inject RealTimeClient RealTime
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="d-flex flex-column h-100">
+    <div class="chat-messages flex-grow-1 pa-4 custom-scroll" id="private-page-chat-box">
+        @foreach (var msg in messages)
+        {
+            bool isMe = msg.SenderId == currentUserId;
+            <div class='@($"d-flex mb-4 {(isMe ? "justify-end" : "justify-start")}")'>
+                <div class="d-flex align-start gap-2 @(isMe ? "flex-row-reverse" : "")">
+                    <MudAvatar Size="Size.Small">
+                        <MudImage Src="@msg.SenderAvatarUrl" />
+                    </MudAvatar>
+                    <div class='@($"pa-3 rounded-lg {(isMe ? "bg-primary text-white" : "bg-dark-lighten")}")' style="max-width: 300px;">
+                        <MudText Typo="Typo.body2">@msg.Message</MudText>
+                        <MudText Typo="Typo.caption" Class="d-block mt-1 opacity-50" Align="@(isMe ? Align.Right : Align.Left)">@msg.Timestamp.ToString("HH:mm")</MudText>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="chat-input pa-4 border-t border-solid var(--mud-palette-divider)" style="background: var(--mud-palette-surface);">
+        <div class="d-flex gap-2">
+            <MudTextField @bind-Value="newMessage" 
+                         Placeholder='@($"Message {OtherUserName}...")' 
+                         Variant="Variant.Outlined" 
+                         Margin="Margin.Dense" 
+                         OnKeyDown="HandleKeyDown" 
+                         Immediate="true" />
+            <MudIconButton Icon="@Icons.Material.Filled.Send" 
+                          Color="Color.Primary" 
+                          OnClick="SendMessage" 
+                          Disabled="@string.IsNullOrWhiteSpace(newMessage)" />
+        </div>
+    </div>
+</div>
+
+<style>
+    .chat-messages { overflow-y: auto; }
+    .bg-dark-lighten { background: rgba(255,255,255,0.05); }
+    .custom-scroll::-webkit-scrollbar { width: 4px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: var(--mud-palette-divider); border-radius: 10px; }
+</style>
+
+@code {
+    [Parameter] public Guid OtherUserId { get; set; }
+    [Parameter] public string OtherUserName { get; set; } = "";
+
+    private List<ChatMessageDto> messages = new();
+    private string newMessage = "";
+    private Guid currentUserId;
+
+    protected override async Task OnInitializedAsync() {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var idClaim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (idClaim != null) currentUserId = Guid.Parse(idClaim.Value);
+
+        RealTime.OnPrivateMessageReceived += HandlePrivateMessage;
+        await LoadHistory();
+    }
+
+    protected override async Task OnParametersSetAsync() {
+        await LoadHistory();
+    }
+
+    private async Task LoadHistory() {
+        try {
+            var history = await Http.GetFromJsonAsync<List<ChatMessageDto>>($"api/Chat/private/{OtherUserId}");
+            if (history != null) {
+                messages = history;
+                _ = ScrollToBottom();
+            }
+        } catch { }
+    }
+
+    private void HandlePrivateMessage(string user, string msg, DateTime time, string avatar, Guid senderId) {
+        if (senderId == OtherUserId || senderId == currentUserId) {
+            messages.Add(new ChatMessageDto {
+                SenderUsername = user,
+                Message = msg,
+                Timestamp = time,
+                SenderAvatarUrl = avatar,
+                SenderId = senderId
+            });
+            InvokeAsync(async () => {
+                StateHasChanged();
+                await ScrollToBottom();
+            });
+        }
+    }
+
+    private async Task SendMessage() {
+        if (string.IsNullOrWhiteSpace(newMessage)) return;
+        var msg = newMessage;
+        newMessage = "";
+        await RealTime.SendPrivateMessage(OtherUserId, msg);
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e) {
+        if (e.Key == "Enter") _ = SendMessage();
+    }
+
+    private async Task ScrollToBottom() {
+        await Task.Delay(100);
+        await JS.InvokeVoidAsync("aleaChat.scrollToBottom", "private-page-chat-box");
+    }
+
+    public void Dispose() {
+        RealTime.OnPrivateMessageReceived -= HandlePrivateMessage;
+    }
+}

@@ -1,0 +1,139 @@
+@page "/chat"
+@using AleaSim.Shared.Models
+@using AleaSim.Client.Services
+@using AleaSim.Client.Components
+@attribute [Authorize]
+@inject RealTimeClient RealTime
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-16 h-100">
+    <MudPaper Class="d-flex rounded-xl overflow-hidden glass-panel" Style="height: 80vh;">
+        <!-- Left Sidebar: Chat List -->
+        <div class="chat-list-sidebar border-r border-solid var(--mud-palette-divider) d-flex flex-column">
+            <div class="pa-4 border-b border-solid var(--mud-palette-divider)">
+                <MudText Typo="Typo.h6" Class="fw-black">CHATS</MudText>
+            </div>
+            
+            <div class="flex-grow-1 overflow-auto">
+                <MudList T="string" Clickable="true">
+                    <MudListItem OnClick='() => SelectChat("Global")' 
+                                 Icon="@Icons.Material.Filled.Public" 
+                                 Class='@((activeChatType == "Global") ? "bg-primary-transparent" : "")'>
+                        Global Community
+                    </MudListItem>
+                    
+                    <MudDivider Class="my-2" />
+                    
+                    <AuthorizeView Roles="Admin">
+                        <Authorized>
+                            <div class="px-4 py-2 opacity-50"><MudText Typo="Typo.caption" Class="fw-bold">PRIVATE MESSAGES</MudText></div>
+                            @if (isLoadingPlayers) {
+                                <div class="d-flex justify-center pa-4"><MudProgressCircular Size="Size.Small" Indeterminate="true" /></div>
+                            }
+                            @foreach (var user in activeConversations)
+                            {
+                                <MudListItem OnClick='() => SelectPrivateChat(user.Id, user.Username)'
+                                             Icon="@Icons.Material.Filled.Person"
+                                             Class='@((activeChatType == "Private" && selectedUserId == user.Id) ? "bg-primary-transparent" : "")'>
+                                    @user.Username
+                                </MudListItem>
+                            }
+                        </Authorized>
+                        <NotAuthorized>
+                            <MudListItem OnClick="SelectSupportChat" 
+                                         Icon="@Icons.Material.Filled.SupportAgent"
+                                         Class='@((activeChatType == "Private" && selectedUserId == adminGuid) ? "bg-primary-transparent" : "")'>
+                                Support (Admin)
+                            </MudListItem>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </MudList>
+            </div>
+        </div>
+
+        <!-- Right Content: Active Chat -->
+        <div class="flex-grow-1 d-flex flex-column" style="background: rgba(0,0,0,0.05);">
+            <div class="pa-4 border-b border-solid var(--mud-palette-divider) d-flex justify-space-between align-center" style="background: var(--mud-palette-surface);">
+                <div class="d-flex align-center">
+                    <MudIcon Icon="@(activeChatType == "Global" ? Icons.Material.Filled.Public : Icons.Material.Filled.Person)" Class="mr-2 text-primary" />
+                    <MudText Typo="Typo.h6" Class="fw-bold">@activeChatTitle</MudText>
+                </div>
+            </div>
+
+            <div class="flex-grow-1 p-relative d-flex flex-column overflow-hidden">
+                @if (activeChatType == "Global")
+                {
+                    <ChatWidget />
+                }
+                else if (activeChatType == "Private" && selectedUserId != null)
+                {
+                    <PrivateChatContainer OtherUserId="@selectedUserId.Value" OtherUserName="@selectedUserName" />
+                }
+                else
+                {
+                    <div class="d-flex flex-column align-center justify-center h-100 opacity-30">
+                        <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" Style="font-size: 5rem;" />
+                        <MudText>Select a conversation to start chatting</MudText>
+                    </div>
+                }
+            </div>
+        </div>
+    </MudPaper>
+</MudContainer>
+
+<style>
+    .chat-list-sidebar { width: 300px; background: var(--mud-palette-surface); }
+    .bg-primary-transparent { background: rgba(124, 58, 237, 0.1) !important; border-left: 4px solid var(--mud-palette-primary); }
+    .fw-black { font-weight: 900; }
+</style>
+
+@code {
+    private string activeChatType = "Global";
+    private string activeChatTitle = "Global Community";
+    private string selectedUserName = "";
+    private Guid? selectedUserId;
+    private Guid adminGuid = Guid.Parse("00000000-0000-0000-0000-000000000001");
+    private List<UserSummary> activeConversations = new();
+    private bool isLoadingPlayers = false;
+
+    protected override async Task OnInitializedAsync() {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.IsInRole("Admin")) {
+            await LoadActiveConversations();
+        }
+    }
+
+    private void SelectChat(string type) {
+        activeChatType = type;
+        if (type == "Global") {
+            activeChatTitle = "Global Community";
+            selectedUserId = null;
+        }
+    }
+
+    private void SelectPrivateChat(Guid id, string name) {
+        activeChatType = "Private";
+        selectedUserId = id;
+        selectedUserName = name;
+        activeChatTitle = $"Chat with {name}";
+    }
+
+    private void SelectSupportChat() => SelectPrivateChat(adminGuid, "System Admin");
+
+    private async Task LoadActiveConversations() {
+        isLoadingPlayers = true;
+        try {
+            // Use the existing search endpoint to get players
+            var players = await Http.GetFromJsonAsync<List<UserSummary>>("api/Admin/players/search/ "); 
+            if (players != null) activeConversations = players.Where(p => p.Id != adminGuid).ToList();
+        } catch { }
+        finally { isLoadingPlayers = false; }
+    }
+
+    public class UserSummary {
+        public Guid Id { get; set; }
+        public string Username { get; set; } = "";
+    }
+}
