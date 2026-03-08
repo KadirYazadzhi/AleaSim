@@ -220,6 +220,7 @@ public class GameController : ControllerBase {
         var userId = GetUserIdOrThrow();
         var quests = await _questService.GetActiveQuests(userId, _repo);
         return Ok(quests.Select(p => new {
+            Id = p.Quest.Id,
             p.Quest.Title,
             p.Quest.Description,
             p.CurrentValue,

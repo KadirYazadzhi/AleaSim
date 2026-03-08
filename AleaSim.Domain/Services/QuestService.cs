@@ -58,19 +58,37 @@ public class QuestService : IQuestService {
     }
 
     public async Task<IEnumerable<UserQuestProgress>> GetActiveQuests(Guid userId, IGameRepository repo) {
-        // Return all active quests with their user progress (or empty progress if new)
-        var allActive = repo.GetAllQuests().Where(q => q.IsActive).ToList();
+        // Return only the top 3 active quests that are NOT completed.
+        // This creates the "infinite" quest loop feeling.
+        var allQuests = repo.GetAllQuests().Where(q => q.IsActive).ToList();
         var userProgs = repo.GetUserQuestProgressions(userId).ToDictionary(p => p.QuestId);
 
-        var results = new List<UserQuestProgress>();
-        foreach (var q in allActive) {
+        var activeResults = new List<UserQuestProgress>();
+        
+        // 1. Get quests already in progress but not completed
+        foreach (var q in allQuests) {
             if (userProgs.TryGetValue(q.Id, out var prog)) {
-                prog.Quest = q; // Ensure navigation property is set for DTO
-                results.Add(prog);
-            } else {
-                results.Add(new UserQuestProgress { QuestId = q.Id, Quest = q, UserId = userId, CurrentValue = 0 });
+                if (!prog.IsCompleted) {
+                    prog.Quest = q;
+                    activeResults.Add(prog);
+                }
             }
         }
-        return await Task.FromResult(results);
+
+        // 2. If we have less than 3, fill from the pool of quests the user hasn't started or completed yet
+        if (activeResults.Count < 3) {
+            var availablePool = allQuests.Where(q => !userProgs.ContainsKey(q.Id)).ToList();
+            foreach (var q in availablePool.Take(3 - activeResults.Count)) {
+                activeResults.Add(new UserQuestProgress { 
+                    QuestId = q.Id, 
+                    Quest = q, 
+                    UserId = userId, 
+                    CurrentValue = 0,
+                    IsCompleted = false
+                });
+            }
+        }
+
+        return await Task.FromResult(activeResults.Take(3));
     }
 }
