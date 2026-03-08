@@ -126,16 +126,19 @@ using (var scope = app.Services.CreateScope()) {
     
     db.Database.EnsureCreated(); // Auto-create tables if missing
     // Seed Games if missing
-    if (!db.Games.Any()) {
-        db.Games.AddRange(
-            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000001"), Name = "Slot Machine", Type = "Slot", Provider = "AleaSim Originals", MinBet = 1, MaxBet = 1000, TargetRTP = 0.95m, IsActive = true, PoolBalance = 1000000m },
-            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = "European Roulette", Type = "Roulette", Provider = "AleaSim Originals", MinBet = 1, MaxBet = 100000, TargetRTP = 0.97m, IsActive = true, PoolBalance = 1000000m },
-            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000003"), Name = "Blackjack", Type = "Blackjack", Provider = "AleaSim Originals", MinBet = 5, MaxBet = 1000, TargetRTP = 0.99m, IsActive = true, PoolBalance = 1000000m },
-            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000004"), Name = "Baccarat Royale", Type = "Baccarat", Provider = "AleaSim Originals", MinBet = 1, MaxBet = 5000, TargetRTP = 0.989m, IsActive = true, PoolBalance = 1000000m },
-            new AleaSim.Domain.Entities.Game { Id = Guid.Parse("77777777-7777-7777-7777-777777777777"), Name = "Neon Dice", Type = "dice", Provider = "AleaSim Originals", MinBet = 0.1m, MaxBet = 1000, TargetRTP = 0.99m, IsActive = true, PoolBalance = 1000000m }
-        );
-        db.SaveChanges();
-    }
+    var existingGames = db.Games.ToList();
+    if (!existingGames.Any(g => g.Type == "Slot")) 
+        db.Games.Add(new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000001"), Name = "Slot Machine", Type = "Slot", Provider = "AleaSim Originals", MinBet = 1, MaxBet = 1000, TargetRTP = 0.95m, IsActive = true, PoolBalance = 1000000m });
+    if (!existingGames.Any(g => g.Type == "Roulette"))
+        db.Games.Add(new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = "European Roulette", Type = "Roulette", Provider = "AleaSim Originals", MinBet = 1, MaxBet = 100000, TargetRTP = 0.97m, IsActive = true, PoolBalance = 1000000m });
+    if (!existingGames.Any(g => g.Type == "Blackjack"))
+        db.Games.Add(new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000003"), Name = "Blackjack", Type = "Blackjack", Provider = "AleaSim Originals", MinBet = 5, MaxBet = 1000, TargetRTP = 0.99m, IsActive = true, PoolBalance = 1000000m });
+    if (!existingGames.Any(g => g.Type == "Baccarat"))
+        db.Games.Add(new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000004"), Name = "Baccarat Royale", Type = "Baccarat", Provider = "AleaSim Originals", MinBet = 1, MaxBet = 5000, TargetRTP = 0.989m, IsActive = true, PoolBalance = 1000000m });
+    if (!existingGames.Any(g => g.Type == "dice"))
+        db.Games.Add(new AleaSim.Domain.Entities.Game { Id = Guid.Parse("77777777-7777-7777-7777-777777777777"), Name = "Neon Dice", Type = "dice", Provider = "AleaSim Originals", MinBet = 0.1m, MaxBet = 1000, TargetRTP = 0.99m, IsActive = true, PoolBalance = 1000000m });
+    
+    db.SaveChanges();
 
     // Seed Global Jackpots if missing
     if (!db.Jackpots.Any(j => j.IsGlobal && j.CurrentValue > 0)) {
