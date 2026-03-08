@@ -121,6 +121,7 @@ public class PlatformStatsDto {
     public decimal TournamentPrizePool { get; set; }
     public DateTime TournamentEndsAt { get; set; }
     public int ActivePlayers { get; set; }
+    public int TotalRegisteredPlayers { get; set; }
     public double AverageRtp { get; set; }
     public decimal TotalRewardsPaid { get; set; }
 }

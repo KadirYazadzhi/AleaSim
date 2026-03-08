@@ -25,6 +25,7 @@ public interface IGameRepository {
     User? GetUserBySessionId(Guid sessionId);
     User? GetUserByUsername(string username);
     IEnumerable<User> SearchUsers(string query);
+    int GetTotalUserCount();
     void CreateUser(User user);
     void UpdateUser(User user); // Added generic update
     void DeleteUser(Guid userId);

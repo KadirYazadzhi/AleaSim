@@ -297,6 +297,7 @@ public class GameController : ControllerBase {
 
         var stats = new PlatformStatsDto {
             ActivePlayers = activeCount, 
+            TotalRegisteredPlayers = _repo.GetTotalUserCount(),
             AverageRtp = 96.5, // Logic for real average RTP could be complex, keeping static or calc
             TotalRewardsPaid = totalRewards,
             WeeklyJackpot = weeklyJackpot,

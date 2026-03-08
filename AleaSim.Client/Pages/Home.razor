@@ -148,8 +148,8 @@
                             <MudItem xs="12" sm="4">
                                 <div class="glass-panel pa-6 rounded-xl text-center hover-scale">
                                     <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" Size="Size.Large" Class="mb-2" />
-                                    <MudText Typo="Typo.h4" Class="text-gradient fw-black">@PlatformStats.Stats.ActivePlayers.ToString("N0")</MudText>
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Active Players</MudText>
+                                    <MudText Typo="Typo.h4" Class="text-gradient fw-black">@PlatformStats.Stats.TotalRegisteredPlayers.ToString("N0")</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Registered Players</MudText>
                                 </div>
                             </MudItem>
                             <MudItem xs="12" sm="4">
@@ -314,8 +314,8 @@
                              <span class="stat-label">Paid Out</span>
                          </div>
                          <div class="stat-item">
-                             <span class="stat-value text-gradient-purple">@PlatformStats.Stats.ActivePlayers.ToString("N0")</span>
-                             <span class="stat-label">Active Players</span>
+                             <span class="stat-value text-gradient-purple">@PlatformStats.Stats.TotalRegisteredPlayers.ToString("N0")</span>
+                             <span class="stat-label">Registered Players</span>
                          </div>
                          <div class="stat-item">
                              <span class="stat-value text-success">100%</span>
@@ -406,7 +406,7 @@
                     <MudItem xs="12" sm="4">
                         <div class="glass-panel pa-8 rounded-xl text-center hover-scale">
                             <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" Style="font-size: 4rem;" Class="mb-4" />
-                            <MudText Typo="Typo.h2" Class="text-gradient fw-black mb-2">@PlatformStats.Stats.ActivePlayers.ToString("N0")</MudText>
+                            <MudText Typo="Typo.h2" Class="text-gradient fw-black mb-2">@PlatformStats.Stats.TotalRegisteredPlayers.ToString("N0")</MudText>
                             <MudText Typo="Typo.h6" Class="mud-text-secondary">Registered Players</MudText>
                         </div>
                     </MudItem>

@@ -138,6 +138,10 @@ public class EfGameRepository : IGameRepository {
             .ToList();
     }
 
+    public int GetTotalUserCount() {
+        return _context.Users.Count(u => u.Role != Role.Admin && !u.Username.StartsWith("Sim_"));
+    }
+
     public void CreateUser(User user) {
         _context.Users.Add(user);
         _context.SaveChanges();
