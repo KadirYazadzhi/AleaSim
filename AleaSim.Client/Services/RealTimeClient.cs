@@ -15,7 +15,8 @@ public class RealTimeClient : IAsyncDisposable {
     public event Action<BigWinEventArgs>? OnBigWinReceived;
     public event Action<string, object>? OnLeaderboardUpdated;
     public event Action<object>? OnGameUpdateReceived;
-    public event Action<string, string, DateTime, string>? OnChatMessageReceived; // Added avatar
+    public event Action<string, string, DateTime, string>? OnChatMessageReceived;
+    public event Action<string, string, DateTime, string, Guid>? OnPrivateMessageReceived;
 
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
@@ -41,6 +42,10 @@ public class RealTimeClient : IAsyncDisposable {
 
         _hubConnection.On<string, string, DateTime, string>("ReceiveChatMessage", (user, msg, time, avatar) => {
             OnChatMessageReceived?.Invoke(user, msg, time, avatar);
+        });
+
+        _hubConnection.On<string, string, DateTime, string, Guid>("ReceivePrivateMessage", (user, msg, time, avatar, senderId) => {
+            OnPrivateMessageReceived?.Invoke(user, msg, time, avatar, senderId);
         });
 
         _hubConnection.On<object>("ReceiveGameUpdate", (data) => {
@@ -71,6 +76,12 @@ public class RealTimeClient : IAsyncDisposable {
     public async Task SendChatMessage(string message) {
         if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected) {
             await _hubConnection.SendAsync("SendMessage", message);
+        }
+    }
+
+    public async Task SendPrivateMessage(Guid receiverId, string message) {
+        if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected) {
+            await _hubConnection.SendAsync("SendPrivateMessage", receiverId, message);
         }
     }
 

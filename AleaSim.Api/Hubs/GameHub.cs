@@ -24,11 +24,65 @@ public class GameHub : Hub {
             ? $"https://api.dicebear.com/7.x/bottts/svg?seed={username}" 
             : user.AvatarUrl;
 
+        var chatMsg = new ChatMessage {
+            Id = Guid.NewGuid(),
+            SenderId = userId,
+            SenderUsername = username,
+            SenderAvatarUrl = avatarUrl,
+            Message = message,
+            Timestamp = DateTime.UtcNow,
+            Type = ChatMessageType.Global
+        };
+
+        _repo.SaveChatMessage(chatMsg);
+
         // Broadcast to everyone with avatar
-        await Clients.All.SendAsync("ReceiveChatMessage", username, message, DateTime.UtcNow, avatarUrl);
+        await Clients.All.SendAsync("ReceiveChatMessage", username, message, chatMsg.Timestamp, avatarUrl);
 
         // Audit log for moderation
         _auditService.LogEvent("CHAT_MESSAGE", message, userIdString, message);
+    }
+
+    public async Task SendPrivateMessage(Guid receiverId, string message) {
+        var senderIdString = Context.UserIdentifier ?? Guid.Empty.ToString();
+        var senderId = Guid.Parse(senderIdString);
+        var sender = _repo.GetUser(senderId);
+        
+        if (sender == null) return;
+
+        // Check if sender is admin OR receiver is admin
+        var receiver = _repo.GetUser(receiverId);
+        if (receiver == null) return;
+
+        bool isSenderAdmin = sender.Role == AleaSim.Domain.Enums.Role.Admin;
+        bool isReceiverAdmin = receiver.Role == AleaSim.Domain.Enums.Role.Admin;
+
+        if (!isSenderAdmin && !isReceiverAdmin) {
+            // Non-admins cannot send private messages to each other
+            return;
+        }
+
+        string avatarUrl = string.IsNullOrEmpty(sender.AvatarUrl) 
+            ? $"https://api.dicebear.com/7.x/bottts/svg?seed={sender.Username}" 
+            : sender.AvatarUrl;
+
+        var chatMsg = new ChatMessage {
+            Id = Guid.NewGuid(),
+            SenderId = senderId,
+            SenderUsername = sender.Username,
+            SenderAvatarUrl = avatarUrl,
+            ReceiverId = receiverId,
+            Message = message,
+            Timestamp = DateTime.UtcNow,
+            Type = ChatMessageType.Private
+        };
+
+        _repo.SaveChatMessage(chatMsg);
+
+        // Send to specific users (SignalR UserIdentifier is usually the Name or Subject claim)
+        // We send to both sender and receiver to update their UIs
+        await Clients.User(receiverId.ToString()).SendAsync("ReceivePrivateMessage", sender.Username, message, chatMsg.Timestamp, avatarUrl, senderId);
+        await Clients.User(senderId.ToString()).SendAsync("ReceivePrivateMessage", sender.Username, message, chatMsg.Timestamp, avatarUrl, senderId);
     }
 
     // Clients can join groups for specific games or sessions

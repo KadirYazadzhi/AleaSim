@@ -5,6 +5,7 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
     <MudText Typo="Typo.h3" Class="mb-6">Player Inspector</MudText>
@@ -31,8 +32,13 @@
             @if (selectedPlayer != null)
             {
                 <MudPaper Class="pa-6" Elevation="3">
-                    <MudText Typo="Typo.h4">@selectedPlayer.Username</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">ID: @selectedPlayer.Id</MudText>
+                    <div class="d-flex justify-space-between align-center mb-4">
+                        <div>
+                            <MudText Typo="Typo.h4">@selectedPlayer.Username</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">ID: @selectedPlayer.Id</MudText>
+                        </div>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Chat" OnClick="OpenChat">Chat with Player</MudButton>
+                    </div>
 
                     <MudExpansionPanels>
                         <MudExpansionPanel Text="God Mode Controls" Icon="@Icons.Material.Filled.Bolt" Style="background: #fff9c4;">
@@ -80,6 +86,17 @@
     private void SelectPlayer(PlayerSearchResultDto player)
     {
         selectedPlayer = player;
+    }
+
+    private async Task OpenChat() {
+        if (selectedPlayer == null) return;
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var parameters = new DialogParameters { 
+            ["OtherUserId"] = selectedPlayer.Id,
+            ["OtherUserName"] = selectedPlayer.Username,
+            ["OtherUserAvatar"] = $"https://api.dicebear.com/7.x/bottts/svg?seed={selectedPlayer.Username}"
+        };
+        await DialogService.ShowAsync<PrivateChatDialog>("Private Chat", parameters, options);
     }
 
     private async Task InjectBonus()

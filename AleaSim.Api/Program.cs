@@ -141,6 +141,21 @@ using (var scope = app.Services.CreateScope()) {
             );");
     } catch { }
 
+    // Create ChatMessages table if missing
+    try {
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS ChatMessages (
+                Id CHAR(36) PRIMARY KEY,
+                SenderId CHAR(36) NOT NULL,
+                SenderUsername VARCHAR(255) NOT NULL,
+                SenderAvatarUrl VARCHAR(255) NOT NULL,
+                ReceiverId CHAR(36) NULL,
+                Message TEXT NOT NULL,
+                Timestamp DATETIME NOT NULL,
+                Type INT NOT NULL DEFAULT 0
+            );");
+    } catch { }
+
     // Seed Games if missing
     var existingGames = db.Games.ToList();
     if (!existingGames.Any(g => g.Type == "Slot")) 

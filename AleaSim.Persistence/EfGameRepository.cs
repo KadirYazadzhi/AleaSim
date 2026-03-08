@@ -758,6 +758,31 @@ public class EfGameRepository : IGameRepository {
         }
     }
 
+    public void SaveChatMessage(ChatMessage message) {
+        _context.ChatMessages.Add(message);
+        _context.SaveChanges();
+    }
+
+    public IEnumerable<ChatMessage> GetGlobalChatMessages(int count) {
+        return _context.ChatMessages
+            .Where(m => m.Type == ChatMessageType.Global)
+            .OrderByDescending(m => m.Timestamp)
+            .Take(count)
+            .Reverse() // Oldest first for the UI
+            .ToList();
+    }
+
+    public IEnumerable<ChatMessage> GetPrivateChatHistory(Guid userId1, Guid userId2, int count) {
+        return _context.ChatMessages
+            .Where(m => m.Type == ChatMessageType.Private &&
+                       ((m.SenderId == userId1 && m.ReceiverId == userId2) ||
+                        (m.SenderId == userId2 && m.ReceiverId == userId1)))
+            .OrderByDescending(m => m.Timestamp)
+            .Take(count)
+            .Reverse()
+            .ToList();
+    }
+
     public void DeleteUser(Guid userId) {
         var user = _context.Users.Find(userId);
         if (user != null) {

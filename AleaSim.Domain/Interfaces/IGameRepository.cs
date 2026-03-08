@@ -141,4 +141,9 @@ public interface IGameRepository {
     void SaveSupportMessage(SupportMessage message);
     IEnumerable<SupportMessage> GetSupportMessages(int count);
     void MarkSupportMessageRead(Guid messageId);
+
+    // Chat
+    void SaveChatMessage(ChatMessage message);
+    IEnumerable<ChatMessage> GetGlobalChatMessages(int count);
+    IEnumerable<ChatMessage> GetPrivateChatHistory(Guid userId1, Guid userId2, int count);
 }
