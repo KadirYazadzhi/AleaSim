@@ -9,14 +9,14 @@
 @inject ISnackbar Snackbar
 
 <div class="chat-page-root animate-fade-in">
-    <div class="chat-app-container shadow-2xl">
+    <div class="chat-app-container">
         <!-- Sidebar: Contact List -->
         <div class="chat-sidebar d-flex flex-column">
             <div class="sidebar-header pa-6">
                 <MudText Typo="Typo.h5" Class="fw-black text-gradient">MESSAGES</MudText>
             </div>
             
-            <div class="sidebar-content flex-grow-1 px-2">
+            <div class="sidebar-content flex-grow-1">
                 <div class="nav-item @(activeChatType == "Global" ? "active" : "")" @onclick='() => SelectChat("Global")'>
                     <div class="nav-icon global"><MudIcon Icon="@Icons.Material.Filled.Public" /></div>
                     <div class="nav-info">
@@ -25,26 +25,28 @@
                     </div>
                 </div>
                 
-                <MudDivider Class="my-4 mx-4 opacity-10" />
+                <MudDivider Class="my-4 mx-6 opacity-10" />
                 
-                <div class="px-6 py-2 mb-2"><MudText Typo="Typo.caption" Class="fw-bold tracking-widest opacity-40">DIRECT MESSAGES</MudText></div>
+                <div class="px-8 py-2 mb-2"><MudText Typo="Typo.caption" Class="fw-bold tracking-widest opacity-40">DIRECT MESSAGES</MudText></div>
                 
                 <AuthorizeView Roles="Admin">
                     <Authorized>
                         @if (isLoadingPlayers) {
                             <div class="d-flex justify-center pa-4"><MudProgressCircular Size="Size.Small" Indeterminate="true" /></div>
                         }
-                        @foreach (var user in activeConversations)
-                        {
-                            <div class="nav-item @(activeChatType == "Private" && selectedUserId == user.Id ? "active" : "")" 
-                                 @onclick='() => SelectPrivateChat(user.Id, user.Username)'>
-                                <MudAvatar Size="Size.Small" Class="mr-3"><MudImage Src='@($"https://api.dicebear.com/7.x/bottts/svg?seed={user.Username}")'/></MudAvatar>
-                                <div class="nav-info">
-                                    <span class="nav-title">@user.Username</span>
-                                    <span class="nav-subtitle">Player</span>
+                        <div class="px-2">
+                            @foreach (var user in activeConversations)
+                            {
+                                <div class="nav-item @(activeChatType == "Private" && selectedUserId == user.Id ? "active" : "")" 
+                                     @onclick='() => SelectPrivateChat(user.Id, user.Username)'>
+                                    <MudAvatar Size="Size.Small" Class="mr-3"><MudImage Src='@($"https://api.dicebear.com/7.x/bottts/svg?seed={user.Username}")'/></MudAvatar>
+                                    <div class="nav-info">
+                                        <span class="nav-title">@user.Username</span>
+                                        <span class="nav-subtitle">Player</span>
+                                    </div>
                                 </div>
-                            </div>
-                        }
+                            }
+                        </div>
                     </Authorized>
                     <NotAuthorized>
                         <div class="nav-item @(activeChatType == "Private" && selectedUserId == adminGuid ? "active" : "")" 
@@ -62,24 +64,24 @@
 
         <!-- Main Chat Area -->
         <div class="chat-main">
-            <div class="chat-app-header d-flex align-center justify-space-between px-6">
-                <div class="d-flex align-center gap-3">
+            <div class="chat-app-header d-flex align-center justify-space-between px-8">
+                <div class="d-flex align-center gap-4">
                     @if (activeChatType == "Private") {
-                        <MudAvatar Size="Size.Medium"><MudImage Src='@($"https://api.dicebear.com/7.x/bottts/svg?seed={activeChatTitle}")'/></MudAvatar>
+                        <MudAvatar Size="Size.Medium"><MudImage Src='@($"https://api.dicebear.com/7.x/bottts/svg?seed={selectedUserName}")'/></MudAvatar>
                     } else {
                         <div class="nav-icon global small"><MudIcon Icon="@Icons.Material.Filled.Public" /></div>
                     }
                     <div>
-                        <MudText Typo="Typo.h6" Class="fw-bold lh-1">@activeChatTitle.ToUpper()</MudText>
+                        <MudText Typo="Typo.h6" Class="fw-black lh-1">@activeChatTitle.ToUpper()</MudText>
                         <div class="d-flex align-center gap-1">
                             <div class="online-indicator"></div>
-                            <MudText Typo="Typo.caption" Class="opacity-50">Online</MudText>
+                            <MudText Typo="Typo.caption" Class="opacity-50">Active Now</MudText>
                         </div>
                     </div>
                 </div>
                 <div class="d-flex gap-2">
-                    <MudIconButton Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="opacity-50" />
-                    <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Class="opacity-50" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Search" Color="Color.Inherit" Class="opacity-50" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit" Class="opacity-50" />
                 </div>
             </div>
 
@@ -99,59 +101,60 @@
 
 <style>
     .chat-page-root {
-        height: calc(100vh - 64px); /* Full height minus appbar */
-        padding: 20px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        height: calc(100vh - 64px);
+        width: 100%;
         background: var(--mud-palette-background);
+        display: flex;
     }
 
     .chat-app-container {
         width: 100%;
-        max-width: 1400px;
         height: 100%;
         display: flex;
         background: var(--mud-palette-surface);
-        border: 1px solid var(--mud-palette-divider);
-        border-radius: 24px;
-        overflow: hidden;
     }
 
     /* Sidebar */
     .chat-sidebar {
-        width: 350px;
+        width: 380px;
         background: var(--mud-palette-surface);
         border-right: 1px solid var(--mud-palette-divider);
     }
     
+    .sidebar-header {
+        border-bottom: 1px solid var(--mud-palette-divider);
+        height: 80px;
+        display: flex;
+        align-items: center;
+    }
+
     .nav-item {
         display: flex;
         align-items: center;
-        padding: 12px 24px;
-        margin: 4px 12px;
+        padding: 14px 24px;
+        margin: 4px 16px;
         border-radius: 16px;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .nav-item:hover { background: var(--mud-palette-action-default-hover); }
-    .nav-item.active { background: var(--mud-palette-primary); color: white; }
+    .nav-item.active { background: var(--mud-palette-primary); color: white; box-shadow: 0 8px 15px rgba(124, 58, 237, 0.2); }
     .nav-item.active .nav-subtitle { color: rgba(255,255,255,0.7); }
     .nav-item.active .nav-icon { background: rgba(255,255,255,0.2); color: white; }
 
     .nav-icon {
-        width: 44px; height: 44px;
-        border-radius: 12px;
+        width: 48px; height: 48px;
+        border-radius: 14px;
         display: flex; align-items: center; justify-content: center;
         margin-right: 16px;
     }
     .nav-icon.global { background: rgba(124, 58, 237, 0.1); color: var(--mud-palette-primary); }
     .nav-icon.support { background: rgba(236, 72, 153, 0.1); color: var(--mud-palette-secondary); }
-    .nav-icon.small { width: 36px; height: 36px; }
+    .nav-icon.small { width: 40px; height: 40px; }
 
     .nav-info { display: flex; flex-direction: column; }
-    .nav-title { font-weight: 800; font-size: 0.95rem; }
+    .nav-title { font-weight: 800; font-size: 1rem; }
     .nav-subtitle { font-size: 0.75rem; color: var(--mud-palette-text-secondary); }
 
     /* Main Area */
@@ -168,7 +171,7 @@
         border-bottom: 1px solid var(--mud-palette-divider);
     }
 
-    .online-indicator { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; }
+    .online-indicator { width: 10px; height: 10px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 10px #4ade80; }
     .fw-black { font-weight: 900; }
     .lh-1 { line-height: 1; }
     
@@ -178,7 +181,7 @@
         -webkit-text-fill-color: transparent;
     }
 
-    .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+    .animate-fade-in { animation: fadeIn 0.4s ease-out; }
     @@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 
