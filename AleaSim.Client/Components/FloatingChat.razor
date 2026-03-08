@@ -6,85 +6,109 @@
 
 <AuthorizeView>
     <Authorized>
-        <div class="floating-chat-container">
+        <div class="floating-chat-root">
             @if (isOpen)
             {
-                <div class="chat-popup animate-pop-in">
-                    <div class="chat-popup-header">
-                        <MudText Typo="Typo.subtitle2" Class="fw-bold">Community Chat</MudText>
-                        <div class="d-flex gap-1">
-                            <MudIconButton Icon="@Icons.Material.Filled.OpenInFull" Size="Size.Small" Color="Color.Inherit" OnClick="OpenFullChat" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Inherit" OnClick="ToggleChat" />
+                <div class="chat-window-popup animate-pop-in">
+                    <div class="chat-header-bar pa-3 d-flex align-center justify-space-between">
+                        <div class="d-flex align-center gap-2">
+                            <div class="online-indicator"></div>
+                            <MudText Typo="Typo.subtitle2" Class="fw-black text-white">ALEA CHAT</MudText>
+                        </div>
+                        <div class="d-flex align-center">
+                            <MudIconButton Icon="@Icons.Material.Filled.OpenInFull" Size="Size.Small" Class="text-white opacity-70" OnClick="OpenFullChat" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Class="text-white opacity-70" OnClick="ToggleChat" />
                         </div>
                     </div>
-                    <div class="chat-popup-body">
+                    <div class="chat-body-viewport">
                         <ChatWidget />
                     </div>
                 </div>
             }
 
-            <MudFab Color="Color.Primary" 
-                    StartIcon="@(isOpen ? Icons.Material.Filled.Close : Icons.Material.Filled.Chat)" 
-                    OnClick="ToggleChat" 
-                    Class="chat-fab shadow-lg" />
+            <button class='@($"chat-trigger-btn shadow-2xl {(isOpen ? "active" : "")}")' @onclick="ToggleChat">
+                @if (isOpen) { <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Style="font-size: 2rem;" /> }
+                else { <MudIcon Icon="@Icons.Material.Filled.ChatBubble" Style="font-size: 1.8rem;" /> }
+                <div class="unread-badge"></div>
+            </button>
         </div>
     </Authorized>
 </AuthorizeView>
 
 <style>
-    .floating-chat-container {
+    .floating-chat-root {
         position: fixed;
-        bottom: 24px;
-        right: 24px;
+        bottom: 30px;
+        right: 30px;
         z-index: 2000;
         display: flex;
         flex-direction: column;
         align-items: flex-end;
-        gap: 16px;
+        gap: 20px;
     }
 
-    .chat-fab {
-        width: 64px !important;
-        height: 64px !important;
-        border-radius: 50% !important;
-        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    .chat-trigger-btn {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--mud-palette-primary);
+        color: white;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
     }
-    .chat-fab:hover { transform: scale(1.1); }
+    
+    .chat-trigger-btn:hover { transform: scale(1.1) rotate(5deg); box-shadow: 0 0 20px var(--mud-palette-primary); }
+    .chat-trigger-btn.active { transform: scale(0.9); background: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border: 1px solid var(--mud-palette-divider); }
 
-    .chat-popup {
-        width: 350px;
-        height: 500px;
-        background: var(--mud-palette-surface);
+    .unread-badge {
+        position: absolute; top: 0; right: 0;
+        width: 14px; height: 14px; background: #ef4444;
+        border: 2px solid white; border-radius: 50%;
+    }
+
+    .chat-window-popup {
+        width: 380px;
+        height: 550px;
+        background: var(--mud-palette-background-grey);
         border: 1px solid var(--mud-palette-divider);
-        border-radius: 20px;
-        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         display: flex;
         flex-direction: column;
         overflow: hidden;
         backdrop-filter: blur(20px);
     }
 
-    .chat-popup-header {
+    .chat-header-bar {
         background: var(--mud-palette-primary);
-        color: white;
-        padding: 12px 16px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        height: 56px;
     }
 
-    .chat-popup-body {
+    .chat-body-viewport {
         flex-grow: 1;
-        overflow: hidden;
+        background: var(--mud-palette-surface);
+        position: relative;
     }
+
+    .online-indicator {
+        width: 8px; height: 8px; background: #4ade80; border-radius: 50%;
+        box-shadow: 0 0 8px #4ade80;
+    }
+
+    .fw-black { font-weight: 900; }
 
     .animate-pop-in {
-        animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        animation: chatPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         transform-origin: bottom right;
     }
 
-    @@keyframes popIn {
-        from { opacity: 0; transform: scale(0.5) translateY(20px); }
+    @@keyframes chatPop {
+        from { opacity: 0; transform: scale(0.8) translateY(40px); }
         to { opacity: 1; transform: scale(1) translateY(0); }
     }
 </style>
