@@ -176,10 +176,10 @@
         } catch { }
     }
 
-    private void SelectBet(string type) {
+    private async Task SelectBet(string type) {
         if (isDealing) return;
         selectedBet = type;
-        Audio.PlayClick();
+        await Audio.PlayClick();
     }
 
     private async Task OnDeal() {
