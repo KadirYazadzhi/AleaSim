@@ -19,7 +19,8 @@ public interface IAdminService
     Task<List<PlayerSearchResultDto>> SearchPlayers(string query);
     Task TriggerAction(string actionType);
     Task<List<AuditLogDto>> GetAuditLogs();
-
+    Task<List<SupportMessageDto>> GetSupportMessages(int count = 50);
+    Task MarkSupportMessageRead(Guid messageId);
 }
 
 public class AdminService : IAdminService
@@ -29,6 +30,14 @@ public class AdminService : IAdminService
     public AdminService(HttpClient http)
     {
         _http = http;
+    }
+
+    public async Task<List<SupportMessageDto>> GetSupportMessages(int count = 50) {
+        return await _http.GetFromJsonAsync<List<SupportMessageDto>>($"api/Support/messages?count={count}") ?? new();
+    }
+
+    public async Task MarkSupportMessageRead(Guid messageId) {
+        await _http.PostAsync($"api/Support/messages/{messageId}/read", null);
     }
 
     public async Task<AdminDashboardStats> GetDashboardStats()

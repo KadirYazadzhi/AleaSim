@@ -136,4 +136,9 @@ public interface IGameRepository {
     string GetGlobalSetting(string key);
     IEnumerable<GlobalSetting> GetAllGlobalSettings();
     void SetGlobalSetting(string key, string value, string description = "");
+
+    // Support Messages
+    void SaveSupportMessage(SupportMessage message);
+    IEnumerable<SupportMessage> GetSupportMessages(int count);
+    void MarkSupportMessageRead(Guid messageId);
 }

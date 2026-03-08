@@ -125,6 +125,22 @@ using (var scope = app.Services.CreateScope()) {
     var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
     
     db.Database.EnsureCreated(); // Auto-create tables if missing
+
+    // Create SupportMessages table if missing
+    try {
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS SupportMessages (
+                Id CHAR(36) PRIMARY KEY,
+                UserId CHAR(36) NULL,
+                SenderName VARCHAR(255) NOT NULL,
+                SenderEmail VARCHAR(255) NOT NULL,
+                Subject VARCHAR(255) NOT NULL,
+                Message TEXT NOT NULL,
+                CreatedAt DATETIME NOT NULL,
+                IsRead TINYINT(1) NOT NULL DEFAULT 0
+            );");
+    } catch { }
+
     // Seed Games if missing
     var existingGames = db.Games.ToList();
     if (!existingGames.Any(g => g.Type == "Slot")) 

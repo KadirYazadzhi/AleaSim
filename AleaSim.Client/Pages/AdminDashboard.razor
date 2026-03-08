@@ -107,6 +107,51 @@
              </div>
         </MudItem>
     </MudGrid>
+
+    <!-- Support Messages Section -->
+    <MudText Typo="Typo.h5" Class="fw-black mt-12 mb-6" Color="Color.Inherit">SUPPORT MESSAGES</MudText>
+    <MudPaper Class="pa-6 rounded-xl dashboard-card" Elevation="0">
+        @if (supportMessages == null)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (!supportMessages.Any())
+        {
+            <div class="text-center pa-8 opacity-50">
+                <MudIcon Icon="@Icons.Material.Filled.MarkEmailRead" Size="Size.Large" Class="mb-2" />
+                <MudText>No pending support messages.</MudText>
+            </div>
+        }
+        else
+        {
+            <MudTable Items="@supportMessages" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Class="bg-transparent">
+                <HeaderContent>
+                    <MudTh>Date</MudTh>
+                    <MudTh>Sender</MudTh>
+                    <MudTh>Subject</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Date">@context.CreatedAt.ToString("g")</MudTd>
+                    <MudTd DataLabel="Sender">
+                        <MudText Typo="Typo.body2">@context.SenderName</MudText>
+                        <MudText Typo="Typo.caption" Class="opacity-60">@context.SenderEmail</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Subject" Class="fw-bold">@context.Subject</MudTd>
+                    <MudTd DataLabel="Status">
+                        @if (context.IsRead) { <MudChip T="string" Size="Size.Small" Color="Color.Default">Read</MudChip> }
+                        else { <MudChip T="string" Size="Size.Small" Color="Color.Info">New</MudChip> }
+                    </MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => ViewMessage(context)">View</MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
 </MudContainer>
 
 <style>
@@ -167,11 +212,14 @@
     private decimal _targetRtp = 95.0m;
     private bool _emergencyStop = false;
     private List<string> _liveLogs = new();
+    private List<SupportMessageDto>? supportMessages;
+    [Inject] IDialogService DialogService { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
         LayoutService.OnMajorUpdate += StateHasChanged;
         await LoadStats();
+        await LoadMessages();
         
         RealTime.OnBigWinReceived += (args) => {
             var logHtml = $"<span class='text-warning fw-bold'>BIG WIN:</span> <b>{args.Username}</b> won <span class='text-success'>{args.Amount:C}</span> on {args.GameName} ({args.Multiplier}x)";
@@ -181,8 +229,27 @@
         };
     }
 
-    private async Task LoadStats()
-    {
+    private async Task LoadMessages() {
+        try {
+            supportMessages = await AdminService.GetSupportMessages();
+        } catch { supportMessages = new(); }
+    }
+
+    private async Task ViewMessage(SupportMessageDto msg) {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var parameters = new DialogParameters { ["Message"] = msg };
+        
+        var dialog = await DialogService.ShowAsync<AdminMessageDialog>("Support Message", parameters, options);
+        var result = await dialog.Result;
+        
+        if (!msg.IsRead) {
+            await AdminService.MarkSupportMessageRead(msg.Id);
+            msg.IsRead = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadStats() {
         try {
             stats = await AdminService.GetDashboardStats();
             _targetRtp = Math.Round(stats.CurrentRtp > 0 ? stats.CurrentRtp : 95.0m, 2);

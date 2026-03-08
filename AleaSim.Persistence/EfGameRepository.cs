@@ -741,6 +741,23 @@ public class EfGameRepository : IGameRepository {
         _redisCache.SetAsync($"setting:{key}", value, TimeSpan.FromHours(1)).GetAwaiter().GetResult();
     }
 
+    public void SaveSupportMessage(SupportMessage message) {
+        _context.SupportMessages.Add(message);
+        _context.SaveChanges();
+    }
+
+    public IEnumerable<SupportMessage> GetSupportMessages(int count) {
+        return _context.SupportMessages.OrderByDescending(m => m.CreatedAt).Take(count).ToList();
+    }
+
+    public void MarkSupportMessageRead(Guid messageId) {
+        var msg = _context.SupportMessages.Find(messageId);
+        if (msg != null) {
+            msg.IsRead = true;
+            _context.SaveChanges();
+        }
+    }
+
     public void DeleteUser(Guid userId) {
         var user = _context.Users.Find(userId);
         if (user != null) {

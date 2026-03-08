@@ -1,0 +1,73 @@
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h5" Class="fw-black"><MudIcon Icon="@Icons.Material.Filled.SupportAgent" Class="mr-2"/>Contact Support</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="@success">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Your Name" @bind-Value="model.Name" Required="true" RequiredError="Name is required" Variant="Variant.Outlined"/>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Your Email" @bind-Value="model.Email" Required="true" RequiredError="Email is required" 
+                                  Validation="@(new EmailAddressAttribute() {ErrorMessage = "Invalid email address"})" Variant="Variant.Outlined"/>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Subject" @bind-Value="model.Subject" Required="true" RequiredError="Subject is required" Variant="Variant.Outlined"/>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="How can we help?" @bind-Value="model.Message" Lines="5" Required="true" RequiredError="Message is required" Variant="Variant.Outlined"/>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Class="px-6">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!success || isSending)" Class="px-8 rounded-lg fw-bold">
+            @if (isSending) { <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/> }
+            else { <MudText>SEND MESSAGE</MudText> }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    private MudForm form = null!;
+    private bool success;
+    private bool isSending = false;
+    private SupportModel model = new();
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit() {
+        await form.Validate();
+        if (!success) return;
+
+        isSending = true;
+        try {
+            var response = await Http.PostAsJsonAsync("api/Support/send", model);
+            if (response.IsSuccessStatusCode) {
+                Snackbar.Add("Message sent! Our team will get back to you soon.", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            } else {
+                Snackbar.Add("Failed to send message. Please try again.", Severity.Error);
+            }
+        } catch {
+            Snackbar.Add("Connection error.", Severity.Error);
+        } finally {
+            isSending = false;
+        }
+    }
+
+    public class SupportModel {
+        public string Name { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Subject { get; set; } = "";
+        public string Message { get; set; } = "";
+    }
+}

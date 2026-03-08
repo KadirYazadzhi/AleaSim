@@ -529,7 +529,7 @@
                                Size="Size.Large" 
                                StartIcon="@Icons.Material.Filled.Email" 
                                Class="px-8 py-3 rounded-lg fw-bold hover-scale"
-                               Href="mailto:support@aleasim.com">Email Us</MudButton>
+                               OnClick="OpenSupport">Email Us</MudButton>
                     <MudButton Variant="Variant.Outlined" 
                                Color="Color.Secondary" 
                                Size="Size.Large" 
@@ -912,6 +912,11 @@
     private async Task OpenBonusWheel() {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
         await DialogService.ShowAsync<BonusWheel>("Daily Luck Wheel", options);
+    }
+
+    private async Task OpenSupport() {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        await DialogService.ShowAsync<SupportDialog>("Contact Support", options);
     }
 
     private async Task LoadCashback() {

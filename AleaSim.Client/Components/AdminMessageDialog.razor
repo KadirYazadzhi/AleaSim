@@ -1,0 +1,32 @@
+@using AleaSim.Shared.Models
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Message.Subject</MudText>
+    </TitleContent>
+    <DialogContent>
+        <div class="d-flex flex-column gap-4">
+            <div class="pa-4 rounded-lg bg-dark-lighten" style="background: var(--mud-palette-background-grey);">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">From:</MudText>
+                <MudText Typo="Typo.body1" Class="fw-bold">@Message.SenderName (@Message.SenderEmail)</MudText>
+                
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-4 d-block">Received:</MudText>
+                <MudText Typo="Typo.body2">@Message.CreatedAt.ToString("f")</MudText>
+            </div>
+            
+            <MudPaper Class="pa-4 mud-background-grey" Elevation="0">
+                <MudText Typo="Typo.body1" Style="white-space: pre-wrap;">@Message.Message</MudText>
+            </MudPaper>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Color="Color.Primary" Variant="Variant.Filled" Class="px-8">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public SupportMessageDto Message { get; set; } = null!;
+
+    private void Close() => MudDialog.Close();
+}
