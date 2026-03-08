@@ -5,11 +5,27 @@
                 <MudText Typo="Typo.subtitle2" Class="text-gray-500 fw-bold uppercase tracking-wider mb-2" Style="font-size: 0.7rem;">CASINO</MudText>
             </div>
             <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Lobby</MudNavLink>
-            <MudNavLink Href="game/cloverchase" Icon="@Icons.Material.Filled.Casino">Slots</MudNavLink>
-            <MudNavLink Href="game/roulette" Icon="@Icons.Material.Filled.RotateRight">Roulette</MudNavLink>
-            <MudNavLink Href="game/blackjack" Icon="@Icons.Material.Filled.Style">Blackjack</MudNavLink>
-            <MudNavLink Href="game/baccarat" Icon="@Icons.Material.Filled.TableChart">Baccarat</MudNavLink>
-            <MudNavLink Href="game/dice" Icon="@Icons.Material.Filled.SportsEsports">Dice Hub</MudNavLink>
+            
+            <MudNavGroup Title="Slots" Icon="@Icons.Material.Filled.Casino" Expanded="true">
+                <MudNavLink Href="game/cloverchase">Clover Chase</MudNavLink>
+                <MudNavLink Href="#" Disabled="true">Fruit Blast <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">SOON</MudChip></MudNavLink>
+            </MudNavGroup>
+
+            <MudNavGroup Title="Roulette" Icon="@Icons.Material.Filled.RotateRight">
+                <MudNavLink Href="game/roulette">Roulette Royale</MudNavLink>
+                <MudNavLink Href="game/roulette" IconColor="Color.Error">Extreme Roulette</MudNavLink>
+            </MudNavGroup>
+
+            <MudNavGroup Title="Dice Hub" Icon="@Icons.Material.Filled.SportsEsports">
+                <MudNavLink Href="game/dice">Neon Dice</MudNavLink>
+                <MudNavLink Href="game/dice" IconColor="Color.Warning">Crazy Dice</MudNavLink>
+            </MudNavGroup>
+
+            <MudNavGroup Title="Card Games" Icon="@Icons.Material.Filled.Style">
+                <MudNavLink Href="game/blackjack">Blackjack</MudNavLink>
+                <MudNavLink Href="game/baccarat">Baccarat</MudNavLink>
+            </MudNavGroup>
+
             <MudNavLink Href="leaderboard" Icon="@Icons.Material.Filled.Leaderboard">Leaderboard</MudNavLink>
 
             <div class="px-4 mt-6 mb-2">
