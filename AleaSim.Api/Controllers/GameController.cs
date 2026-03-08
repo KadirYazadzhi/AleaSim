@@ -142,7 +142,7 @@ public class GameController : ControllerBase {
             bool isLimited = await _redisCache.IncrementRateLimitAsync(rateLimitKey, TimeSpan.FromSeconds(1));
             if (isLimited) return StatusCode(429, "Too many requests. Slow down, partner!");
 
-            var round = await _gameDirector.PlayRound(gameType, userId, sessionId, request.Amount, request.BetData);
+            var round = await _gameDirector.PlayRound(gameType, userId, sessionId, request.Amount, request.BetData ?? new { });
 
             // Update Quests
             _ = _questService.UpdateProgressAsync(userId, "SpinCount", 1, _repo, _realTime, _vaultService);

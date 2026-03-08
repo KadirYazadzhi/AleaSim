@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using AleaSim.Domain.Interfaces;
+using AleaSim.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 
 namespace AleaSim.Api.Hubs;
