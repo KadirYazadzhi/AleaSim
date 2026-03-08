@@ -237,9 +237,20 @@
     private Dictionary<int, int> currentLuckyNumbers = new();
     private bool _shouldRender = true;
     
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Mode { get; set; }
+
     // Performance Flags
     private bool turboMode = false;
     private bool lowGraphics = false;
+
+    protected override void OnParametersSet() {
+        if (!string.IsNullOrEmpty(Mode)) {
+            if (Mode.Equals("Extreme", StringComparison.OrdinalIgnoreCase)) selectedMode = "Extreme";
+            else if (Mode.Equals("Classic", StringComparison.OrdinalIgnoreCase)) selectedMode = "Classic";
+        }
+    }
 
     protected override bool ShouldRender() => _shouldRender;
 

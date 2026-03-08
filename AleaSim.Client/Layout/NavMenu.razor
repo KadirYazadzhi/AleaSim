@@ -12,19 +12,17 @@
             </MudNavGroup>
 
             <MudNavGroup Title="Roulette" Icon="@Icons.Material.Filled.RotateRight">
-                <MudNavLink Href="game/roulette">Roulette Royale</MudNavLink>
-                <MudNavLink Href="game/roulette" IconColor="Color.Error">Extreme Roulette</MudNavLink>
+                <MudNavLink Href="game/roulette?mode=classic">Roulette Royale</MudNavLink>
+                <MudNavLink Href="game/roulette?mode=extreme" IconColor="Color.Warning">Extreme Roulette</MudNavLink>
             </MudNavGroup>
 
-            <MudNavGroup Title="Dice Hub" Icon="@Icons.Material.Filled.SportsEsports">
-                <MudNavLink Href="game/dice">Neon Dice</MudNavLink>
-                <MudNavLink Href="game/dice" IconColor="Color.Warning">Crazy Dice</MudNavLink>
+            <MudNavGroup Title="Dice Games" Icon="@Icons.Material.Filled.SportsEsports">
+                <MudNavLink Href="game/dice?mode=slider">Neon Dice</MudNavLink>
+                <MudNavLink Href="game/dice?mode=multi">Crazy Dice</MudNavLink>
             </MudNavGroup>
 
-            <MudNavGroup Title="Card Games" Icon="@Icons.Material.Filled.Style">
-                <MudNavLink Href="game/blackjack">Blackjack</MudNavLink>
-                <MudNavLink Href="game/baccarat">Baccarat</MudNavLink>
-            </MudNavGroup>
+            <MudNavLink Href="game/blackjack" Icon="@Icons.Material.Filled.Style">Blackjack</MudNavLink>
+            <MudNavLink Href="game/baccarat" Icon="@Icons.Material.Filled.TableChart">Baccarat</MudNavLink>
 
             <MudNavLink Href="leaderboard" Icon="@Icons.Material.Filled.Leaderboard">Leaderboard</MudNavLink>
 

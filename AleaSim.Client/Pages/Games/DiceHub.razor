@@ -224,8 +224,21 @@
 @code {
     private string selectedMode = "Slider";
     private decimal betAmount = 1.00m;
+    
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Mode { get; set; }
+
     private decimal sliderTarget = 50.50m;
     private bool isRollOver = true;
+
+    protected override void OnParametersSet() {
+        if (!string.IsNullOrEmpty(Mode)) {
+            if (Mode.Equals("Multi", StringComparison.OrdinalIgnoreCase)) selectedMode = "Multi";
+            else if (Mode.Equals("Slider", StringComparison.OrdinalIgnoreCase)) selectedMode = "Slider";
+        }
+    }
+
     private List<int> selectedMultiNumbers = new() { 6 };
     
     private bool isSpinning = false;
