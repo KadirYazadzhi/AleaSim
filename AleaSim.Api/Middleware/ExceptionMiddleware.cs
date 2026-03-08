@@ -15,6 +15,9 @@ public class ExceptionHandlingMiddleware {
     public async Task InvokeAsync(HttpContext context) {
         try {
             await _next(context);
+        } catch (UnauthorizedAccessException ex) {
+            _logger.LogWarning("Unauthorized access attempt: {Message}", ex.Message);
+            await HandleExceptionAsync(context, ex);
         } catch (Exception ex) {
             _logger.LogError(ex, "An unhandled exception occurred.");
             await HandleExceptionAsync(context, ex);
