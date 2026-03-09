@@ -218,41 +218,40 @@ using (var scope = app.Services.CreateScope()) {
         }
     } catch { /* Redis might not be ready */ }
 
-    // Seed Admin if missing
-    if (!db.Users.Any(u => u.Username == "admin")) {
-        var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
-        var adminId = Guid.Parse("00000000-0000-0000-0000-000000000001"); // Stable non-empty ID
-        
-        var admin = new AleaSim.Domain.Entities.User {
+    // Seed Admin if missing or ensure credentials
+    var admin = db.Users.FirstOrDefault(u => u.Username == "admin");
+    var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+    var adminId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
+    if (admin == null) {
+        admin = new AleaSim.Domain.Entities.User {
             Id = adminId,
             Username = "admin",
-            PasswordHash = hasher.HashPassword("admin"), // Hashed password
+            PasswordHash = hasher.HashPassword("admin"), 
             Email = "admin@aleasim.com",
             Role = AleaSim.Domain.Enums.Role.Admin,
-            Balance = 1000000m, // Give admin plenty of funds
+            Balance = 1000000m,
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         };
-
         db.Users.Add(admin);
-        
-        // Ensure associated records exist
+    } else {
+        // Emergency Reset: Ensure admin password is 'admin' and account is active
+        admin.PasswordHash = hasher.HashPassword("admin");
+        admin.IsActive = true;
+        admin.Role = AleaSim.Domain.Enums.Role.Admin;
+        db.Users.Update(admin);
+    }
+
+    // Ensure associated records exist
+    if (!db.UserProgressions.Any(p => p.UserId == adminId)) {
         db.UserProgressions.Add(new AleaSim.Domain.Entities.UserProgression { UserId = adminId });
+    }
+    if (!db.PlayerProfiles.Any(p => p.UserId == adminId)) {
         db.PlayerProfiles.Add(new AleaSim.Domain.Entities.PlayerProfile { UserId = adminId });
-        
-        db.SaveChanges();
     }
-    else {
-        // Safety check: if admin exists but profile is missing (e.g. after schema update)
-        var admin = db.Users.First(u => u.Username == "admin");
-        if (!db.PlayerProfiles.Any(p => p.UserId == admin.Id)) {
-            db.PlayerProfiles.Add(new AleaSim.Domain.Entities.PlayerProfile { UserId = admin.Id });
-        }
-        if (!db.UserProgressions.Any(p => p.UserId == admin.Id)) {
-            db.UserProgressions.Add(new AleaSim.Domain.Entities.UserProgression { UserId = admin.Id });
-        }
-        db.SaveChanges();
-    }
+    
+    db.SaveChanges();
 }
 
 app.Run();
