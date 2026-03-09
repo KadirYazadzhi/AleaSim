@@ -24,7 +24,12 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddTransient<RefreshTokenHandler>();
 
 builder.Services.AddHttpClient("AleaSim.Api", client => { 
-    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress); 
+    var baseAddress = builder.HostEnvironment.BaseAddress;
+    // Local Dev Redirect: If client runs on 5241, API is on 5286
+    if (baseAddress.Contains("localhost:5241")) {
+        baseAddress = "http://localhost:5286/";
+    }
+    client.BaseAddress = new Uri(baseAddress); 
     client.Timeout = TimeSpan.FromMinutes(10); 
 })
 .AddHttpMessageHandler<RefreshTokenHandler>();
