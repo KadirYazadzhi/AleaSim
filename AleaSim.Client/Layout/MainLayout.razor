@@ -25,47 +25,47 @@
 <FlowStateIndicator Intensity="@_flowIntensity" />
 
 <MudLayout>
-    <MudAppBar Elevation="0" Fixed="true" Color="Color.Transparent" Class="glass-appbar px-6 py-2">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => LayoutService.ToggleDrawer())" Class="mr-4" />
+    <MudAppBar Elevation="0" Fixed="true" Color="Color.Transparent" Class="glass-appbar px-3 px-md-6 py-2">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => LayoutService.ToggleDrawer())" Class="mr-2 mr-md-4" />
         
         <div class="d-flex align-center cursor-pointer" @onclick='@(() => Navigation.NavigateTo("/"))'>
-            <MudIcon Icon="@Icons.Material.Filled.Casino" Size="Size.Large" Color="Color.Primary" Class="mr-2 spin-hover" />
-            <MudText Typo="Typo.h5" Class="text-gradient font-black tracking-wide">ALEASIM</MudText>
+            <MudIcon Icon="@Icons.Material.Filled.Casino" Size="Size.Medium" Color="Color.Primary" Class="mr-1 mr-md-2 spin-hover" />
+            <MudText Typo="Typo.h6" Class="text-gradient font-black tracking-wide d-none d-sm-block">ALEASIM</MudText>
         </div>
         
         <MudSpacer />
         
         <AuthorizeView Context="authContext">
             <Authorized>
-                <div class="d-flex align-center gap-3">
+                <div class="d-flex align-center gap-1 gap-md-3">
                     <!-- Flow State Debug/Visualizer -->
                     @if (_flowIntensity > 0) {
-                        <div class="d-flex align-center flow-badge pa-1 px-3 rounded-pill glass-panel">
+                        <div class="d-none d-sm-flex align-center flow-badge pa-1 px-2 px-md-3 rounded-pill glass-panel">
                              <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="@(_flowIntensity > 0.8 ? Color.Error : Color.Warning)" Size="Size.Small" Class="mr-1 pulse-icon" />
                              <MudText Typo="Typo.caption" Style="font-weight: bold;">FLOW</MudText>
                         </div>
                     }
 
                     <!-- Level Badge -->
-                    <div class="d-none d-md-flex align-center px-3 py-1 rounded-pill glass-panel border-glow">
-                        <MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment" Color="Color.Error" Size="Size.Small" Class="mr-2" />
-                        <MudText Typo="Typo.subtitle2" Style="font-weight: 800;">LVL @(userProfile?.Progression?.CurrentLevel ?? 1)</MudText> 
+                    <div class="d-none d-sm-flex align-center px-2 px-md-3 py-1 rounded-pill glass-panel border-glow">
+                        <MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment" Color="Color.Error" Size="Size.Small" Class="mr-1 mr-md-2" />
+                        <MudText Typo="Typo.subtitle2" Style="font-weight: 800; font-size: 0.75rem;">LVL @(userProfile?.Progression?.CurrentLevel ?? 1)</MudText> 
                     </div>
 
                     <!-- Wallet Display -->
                     @if (userProfile != null) {
-                        <MudPaper Elevation="0" Class="d-flex align-center px-3 py-1 rounded-lg wallet-pill" @onclick='@(() => Navigation.NavigateTo("/wallet"))'>
-                            <MudText Typo="Typo.subtitle1" Color="Color.Success" Class="mr-2" Style="font-weight: 800; font-family: 'Roboto Mono', monospace;">
+                        <MudPaper Elevation="0" Class="d-flex align-center px-2 px-md-3 py-1 rounded-lg wallet-pill" @onclick='@(() => Navigation.NavigateTo("/wallet"))'>
+                            <MudText Typo="Typo.subtitle2" Color="Color.Success" Class="mr-1 mr-md-2" Style="font-weight: 800; font-family: 'Roboto Mono', monospace;">
                                 @userProfile.TotalBalance.ToString("C2")
                             </MudText>
-                            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small" Class="rounded-lg" Style="min-width: 32px; padding: 2px 8px;">+</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small" Class="rounded-lg px-2" Style="min-width: 24px; padding: 0 4px; font-weight: bold;">+</MudButton>
                         </MudPaper>
                     }
 
                     <!-- Notifications -->
-                    <MudBadge Content="@NotifService.UnreadCount" Color="Color.Error" Overlap="true" Dot="@(NotifService.UnreadCount > 0)" Class="mx-1">
-                        <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" OnClick="@ToggleNotifications" />
-                        <MudPopover Open="@_notificationsOpen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="pa-0 mt-2 glass-panel" Style="width: 320px;">
+                    <MudBadge Content="@NotifService.UnreadCount" Color="Color.Error" Overlap="true" Dot="@(NotifService.UnreadCount > 0)" Class="mx-0 mx-md-1">
+                        <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" Size="Size.Small" OnClick="@ToggleNotifications" />
+                        <MudPopover Open="@_notificationsOpen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="pa-0 mt-2 glass-panel" Style="width: 280px; max-width: 90vw;">
                             <div class="d-flex justify-space-between align-center pa-3 border-b border-white-10">
                                 <MudText Typo="Typo.h6">Notifications</MudText>
                                 <MudIconButton Icon="@Icons.Material.Filled.DoneAll" Size="Size.Small" OnClick="() => NotifService.MarkAllAsRead()" title="Mark all as read" />
@@ -92,7 +92,7 @@
                     <!-- Profile Menu -->
                     <MudMenu AnchorOrigin="Origin.BottomRight" LockScroll="true" TransformOrigin="Origin.TopRight">
                         <ActivatorContent>
-                            <MudAvatar Class="cursor-pointer border-2 border-primary">
+                            <MudAvatar Size="Size.Small" Class="cursor-pointer border-2 border-primary">
                                 <MudImage Src="@userProfile?.AvatarUrl" />
                             </MudAvatar>
                         </ActivatorContent>
@@ -119,12 +119,13 @@
                 </div>
             </Authorized>
             <NotAuthorized>
-                <div class="d-flex gap-3">
+                <div class="d-flex align-center gap-1 gap-md-3">
                     <MudIconButton Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
                                    Color="Color.Inherit" 
+                                   Size="Size.Small"
                                    OnClick="@(async () => await LayoutService.ToggleDarkMode())" />
-                    <MudButton Href="/login" Variant="Variant.Outlined" Class="secondary-btn rounded-lg px-6" Style="font-weight: bold;">Login</MudButton>
-                    <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Primary" Class="rounded-lg px-6 fw-bold glow-effect">Register</MudButton>
+                    <MudButton Href="/login" Variant="Variant.Outlined" Class="secondary-btn rounded-lg px-3 px-md-6" Style="font-weight: bold; font-size: 0.8rem;">Login</MudButton>
+                    <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Primary" Class="rounded-lg px-3 px-md-6 fw-bold glow-effect" Style="font-size: 0.8rem;">Register</MudButton>
                 </div>
             </NotAuthorized>
         </AuthorizeView>
