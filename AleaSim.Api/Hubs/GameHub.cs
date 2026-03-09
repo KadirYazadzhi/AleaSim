@@ -9,10 +9,12 @@ namespace AleaSim.Api.Hubs;
 public class GameHub : Hub {
     private readonly IAuditService _auditService;
     private readonly IGameRepository _repo;
+    private readonly IRealTimeService _realTimeService;
 
-    public GameHub(IAuditService auditService, IGameRepository repo) {
+    public GameHub(IAuditService auditService, IGameRepository repo, IRealTimeService realTimeService) {
         _auditService = auditService;
         _repo = repo;
+        _realTimeService = realTimeService;
     }
 
     public async Task SendMessage(string message) {
