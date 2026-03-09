@@ -142,29 +142,40 @@ public class VaultServiceTests {
     }
 
     [Fact]
-    public async Task CheckWageringCompletion_ShouldConvertBonusToReal() {
+    public async Task ProcessBet_ShouldAccumulateCashback_WhenBetIsPlaced() {
         // Arrange
         var userId = Guid.NewGuid();
-        // Setup a user who is 10 units away from completion
-        var user = new User { 
-            Id = userId, 
-            Balance = 100m, 
-            BonusBalance = 50m, 
-            WageringRequirement = 100m, 
-            WageringProgress = 90m 
-        };
+        var user = new User { Id = userId, Balance = 100m };
+        var profile = new PlayerProfile { UserId = userId, CashbackLevel = 0, PendingCashback = 0m };
+        
         _mockRepo.Setup(r => r.GetUser(userId)).Returns(user);
+        _mockRepo.Setup(r => r.GetPlayerProfile(userId)).Returns(profile);
 
         // Act
-        // Process a bet of 10. This logic is inside ProcessBet -> CheckWageringCompletion
+        // Bet 10. Base cashback is 10%. 10 * 0.10 = 1.00
         await _vaultService.ProcessBetAsync(userId, 10m, _mockRepo.Object);
 
         // Assert
-        // 1. Bet 10 deducted from Bonus (50 -> 40)
-        // 2. Progress (90 -> 100). 100 >= 100 -> Complete!
-        // 3. Conversion: Real = 100 + 40 = 140. Bonus = 0.
-        Assert.Equal(140m, user.Balance);
-        Assert.Equal(0m, user.BonusBalance);
-        Assert.Equal(0m, user.WageringRequirement);
+        Assert.Equal(1.00m, profile.PendingCashback);
+    }
+
+    [Fact]
+    public async Task ClaimCashback_ShouldTransferFundsToBalance() {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var user = new User { Id = userId, Balance = 100m };
+        var profile = new PlayerProfile { UserId = userId, PendingCashback = 25.50m };
+        
+        _mockRepo.Setup(r => r.GetUser(userId)).Returns(user);
+        _mockRepo.Setup(r => r.GetPlayerProfile(userId)).Returns(profile);
+
+        // Act
+        decimal claimed = await _vaultService.ClaimCashbackAsync(userId, _mockRepo.Object);
+
+        // Assert
+        Assert.Equal(25.50m, claimed);
+        Assert.Equal(125.50m, user.Balance);
+        Assert.Equal(0m, profile.PendingCashback);
+        _mockRealTime.Verify(r => r.NotifyBalanceUpdate(userId, 125.50m, 0m), Times.Once);
     }
 }
