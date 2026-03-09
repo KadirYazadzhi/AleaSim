@@ -99,6 +99,7 @@ class Program {
                 Console.WriteLine("         mode <classic|extreme|slider|multi>");
                 Console.WriteLine("         bet <amount> [extra_params]");
                 Console.WriteLine("         auto <count> <amount>");
+                Console.WriteLine("SYSTEM:  cashback, missions, chat <message>");
                 Console.WriteLine("---------------------------------------------------------");
                 break;
 
@@ -204,7 +205,47 @@ class Program {
                 Console.WriteLine($"TOTAL WAGERED: {p.TotalWagered:C}");
                 Console.WriteLine($"TOTAL PAID: {p.TotalPaid:C}");
                 Console.WriteLine($"NET P/L: {p.TotalPaid - p.TotalWagered:C}");
+                Console.WriteLine($"PENDING CASHBACK: {p.PendingCashback:C}");
                 Console.WriteLine("---------------------------------------------------------");
+                break;
+
+            case "cashback":
+                if (_currentUserId == null) return;
+                decimal claimed = await vault.ClaimCashbackAsync(_currentUserId.Value, repo);
+                if (claimed > 0) {
+                    Console.WriteLine($"Success! Claimed {claimed:C} cashback to your wallet.");
+                } else {
+                    Console.WriteLine("No pending cashback available.");
+                }
+                break;
+
+            case "missions":
+                if (_currentUserId == null) return;
+                var questService = scope.ServiceProvider.GetRequiredService<IQuestService>();
+                var quests = await questService.GetActiveQuests(_currentUserId.Value, repo);
+                Console.WriteLine("\n--- ACTIVE MISSIONS ---");
+                foreach(var q in quests) {
+                    string status = q.IsCompleted ? "[DONE]" : $"[{q.CurrentValue:N0}/{q.Quest.TargetValue:N0}]";
+                    Console.WriteLine($"{status} {q.Quest.Title} (Reward: {q.Quest.RewardAmount:C})");
+                }
+                break;
+
+            case "chat":
+                if (_currentUserId == null) return;
+                var msg = string.Join(" ", parts.Skip(1));
+                var userChat = repo.GetUser(_currentUserId.Value);
+                if (userChat != null) {
+                    var chatMsg = new ChatMessage {
+                        Id = Guid.NewGuid(),
+                        SenderId = userChat.Id,
+                        SenderUsername = userChat.Username,
+                        Message = msg,
+                        Type = ChatMessageType.Global,
+                        Timestamp = DateTime.UtcNow
+                    };
+                    repo.SaveChatMessage(chatMsg);
+                    Console.WriteLine($"[GLOBAL CHAT] You: {msg}");
+                }
                 break;
 
             case "auto":

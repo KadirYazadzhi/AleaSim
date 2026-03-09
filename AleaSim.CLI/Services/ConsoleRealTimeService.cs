@@ -29,6 +29,14 @@ public class ConsoleRealTimeService : IRealTimeService {
         return Task.CompletedTask;
     }
 
+    public Task NotifyProgressionUpdate(Guid userId, object progression) {
+        Console.ForegroundColor = ConsoleColor.Magenta;
+        Console.WriteLine($"\n[RTS] RPG PROGRESSION UPDATE:");
+        Console.WriteLine(JsonSerializer.Serialize(progression, new JsonSerializerOptions { WriteIndented = true }));
+        Console.ResetColor();
+        return Task.CompletedTask;
+    }
+
     public Task NotifyBigWin(string username, string gameName, decimal amount, decimal multiplier) {
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine($"\n$$$ GLOBAL BIG WIN BROADCAST $$$");
