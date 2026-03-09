@@ -56,55 +56,30 @@ public class BaccaratGameEngineTests {
         var userId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
         var session = new GameSession { Id = sessionId, UserId = userId, Seed = 12345 };
-        var bet = new Bet { GameSessionId = sessionId, Amount = 10m, BetData = "{"Type":"Player"}" };
+        var bet = new Bet { 
+            GameSessionId = sessionId, 
+            Amount = 10m, 
+            BetData = "{\"Type\":\"Player\"}" 
+        };
         
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
         _mockRepo.Setup(r => r.GetLastBet(sessionId)).Returns(bet);
         _mockBrain.Setup(b => b.GetNextDirective(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
                   .Returns(new AleaSim.Domain.Models.BrainDirective { DecisionType = "Random" });
 
-        // Draw cards to ensure Player Score > Banker Score
-        // 0 = A (1), 1 = 2, 2 = 3...
-        // Player: 0 (A), 2 (3) -> 4
-        // Banker: 1 (2), 1 (2) -> 4? No, let's pick specific indices.
-        // Cards are drawn: P1, B1, P2, B2.
         _mockRng.SetupSequence(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 52))
-                .Returns(8)  // P1: 9H (9)
-                .Returns(0)  // B1: AH (1)
-                .Returns(13) // P2: AD (1) -> P Total: 10 % 10 = 0
-                .Returns(1)  // B2: 2H (2) -> B Total: 3
-                // Wait, Baccarat rules for 3rd card...
-                // If P or B has 8 or 9, it's a Natural. 9 vs 3 is not natural? No, 8 or 9.
-                // Let's force a natural win for Player.
-                .SetReturnsDefault(0);
-
-        _mockRng.Reset();
-        _mockRng.SetupSequence(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 52))
-                .Returns(8)  // P1: 9H (9)
-                .Returns(0)  // B1: AH (1)
-                .Returns(0)  // P2: AH (1) -> P Total: 10 % 10 = 0. Wait.
-                // Resetting logic:
-                .Returns(7)  // P1: 8H (8)
-                .Returns(0)  // B1: AH (1)
-                .Returns(1)  // P2: 2H (2) -> P Total: 10 % 10 = 0. Still 0.
-                // Let's use simple cards.
                 .Returns(2)  // P1: 3H (3)
                 .Returns(0)  // B1: AH (1)
                 .Returns(3)  // P2: 4H (4) -> P Total: 7
                 .Returns(1); // B2: 2H (2) -> B Total: 3. No natural.
         
-        // Player has 7. Banker has 3.
-        // P (6 or 7) -> Stands.
-        // B (3) -> Draws unless P drew a 3rd card and it was an 8.
-        // Here P stands, so B draws if <= 5. B has 3, so draws.
         _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), 405, 0, 52)).Returns(0); // B3: AH (1) -> B Total: 4.
-        // Final: P (7), B (4). Player Wins.
 
         // Act
         var round = await _engine.ResolveRound(sessionId);
 
         // Assert
-        Assert.Equal(20m, round.TotalWinAmount); // 10 * 2 = 20
+        Assert.Equal(20m, round.TotalWinAmount);
         _mockVault.Verify(v => v.ProcessWinAsync(userId, 20m, _mockRepo.Object), Times.Once);
     }
 
@@ -114,7 +89,11 @@ public class BaccaratGameEngineTests {
         var userId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
         var session = new GameSession { Id = sessionId, UserId = userId, Seed = 12345 };
-        var bet = new Bet { GameSessionId = sessionId, Amount = 10m, BetData = "{"Type":"Tie"}" };
+        var bet = new Bet { 
+            GameSessionId = sessionId, 
+            Amount = 10m, 
+            BetData = "{\"Type\":\"Tie\"}" 
+        };
         
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
         _mockRepo.Setup(r => r.GetLastBet(sessionId)).Returns(bet);
@@ -132,6 +111,6 @@ public class BaccaratGameEngineTests {
         var round = await _engine.ResolveRound(sessionId);
 
         // Assert
-        Assert.Equal(90m, round.TotalWinAmount); // 10 * 9 = 90
+        Assert.Equal(90m, round.TotalWinAmount);
     }
 }
