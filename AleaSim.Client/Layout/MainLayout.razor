@@ -68,9 +68,9 @@
 
                     <!-- Wallet Display -->
                     @if (userProfile != null) {
-                        <div class="wallet-container-premium px-3 py-1 rounded-pill glass-panel-dark" @onclick='@(() => Navigation.NavigateTo("/wallet"))'>
+                        <div class="wallet-container-premium px-3 py-1 rounded-pill glass-panel" @onclick='@(() => Navigation.NavigateTo("/wallet"))'>
                             <div class="d-flex align-center">
-                                <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Size="Size.Small" Color="Color.Success" Class="mr-2" />
+                                <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Style="font-size: 1.4rem;" Color="Color.Success" Class="mr-2" />
                                 <MudText Typo="Typo.subtitle1" Color="Color.Success" Class="wallet-balance-text">
                                     @userProfile.TotalBalance.ToString("C2")
                                 </MudText>
@@ -168,8 +168,8 @@
              </AuthorizeView>
              
              <MudCard Class="glass-panel pa-3 text-center mb-4">
-                 <MudText Typo="Typo.caption" Class="d-block mb-1 mud-text-secondary">Weekly Jackpot</MudText>
-                 <MudText Typo="Typo.h6" Class="text-gradient font-black">@PlatformStats.Stats.WeeklyJackpot.ToString("C2")</MudText>
+                 <MudText Typo="Typo.caption" Class="d-block mb-1 mud-text-secondary">Grand Prize Pool</MudText>
+                 <MudText Typo="Typo.h6" Class="text-gradient font-black">@PlatformStats.Stats.TournamentPrizePool.ToString("C2")</MudText>
              </MudCard>
         </div>
     </MudDrawer>
@@ -373,13 +373,14 @@
         cursor: pointer;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         border: 1px solid rgba(76, 175, 80, 0.2);
+        background: var(--mud-palette-surface);
     }
     
     .wallet-container-premium:hover {
-        background: rgba(15, 23, 42, 0.8) !important;
+        background: var(--mud-palette-action-default-hover) !important;
         border-color: rgba(76, 175, 80, 0.5);
         transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
 
     .xp-ring-container {
@@ -427,6 +428,7 @@
     .wallet-balance-text {
         font-weight: 900 !important;
         font-family: 'Rajdhani', sans-serif !important;
+        font-size: 1.15rem !important;
         letter-spacing: 0.5px;
         text-shadow: 0 0 10px rgba(76, 175, 80, 0.2);
     }

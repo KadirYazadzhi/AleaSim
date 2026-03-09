@@ -76,7 +76,6 @@ html, body {
 
 /* Modern Buttons */
 .mud-button-filled {
-    border-radius: 12px !important;
     text-transform: none !important;
     font-weight: 700 !important;
     letter-spacing: 0.5px !important;

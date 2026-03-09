@@ -285,9 +285,9 @@ public class GameController : ControllerBase {
         var activeCount = _repo.GetActivePlayerCount(10);
         
         var jackpots = _repo.GetJackpots();
-        var spades = jackpots.FirstOrDefault(j => j.Tier == AleaSim.Domain.Entities.JackpotTier.Spades);
+        var hearts = jackpots.FirstOrDefault(j => j.Tier == AleaSim.Domain.Entities.JackpotTier.Hearts);
         
-        decimal weeklyJackpot = spades?.CurrentValue ?? 0m;
+        decimal weeklyJackpot = hearts?.CurrentValue ?? 0m;
         decimal totalRewards = _repo.GetGlobalTotalRewardsPaid();
         
         var tournamentEndsAt = startOfMonth.AddMonths(1).AddSeconds(-1);
