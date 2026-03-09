@@ -50,6 +50,9 @@ public class DiceGameEngineTests {
         _mockLock.Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
                  .ReturnsAsync(new Mock<IDisposable>().Object);
 
+        var mockTx = new Mock<ITransaction>();
+        _mockRepo.Setup(r => r.BeginTransaction()).Returns(mockTx.Object);
+
         _engine = new DiceGameEngine(_mockRng.Object, _mockVault.Object, _mockBrain.Object, _mockPromo.Object, _mockJackpot.Object, _mockRealTime.Object, _mockScopeFactory.Object, _mockLock.Object, _cache);
     }
 
