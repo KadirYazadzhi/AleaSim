@@ -8,7 +8,7 @@
     <TitleContent>
         <div class="d-flex flex-column align-center pa-4">
             <MudText Typo="Typo.h4" Class="fw-black text-gradient">DAILY LUCK WHEEL</MudText>
-            <MudText Typo="Typo.caption" Class="opacity-60">Spin every 24 hours for guaranteed rewards!</MudText>
+            <MudText Typo="Typo.caption" Class="opacity-60 text-center">Spin every 24 hours for guaranteed rewards!</MudText>
         </div>
     </TitleContent>
     <DialogContent>
@@ -16,121 +16,143 @@
             <div class="wheel-main-container">
                 <!-- Pointer -->
                 <div class="wheel-pointer-modern">
-                    <svg viewBox="0 0 30 40">
-                        <path d="M15 0 L30 20 L15 40 L0 20 Z" fill="#ffeb3b" />
+                    <svg viewBox="0 0 30 40" width="40" height="50">
+                        <path d="M15 40 L30 10 L15 0 L0 10 Z" fill="#ffeb3b" stroke="#000" stroke-width="2" />
                     </svg>
                 </div>
 
-                <!-- The Wheel -->
+                <!-- Rotating Body -->
                 <div class="wheel-body" style="transform: rotate(@(_currentRotation)deg); transition: @(_transitionStyle)">
                     @for (int i = 0; i < _slices.Count; i++)
                     {
                         var slice = _slices[i];
-                        <div class="wheel-slice" style="--i: @i; --count: @_slices.Count; --color: @slice.Color;">
-                            <div class="slice-content">
-                                <MudIcon Icon="@slice.Icon" Size="Size.Medium" Class="mb-1" />
-                                <span>@slice.Label</span>
+                        double rotation = i * 45;
+                        
+                        <!-- Wedge Background -->
+                        <div class="wedge" style="transform: rotate(@(rotation)deg) skewY(-45deg); background: @slice.Color;"></div>
+                        
+                        <!-- Label: Centered in wedge, pointing towards center -->
+                        <div class="wedge-label-wrapper" style="transform: rotate(@(rotation + 22.5)deg)">
+                            <div class="wedge-label-content">
+                                <MudIcon Icon="@slice.Icon" Size="Size.Small" Class="mb-1" />
+                                <span class="slice-text">@slice.Label</span>
                             </div>
                         </div>
                     }
-                    <div class="wheel-center-hub">
-                        <div class="hub-inner">
-                            <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" />
-                        </div>
+                </div>
+
+                <!-- Center Hub -->
+                <div class="wheel-center-hub">
+                    <div class="hub-inner">
+                        <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
                     </div>
                 </div>
-                
-                <!-- Glow Effect -->
-                <div class="wheel-glow"></div>
             </div>
         </div>
 
-        @if (result != null && !isSpinning)
-        {
-            <div class="result-display animate-pop-in mt-6">
-                <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="rounded-xl py-4 shadow-lg">
-                    <div class="d-flex align-center justify-center gap-3">
-                        <MudIcon Icon="@Icons.Material.Filled.CardGiftcard" Size="Size.Large" />
-                        <MudText Typo="Typo.h6" Class="fw-black">@result.Message</MudText>
-                    </div>
-                </MudAlert>
-            </div>
-        }
+        <div class="results-area mt-4" style="min-height: 80px;">
+            @if (result != null && !isSpinning)
+            {
+                <div class="result-display animate-pop-in">
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="rounded-xl py-3 shadow-lg border-2 border-solid border-white-10">
+                        <div class="d-flex align-center justify-center gap-3">
+                            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Large" />
+                            <MudText Typo="Typo.h6" Class="fw-black">@result.Message</MudText>
+                        </div>
+                    </MudAlert>
+                </div>
+            }
+        </div>
     </DialogContent>
     <DialogActions>
-        <div class="pa-4 w-100">
+        <div class="pa-6 pt-0 w-100">
             <MudButton Variant="Variant.Filled" 
                        Color="Color.Primary" 
                        OnClick="Spin" 
                        Disabled="isSpinning || result != null" 
                        FullWidth="true"
-                       Class="py-4 rounded-xl fw-black hover-scale shadow-lg"
+                       Class="py-4 rounded-xl fw-black hover-scale shadow-lg glow-button"
                        Style="font-size: 1.2rem; letter-spacing: 1px;">
-                @(isSpinning ? "SPINNING..." : (result != null ? "COME BACK TOMORROW!" : "SPIN FOR FREE!"))
+                @(isSpinning ? "SPINNING..." : (result != null ? "COME BACK TOMORROW" : "SPIN FOR FREE!"))
             </MudButton>
         </div>
     </DialogActions>
 </MudDialog>
 
 <style>
-    .bonus-wheel-dialog { background: rgba(15, 23, 42, 0.95) !important; backdrop-filter: blur(20px); border-radius: 32px !important; border: 1px solid rgba(255,255,255,0.1); }
+    .bonus-wheel-dialog { background: rgba(15, 23, 42, 0.98) !important; backdrop-filter: blur(25px); border-radius: 40px !important; border: 1px solid rgba(255,255,255,0.1); max-width: 480px !important; }
     .fw-black { font-weight: 900; }
     .text-gradient { background: linear-gradient(to right, #ffeb3b, #f44336); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-    .wheel-outer-wrap { display: flex; justify-content: center; padding: 20px 0; perspective: 1000px; }
+    .wheel-outer-wrap { display: flex; justify-content: center; padding: 20px 0; overflow: hidden; }
     
     .wheel-main-container { 
         position: relative; 
         width: 320px; 
         height: 320px; 
+        min-width: 320px;
+        min-height: 320px;
         border-radius: 50%; 
-        border: 8px solid #1e293b;
-        box-shadow: 0 0 0 4px #334155, 0 20px 50px rgba(0,0,0,0.5);
+        border: 10px solid #1e293b;
+        background: #0f172a;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+        overflow: hidden;
     }
 
     .wheel-body {
-        position: relative;
-        width: 100%;
-        height: 100%;
+        position: absolute;
+        inset: 0;
         border-radius: 50%;
         overflow: hidden;
-        background: #0f172a;
+        z-index: 1;
     }
 
-    .wheel-slice {
+    .wedge {
         position: absolute;
-        width: 50%;
-        height: 50%;
-        transform-origin: 100% 100%;
-        transform: rotate(calc(var(--i) * (360deg / var(--count)))) skewY(calc(90deg - (360deg / var(--count))));
-        background: var(--color);
+        width: 100%;
+        height: 100%;
+        left: 50%;
+        top: -50%;
+        transform-origin: 0 100%;
         border: 1px solid rgba(0,0,0,0.1);
     }
 
-    .slice-content {
+    /* New Label Positioning */
+    .wedge-label-wrapper {
         position: absolute;
-        left: -100%;
-        width: 200%;
-        height: 200%;
+        top: 0;
+        left: 50%;
+        width: 40px;
+        height: 50%; /* From center to edge */
+        margin-left: -20px;
+        transform-origin: 50% 100%;
+        display: flex;
+        justify-content: center;
+        z-index: 10;
+        pointer-events: none;
+    }
+
+    .wedge-label-content {
+        padding-top: 25px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        transform: skewY(calc((360deg / var(--count)) - 90deg)) rotate(calc(180deg / var(--count)));
-        padding-bottom: 80px;
         color: white;
+        text-shadow: 0 2px 8px rgba(0,0,0,1);
+    }
+
+    .slice-text {
         font-weight: 900;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
         font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     .wheel-pointer-modern {
         position: absolute;
-        top: -25px;
+        top: -15px;
         left: 50%;
         transform: translateX(-50%);
-        width: 30px;
-        height: 40px;
         z-index: 100;
         filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
     }
@@ -148,7 +170,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        box-shadow: 0 0 20px rgba(0,0,0,0.6);
         border: 4px solid #334155;
     }
 
@@ -158,13 +180,10 @@
         display: flex; align-items: center; justify-content: center;
     }
 
-    .wheel-glow {
-        position: absolute; inset: -15px; border-radius: 50%;
-        background: radial-gradient(circle, transparent 60%, rgba(124, 58, 237, 0.1) 100%);
-        pointer-events: none;
-    }
+    .glow-button { box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); }
+    .glow-button:not(:disabled):hover { box-shadow: 0 0 30px rgba(124, 58, 237, 0.6); }
 
-    .animate-pop-in { animation: popIn 0.5s cubic-bezier(0.17, 0.89, 0.32, 1.49); }
+    .animate-pop-in { animation: popIn 0.4s cubic-bezier(0.17, 0.89, 0.32, 1.49) forwards; }
     @@keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 </style>
 
@@ -188,10 +207,10 @@
         new SliceInfo { Label = "500 XP", Color = "#1e1b4b", Icon = Icons.Material.Filled.Bolt, Type = "XP", Value = 500m },
         new SliceInfo { Label = "$5.00", Color = "#312e81", Icon = Icons.Material.Filled.AttachMoney, Type = "BonusCash", Value = 5m },
         new SliceInfo { Label = "$50.00", Color = "#7c3aed", Icon = Icons.Material.Filled.EmojiEvents, Type = "BonusCash", Value = 50m },
-        new SliceInfo { Label = "500 XP", Color = "#1e1b4b", Icon = Icons.Material.Filled.Bolt, Type = "XP", Value = 500m },
-        new SliceInfo { Label = "$5.00", Color = "#312e81", Icon = Icons.Material.Filled.AttachMoney, Type = "BonusCash", Value = 5m },
-        new SliceInfo { Label = "500 XP", Color = "#1e1b4b", Icon = Icons.Material.Filled.Bolt, Type = "XP", Value = 500m },
-        new SliceInfo { Label = "$5.00", Color = "#312e81", Icon = Icons.Material.Filled.AttachMoney, Type = "BonusCash", Value = 5m }
+        new SliceInfo { Label = "500 XP", Color = "#312e81", Icon = Icons.Material.Filled.Bolt, Type = "XP", Value = 500m },
+        new SliceInfo { Label = "$5.00", Color = "#1e1b4b", Icon = Icons.Material.Filled.AttachMoney, Type = "BonusCash", Value = 5m },
+        new SliceInfo { Label = "500 XP", Color = "#312e81", Icon = Icons.Material.Filled.Bolt, Type = "XP", Value = 500m },
+        new SliceInfo { Label = "$5.00", Color = "#1e1b4b", Icon = Icons.Material.Filled.AttachMoney, Type = "BonusCash", Value = 5m }
     };
 
     private async Task Spin() {
@@ -209,7 +228,6 @@
             result = await response.Content.ReadFromJsonAsync<SpinResult>();
             if (result == null) return;
 
-            // Find matching slice index
             int targetIdx = _slices.FindIndex(s => s.Type == result.Type && s.Value == result.Value);
             if (targetIdx == -1) targetIdx = 0;
 
@@ -221,24 +239,25 @@
 
     private async Task DoSpinAnimation(int targetIdx) {
         isSpinning = true;
-        await Audio.PlaySpin();
+        _transitionStyle = "none";
+        _currentRotation %= 360; // Normalize
+        StateHasChanged();
+        await Task.Delay(10);
 
-        // Animation logic:
-        // Slices are 360 / 8 = 45 degrees each.
-        // We want the target slice to be at the TOP (where the pointer is).
-        // The rotation is clockwise.
         double sliceDeg = 360.0 / _slices.Count;
+        double extraRotations = 10 * 360; 
         
-        // Final angle: Multiple full rotations + offset to land on slice
-        // Offset = (slices - index) * sliceDeg - (sliceDeg / 2) to center it
-        double extraRotations = 5 * 360; 
-        double targetAngle = (_slices.Count - targetIdx) * sliceDeg - (sliceDeg / 2);
+        // Target angle logic:
+        // Pointer is at TOP (0 deg).
+        // Slice 0 starts at 0 deg. Its center is at 22.5 deg.
+        // To bring the center of slice i to the top, we need to rotate the wheel by (360 - center_i).
+        double targetAngle = 360 - (targetIdx * sliceDeg + (sliceDeg / 2));
         
         _currentRotation += extraRotations + (targetAngle - (_currentRotation % 360));
-        _transitionStyle = "transform 4s cubic-bezier(0.15, 0, 0.15, 1)";
+        _transitionStyle = "transform 5s cubic-bezier(0.15, 0, 0.15, 1)";
         
         StateHasChanged();
-        await Task.Delay(4000);
+        await Task.Delay(5000);
         
         isSpinning = false;
         await Audio.PlayWin();

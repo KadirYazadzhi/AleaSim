@@ -124,4 +124,6 @@ public class PlatformStatsDto {
     public int TotalRegisteredPlayers { get; set; }
     public double AverageRtp { get; set; }
     public decimal TotalRewardsPaid { get; set; }
+    public int CurrentSeason { get; set; }
+    public List<string> TopTournamentAvatars { get; set; } = new();
 }

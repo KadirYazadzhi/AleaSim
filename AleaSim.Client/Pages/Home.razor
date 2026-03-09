@@ -37,11 +37,11 @@
                     
                     <!-- Hero/Tournament Banner -->
                     <div class='@($"{(LayoutService.IsDarkMode ? "tournament-banner" : "tournament-banner light-banner")} mb-10 p-relative overflow-hidden rounded-xl shadow-md animate-slide-up")'>
-                        <div class="banner-content d-flex justify-space-between align-center flex-wrap gap-6 pa-8" style="position: relative; z-index: 2;">
-                            <div style="max-width: 600px;">
+                        <div class="banner-content d-flex justify-space-between align-center flex-wrap gap-8 pa-8 px-md-12 px-lg-16 pr-xl-32 w-100" style="position: relative; z-index: 2;">
+                            <div style="max-width: 650px;">
                                 <div class="d-flex align-center gap-2 mb-2">
                                     <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="fw-bold pulse-red">LIVE</MudChip>
-                                    <MudText Typo="Typo.subtitle2" Class="text-warning fw-bold tracking-wide">SEASON 4</MudText>
+                                    <MudText Typo="Typo.subtitle2" Class="text-warning fw-bold tracking-wide">SEASON @PlatformStats.Stats.CurrentSeason</MudText>
                                 </div>
                                 <MudText Typo="Typo.h3" Class='@($"{(LayoutService.IsDarkMode ? "text-white text-shadow-lg" : "mud-text-primary")} fw-black mb-2")'>GRAND TOURNAMENT</MudText>
                                 <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black mb-4">@PlatformStats.Stats.TournamentPrizePool.ToString("C2") <span class='@($"{(LayoutService.IsDarkMode ? "text-white opacity-70" : "mud-text-secondary")} text-sm fw-normal")'>Prize Pool</span></MudText>
@@ -51,15 +51,25 @@
                                         <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" Class="text-warning mr-2" />
                                         <span class='@($"{(LayoutService.IsDarkMode ? "text-white" : "mud-text-primary")} fw-bold")'>@GetTimeLeft(PlatformStats.Stats.TournamentEndsAt)</span>
                                     </div>
-                                    <MudAvatarGroup Max="3" Spacing="2" MaxColor="Color.Primary">
-                                        <MudAvatar><MudImage Src="https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky&backgroundColor=b6e3f4" /></MudAvatar>
-                                        <MudAvatar><MudImage Src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=ffdfbf" /></MudAvatar>
-                                        <MudAvatar><MudImage Src="https://api.dicebear.com/7.x/avataaars/svg?seed=Winner&backgroundColor=c0aede" /></MudAvatar>
-                                        <MudAvatar Color="Color.Dark">+2k</MudAvatar>
+                                    <MudAvatarGroup Max="4" Spacing="2" MaxColor="Color.Primary">
+                                        @if (PlatformStats.Stats.TopTournamentAvatars.Any())
+                                        {
+                                            @foreach (var avatar in PlatformStats.Stats.TopTournamentAvatars)
+                                            {
+                                                <MudAvatar><MudImage Src="@avatar" /></MudAvatar>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <MudAvatar><MudImage Src="https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky" /></MudAvatar>
+                                            <MudAvatar><MudImage Src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" /></MudAvatar>
+                                            <MudAvatar><MudImage Src="https://api.dicebear.com/7.x/avataaars/svg?seed=Winner" /></MudAvatar>
+                                        }
+                                        <MudAvatar Color="Color.Dark">+@((PlatformStats.Stats.TotalRegisteredPlayers > 3 ? PlatformStats.Stats.TotalRegisteredPlayers - 3 : 0))</MudAvatar>
                                     </MudAvatarGroup>
                                 </div>
                             </div>
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/leaderboard" Class="px-8 py-4 rounded-lg fw-black hover-scale">ENTER ARENA</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/leaderboard" Class="px-12 py-5 rounded-lg fw-black hover-scale shadow-lg">ENTER ARENA</MudButton>
                         </div>
                         <!-- Decorative Background Elements -->
                         <div class="banner-bg-overlay"></div>
@@ -240,6 +250,11 @@
                 <!-- Sidebar Area -->
                 <MudItem xs="12" md="4" lg="3">
                     <MudStack Spacing="4">
+                        <!-- Jackpot Widget -->
+                        <div class="pa-1">
+                            <MultiJackpotWidget SimpleMode="true" />
+                        </div>
+
                         <!-- Quests Widget (Moved from sidebar drawer) -->
                         @if (!homeContext.User.IsInRole("Admin"))
                         {
@@ -247,11 +262,6 @@
                                 <QuestWidget />
                             </div>
                         }
-
-                        <!-- Jackpot Widget -->
-                        <div class="glass-panel rounded-xl pa-1 overflow-hidden animate-fade-in" style="animation-delay: 0.05s;">
-                            <MultiJackpotWidget SimpleMode="true" />
-                        </div>
                         
                         <!-- Leaderboard Widget -->
                         <div class="glass-panel rounded-xl overflow-hidden animate-fade-in" style="animation-delay: 0.1s;">

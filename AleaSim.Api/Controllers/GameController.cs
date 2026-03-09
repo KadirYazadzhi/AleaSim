@@ -295,14 +295,22 @@ public class GameController : ControllerBase {
         // Tournament pool: Base $25,000 + 1% of MONTHLY wagering volume
         decimal tournamentPool = 25000m + (monthlyBets * 0.01m); 
 
+        // 2. Tournament Avatars & Season
+        var topEntries = _repo.GetTopTournamentEntries(now, 5);
+        var avatars = topEntries.Select(e => _repo.GetUser(e.UserId)?.AvatarUrl ?? "").Where(a => !string.IsNullOrEmpty(a)).ToList();
+        
+        var seasonCount = _context.TournamentWinners.Select(w => w.Month).Distinct().Count() + 1;
+
         var stats = new PlatformStatsDto {
             ActivePlayers = activeCount, 
             TotalRegisteredPlayers = _repo.GetTotalUserCount(),
-            AverageRtp = 96.5, // Logic for real average RTP could be complex, keeping static or calc
+            AverageRtp = 96.5, 
             TotalRewardsPaid = totalRewards,
             WeeklyJackpot = weeklyJackpot,
             TournamentPrizePool = tournamentPool,
-            TournamentEndsAt = tournamentEndsAt
+            TournamentEndsAt = tournamentEndsAt,
+            CurrentSeason = seasonCount,
+            TopTournamentAvatars = avatars
         };
 
         return Ok(stats);

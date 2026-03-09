@@ -6,7 +6,7 @@
 
 <AuthorizeView>
     <Authorized>
-        @if (!Navigation.Uri.EndsWith("/chat"))
+        @if (!IsChatPage)
         {
             <div class="floating-chat-root">
                 @if (isOpen)
@@ -31,7 +31,6 @@
                 <button class='@($"chat-trigger-btn shadow-2xl {(isOpen ? "active" : "")}")' @onclick="ToggleChat">
                     @if (isOpen) { <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Style="font-size: 2rem;" /> }
                     else { <MudIcon Icon="@Icons.Material.Filled.ChatBubble" Style="font-size: 1.8rem;" /> }
-                    <div class="unread-badge"></div>
                 </button>
             </div>
         }
@@ -51,8 +50,8 @@
     }
 
     .chat-trigger-btn {
-        width: 60px;
-        height: 60px;
+        width: 64px;
+        height: 64px;
         border-radius: 50%;
         background: var(--mud-palette-primary);
         color: white;
@@ -63,16 +62,11 @@
         cursor: pointer;
         transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         position: relative;
+        box-shadow: 0 8px 25px rgba(124, 58, 237, 0.4);
     }
     
-    .chat-trigger-btn:hover { transform: scale(1.1) rotate(5deg); box-shadow: 0 0 20px var(--mud-palette-primary); }
+    .chat-trigger-btn:hover { transform: scale(1.1) rotate(5deg); box-shadow: 0 0 25px var(--mud-palette-primary); }
     .chat-trigger-btn.active { transform: scale(0.9); background: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border: 1px solid var(--mud-palette-divider); }
-
-    .unread-badge {
-        position: absolute; top: 0; right: 0;
-        width: 14px; height: 14px; background: #ef4444;
-        border: 2px solid white; border-radius: 50%;
-    }
 
     .chat-window-popup {
         width: 380px;
@@ -87,23 +81,12 @@
         backdrop-filter: blur(20px);
     }
 
-    .chat-header-bar {
-        background: var(--mud-palette-primary);
-        height: 56px;
-    }
-
     .chat-body-viewport {
         flex-grow: 1;
-        background: var(--mud-palette-surface);
-        position: relative;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
-
-    .online-indicator {
-        width: 8px; height: 8px; background: #4ade80; border-radius: 50%;
-        box-shadow: 0 0 8px #4ade80;
-    }
-
-    .fw-black { font-weight: 900; }
 
     .animate-pop-in {
         animation: chatPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -118,6 +101,11 @@
 
 @code {
     private bool isOpen = false;
+    private bool IsChatPage => Navigation.Uri.Contains("/chat");
+
+    protected override void OnInitialized() {
+        Navigation.LocationChanged += (s, e) => StateHasChanged();
+    }
 
     private void ToggleChat() => isOpen = !isOpen;
 
