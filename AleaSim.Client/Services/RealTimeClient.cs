@@ -23,6 +23,7 @@ public class RealTimeClient : IAsyncDisposable {
     public event Action<object>? OnGameUpdateReceived;
     public event Action<string, string, DateTime, string>? OnChatMessageReceived;
     public event Action<string, string, DateTime, string, Guid>? OnPrivateMessageReceived;
+    public event Action<UserProgressionDto>? OnProgressionUpdated;
 
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
@@ -52,6 +53,10 @@ public class RealTimeClient : IAsyncDisposable {
 
         _hubConnection.On<string, string, DateTime, string, Guid>("ReceivePrivateMessage", (user, msg, time, avatar, senderId) => {
             OnPrivateMessageReceived?.Invoke(user, msg, time, avatar, senderId);
+        });
+
+        _hubConnection.On<UserProgressionDto>("ReceiveProgressionUpdate", (dto) => {
+            OnProgressionUpdated?.Invoke(dto);
         });
 
         _hubConnection.On<object>("ReceiveGameUpdate", (data) => {

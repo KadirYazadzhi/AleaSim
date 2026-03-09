@@ -80,10 +80,8 @@ public class GameHub : Hub {
 
         _repo.SaveChatMessage(chatMsg);
 
-        // Send to specific users (SignalR UserIdentifier is usually the Name or Subject claim)
-        // We send to both sender and receiver to update their UIs
-        await Clients.User(receiverId.ToString()).SendAsync("ReceivePrivateMessage", sender.Username, message, chatMsg.Timestamp, avatarUrl, senderId);
-        await Clients.User(senderId.ToString()).SendAsync("ReceivePrivateMessage", sender.Username, message, chatMsg.Timestamp, avatarUrl, senderId);
+        // Send via RealTimeService
+        await _realTimeService.NotifyPrivateMessage(senderId, receiverId, sender.Username, message, avatarUrl);
     }
 
     // Clients can join groups for specific games or sessions

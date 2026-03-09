@@ -25,47 +25,63 @@
 <FlowStateIndicator Intensity="@_flowIntensity" />
 
 <MudLayout>
-    <MudAppBar Elevation="0" Fixed="true" Color="Color.Transparent" Class="glass-appbar px-3 px-md-6 py-2">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => LayoutService.ToggleDrawer())" Class="mr-2 mr-md-4" />
+    <MudAppBar Elevation="0" Fixed="true" Color="Color.Transparent" Class="glass-appbar px-6 py-2">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => LayoutService.ToggleDrawer())" Class="mr-4" />
         
         <div class="d-flex align-center cursor-pointer" @onclick='@(() => Navigation.NavigateTo("/"))'>
-            <MudIcon Icon="@Icons.Material.Filled.Casino" Size="Size.Medium" Color="Color.Primary" Class="mr-1 mr-md-2 spin-hover" />
-            <MudText Typo="Typo.h6" Class="text-gradient font-black tracking-wide d-none d-sm-block">ALEASIM</MudText>
+            <MudIcon Icon="@Icons.Material.Filled.Casino" Size="Size.Large" Color="Color.Primary" Class="mr-2 spin-hover" />
+            <MudText Typo="Typo.h5" Class="text-gradient font-black tracking-wide">ALEASIM</MudText>
         </div>
         
         <MudSpacer />
         
         <AuthorizeView Context="authContext">
             <Authorized>
-                <div class="d-flex align-center gap-1 gap-md-3">
+                <div class="d-flex align-center gap-3">
                     <!-- Flow State Debug/Visualizer -->
                     @if (_flowIntensity > 0) {
-                        <div class="d-none d-sm-flex align-center flow-badge pa-1 px-2 px-md-3 rounded-pill glass-panel">
+                        <div class="d-flex align-center flow-badge pa-1 px-3 rounded-pill glass-panel">
                              <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="@(_flowIntensity > 0.8 ? Color.Error : Color.Warning)" Size="Size.Small" Class="mr-1 pulse-icon" />
                              <MudText Typo="Typo.caption" Style="font-weight: bold;">FLOW</MudText>
                         </div>
                     }
 
-                    <!-- Level Badge -->
-                    <div class="d-none d-sm-flex align-center px-2 px-md-3 py-1 rounded-pill glass-panel border-glow">
-                        <MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment" Color="Color.Error" Size="Size.Small" Class="mr-1 mr-md-2" />
-                        <MudText Typo="Typo.subtitle2" Style="font-weight: 800; font-size: 0.75rem;">LVL @(userProfile?.Progression?.CurrentLevel ?? 1)</MudText> 
+                    <!-- Level & XP Progress Pill -->
+                    <div class='@($"d-none d-sm-flex align-center mr-2 cursor-pointer level-pill-v2 {(_levelUpTriggered ? "levelup-anim" : "")}")' @onclick='@(() => Navigation.NavigateTo("/profile"))'>
+                        <div class="level-pill-inner d-flex align-center px-3 py-1 rounded-pill">
+                            <MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment" Color="Color.Error" Size="Size.Small" Class='@($"mr-2 {(_levelUpTriggered ? "fire-flare" : "")}")' />
+                            <MudText Typo="Typo.subtitle2" Class='@($"level-number-text {(_levelUpTriggered ? "text-pop" : "")}")'>LVL @(userProfile?.Progression?.CurrentLevel ?? 1)</MudText>
+                        </div>
+                        
+                        <!-- SVG Progress Path Overlay (Starts from Middle Left) -->
+                        <svg class="level-svg-container" viewBox="0 0 120 40">
+                            <!-- Background Track -->
+                            <path d="M 2,20 A 18,18 0 0 1 20,2 H 100 A 18,18 0 0 1 118,20 A 18,18 0 0 1 100,38 H 20 A 18,18 0 0 1 2,20 Z" 
+                                  fill="none" class="level-bg-path" />
+                            <!-- Active Progress -->
+                            <path d="M 2,20 A 18,18 0 0 1 20,2 H 100 A 18,18 0 0 1 118,20 A 18,18 0 0 1 100,38 H 20 A 18,18 0 0 1 2,20 Z" 
+                                  fill="none" 
+                                  class="level-progress-path"
+                                  style='@($"stroke-dasharray: 274; stroke-dashoffset: {274 - (274 * (userProfile?.Progression?.ProgressPercentage ?? 0) / 100)};")' />
+                        </svg>
                     </div>
 
                     <!-- Wallet Display -->
                     @if (userProfile != null) {
-                        <MudPaper Elevation="0" Class="d-flex align-center px-2 px-md-3 py-1 rounded-lg wallet-pill" @onclick='@(() => Navigation.NavigateTo("/wallet"))'>
-                            <MudText Typo="Typo.subtitle2" Color="Color.Success" Class="mr-1 mr-md-2" Style="font-weight: 800; font-family: 'Roboto Mono', monospace;">
-                                @userProfile.TotalBalance.ToString("C2")
-                            </MudText>
-                            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small" Class="rounded-lg px-2" Style="min-width: 24px; padding: 0 4px; font-weight: bold;">+</MudButton>
-                        </MudPaper>
+                        <div class="wallet-container-premium px-3 py-1 rounded-pill glass-panel-dark" @onclick='@(() => Navigation.NavigateTo("/wallet"))'>
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Size="Size.Small" Color="Color.Success" Class="mr-2" />
+                                <MudText Typo="Typo.subtitle1" Color="Color.Success" Class="wallet-balance-text">
+                                    @userProfile.TotalBalance.ToString("C2")
+                                </MudText>
+                            </div>
+                        </div>
                     }
 
                     <!-- Notifications -->
-                    <MudBadge Content="@NotifService.UnreadCount" Color="Color.Error" Overlap="true" Dot="@(NotifService.UnreadCount > 0)" Class="mx-0 mx-md-1">
-                        <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" Size="Size.Small" OnClick="@ToggleNotifications" />
-                        <MudPopover Open="@_notificationsOpen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="pa-0 mt-2 glass-panel" Style="width: 280px; max-width: 90vw;">
+                    <MudBadge Content="@NotifService.UnreadCount" Color="Color.Error" Overlap="true" Dot="@(NotifService.UnreadCount > 0)" Class="mx-1">
+                        <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" OnClick="@ToggleNotifications" />
+                        <MudPopover Open="@_notificationsOpen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="pa-0 mt-2 glass-panel" Style="width: 320px;">
                             <div class="d-flex justify-space-between align-center pa-3 border-b border-white-10">
                                 <MudText Typo="Typo.h6">Notifications</MudText>
                                 <MudIconButton Icon="@Icons.Material.Filled.DoneAll" Size="Size.Small" OnClick="() => NotifService.MarkAllAsRead()" title="Mark all as read" />
@@ -89,13 +105,22 @@
                         </MudPopover>
                     </MudBadge>
 
-                    <!-- Profile Menu -->
-                    <MudMenu AnchorOrigin="Origin.BottomRight" LockScroll="true" TransformOrigin="Origin.TopRight">
-                        <ActivatorContent>
-                            <MudAvatar Size="Size.Small" Class="cursor-pointer border-2 border-primary">
-                                <MudImage Src="@userProfile?.AvatarUrl" />
-                            </MudAvatar>
-                        </ActivatorContent>
+                    <!-- Profile Menu & VIP Icon -->
+                    <div class="position-relative">
+                        <MudMenu AnchorOrigin="Origin.BottomRight" LockScroll="true" TransformOrigin="Origin.TopRight">
+                            <ActivatorContent>
+                                <div class="position-relative">
+                                    <MudAvatar Class="cursor-pointer border-2 border-primary shadow-lg">
+                                        <MudImage Src="@userProfile?.AvatarUrl" />
+                                    </MudAvatar>
+                                    @if (userProfile?.Progression?.Tier > VipTier.Bronze)
+                                    {
+                                        <div class="vip-badge-mini">
+                                            <MudIcon Icon="@GetTierIcon(userProfile.Progression.Tier)" Color="@GetTierColor(userProfile.Progression.Tier)" Style="font-size: 1rem;" />
+                                        </div>
+                                    }
+                                </div>
+                            </ActivatorContent>
                         <ChildContent>
                             <div class="pa-4 d-flex flex-column align-center border-b border-white-10">
                                 <MudAvatar Size="Size.Large" Class="mb-2">
@@ -117,15 +142,15 @@
                         </ChildContent>
                     </MudMenu>
                 </div>
+            </div>
             </Authorized>
             <NotAuthorized>
-                <div class="d-flex align-center gap-1 gap-md-3">
+                <div class="d-flex gap-3">
                     <MudIconButton Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
                                    Color="Color.Inherit" 
-                                   Size="Size.Small"
                                    OnClick="@(async () => await LayoutService.ToggleDarkMode())" />
-                    <MudButton Href="/login" Variant="Variant.Outlined" Class="secondary-btn rounded-lg px-3 px-md-6" Style="font-weight: bold; font-size: 0.8rem;">Login</MudButton>
-                    <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Primary" Class="rounded-lg px-3 px-md-6 fw-bold glow-effect" Style="font-size: 0.8rem;">Register</MudButton>
+                    <MudButton Href="/login" Variant="Variant.Outlined" Class="secondary-btn rounded-lg px-6" Style="font-weight: bold;">Login</MudButton>
+                    <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Primary" Class="rounded-lg px-6 fw-bold glow-effect">Register</MudButton>
                 </div>
             </NotAuthorized>
         </AuthorizeView>
@@ -259,17 +284,170 @@
         backdrop-filter: blur(10px);
         border: 1px solid var(--mud-palette-divider);
     }
-    
-    .wallet-pill {
-        background-color: var(--mud-palette-surface);
-        border: 1px solid var(--mud-palette-success-hover);
+
+    .glass-panel-dark {
+        background: rgba(15, 23, 42, 0.6) !important;
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .level-pill-v2 {
+        position: relative;
+        width: 120px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .level-pill-inner {
+        position: relative;
+        z-index: 2;
+        width: 112px;
+        height: 32px;
+        background: var(--mud-palette-surface);
+        justify-content: center;
+    }
+
+    .level-number-text {
+        font-weight: 900 !important;
+        font-family: 'Rajdhani', sans-serif;
+        letter-spacing: 1px;
+    }
+
+    .level-svg-container {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+    }
+
+    .level-bg-path {
+        stroke: var(--mud-palette-divider);
+        stroke-width: 4;
+        opacity: 1;
+    }
+
+    .level-progress-path {
+        stroke: #f44336; /* Vibrant Red */
+        stroke-width: 4;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        filter: drop-shadow(0 0 3px rgba(244, 67, 54, 0.5));
+    }
+
+    /* Level Up Animations */
+    .levelup-anim {
+        animation: levelUpBounce 1s ease forwards;
+    }
+
+    .fire-flare {
+        animation: fireFlare 1s ease infinite;
+    }
+
+    .text-pop {
+        animation: textPop 0.5s ease-out forwards;
+    }
+
+    @@keyframes levelUpBounce {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.15); filter: drop-shadow(0 0 15px var(--mud-palette-error)); }
+        100% { transform: scale(1); }
+    }
+
+    @@keyframes fireFlare {
+        0% { filter: brightness(1) drop-shadow(0 0 0px var(--mud-palette-error)); }
+        50% { filter: brightness(2) drop-shadow(0 0 10px var(--mud-palette-error)); transform: scale(1.3); }
+        100% { filter: brightness(1) drop-shadow(0 0 0px var(--mud-palette-error)); }
+    }
+
+    @@keyframes textPop {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.4); color: var(--mud-palette-warning); }
+        100% { transform: scale(1); }
+    }
+
+    .wallet-container-premium {
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(76, 175, 80, 0.2);
     }
     
-    .wallet-pill:hover {
-        background-color: var(--mud-palette-surface-hover);
-        border-color: var(--mud-palette-success);
+    .wallet-container-premium:hover {
+        background: rgba(15, 23, 42, 0.8) !important;
+        border-color: rgba(76, 175, 80, 0.5);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .xp-ring-container {
+        position: relative;
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .xp-progress-ring {
+        position: absolute;
+        inset: 0;
+    }
+
+    .level-icon-center {
+        z-index: 2;
+        background: var(--mud-palette-background-grey);
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+    }
+
+    .vip-badge-mini {
+        position: absolute;
+        bottom: -4px;
+        right: -4px;
+        background: var(--mud-palette-surface);
+        border-radius: 50%;
+        width: 22px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid var(--mud-palette-divider);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        z-index: 10;
+    }
+
+    .wallet-balance-text {
+        font-weight: 900 !important;
+        font-family: 'Rajdhani', sans-serif !important;
+        letter-spacing: 0.5px;
+        text-shadow: 0 0 10px rgba(76, 175, 80, 0.2);
+    }
+
+    .wallet-add-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+        color: white;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+    }
+
+    .wallet-add-btn:hover {
+        transform: rotate(90deg) scale(1.1);
+        filter: brightness(1.2);
     }
 
     .border-glow {
@@ -345,6 +523,7 @@
     private UserDto? userProfile;
     private CelebrationOverlay celebrationOverlay = default!;
     private float _flowIntensity = 0f;
+    private bool _levelUpTriggered = false;
 
     protected override async Task OnInitializedAsync() {
         await LayoutService.InitializeAsync();
@@ -383,6 +562,7 @@
                         RealTime.OnBigWinReceived += HandleBigWin;
                         RealTime.OnGameUpdateReceived += HandleGameUpdate;
                         RealTime.OnBalanceUpdated += HandleBalanceUpdate;
+                        RealTime.OnProgressionUpdated += HandleProgressionUpdate;
                     }
                 }
             } catch (Exception ex) {
@@ -394,6 +574,7 @@
                 RealTime.OnBigWinReceived -= HandleBigWin;
                 RealTime.OnGameUpdateReceived -= HandleGameUpdate;
                 RealTime.OnBalanceUpdated -= HandleBalanceUpdate;
+                RealTime.OnProgressionUpdated -= HandleProgressionUpdate;
                 await RealTime.StopAsync();
             }
         }
@@ -409,6 +590,9 @@
         LayoutService.OnOptimisticDeduction -= HandleOptimisticDeduction;
         PlatformStats.OnStatsUpdated -= StateHasChanged;
         AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        if (RealTime.IsConnected) {
+            RealTime.OnProgressionUpdated -= HandleProgressionUpdate;
+        }
     }
 
     private void HandleAvatarChanged(string newUrl) {
@@ -462,6 +646,25 @@
         }
     }
 
+    private void HandleProgressionUpdate(UserProgressionDto prog) {
+        Console.WriteLine($"Progression Update Received: Level {prog.CurrentLevel}, XP {prog.CurrentXP}");
+        if (userProfile != null) {
+            bool isLevelUp = prog.CurrentLevel > (userProfile.Progression?.CurrentLevel ?? 0);
+            userProfile.Progression = prog;
+            
+            if (isLevelUp) {
+                _levelUpTriggered = true;
+                InvokeAsync(StateHasChanged);
+                _ = Task.Delay(3000).ContinueWith(_ => {
+                    _levelUpTriggered = false;
+                    InvokeAsync(StateHasChanged);
+                });
+            } else {
+                InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
     private void HandleGameUpdate(object data) {
         var json = data.ToString();
         if (json != null) {
@@ -495,15 +698,18 @@
     }
 
     private string GetTierIcon(VipTier tier) => tier switch {
-        VipTier.Diamond => Icons.Material.Filled.WorkspacePremium,
+        VipTier.Diamond => Icons.Material.Filled.Diamond,
         VipTier.Platinum => Icons.Material.Filled.AutoAwesome,
-        _ => Icons.Material.Filled.Stars
+        VipTier.Gold => Icons.Material.Filled.MilitaryTech,
+        VipTier.Silver => Icons.Material.Filled.Stars,
+        _ => Icons.Material.Filled.Person
     };
 
     private Color GetTierColor(VipTier tier) => tier switch {
-        VipTier.Diamond => Color.Secondary,
-        VipTier.Platinum => Color.Info,
-        VipTier.Gold => Color.Warning,
+        VipTier.Diamond => Color.Secondary, // Pinkish/Diamond
+        VipTier.Platinum => Color.Info,      // Blue/Platinum
+        VipTier.Gold => Color.Warning,       // Gold
+        VipTier.Silver => Color.Default,     // Silver/Grey
         _ => Color.Default
     };
 

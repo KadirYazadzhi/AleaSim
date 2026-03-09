@@ -7,6 +7,8 @@ public interface IRealTimeService {
     Task NotifyGameUpdate(Guid userId, object gameState);
     Task NotifyBalanceUpdate(Guid userId, decimal balance, decimal bonusBalance);
     Task NotifyRtpUpdate(Guid gameId, double currentRtp);
+    Task NotifyProgressionUpdate(Guid userId, object progression);
+    Task NotifyPrivateMessage(Guid senderId, Guid receiverId, string senderUsername, string message, string avatarUrl);
     
     // New Social Features
     Task NotifyBigWin(string username, string gameName, decimal amount, decimal multiplier);

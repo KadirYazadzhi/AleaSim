@@ -37,6 +37,13 @@ public class ConsoleRealTimeService : IRealTimeService {
         return Task.CompletedTask;
     }
 
+    public Task NotifyPrivateMessage(Guid senderId, Guid receiverId, string senderUsername, string message, string avatarUrl) {
+        Console.ForegroundColor = ConsoleColor.Blue;
+        Console.WriteLine($"\n[PRIVATE MESSAGE] {senderUsername}: {message}");
+        Console.ResetColor();
+        return Task.CompletedTask;
+    }
+
     public Task NotifyBigWin(string username, string gameName, decimal amount, decimal multiplier) {
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine($"\n$$$ GLOBAL BIG WIN BROADCAST $$$");

@@ -99,7 +99,9 @@ class Program {
                 Console.WriteLine("         mode <classic|extreme|slider|multi>");
                 Console.WriteLine("         bet <amount> [extra_params]");
                 Console.WriteLine("         auto <count> <amount>");
-                Console.WriteLine("SYSTEM:  cashback, missions, chat <message>");
+                Console.WriteLine("SYSTEM:  cashback, missions, chat <message>, chat history");
+                Console.WriteLine("         redeem <code>");
+                Console.WriteLine("         pchat <username> <message>, pchat history <username>");
                 Console.WriteLine("---------------------------------------------------------");
                 break;
 
@@ -232,6 +234,14 @@ class Program {
 
             case "chat":
                 if (_currentUserId == null) return;
+                if (parts.Length > 1 && parts[1].ToLower() == "history") {
+                    var history = repo.GetGlobalChatMessages(50);
+                    Console.WriteLine("\n--- GLOBAL CHAT HISTORY ---");
+                    foreach (var m in history) {
+                        Console.WriteLine($"[{m.Timestamp:HH:mm}] {m.SenderUsername}: {m.Message}");
+                    }
+                    return;
+                }
                 var msg = string.Join(" ", parts.Skip(1));
                 var userChat = repo.GetUser(_currentUserId.Value);
                 if (userChat != null) {
@@ -239,12 +249,75 @@ class Program {
                         Id = Guid.NewGuid(),
                         SenderId = userChat.Id,
                         SenderUsername = userChat.Username,
+                        SenderAvatarUrl = userChat.AvatarUrl ?? "",
                         Message = msg,
                         Type = ChatMessageType.Global,
                         Timestamp = DateTime.UtcNow
                     };
                     repo.SaveChatMessage(chatMsg);
                     Console.WriteLine($"[GLOBAL CHAT] You: {msg}");
+                }
+                break;
+
+            case "pchat":
+                if (_currentUserId == null) return;
+                if (parts.Length < 2) { Console.WriteLine("Usage: pchat <username> <message> OR pchat history <username>"); return; }
+                
+                string targetName = parts[1];
+                var me = repo.GetUser(_currentUserId.Value);
+                if (me == null) return;
+
+                if (targetName.ToLower() == "history" && parts.Length >= 3) {
+                    string otherName = parts[2];
+                    var otherUser = repo.GetUserByUsername(otherName);
+                    if (otherUser == null) { Console.WriteLine("User not found."); return; }
+                    var pHistory = repo.GetPrivateChatHistory(me.Id, otherUser.Id, 50);
+                    Console.WriteLine($"\n--- PRIVATE HISTORY WITH {otherName.ToUpper()} ---");
+                    foreach (var m in pHistory) {
+                        string prefix = m.SenderId == me.Id ? "You" : m.SenderUsername;
+                        Console.WriteLine($"[{m.Timestamp:HH:mm}] {prefix}: {m.Message}");
+                    }
+                    return;
+                }
+
+                // Sending message
+                if (parts.Length < 3) { Console.WriteLine("Usage: pchat <username> <message>"); return; }
+                var target = repo.GetUserByUsername(targetName);
+                if (target == null) { Console.WriteLine("Target user not found."); return; }
+
+                // Check authorization (Admin required for private chat)
+                if (me.Role != Role.Admin && target.Role != Role.Admin) {
+                    Console.WriteLine("Private chat is only available with Administrators.");
+                    return;
+                }
+
+                string pMsg = string.Join(" ", parts.Skip(2));
+                var pChatMsg = new ChatMessage {
+                    Id = Guid.NewGuid(),
+                    SenderId = me.Id,
+                    SenderUsername = me.Username,
+                    SenderAvatarUrl = me.AvatarUrl ?? "",
+                    ReceiverId = target.Id,
+                    Message = pMsg,
+                    Type = ChatMessageType.Private,
+                    Timestamp = DateTime.UtcNow
+                };
+                repo.SaveChatMessage(pChatMsg);
+                
+                var realTime = scope.ServiceProvider.GetRequiredService<IRealTimeService>();
+                await realTime.NotifyPrivateMessage(me.Id, target.Id, me.Username, pMsg, me.AvatarUrl ?? "");
+                Console.WriteLine($"[PRIVATE to {target.Username}] You: {pMsg}");
+                break;
+
+            case "redeem":
+                if (_currentUserId == null) return;
+                if (parts.Length < 2) { Console.WriteLine("Usage: redeem <code>"); return; }
+                var vService = scope.ServiceProvider.GetRequiredService<IVoucherService>();
+                try {
+                    decimal vAmount = await vService.RedeemVoucher(_currentUserId.Value, parts[1], repo, vault);
+                    Console.WriteLine($"Success! Voucher redeemed for {vAmount:C}");
+                } catch (Exception ex) {
+                    Console.WriteLine($"Redemption Failed: {ex.Message}");
                 }
                 break;
 

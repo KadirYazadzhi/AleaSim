@@ -1,5 +1,6 @@
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
+using AleaSim.Shared.Models;
 
 namespace AleaSim.Domain.Services;
 
@@ -58,13 +59,21 @@ public class LevelService : ILevelService {
                 await _vaultService.CreditBonusAsync(userId, milestonePrize, milestonePrize, repo);
             }
 
-            _ = realTime.NotifyGameUpdate(userId, new {
+            await realTime.NotifyGameUpdate(userId, new {
                 Type = "LevelUp",
                 NewLevel = prog.CurrentLevel,
                 SkillPoints = prog.SkillPoints,
                 Message = $"Congratulations! You reached Level {prog.CurrentLevel}!"
             });
         }
+
+        // Always notify about the current progression state (XP gain)
+        await realTime.NotifyProgressionUpdate(userId, new UserProgressionDto {
+            CurrentLevel = prog.CurrentLevel,
+            CurrentXP = prog.CurrentXP,
+            SkillPoints = prog.SkillPoints,
+            LifetimeXP = prog.LifetimeXP
+        });
     }
 
     public async Task<bool> UpgradeSkill(Guid userId, string skillName, IGameRepository repo) {

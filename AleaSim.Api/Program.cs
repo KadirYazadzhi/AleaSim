@@ -3,6 +3,8 @@ using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Services;
 using AleaSim.Domain.Extensions;
 using AleaSim.Persistence;
+using AleaSim.Api.Services;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -21,7 +23,8 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // Add Services
 builder.Services.AddControllers();
-builder.Services.AddSignalR(); // Added SignalR
+builder.Services.AddSignalR(); 
+builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
 builder.Services.AddCors(options => {
     options.AddPolicy("AllowBlazor",
         policy => policy
