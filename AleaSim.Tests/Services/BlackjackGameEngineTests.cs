@@ -100,6 +100,6 @@ public class BlackjackGameEngineTests {
         await _engine.ProcessAction(userId, sessionId, "Hit", "{}");
 
         // Assert
-        _mockRepo.Verify(r => r.UpdateSession(It.Is<GameSession>(s => s.GameState.Contains("9H"))), Times.Once);
+        _mockRepo.Verify(r => r.SaveRound(It.Is<GameRound>(rd => rd.RandomResult.Contains("9H"))), Times.Once);
     }
 }
