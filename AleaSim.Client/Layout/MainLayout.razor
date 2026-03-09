@@ -133,11 +133,13 @@
     <MudDrawer @bind-Open="@LayoutService.IsDrawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0" Variant="DrawerVariant.Responsive" Class="sidebar-blur">
         <NavMenu />
         <div class="mt-auto pa-4">
-             @if (userProfile != null && userProfile.Role != "Admin") {
-                 <div class="mb-4">
-                     <QuestWidget Compact="true" />
-                 </div>
-             }
+             <AuthorizeView Roles="User">
+                 <Authorized>
+                     <div class="mb-4">
+                         <QuestWidget Compact="true" />
+                     </div>
+                 </Authorized>
+             </AuthorizeView>
              
              <MudCard Class="glass-panel pa-3 text-center mb-4">
                  <MudText Typo="Typo.caption" Class="d-block mb-1 mud-text-secondary">Weekly Jackpot</MudText>
