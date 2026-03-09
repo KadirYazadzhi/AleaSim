@@ -15,9 +15,19 @@ public class VaultServiceTests {
 
     public VaultServiceTests() {
         _mockRealTime = new Mock<IRealTimeService>();
+        _mockRealTime.Setup(x => x.NotifyBalanceUpdate(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<decimal>()))
+                     .Returns(Task.CompletedTask);
+
         _mockRepo = new Mock<IGameRepository>();
+        _mockRepo.Setup(x => x.SaveTransaction(It.IsAny<Transaction>()));
+        
+        var mockTx = new Mock<ITransaction>();
+        _mockRepo.Setup(r => r.BeginTransaction()).Returns(mockTx.Object);
+
         _mockLock = new Mock<ILockService>();
         _mockCache = new Mock<IRedisCacheService>(); // Init
+        _mockCache.Setup(x => x.RemoveAsync(It.IsAny<string>()))
+                  .Returns(Task.CompletedTask);
 
         // Setup lock to return a disposable
         _mockLock.Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))

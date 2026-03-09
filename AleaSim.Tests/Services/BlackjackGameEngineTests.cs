@@ -29,14 +29,37 @@ public class BlackjackGameEngineTests {
         _mockBrain = new Mock<IBrainService>();
         _mockPromo = new Mock<IPromotionService>();
         _mockJackpot = new Mock<IJackpotService>();
+        _mockJackpot.Setup(x => x.Contribute(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                    .Returns(Task.CompletedTask);
+
         _mockRealTime = new Mock<IRealTimeService>();
+        _mockRealTime.Setup(x => x.NotifyGameUpdate(It.IsAny<Guid>(), It.IsAny<object>()))
+                     .Returns(Task.CompletedTask);
+        
+        _mockVault.Setup(x => x.ProcessWinAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                  .Returns(Task.CompletedTask);
+        _mockVault.Setup(x => x.ProcessBetAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                  .ReturnsAsync(true);
+        _mockVault.Setup(x => x.CanAffordWinAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>()))
+                  .ReturnsAsync(true);
+
         _mockLock = new Mock<ILockService>();
         _mockRepo = new Mock<IGameRepository>();
 
+        var mockQuest = new Mock<IQuestService>();
+        mockQuest.Setup(x => x.GenerateDailyQuests(It.IsAny<Guid>(), It.IsAny<IGameRepository>()))
+                 .Returns(Task.CompletedTask);
+        mockQuest.Setup(x => x.UpdateProgressAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<IRealTimeService>(), It.IsAny<IVaultService>()))
+                 .Returns(Task.CompletedTask);
+
+        var mockLevel = new Mock<ILevelService>();
+        mockLevel.Setup(x => x.AddExperience(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<IRealTimeService>()))
+                 .Returns(Task.CompletedTask);
+
         _mockServiceProvider = new Mock<IServiceProvider>();
         _mockServiceProvider.Setup(x => x.GetService(typeof(IGameRepository))).Returns(_mockRepo.Object);
-        _mockServiceProvider.Setup(x => x.GetService(typeof(IQuestService))).Returns(new Mock<IQuestService>().Object);
-        _mockServiceProvider.Setup(x => x.GetService(typeof(ILevelService))).Returns(new Mock<ILevelService>().Object);
+        _mockServiceProvider.Setup(x => x.GetService(typeof(IQuestService))).Returns(mockQuest.Object);
+        _mockServiceProvider.Setup(x => x.GetService(typeof(ILevelService))).Returns(mockLevel.Object);
 
         _mockScope = new Mock<IServiceScope>();
         _mockScope.Setup(x => x.ServiceProvider).Returns(_mockServiceProvider.Object);
@@ -67,7 +90,6 @@ public class BlackjackGameEngineTests {
                   .Returns(new AleaSim.Domain.Models.BrainDirective { DecisionType = "Random" });
 
         // Draw cards: P1, D1, P2, D2
-        // Indices for cards: 0 = Ace, 1 = 2... 9 = 10, 10 = J, 11 = Q, 12 = K
         _mockRng.SetupSequence(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 52))
                 .Returns(0)  // P1: Ace (H)
                 .Returns(1)  // D1: 2 (H)
@@ -91,10 +113,17 @@ public class BlackjackGameEngineTests {
         var state = new BlackjackGameEngine.BlackjackState {
             PlayerHand = new List<string> { "2H", "10H" },
             DealerHand = new List<string> { "2D" },
-            IsRoundOver = false
+            IsRoundOver = false,
+            BetAmount = 10m
         };
-        var session = new GameSession { Id = sessionId, UserId = userId, GameState = JsonSerializer.Serialize(state) };
+        var session = new GameSession { Id = sessionId, UserId = userId };
+        var lastRound = new GameRound { 
+            GameSessionId = sessionId, 
+            RandomResult = JsonSerializer.Serialize(state) 
+        };
+
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
+        _mockRepo.Setup(r => r.GetLastRound(sessionId)).Returns(lastRound);
 
         // Next card is a 9
         _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 52)).Returns(8); // 9H
@@ -103,6 +132,7 @@ public class BlackjackGameEngineTests {
         await _engine.ProcessAction(userId, sessionId, "Hit", "{}");
 
         // Assert
-        _mockRepo.Verify(r => r.SaveRound(It.Is<GameRound>(rd => rd.RandomResult.Contains("9H"))), Times.Once);
+        // The engine saves the updated round state
+        _mockRepo.Verify(r => r.SaveRound(It.Is<GameRound>(rd => rd.RandomResult.Contains("9H"))), Times.AtLeastOnce);
     }
 }

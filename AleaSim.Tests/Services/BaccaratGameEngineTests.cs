@@ -29,14 +29,39 @@ public class BaccaratGameEngineTests {
         _mockBrain = new Mock<IBrainService>();
         _mockPromo = new Mock<IPromotionService>();
         _mockJackpot = new Mock<IJackpotService>();
+        _mockJackpot.Setup(x => x.Contribute(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                    .Returns(Task.CompletedTask);
+
         _mockRealTime = new Mock<IRealTimeService>();
+        _mockRealTime.Setup(x => x.NotifyGameUpdate(It.IsAny<Guid>(), It.IsAny<object>()))
+                     .Returns(Task.CompletedTask);
+        _mockRealTime.Setup(x => x.NotifyBigWin(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<decimal>()))
+                     .Returns(Task.CompletedTask);
+
+        _mockVault.Setup(x => x.ProcessWinAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                  .Returns(Task.CompletedTask);
+        _mockVault.Setup(x => x.ProcessBetAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                  .ReturnsAsync(true);
+        _mockVault.Setup(x => x.CanAffordWinAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>()))
+                  .ReturnsAsync(true);
+
         _mockLock = new Mock<ILockService>();
         _mockRepo = new Mock<IGameRepository>();
 
+        var mockQuest = new Mock<IQuestService>();
+        mockQuest.Setup(x => x.GenerateDailyQuests(It.IsAny<Guid>(), It.IsAny<IGameRepository>()))
+                 .Returns(Task.CompletedTask);
+        mockQuest.Setup(x => x.UpdateProgressAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<IRealTimeService>(), It.IsAny<IVaultService>()))
+                 .Returns(Task.CompletedTask);
+
+        var mockLevel = new Mock<ILevelService>();
+        mockLevel.Setup(x => x.AddExperience(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<IRealTimeService>()))
+                 .Returns(Task.CompletedTask);
+
         _mockServiceProvider = new Mock<IServiceProvider>();
         _mockServiceProvider.Setup(x => x.GetService(typeof(IGameRepository))).Returns(_mockRepo.Object);
-        _mockServiceProvider.Setup(x => x.GetService(typeof(IQuestService))).Returns(new Mock<IQuestService>().Object);
-        _mockServiceProvider.Setup(x => x.GetService(typeof(ILevelService))).Returns(new Mock<ILevelService>().Object);
+        _mockServiceProvider.Setup(x => x.GetService(typeof(IQuestService))).Returns(mockQuest.Object);
+        _mockServiceProvider.Setup(x => x.GetService(typeof(ILevelService))).Returns(mockLevel.Object);
 
         _mockScope = new Mock<IServiceScope>();
         _mockScope.Setup(x => x.ServiceProvider).Returns(_mockServiceProvider.Object);
@@ -76,7 +101,7 @@ public class BaccaratGameEngineTests {
                 .Returns(3)  // P2: 4H (4) -> P Total: 7
                 .Returns(1); // B2: 2H (2) -> B Total: 3. No natural.
         
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), 405, 0, 52)).Returns(0); // B3: AH (1) -> B Total: 4.
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), 105, 0, 52)).Returns(0); // B3: AH (1) -> B Total: 4.
 
         // Act
         var round = await _engine.ResolveRound(sessionId);

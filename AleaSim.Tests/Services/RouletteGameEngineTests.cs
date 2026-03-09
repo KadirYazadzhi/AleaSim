@@ -2,6 +2,7 @@ using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Services;
 using AleaSim.Domain.Enums;
+using AleaSim.Domain.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
@@ -29,14 +30,39 @@ public class RouletteGameEngineTests {
         _mockBrain = new Mock<IBrainService>();
         _mockPromo = new Mock<IPromotionService>();
         _mockJackpot = new Mock<IJackpotService>();
+        _mockJackpot.Setup(x => x.Contribute(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                    .Returns(Task.CompletedTask);
+
         _mockRealTime = new Mock<IRealTimeService>();
+        _mockRealTime.Setup(x => x.NotifyGameUpdate(It.IsAny<Guid>(), It.IsAny<object>()))
+                     .Returns(Task.CompletedTask);
+        _mockRealTime.Setup(x => x.NotifyBigWin(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<decimal>()))
+                     .Returns(Task.CompletedTask);
+
+        _mockVault.Setup(x => x.ProcessWinAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                  .Returns(Task.CompletedTask);
+        _mockVault.Setup(x => x.ProcessBetAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                  .ReturnsAsync(true);
+        _mockVault.Setup(x => x.CanAffordWinAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>()))
+                  .ReturnsAsync(true);
+
         _mockLock = new Mock<ILockService>();
         _mockRepo = new Mock<IGameRepository>();
 
+        var mockQuest = new Mock<IQuestService>();
+        mockQuest.Setup(x => x.GenerateDailyQuests(It.IsAny<Guid>(), It.IsAny<IGameRepository>()))
+                 .Returns(Task.CompletedTask);
+        mockQuest.Setup(x => x.UpdateProgressAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<IRealTimeService>(), It.IsAny<IVaultService>()))
+                 .Returns(Task.CompletedTask);
+
+        var mockLevel = new Mock<ILevelService>();
+        mockLevel.Setup(x => x.AddExperience(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<IRealTimeService>()))
+                 .Returns(Task.CompletedTask);
+
         _mockServiceProvider = new Mock<IServiceProvider>();
         _mockServiceProvider.Setup(x => x.GetService(typeof(IGameRepository))).Returns(_mockRepo.Object);
-        _mockServiceProvider.Setup(x => x.GetService(typeof(IQuestService))).Returns(new Mock<IQuestService>().Object);
-        _mockServiceProvider.Setup(x => x.GetService(typeof(ILevelService))).Returns(new Mock<ILevelService>().Object);
+        _mockServiceProvider.Setup(x => x.GetService(typeof(IQuestService))).Returns(mockQuest.Object);
+        _mockServiceProvider.Setup(x => x.GetService(typeof(ILevelService))).Returns(mockLevel.Object);
 
         _mockScope = new Mock<IServiceScope>();
         _mockScope.Setup(x => x.ServiceProvider).Returns(_mockServiceProvider.Object);
@@ -68,7 +94,7 @@ public class RouletteGameEngineTests {
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
         _mockRepo.Setup(r => r.GetLastBet(sessionId)).Returns(bet);
         _mockBrain.Setup(b => b.GetNextDirective(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
-                  .Returns(new AleaSim.Domain.Models.BrainDirective { DecisionType = "Random" });
+                  .Returns(new BrainDirective { DecisionType = "Random" });
 
         // Force number 1 (Red)
         _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 37)).Returns(1);
@@ -77,7 +103,7 @@ public class RouletteGameEngineTests {
         var round = await _engine.ResolveRound(sessionId);
 
         // Assert
-        Assert.Equal(20m, round.TotalWinAmount); // 10 * 2 = 20
+        Assert.Equal(20m, round.TotalWinAmount); 
         _mockVault.Verify(v => v.ProcessWinAsync(userId, 20m, _mockRepo.Object), Times.Once);
     }
 
@@ -96,23 +122,22 @@ public class RouletteGameEngineTests {
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
         _mockRepo.Setup(r => r.GetLastBet(sessionId)).Returns(bet);
         _mockBrain.Setup(b => b.GetNextDirective(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
-                  .Returns(new AleaSim.Domain.Models.BrainDirective { DecisionType = "Random" });
+                  .Returns(new BrainDirective { DecisionType = "Random" });
 
-        // Force number 17
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 37)).Returns(17);
+        // Force sequence for RngService.GetNextInt(seed, nonce, min, max)
+        // 1. Result Number (nonce)
+        // 2. Lucky Count (nonce + 1)
+        // 3. Lucky Number 1 (nonce + 2)
+        // 4. Lucky Multiplier 1 (nonce + 10)
         
-        // Force a multiplier for extreme mode
-        // Logic in RouletteGameEngine uses RNG to pick lucky numbers
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 1, 6)).Returns(3); // 3 lucky numbers
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 37)).Returns(17); // 17 is lucky
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 1, 11)).Returns(5); // 50x multiplier (5 * 10)
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 37)).Returns(17);
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 1, 6)).Returns(1);
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 1, 11)).Returns(5); // 50x multiplier
 
         // Act
         var round = await _engine.ResolveRound(sessionId);
 
         // Assert
-        // Standard Straight win is 30x in Extreme. Multiplier is 50x.
-        // Win = 10 * 50 = 500.
         Assert.Equal(500m, round.TotalWinAmount);
     }
 }

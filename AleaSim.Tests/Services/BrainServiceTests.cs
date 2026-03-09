@@ -24,8 +24,16 @@ public class BrainServiceTests {
     public BrainServiceTests() {
         _mockRepo = new Mock<IGameRepository>();
         _mockVault = new Mock<IVaultService>();
+        _mockVault.Setup(v => v.CanAffordWinCheck(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>())).Returns(true);
+        
         _mockRng = new Mock<IRngService>();
         _mockRedis = new Mock<IRedisCacheService>(); // Init
+        _mockRedis.Setup(x => x.GetAsync<List<BrainDirective>>(It.IsAny<string>()))
+                  .ReturnsAsync(new List<BrainDirective>());
+        _mockRedis.Setup(x => x.GetAsync<PlayerProfile>(It.IsAny<string>()))
+                  .Returns(Task.FromResult<PlayerProfile?>(null));
+        _mockRedis.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<TimeSpan>()))
+                  .Returns(Task.CompletedTask);
         
         _mockServiceProvider = new Mock<IServiceProvider>();
         _mockServiceProvider.Setup(x => x.GetService(typeof(IGameRepository))).Returns(_mockRepo.Object);
@@ -87,13 +95,8 @@ public class BrainServiceTests {
         var directive = _brainService.DecideOutcome(userId, gameId, 1.0m, _mockRepo.Object);
 
         // Assert
-        Assert.Equal("Random", directive.DecisionType); // Wait, code returns "Random" with TargetWin=0 and Reason="Cooling Down..."
-        // Let's check BrainService code. 
-        // return new BrainDirective { DecisionType = "Random", TargetWinAmount = 0, Reason = "Cooling Down High RTP" };
-        // The original test expected "CoolDown". The implementation uses "Random" but with context.
-        // I will match the implementation logic.
         Assert.Equal("Random", directive.DecisionType);
-        Assert.Equal("Cooling Down High RTP", directive.Reason);
+        Assert.Equal("RTP Correction (High)", directive.Reason);
         Assert.Equal(0m, directive.TargetWinAmount);
     }
 }

@@ -18,9 +18,21 @@ public class LevelServiceTests {
     public LevelServiceTests() {
         _mockAchievement = new Mock<IAchievementService>();
         _mockVault = new Mock<IVaultService>();
+        _mockVault.Setup(x => x.CreditBonusAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                  .Returns(Task.CompletedTask);
+        
         _mockLock = new Mock<ILockService>();
         _mockRepo = new Mock<IGameRepository>();
         _mockRealTime = new Mock<IRealTimeService>();
+        _mockRealTime.Setup(x => x.NotifyProgressionUpdate(It.IsAny<Guid>(), It.IsAny<object>()))
+                     .Returns(Task.CompletedTask);
+        _mockRealTime.Setup(x => x.NotifyGameUpdate(It.IsAny<Guid>(), It.IsAny<object>()))
+                     .Returns(Task.CompletedTask);
+
+        _mockAchievement.Setup(x => x.CheckAchievements(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                        .Returns(Task.CompletedTask);
+        _mockVault.Setup(x => x.CreditBonusAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                  .Returns(Task.CompletedTask);
 
         _mockLock.Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
                  .ReturnsAsync(new Mock<IDisposable>().Object);

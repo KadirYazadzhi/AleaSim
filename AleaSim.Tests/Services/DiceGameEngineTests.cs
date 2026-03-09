@@ -2,6 +2,8 @@ using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Services;
 using AleaSim.Domain.Enums;
+using AleaSim.Domain.Models;
+using AleaSim.Shared.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Caching.Memory;
 using Moq;
@@ -31,15 +33,40 @@ public class DiceGameEngineTests {
         _mockBrain = new Mock<IBrainService>();
         _mockPromo = new Mock<IPromotionService>();
         _mockJackpot = new Mock<IJackpotService>();
+        _mockJackpot.Setup(x => x.Contribute(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                    .Returns(Task.CompletedTask);
+
         _mockRealTime = new Mock<IRealTimeService>();
+        _mockRealTime.Setup(x => x.NotifyGameUpdate(It.IsAny<Guid>(), It.IsAny<object>()))
+                     .Returns(Task.CompletedTask);
+        _mockRealTime.Setup(x => x.NotifyBigWin(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<decimal>()))
+                     .Returns(Task.CompletedTask);
+
+        _mockVault.Setup(x => x.ProcessWinAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                  .Returns(Task.CompletedTask);
+        _mockVault.Setup(x => x.ProcessBetAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                  .ReturnsAsync(true);
+        _mockVault.Setup(x => x.CanAffordWinAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>()))
+                  .ReturnsAsync(true);
+
         _mockLock = new Mock<ILockService>();
         _mockRepo = new Mock<IGameRepository>();
         _cache = new MemoryCache(new MemoryCacheOptions());
 
+        var mockQuest = new Mock<IQuestService>();
+        mockQuest.Setup(x => x.GenerateDailyQuests(It.IsAny<Guid>(), It.IsAny<IGameRepository>()))
+                 .Returns(Task.CompletedTask);
+        mockQuest.Setup(x => x.UpdateProgressAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<IRealTimeService>(), It.IsAny<IVaultService>()))
+                 .Returns(Task.CompletedTask);
+
+        var mockLevel = new Mock<ILevelService>();
+        mockLevel.Setup(x => x.AddExperience(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<IRealTimeService>()))
+                 .Returns(Task.CompletedTask);
+
         _mockServiceProvider = new Mock<IServiceProvider>();
         _mockServiceProvider.Setup(x => x.GetService(typeof(IGameRepository))).Returns(_mockRepo.Object);
-        _mockServiceProvider.Setup(x => x.GetService(typeof(IQuestService))).Returns(new Mock<IQuestService>().Object);
-        _mockServiceProvider.Setup(x => x.GetService(typeof(ILevelService))).Returns(new Mock<ILevelService>().Object);
+        _mockServiceProvider.Setup(x => x.GetService(typeof(IQuestService))).Returns(mockQuest.Object);
+        _mockServiceProvider.Setup(x => x.GetService(typeof(ILevelService))).Returns(mockLevel.Object);
 
         _mockScope = new Mock<IServiceScope>();
         _mockScope.Setup(x => x.ServiceProvider).Returns(_mockServiceProvider.Object);
@@ -62,14 +89,13 @@ public class DiceGameEngineTests {
         var userId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
         var session = new GameSession { Id = sessionId, UserId = userId, Seed = 12345 };
-        // Target > 50.50. Win if result is > 50.50
-        var betData = new { Mode = "Slider", Type = "Slider", Target = 50.50m, IsOver = true };
+        var betData = new DiceBetDto { Mode = "Slider", TargetValue = 50.50m, Condition = "Over" };
         var bet = new Bet { GameSessionId = sessionId, Amount = 10m, BetData = JsonSerializer.Serialize(betData) };
         
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
         _mockRepo.Setup(r => r.GetLastBet(sessionId)).Returns(bet);
-        _mockBrain.Setup(b => b.GetNextDirective(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
-                  .Returns(new AleaSim.Domain.Models.BrainDirective { DecisionType = "Random" });
+        _mockBrain.Setup(b => b.DecideOutcome(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>()))
+                  .Returns(new BrainDirective { DecisionType = "Random" });
 
         // Force roll 75.00
         _mockRng.Setup(r => r.GetNextDouble(It.IsAny<int>(), It.IsAny<int>())).Returns(0.75);
@@ -89,22 +115,22 @@ public class DiceGameEngineTests {
         var userId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
         var session = new GameSession { Id = sessionId, UserId = userId, Seed = 12345 };
-        // Selected numbers: 6. 1/6 chance. Payout = 99/16.66 = ~5.94x.
-        var betData = new { Mode = "Multi", Numbers = new[] { 6 } };
+        var betData = new DiceBetDto { Mode = "Multi", MultiDiceSelected = new List<int> { 6 } };
         var bet = new Bet { GameSessionId = sessionId, Amount = 10m, BetData = JsonSerializer.Serialize(betData) };
         
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
         _mockRepo.Setup(r => r.GetLastBet(sessionId)).Returns(bet);
-        _mockBrain.Setup(b => b.GetNextDirective(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
-                  .Returns(new AleaSim.Domain.Models.BrainDirective { DecisionType = "Random" });
+        _mockBrain.Setup(b => b.DecideOutcome(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>()))
+                  .Returns(new BrainDirective { DecisionType = "Random" });
 
-        // Force roll 6
+        // Force roll 6 for all 10 dice
         _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 1, 7)).Returns(6);
 
         // Act
         var round = await _engine.ResolveRound(sessionId);
 
         // Assert
-        Assert.Equal(59.4m, Math.Round(round.TotalWinAmount, 2));
+        // hits = 10. Multiplier for 10 hits is 500.
+        Assert.Equal(5000m, round.TotalWinAmount);
     }
 }
