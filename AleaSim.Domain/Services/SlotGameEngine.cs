@@ -138,6 +138,8 @@ public class SlotGameEngine : BaseGameEngine {
             }
 
             state.WasNudged = false;
+            int roundNum = repo.GetRoundCount(sessionId) + 1;
+
             var lastBet = repo.GetLastBet(sessionId);
             decimal currentBet = lastBet?.Amount ?? 1.0m;
             
@@ -258,12 +260,11 @@ public class SlotGameEngine : BaseGameEngine {
             await _cache.SetAsync(cacheKey, state, TimeSpan.FromMinutes(10));
             session.GameState = JsonSerializer.Serialize(state);
 
-            int roundCount = repo.GetRoundCount(sessionId);
-            RotateServerSeed(session, roundCount);
+            RotateServerSeed(session, roundNum - 1);
 
             var round = new GameRound {
                 Id = Guid.NewGuid(), GameSessionId = sessionId, TotalBetAmount = currentBet, TotalWinAmount = totalWin,
-                RoundNumber = roundCount + 1,
+                RoundNumber = roundNum,
                 RandomResult = JsonSerializer.Serialize(new { 
                     Grid = state.Grid, 
                     state.IsRespinActive, 
@@ -280,7 +281,7 @@ public class SlotGameEngine : BaseGameEngine {
                 ServerSeed = session.ServerSeed,
                 ServerSeedHash = session.ServerSeedHash,
                 ClientSeed = session.ClientSeed,
-                Nonce = roundCount + 1
+                Nonce = roundNum
             };
             repo.SaveRound(round);
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Grid = state.Grid, Win = totalWin, IsRespin = state.IsRespinActive, Nudge = state.WasNudged, Bonus = state.IsBonusActive, Bells = state.BonusBells });
