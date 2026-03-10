@@ -1,5 +1,6 @@
-using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
+using AleaSim.Domain.Entities;
+using AleaSim.Domain.Services;
 using AleaSim.Shared.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,14 +12,22 @@ namespace AleaSim.Api.Controllers;
 [Route("api/[controller]")]
 public class SupportController : ControllerBase {
     private readonly IGameRepository _repo;
+    private readonly IRedisCacheService _redisCache;
 
-    public SupportController(IGameRepository repo) {
+    public SupportController(IGameRepository repo, IRedisCacheService redisCache) {
         _repo = repo;
+        _redisCache = redisCache;
     }
 
     [HttpPost("send")]
     [AllowAnonymous]
-    public IActionResult SendMessage([FromBody] SupportMessageRequest request) {
+    public async Task<IActionResult> SendMessage([FromBody] SupportMessageRequest request) {
+        // Rate Limiting (10 per hour per IP)
+        string ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+        if (await _redisCache.IncrementRateLimitAsync($"ratelimit:support:{ip}", TimeSpan.FromHours(1), 10)) {
+            return StatusCode(429, "Too many support messages. Please try again later.");
+        }
+
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
         Guid? userId = null;
         if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var id)) {

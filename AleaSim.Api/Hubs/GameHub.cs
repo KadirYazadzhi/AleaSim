@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Entities;
+using AleaSim.Domain.Services;
 using Microsoft.AspNetCore.Authorization;
 
 namespace AleaSim.Api.Hubs;
@@ -10,11 +11,13 @@ public class GameHub : Hub {
     private readonly IAuditService _auditService;
     private readonly IGameRepository _repo;
     private readonly IRealTimeService _realTimeService;
+    private readonly IRedisCacheService _redisCache;
 
-    public GameHub(IAuditService auditService, IGameRepository repo, IRealTimeService realTimeService) {
+    public GameHub(IAuditService auditService, IGameRepository repo, IRealTimeService realTimeService, IRedisCacheService redisCache) {
         _auditService = auditService;
         _repo = repo;
         _realTimeService = realTimeService;
+        _redisCache = redisCache;
     }
 
     public async Task SendMessage(string message) {
@@ -22,6 +25,14 @@ public class GameHub : Hub {
         var userIdString = Context.UserIdentifier ?? Guid.Empty.ToString();
         var userId = Guid.Parse(userIdString);
         
+        // Rate Limiting: 2 seconds between messages
+        if (await _redisCache.IncrementRateLimitAsync($"ratelimit:chat:{userId}", TimeSpan.FromSeconds(2), 1)) {
+             return; // Silent drop for spam
+        }
+
+        string cleanMessage = Sanitize(message);
+        if (string.IsNullOrWhiteSpace(cleanMessage)) return;
+
         var user = _repo.GetUser(userId);
         string avatarUrl = string.IsNullOrEmpty(user?.AvatarUrl) 
             ? $"https://api.dicebear.com/7.x/bottts/svg?seed={username}" 
@@ -32,7 +43,7 @@ public class GameHub : Hub {
             SenderId = userId,
             SenderUsername = username,
             SenderAvatarUrl = avatarUrl,
-            Message = message,
+            Message = cleanMessage,
             Timestamp = DateTime.UtcNow,
             Type = ChatMessageType.Global
         };
@@ -40,10 +51,10 @@ public class GameHub : Hub {
         _repo.SaveChatMessage(chatMsg);
 
         // Broadcast to everyone with avatar
-        await Clients.All.SendAsync("ReceiveChatMessage", username, message, chatMsg.Timestamp, avatarUrl);
+        await Clients.All.SendAsync("ReceiveChatMessage", username, cleanMessage, chatMsg.Timestamp, avatarUrl);
 
         // Audit log for moderation
-        _auditService.LogEvent("CHAT_MESSAGE", message, userIdString, message);
+        _auditService.LogEvent("CHAT_MESSAGE", cleanMessage, userIdString, cleanMessage);
     }
 
     public async Task SendPrivateMessage(Guid receiverId, string message) {
@@ -52,6 +63,14 @@ public class GameHub : Hub {
         var sender = _repo.GetUser(senderId);
         
         if (sender == null) return;
+
+        // Rate Limiting
+        if (await _redisCache.IncrementRateLimitAsync($"ratelimit:pchat:{senderId}", TimeSpan.FromSeconds(1), 1)) {
+             return;
+        }
+
+        string cleanMessage = Sanitize(message);
+        if (string.IsNullOrWhiteSpace(cleanMessage)) return;
 
         // Check if sender is admin OR receiver is admin
         var receiver = _repo.GetUser(receiverId);
@@ -75,7 +94,7 @@ public class GameHub : Hub {
             SenderUsername = sender.Username,
             SenderAvatarUrl = avatarUrl,
             ReceiverId = receiverId,
-            Message = message,
+            Message = cleanMessage,
             Timestamp = DateTime.UtcNow,
             Type = ChatMessageType.Private
         };
@@ -83,7 +102,15 @@ public class GameHub : Hub {
         _repo.SaveChatMessage(chatMsg);
 
         // Send via RealTimeService
-        await _realTimeService.NotifyPrivateMessage(senderId, receiverId, sender.Username, message, avatarUrl);
+        await _realTimeService.NotifyPrivateMessage(senderId, receiverId, sender.Username, cleanMessage, avatarUrl);
+    }
+
+    private string Sanitize(string input) {
+        if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+        // Simple HTML Sanitization: Strip tags
+        string clean = System.Text.RegularExpressions.Regex.Replace(input, "<.*?>", string.Empty);
+        // HTML encode to catch remaining characters
+        return System.Net.WebUtility.HtmlEncode(clean).Trim();
     }
 
     // Clients can join groups for specific games or sessions

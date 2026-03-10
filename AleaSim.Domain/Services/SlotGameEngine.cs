@@ -232,11 +232,7 @@ public class SlotGameEngine : BaseGameEngine {
                     }
                 }
 
-                var game = repo.GetGame(session.GameId);
-                if (game != null) {
-                    game.PoolBalance -= totalWin;
-                    repo.UpdateGame(game);
-                }
+                repo.UpdateGamePoolBalance(session.GameId, -totalWin);
                 await VaultService.ProcessWinAsync(session.UserId, totalWin, repo);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", totalWin, repo, RealTimeService, VaultService);
                 
@@ -552,11 +548,7 @@ public class SlotGameEngine : BaseGameEngine {
                      decimal newWin = state.PendingGambleWin * 2;
                      state.PendingGambleWin = newWin;
                      
-                     var game = repo.GetGame(session.GameId);
-                     if (game != null) {
-                         game.PoolBalance -= newWin;
-                         repo.UpdateGame(game);
-                     }
+                     repo.UpdateGamePoolBalance(session.GameId, -newWin);
 
                      await VaultService.ProcessWinAsync(userId, newWin, repo);
                      await questService.UpdateProgressAsync(userId, "WinAmount", newWin, repo, RealTimeService, VaultService);

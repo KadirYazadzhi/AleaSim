@@ -53,11 +53,7 @@ public abstract class BaseGameEngine : IGame {
                 };
                 repo.SaveBet(bet);
 
-                var game = repo.GetGame(session.GameId);
-                if (game != null) {
-                    game.PoolBalance += amount;
-                    repo.UpdateGame(game);
-                }
+                repo.UpdateGamePoolBalance(session.GameId, amount);
                 
                 var user = repo.GetUser(session.UserId);
                 bool isExcluded = user?.Username.StartsWith("Sim_") == true || user?.Role == Role.Admin;

@@ -9,7 +9,7 @@ public interface IRedisCacheService {
     Task SetAsync<T>(string key, T value, TimeSpan? expiry = null);
     Task<T?> GetAsync<T>(string key);
     Task RemoveAsync(string key);
-    Task<bool> IncrementRateLimitAsync(string key, TimeSpan window);
+    Task<bool> IncrementRateLimitAsync(string key, TimeSpan window, int maxRequests = 5);
 }
 
 public class RedisCacheService : IRedisCacheService {
@@ -43,12 +43,12 @@ public class RedisCacheService : IRedisCacheService {
         await _db.KeyDeleteAsync(key);
     }
 
-    public async Task<bool> IncrementRateLimitAsync(string key, TimeSpan window) {
+    public async Task<bool> IncrementRateLimitAsync(string key, TimeSpan window, int maxRequests = 5) {
         // Atomic increment and expiry setting
         long count = await _db.StringIncrementAsync(key);
         if (count == 1) {
             await _db.KeyExpireAsync(key, window);
         }
-        return count > 5; // Allow max 5 requests per window (e.g. 1 second)
+        return count > maxRequests;
     }
 }

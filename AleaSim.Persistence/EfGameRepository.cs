@@ -117,6 +117,13 @@ public class EfGameRepository : IGameRepository {
         _context.SaveChanges();
     }
 
+    public void UpdateGamePoolBalance(Guid gameId, decimal amountToAdd) {
+        // Atomic update to prevent race conditions on global pool balance
+        _context.Database.ExecuteSqlRaw(
+            "UPDATE Games SET PoolBalance = PoolBalance + {0} WHERE Id = {1}",
+            amountToAdd, gameId);
+    }
+
     public User? GetUser(Guid userId) {
         return _context.Users.FirstOrDefault(u => u.Id == userId);
     }
@@ -673,6 +680,14 @@ public class EfGameRepository : IGameRepository {
 
     public void InactivateSession(string refreshToken) {
         var sessions = _context.UserSessions.Where(s => s.RefreshToken == refreshToken).ToList();
+        foreach (var s in sessions) {
+            s.IsActive = false;
+        }
+        _context.SaveChanges();
+    }
+
+    public void InactivateAllUserSessions(Guid userId) {
+        var sessions = _context.UserSessions.Where(s => s.UserId == userId && s.IsActive).ToList();
         foreach (var s in sessions) {
             s.IsActive = false;
         }

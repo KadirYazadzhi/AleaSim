@@ -221,16 +221,19 @@ using (var scope = app.Services.CreateScope()) {
         }
     } catch { /* Redis might not be ready */ }
 
-    // Seed Admin if missing or ensure credentials
-    var admin = db.Users.FirstOrDefault(u => u.Username == "admin");
+    // Seed Admin from Configuration
+    var adminIdStr = app.Configuration["Admin:Id"] ?? "00000000-0000-0000-0000-000000000001";
+    var adminId = Guid.Parse(adminIdStr);
+    var adminInitialPassword = app.Configuration["Admin:InitialPassword"] ?? "admin";
+    
+    var admin = db.Users.FirstOrDefault(u => u.Role == AleaSim.Domain.Enums.Role.Admin);
     var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
-    var adminId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
     if (admin == null) {
         admin = new AleaSim.Domain.Entities.User {
             Id = adminId,
             Username = "admin",
-            PasswordHash = hasher.HashPassword("admin"), 
+            PasswordHash = hasher.HashPassword(adminInitialPassword), 
             Email = "admin@aleasim.com",
             Role = AleaSim.Domain.Enums.Role.Admin,
             Balance = 1000000m,
@@ -238,13 +241,7 @@ using (var scope = app.Services.CreateScope()) {
             IsActive = true
         };
         db.Users.Add(admin);
-    } else {
-        // Emergency Reset: Ensure admin password is 'admin' and account is active
-        admin.PasswordHash = hasher.HashPassword("admin");
-        admin.IsActive = true;
-        admin.Role = AleaSim.Domain.Enums.Role.Admin;
-        db.Users.Update(admin);
-    }
+    } 
 
     // Ensure associated records exist
     if (!db.UserProgressions.Any(p => p.UserId == adminId)) {

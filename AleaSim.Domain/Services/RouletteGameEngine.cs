@@ -19,7 +19,6 @@ public class RouletteGameEngine : BaseGameEngine {
         try {
             if (!string.IsNullOrEmpty(betData)) {
                 string jsonToParse = betData;
-                // Handle cases where the string might be double-quoted/escaped as a string literal
                 if (betData.Trim().StartsWith("\"")) {
                     jsonToParse = JsonSerializer.Deserialize<string>(betData) ?? "[]";
                 }
@@ -28,20 +27,57 @@ public class RouletteGameEngine : BaseGameEngine {
                 using var doc = JsonDocument.Parse(jsonToParse);
                 if (doc.RootElement.ValueKind == JsonValueKind.Array) {
                     bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(jsonToParse, options) ?? new();
-                } else if (doc.RootElement.TryGetProperty("Bets", out var betsEl) || doc.RootElement.TryGetProperty("bets", out betsEl)) {
+                } else if (doc.RootElement.TryGetProperty("Bets", out var betsEl)) {
                     bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(betsEl.GetRawText(), options) ?? new();
                 }
             }
-        } catch { throw new Exception("Invalid bet data format."); }
+        } catch { throw new Exception("Security Alert: Invalid bet format detected."); }
 
-        decimal totalBet = bets.Sum(x => x.Amount);
+        // STRICT VALIDATION
+        if (bets == null || !bets.Any()) throw new Exception("No valid bets declared.");
         
-        // 2. Validate Limits
-        if (totalBet > 100000) throw new Exception("Total table bet exceeds $100,000.00 limit.");
-        if (bets.Any(x => x.Type.Equals("number", StringComparison.OrdinalIgnoreCase) && x.Amount > 100)) throw new Exception("Single number bet exceeds $100.00 limit.");
-        if (Math.Round(totalBet, 2) != Math.Round(amount, 2)) throw new Exception("Bet Integrity Error: Declared bets do not match total amount.");
+        decimal totalBet = 0;
+        foreach(var b in bets) {
+            if (b.Amount <= 0) throw new Exception("Invalid individual bet amount.");
+            
+            // Validate Types & Values
+            string type = b.Type.ToLower();
+            string val = b.Value.ToLower();
 
-        // 3. Deduct money only if valid
+            switch (type) {
+                case "number":
+                    if (!int.TryParse(val, out int n) || n < 0 || n > 36)
+                        throw new Exception($"Invalid roulette number: {val}");
+                    if (b.Amount > 500) throw new Exception("Single number bet exceeds $500.00 limit.");
+                    break;
+                case "color":
+                    if (val != "red" && val != "black")
+                        throw new Exception($"Invalid color: {val}");
+                    break;
+                case "evenodd":
+                    if (val != "even" && val != "odd")
+                        throw new Exception($"Invalid even/odd value: {val}");
+                    break;
+                case "column":
+                    if (!int.TryParse(val, out int col) || col < 1 || col > 3)
+                        throw new Exception($"Invalid column: {val}");
+                    break;
+                case "dozen":
+                    if (!int.TryParse(val, out int doz) || doz < 1 || doz > 3)
+                        throw new Exception($"Invalid dozen: {val}");
+                    break;
+                default:
+                    throw new Exception($"Invalid bet type: {b.Type}");
+            }
+            
+            totalBet += b.Amount;
+        }
+        
+        if (totalBet > 100000) throw new Exception("Total table bet exceeds $100,000.00 limit.");
+        
+        // Final integrity check
+        if (Math.Abs(totalBet - amount) > 0.001m) throw new Exception("Bet Integrity Violation: Declared sum does not match transaction amount.");
+
         await base.PlaceBet(userId, sessionId, amount, betData);
     }
 
@@ -139,11 +175,7 @@ public class RouletteGameEngine : BaseGameEngine {
             }
 
             if (actualWin > 0) {
-                var game = repo.GetGame(GameId);
-                if (game != null) {
-                    game.PoolBalance -= actualWin;
-                    repo.UpdateGame(game);
-                }
+                repo.UpdateGamePoolBalance(GameId, -actualWin);
                 await VaultService.ProcessWinAsync(session.UserId, actualWin, repo);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", actualWin, repo, RealTimeService, VaultService);
             }

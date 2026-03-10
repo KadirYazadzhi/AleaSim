@@ -21,18 +21,26 @@ public class AuthController : ControllerBase {
     private readonly IPasswordHasher _passwordHasher;
     private readonly ILevelService _levelService;
     private readonly IAchievementService _achievementService;
+    private readonly IRedisCacheService _redisCache;
 
-    public AuthController(IConfiguration configuration, IGameRepository repository, IPasswordHasher passwordHasher, ILevelService levelService, IAchievementService achievementService) {
+    public AuthController(IConfiguration configuration, IGameRepository repository, IPasswordHasher passwordHasher, ILevelService levelService, IAchievementService achievementService, IRedisCacheService redisCache) {
         _configuration = configuration;
         _repository = repository;
         _passwordHasher = passwordHasher;
         _levelService = levelService;
         _achievementService = achievementService;
+        _redisCache = redisCache;
     }
 
     [AllowAnonymous]
     [HttpPost("login")]
-    public IActionResult Login([FromBody] LoginRequest request) {
+    public async Task<IActionResult> Login([FromBody] LoginRequest request) {
+        // Rate Limiting (10 attempts per minute per IP)
+        string ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+        if (await _redisCache.IncrementRateLimitAsync($"ratelimit:login:{ip}", TimeSpan.FromMinutes(1), 10)) {
+            return StatusCode(429, "Too many login attempts. Please try again later.");
+        }
+
         var user = _repository.GetUserByUsername(request.Username);
         
         if (user != null && _passwordHasher.VerifyPassword(user.PasswordHash, request.Password)) {
@@ -67,7 +75,13 @@ public class AuthController : ControllerBase {
 
     [AllowAnonymous]
     [HttpPost("login/2fa")]
-    public IActionResult Login2FA([FromBody] TwoFactorLoginRequest request) {
+    public async Task<IActionResult> Login2FA([FromBody] TwoFactorLoginRequest request) {
+        // Rate Limiting (10 attempts per minute per IP)
+        string ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+        if (await _redisCache.IncrementRateLimitAsync($"ratelimit:login2fa:{ip}", TimeSpan.FromMinutes(1), 10)) {
+            return StatusCode(429, "Too many login attempts. Please try again later.");
+        }
+
         var user = _repository.GetUserByUsername(request.Username);
         if (user == null) return Unauthorized();
 
@@ -140,6 +154,27 @@ public class AuthController : ControllerBase {
         catch {
             return null;
         }
+    }
+
+    [Authorize]
+    [HttpPost("logout")]
+    public IActionResult Logout([FromBody] RefreshTokenRequest request) {
+        var userId = GetUserIdOrThrow();
+        
+        // Invalidate current session refresh token
+        if (!string.IsNullOrEmpty(request.RefreshToken)) {
+            _repository.InactivateSession(request.RefreshToken);
+        }
+
+        // Also clear user's current refresh token if it matches
+        var user = _repository.GetUser(userId);
+        if (user != null && user.RefreshToken == request.RefreshToken) {
+            user.RefreshToken = null;
+            user.RefreshTokenExpiry = null;
+            _repository.UpdateUser(user);
+        }
+
+        return Ok(new { Message = "Logged out successfully" });
     }
 
     [Authorize]
@@ -231,8 +266,14 @@ public class AuthController : ControllerBase {
     
     [Authorize]
     [HttpPost("avatar")]
-    public IActionResult UpdateAvatar([FromBody] string avatarUrl) {
+    public async Task<IActionResult> UpdateAvatar([FromBody] string avatarUrl) {
         var userId = GetUserIdOrThrow();
+
+        // Rate Limiting (10 per hour per user)
+        if (await _redisCache.IncrementRateLimitAsync($"ratelimit:avatar:{userId}", TimeSpan.FromHours(1), 10)) {
+            return StatusCode(429, "Too many avatar updates. Please try again later.");
+        }
+
         var user = _repository.GetUser(userId);
         if (user == null) return NotFound();
 
@@ -243,7 +284,13 @@ public class AuthController : ControllerBase {
 
     [AllowAnonymous]
     [HttpPost("register")]
-    public IActionResult Register([FromBody] RegisterRequest request) {
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request) {
+         // Rate Limiting (5 per hour per IP)
+         string ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+         if (await _redisCache.IncrementRateLimitAsync($"ratelimit:register:{ip}", TimeSpan.FromHours(1), 5)) {
+             return StatusCode(429, "Too many registration attempts. Please try again in an hour.");
+         }
+
          if (_repository.GetUserByUsername(request.Username) != null) {
              return BadRequest("Username already exists.");
          }
@@ -292,7 +339,12 @@ public class AuthController : ControllerBase {
         }
 
         user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
+        user.RefreshToken = null; // Force re-login on all devices
+        user.RefreshTokenExpiry = null;
         _repository.UpdateUser(user);
+        
+        _repository.InactivateAllUserSessions(userId); // Invalidate session records
+        
         return Ok(new { Message = "Password updated successfully!" });
     }
 
@@ -364,7 +416,7 @@ public class AuthController : ControllerBase {
                 new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim(ClaimTypes.Role, role.ToString()), new Claim("role", role.ToString()), new Claim("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", role.ToString())
             }),
-            Expires = DateTime.UtcNow.AddHours(12), // Extended Access Token lifetime to 12 hours (was 4h)
+            Expires = DateTime.UtcNow.AddMinutes(30), // Shortened access token lifetime (30m)
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
         var token = tokenHandler.CreateToken(tokenDescriptor);

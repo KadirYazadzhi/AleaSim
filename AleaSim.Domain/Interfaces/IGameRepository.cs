@@ -20,6 +20,7 @@ public interface IGameRepository {
     Game? GetGameByType(string gameType);
     void CreateGame(Game game);
     void UpdateGame(Game game);
+    void UpdateGamePoolBalance(Guid gameId, decimal amountToAdd);
 
     User? GetUser(Guid userId);
     User? GetUserBySessionId(Guid sessionId);
@@ -123,6 +124,7 @@ public interface IGameRepository {
     void CreateUserSession(UserSession session);
     List<UserSession> GetUserSessions(Guid userId);
     void InactivateSession(string refreshToken);
+    void InactivateAllUserSessions(Guid userId);
 
     // Transactions
     void SaveTransaction(Transaction transaction);

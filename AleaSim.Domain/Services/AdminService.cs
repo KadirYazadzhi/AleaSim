@@ -17,6 +17,7 @@ public class AdminService : IAdminService {
     private readonly IRealTimeService _realTime;
     private readonly IMemoryCache _cache;
     private readonly IConfiguration _config;
+    private readonly ILockService _lockService;
 
     public AdminService(
         IGameRepository repository,
@@ -25,7 +26,8 @@ public class AdminService : IAdminService {
         IBrainService brainService,
         IRealTimeService realTime,
         IMemoryCache cache,
-        IConfiguration config) {
+        IConfiguration config,
+        ILockService lockService) {
         _repository = repository;
         _vaultService = vaultService;
         _auditService = auditService;
@@ -33,6 +35,7 @@ public class AdminService : IAdminService {
         _realTime = realTime;
         _cache = cache;
         _config = config;
+        _lockService = lockService;
     }
 
     public Task<AdminDashboardStats> GetLiveStats() {
@@ -87,15 +90,15 @@ public class AdminService : IAdminService {
         await _vaultService.CreditBonusAsync(userId, amount, amount * 10, _repository); // 10x wagering default
     }
 
-    public Task ForceCooldown(Guid adminId, Guid userId, int durationMinutes, string reason) {
+    public async Task ForceCooldown(Guid adminId, Guid userId, int durationMinutes, string reason) {
         _auditService.LogEvent("ADMIN_FORCE_COOLDOWN", $"Admin {adminId} forced cooldown on {userId} for {durationMinutes}m. Reason: {reason}", adminId.ToString(), JsonSerializer.Serialize(new { TargetUser = userId, Duration = durationMinutes }));
 
+        using var lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(5));
         var user = _repository.GetUser(userId);
         if (user != null) {
             user.LockoutUntil = DateTime.UtcNow.AddMinutes(durationMinutes);
             _repository.UpdateUser(user);
         }
-        return Task.CompletedTask;
     }
 
     public Task SetGlobalRtp(Guid adminId, decimal targetRtp) {
@@ -146,24 +149,24 @@ public class AdminService : IAdminService {
         });
     }
 
-    public Task UpdateUserBalance(Guid adminId, Guid userId, decimal newBalance) {
+    public async Task UpdateUserBalance(Guid adminId, Guid userId, decimal newBalance) {
+        using var lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(5));
         var user = _repository.GetUser(userId);
         if (user != null) {
             user.Balance = newBalance;
             _repository.UpdateUser(user);
             _auditService.LogEvent("ADMIN_EDIT_BALANCE", $"Admin {adminId} set balance to {newBalance} for {userId}", adminId.ToString(), newBalance.ToString());
         }
-        return Task.CompletedTask;
     }
 
-    public Task ToggleUserStatus(Guid adminId, Guid userId, bool isActive) {
+    public async Task ToggleUserStatus(Guid adminId, Guid userId, bool isActive) {
+        using var lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(5));
         var user = _repository.GetUser(userId);
         if (user != null) {
             user.IsActive = isActive;
             _repository.UpdateUser(user);
             _auditService.LogEvent("ADMIN_USER_STATUS", $"Admin {adminId} set status to {isActive} for {userId}", adminId.ToString(), isActive.ToString());
         }
-        return Task.CompletedTask;
     }
 
     public async Task ExecuteAction(Guid adminId, string actionType) {

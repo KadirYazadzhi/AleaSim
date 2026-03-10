@@ -8,8 +8,8 @@ namespace AleaSim.Domain.Extensions;
 public static class ServiceCollectionExtensions {
     public static IServiceCollection AddAleaSimCore(this IServiceCollection services) {
         
-        services.AddMemoryCache(); // Added
-        services.AddSingleton<ILockService, InMemoryLockService>(); // Added Lock Service
+        services.AddMemoryCache(); 
+        services.AddSingleton<ILockService, RedisLockService>(); // Switched to Redis distributed locking
 
         // Core Engines & Logic
         services.AddSingleton<IRngService, DeterministicRngService>();

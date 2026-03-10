@@ -28,6 +28,34 @@ public class DiceGameEngine : BaseGameEngine {
         _cache = cache;
     }
 
+    public override async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string betData) {
+        try {
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var dto = JsonSerializer.Deserialize<DiceBetDto>(betData, options);
+
+            if (dto == null) throw new Exception("Invalid bet data.");
+
+            if (dto.Mode.Equals("Slider", StringComparison.OrdinalIgnoreCase)) {
+                if (dto.TargetValue < 2 || dto.TargetValue > 98) 
+                    throw new Exception("Slider target value must be between 2 and 98.");
+                if (!dto.Condition.Equals("Over", StringComparison.OrdinalIgnoreCase) && 
+                    !dto.Condition.Equals("Under", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("Slider condition must be Over or Under.");
+            } else if (dto.Mode.Equals("Multi", StringComparison.OrdinalIgnoreCase)) {
+                if (dto.MultiDiceSelected == null || !dto.MultiDiceSelected.Any())
+                    throw new Exception("Multi mode requires at least one selected number.");
+                if (dto.MultiDiceSelected.Any(n => n < 1 || n > 6))
+                    throw new Exception("Multi mode numbers must be between 1 and 6.");
+            } else {
+                throw new Exception("Invalid dice mode.");
+            }
+        } catch (Exception ex) when (ex is not Exception) { 
+             throw new Exception("Security Alert: Bet data tampering detected.");
+        }
+
+        await base.PlaceBet(userId, sessionId, amount, betData);
+    }
+
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
         using var lockHandle = await LockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
 
@@ -62,11 +90,7 @@ public class DiceGameEngine : BaseGameEngine {
             }
 
             if (winAmount > 0) {
-                var game = repo.GetGame(_gameId);
-                if (game != null) {
-                    game.PoolBalance -= winAmount;
-                    repo.UpdateGame(game);
-                }
+                repo.UpdateGamePoolBalance(_gameId, -winAmount);
                 await VaultService.ProcessWinAsync(session.UserId, winAmount, repo);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", winAmount, repo, RealTimeService, VaultService);
             }

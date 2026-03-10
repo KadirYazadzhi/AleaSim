@@ -12,6 +12,20 @@ public class BaccaratGameEngine : BaseGameEngine {
         : base(rng, vault, brain, promo, jackpot, realTime, scope, lockService) {
     }
 
+    public override async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string betData) {
+        try {
+            var data = JsonSerializer.Deserialize<Dictionary<string, string>>(betData ?? "{}");
+            string betType = data?.GetValueOrDefault("Type") ?? "Player";
+            
+            var validTypes = new[] { "Player", "Banker", "Tie" };
+            if (!validTypes.Contains(betType)) throw new Exception($"Invalid bet type: {betType}");
+
+            if (amount < 1 || amount > 5000) throw new Exception("Bet amount must be between 1 and 5000.");
+        } catch { throw new Exception("Security Alert: Invalid bet data format."); }
+
+        await base.PlaceBet(userId, sessionId, amount, betData);
+    }
+
     public class BaccaratState {
         public List<string> PlayerHand { get; set; } = new();
         public List<string> BankerHand { get; set; } = new();
@@ -120,11 +134,7 @@ public class BaccaratGameEngine : BaseGameEngine {
             };
 
             if (win > 0) {
-                var game = repo.GetGame(session.GameId);
-                if (game != null) {
-                    game.PoolBalance -= win;
-                    repo.UpdateGame(game);
-                }
+                repo.UpdateGamePoolBalance(session.GameId, -win);
                 await VaultService.ProcessWinAsync(session.UserId, win, repo);
                 repo.UpdateRtpStats(session.GameId, session.UserId, 0, win);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", win, repo, RealTimeService, VaultService);

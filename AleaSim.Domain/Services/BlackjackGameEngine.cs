@@ -144,11 +144,7 @@ public class BlackjackGameEngine : BaseGameEngine {
                         // Dealer has BJ, insurance pays 2:1
                         decimal win = insuranceBet * 3; // Return bet + win (2x)
                         
-                        var game = repo.GetGame(session.GameId);
-                        if (game != null) {
-                            game.PoolBalance -= win;
-                            repo.UpdateGame(game);
-                        }
+                        repo.UpdateGamePoolBalance(session.GameId, -win);
 
                         await VaultService.ProcessWinAsync(session.UserId, win, repo);
                         repo.UpdateRtpStats(session.GameId, session.UserId, insuranceBet, win);
@@ -217,11 +213,7 @@ public class BlackjackGameEngine : BaseGameEngine {
         decimal win = CalculateWin(state);
 
         if (win > 0) {
-            var game = repo.GetGame(session.GameId);
-            if (game != null) {
-                game.PoolBalance -= win;
-                repo.UpdateGame(game);
-            }
+            repo.UpdateGamePoolBalance(session.GameId, -win);
             await VaultService.ProcessWinAsync(session.UserId, win, repo);
             repo.UpdateRtpStats(session.GameId, session.UserId, 0, win);
             await questService.UpdateProgressAsync(session.UserId, "WinAmount", win, repo, RealTimeService, VaultService);
