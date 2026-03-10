@@ -77,17 +77,25 @@ public class JackpotService : IJackpotService {
             double threshold = baseChance * (double)pressure; 
 
             if (roll < threshold || (j.MustDropAt.HasValue && currentValue >= j.MustDropAt.Value)) {
-                decimal win = currentValue;
+                using var lockHandle = await _lockService.AcquireLockAsync($"jackpot_claim_{j.Tier}", TimeSpan.FromSeconds(2));
+                
+                // Re-verify after lock
+                redisVal = await db.StringGetAsync(redisKey);
+                currentValue = redisVal.HasValue ? (decimal)(double)redisVal : j.CurrentValue;
                 decimal resetValue = GetResetValue(j.Tier);
-                
-                // Reset in Redis
-                await db.StringSetAsync(redisKey, (double)resetValue);
-                
-                j.CurrentValue = resetValue;
-                j.LastUpdated = DateTime.UtcNow;
-                repo.UpdateJackpot(j);
-                _ = _realTimeService.NotifyJackpotUpdate(j);
-                return (true, win);
+
+                if (currentValue > resetValue) {
+                    decimal win = currentValue;
+                    
+                    // Reset in Redis
+                    await db.StringSetAsync(redisKey, (double)resetValue);
+                    
+                    j.CurrentValue = resetValue;
+                    j.LastUpdated = DateTime.UtcNow;
+                    repo.UpdateJackpot(j);
+                    _ = _realTimeService.NotifyJackpotUpdate(j);
+                    return (true, win);
+                }
             }
         }
         
@@ -106,6 +114,8 @@ public class JackpotService : IJackpotService {
     public Jackpot GetLocalJackpot(Guid gameId, IGameRepository repo) => repo.GetOrCreateLocalJackpot(gameId);
 
     public async Task<decimal> ClaimJackpot(JackpotTier tier, IGameRepository repo) {
+        using var lockHandle = await _lockService.AcquireLockAsync($"jackpot_claim_{tier}", TimeSpan.FromSeconds(5));
+        
         var db = _redis.GetDatabase();
         var jackpot = repo.GetJackpots().FirstOrDefault(j => j.Tier == tier && j.IsGlobal);
         if (jackpot == null) return 0m;
@@ -115,15 +125,20 @@ public class JackpotService : IJackpotService {
         decimal win = redisVal.HasValue ? (decimal)(double)redisVal : jackpot.CurrentValue;
         
         decimal resetValue = GetResetValue(tier);
-        await db.StringSetAsync(redisKey, (double)resetValue);
+        // Only reset if it hasn't been reset yet (concurrency check)
+        if (win > resetValue) {
+            await db.StringSetAsync(redisKey, (double)resetValue);
 
-        jackpot.CurrentValue = resetValue;
-        jackpot.LastUpdated = DateTime.UtcNow;
-            
-        repo.UpdateJackpot(jackpot);
-        _ = _realTimeService.NotifyJackpotUpdate(jackpot);
-            
-        return win;
+            jackpot.CurrentValue = resetValue;
+            jackpot.LastUpdated = DateTime.UtcNow;
+                
+            repo.UpdateJackpot(jackpot);
+            _ = _realTimeService.NotifyJackpotUpdate(jackpot);
+                
+            return win;
+        }
+        
+        return 0m;
     }
 
     public decimal GetTierValue(JackpotTier tier, IGameRepository repo) {

@@ -274,6 +274,16 @@ public class AuthController : ControllerBase {
             return StatusCode(429, "Too many avatar updates. Please try again later.");
         }
 
+        if (string.IsNullOrEmpty(avatarUrl) || avatarUrl.Length > 500) {
+            return BadRequest("Invalid avatar URL length.");
+        }
+
+        // SSRF and XSS Protection: Basic Image URL Regex
+        var imageRegex = new System.Text.RegularExpressions.Regex(@"^https?://.*\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (!imageRegex.IsMatch(avatarUrl) && !avatarUrl.Contains("api.dicebear.com")) {
+            return BadRequest("Only secure image URLs (png, jpg, gif, webp, svg) or DiceBear avatars are allowed.");
+        }
+
         var user = _repository.GetUser(userId);
         if (user == null) return NotFound();
 
@@ -382,6 +392,7 @@ public class AuthController : ControllerBase {
         var userId = GetUserIdOrThrow();
         var sessions = _repository.GetUserSessions(userId);
         return Ok(sessions.Select(s => new {
+            s.Id,
             s.IpAddress,
             Device = s.UserAgent,
             LastActive = s.LastActiveAt,
@@ -389,6 +400,21 @@ public class AuthController : ControllerBase {
         }));
     }
 
+    [Authorize]
+    [HttpPost("sessions/terminate")]
+    public IActionResult TerminateSession([FromBody] TerminateSessionRequest request) {
+        var userId = GetUserIdOrThrow();
+        var sessions = _repository.GetUserSessions(userId);
+        var target = sessions.FirstOrDefault(s => s.Id == request.SessionId);
+        
+        if (target != null) {
+            _repository.DeleteUserSession(request.SessionId);
+            return Ok(new { Message = "Session terminated." });
+        }
+        return NotFound();
+    }
+
+    public record TerminateSessionRequest(Guid SessionId);
     public record SessionRequest(string RefreshToken);
 
     [Authorize]

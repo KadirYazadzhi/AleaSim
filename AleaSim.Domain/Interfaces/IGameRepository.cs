@@ -26,6 +26,7 @@ public interface IGameRepository {
     User? GetUserBySessionId(Guid sessionId);
     User? GetUserByUsername(string username);
     IEnumerable<User> SearchUsers(string query);
+    IEnumerable<User> GetAllUsers();
     int GetTotalUserCount();
     void CreateUser(User user);
     void UpdateUser(User user); // Added generic update
@@ -69,8 +70,10 @@ public interface IGameRepository {
     // RTP
     RTPStatistics GetOrCreateGameStats(Guid gameId);
     RTPStatistics GetOrCreateUserStats(Guid userId);
-    void UpdateRtpStats(Guid gameId, Guid userId, decimal bet, decimal win);
-    IEnumerable<RTPStatistics> GetAllRtpStats(); // Optional for aggregation
+        void UpdateRtpStats(Guid gameId, Guid userId, decimal bet, decimal win);
+        IEnumerable<RTPStatistics> GetAllRtpStats();
+        void CleanupOldRtpStats(int daysToKeep);
+     // Optional for aggregation
 
     // Jackpots
     IEnumerable<Jackpot> GetJackpots(); // Added
@@ -125,6 +128,7 @@ public interface IGameRepository {
     List<UserSession> GetUserSessions(Guid userId);
     void InactivateSession(string refreshToken);
     void InactivateAllUserSessions(Guid userId);
+    void DeleteUserSession(Guid sessionId);
 
     // Transactions
     void SaveTransaction(Transaction transaction);

@@ -103,21 +103,23 @@ public class BlackjackGameEngine : BaseGameEngine {
             var targetHand = (state.ActiveHandIndex == 1 && state.SplitHand != null) ? state.SplitHand : state.PlayerHand;
 
             if (action.ToLower() == "double" && targetHand.Count == 2) {
+                // RULE: No Double Down after Split
+                if (state.SplitHand != null) throw new Exception("Double Down not allowed after Split.");
+                
+                // RULE: Only Double on 10 or 11
+                int handVal = CalculateHandValue(targetHand);
+                if (handVal != 10 && handVal != 11) throw new Exception("You can only Double on 10 or 11.");
+
                 if (await VaultService.ProcessBetAsync(session.UserId, state.BetAmount, repo)) {
                     repo.UpdateRtpStats(session.GameId, session.UserId, state.BetAmount, 0); 
                     
-                    if (state.ActiveHandIndex == 1) state.IsSplitDoubleDown = true;
-                    else state.IsDoubleDown = true;
+                    state.IsDoubleDown = true;
 
                     int seq = state.Sequence;
                     targetHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
                     state.Sequence = seq;
                     
-                    if (state.SplitHand != null && state.ActiveHandIndex == 0) {
-                        state.ActiveHandIndex = 1; // Move to next hand
-                    } else {
-                        await FinishRoundAsync(session, state, repo, questService);
-                    }
+                    await FinishRoundAsync(session, state, repo, questService);
                 } else throw new Exception("Insufficient funds for Double Down");
             } 
             else if (action.ToLower() == "split" && state.PlayerHand.Count == 2 && state.SplitHand == null) {
@@ -140,6 +142,9 @@ public class BlackjackGameEngine : BaseGameEngine {
                 }
             } 
             else if (action.ToLower() == "insurance" && state.DealerHand.Count == 2 && state.DealerHand[0].StartsWith("A") && !state.IsRoundOver) {
+                // RULE: No Insurance after Split
+                if (state.SplitHand != null) throw new Exception("Insurance not allowed after Split.");
+
                 decimal insuranceBet = state.BetAmount / 2;
                 if (await VaultService.ProcessBetAsync(session.UserId, insuranceBet, repo)) {
                     // Check dealer hole card

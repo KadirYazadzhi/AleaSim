@@ -80,9 +80,13 @@
                                         <MudText Typo="Typo.caption" Class="opacity-60 d-block">@session.Device</MudText>
                                         <MudText Typo="Typo.caption" Color="Color.Info">@session.Time</MudText>
                                     </div>
-                                    @if (session.IsCurrent) {
-                                        <MudChip T="string" Color="Color.Success" Size="Size.Small">THIS DEVICE</MudChip>
-                                    }
+                                    <div class="d-flex align-center gap-2">
+                                        @if (session.IsCurrent) {
+                                            <MudChip T="string" Color="Color.Success" Size="Size.Small">THIS DEVICE</MudChip>
+                                        } else {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Error" Size="Size.Small" OnClick="() => TerminateSession(session.Id)" title="Terminate Session" />
+                                        }
+                                    </div>
                                 </div>
                             }
                         } else {
@@ -382,6 +386,7 @@
                 var sessions = await sessionsResponse.Content.ReadFromJsonAsync<List<SessionResponse>>();
                 if (sessions != null) {
                     activeSessions = sessions.Select(s => new SessionItem(
+                        s.Id,
                         s.IpAddress, 
                         FormatUserAgent(s.Device), 
                         s.LastActive.ToLocalTime().ToString("g"), 
@@ -391,6 +396,15 @@
         } catch {}
     }
 
+    private async Task TerminateSession(Guid sessionId) {
+        var response = await Http.PostAsJsonAsync("api/Auth/sessions/terminate", new { SessionId = sessionId });
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Session terminated.", Severity.Info);
+            activeSessions.RemoveAll(s => s.Id == sessionId);
+            StateHasChanged();
+        }
+    }
+
     private string FormatUserAgent(string ua) {
         if (ua.Contains("Windows")) return "Windows Desktop";
         if (ua.Contains("Android")) return "Android Mobile";
@@ -398,7 +412,7 @@
         return "Web Browser";
     }
 
-    private record SessionResponse(string IpAddress, string Device, DateTime LastActive, bool IsCurrent);
+    private record SessionResponse(Guid Id, string IpAddress, string Device, DateTime LastActive, bool IsCurrent);
 
     private bool GetBool(Dictionary<string, object> dict, string key) => 
         dict.TryGetValue(key, out var val) && val != null && (val.ToString() == "True" || val.ToString() == "true");
@@ -475,10 +489,11 @@
     
     private record TfaResponse(bool Enabled, string Secret);
     private class SessionItem {
+        public Guid Id { get; set; }
         public string Ip { get; set; }
         public string Device { get; set; }
         public string Time { get; set; }
         public bool IsCurrent { get; set; }
-        public SessionItem(string ip, string dev, string time, bool curr) { Ip = ip; Device = dev; Time = time; IsCurrent = curr; }
+        public SessionItem(Guid id, string ip, string dev, string time, bool curr) { Id = id; Ip = ip; Device = dev; Time = time; IsCurrent = curr; }
     }
 }

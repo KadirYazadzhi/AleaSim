@@ -188,6 +188,9 @@
                     if (gameState.Denomination > 0) denomination = gameState.Denomination;
                     
                     if (gameState.IsGambleActive) lastWin = gameState.PendingGambleWin;
+
+                    // RESTORE VISUALS
+                    await JSRuntime.InvokeVoidAsync("slotEngine.restoreState", json);
                 }
                 Snackbar.Add("Session Resumed!", Severity.Info);
             } else {

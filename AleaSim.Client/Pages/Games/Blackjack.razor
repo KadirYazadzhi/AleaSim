@@ -120,7 +120,22 @@
 
     protected override async Task OnInitializedAsync() {
         await Audio.Init();
+        await LoadData();
+    }
+
+    private async Task LoadData() {
         await RefreshBalance();
+        try {
+            var session = await GameService.ResumeSession("blackjack");
+            if (session != null) {
+                sessionId = session.SessionId;
+                if (session.GameState != null) {
+                    var state = JsonSerializer.Deserialize<BlackjackStateUI>(session.GameState.ToString() ?? "{}", new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (state != null) await UpdateUI(state);
+                }
+                Snackbar.Add("Session Resumed!", Severity.Info);
+            }
+        } catch { }
     }
 
     private async Task RefreshBalance() {

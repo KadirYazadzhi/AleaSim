@@ -229,7 +229,7 @@ public class VaultService : IVaultService {
         
         if (profile == null || user == null || profile.PendingCashback < 0.01m) return 0;
 
-        decimal amount = Math.Round(profile.PendingCashback, 2);
+        decimal amount = profile.PendingCashback; // No rounding here, keep full precision in DB
         profile.PendingCashback = 0;
         user.Balance += amount;
         

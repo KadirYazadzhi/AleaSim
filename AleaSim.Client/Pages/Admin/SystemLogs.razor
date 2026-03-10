@@ -1,0 +1,131 @@
+@page "/admin/logs"
+@using AleaSim.Shared.Models
+@using AleaSim.Client.Services
+@using Microsoft.AspNetCore.Authorization
+@layout AleaSim.Client.Layout.AdminLayout
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject LayoutService LayoutService
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-16 animate-fade-in">
+    <div class="d-flex justify-space-between align-center mb-8">
+        <div>
+            <MudText Typo="Typo.h3" Class="text-gradient fw-black mb-2">SYSTEM AUDIT LOGS</MudText>
+            <MudText Typo="Typo.subtitle1" Class="mud-text-secondary">Comprehensive history of administrative and critical events.</MudText>
+        </div>
+        <div class="d-flex align-center gap-4">
+             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="VerifyIntegrity" StartIcon="@Icons.Material.Filled.Security">Verify Ledger Integrity</MudButton>
+             <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="LoadLogs" Color="Color.Inherit" />
+        </div>
+    </div>
+
+    <MudPaper Class="pa-6 rounded-xl dashboard-card" Elevation="0">
+        <MudTable T="AuditLogDto" Items="@logs" Hover="true" Striped="true" Loading="@isLoading" Filter="new Func<AuditLogDto,bool>(FilterFunc)" @bind-SelectedItem="selectedLog" RowsPerPage="20">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Audit Records</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="searchString" Placeholder="Search by user or description..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Timestamp</MudTh>
+                <MudTh>Event Type</MudTh>
+                <MudTh>User</MudTh>
+                <MudTh>Description</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Timestamp">@context.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff")</MudTd>
+                <MudTd DataLabel="Type">
+                    <MudChip T="string" Size="Size.Small" Color="@GetEventColor(context.EventType)" Variant="Variant.Filled">@context.EventType</MudChip>
+                </MudTd>
+                <MudTd DataLabel="User">
+                    <MudText Typo="Typo.body2">@context.UserId</MudText>
+                </MudTd>
+                <MudTd DataLabel="Description">@context.Description</MudTd>
+                <MudTd DataLabel="Actions">
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="() => ShowDetails(context)">Details</MudButton>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+</MudContainer>
+
+<style>
+    .fw-black { font-weight: 900; }
+    .text-gradient {
+        background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .dashboard-card {
+        background: @(LayoutService.IsDarkMode ? "rgba(30, 41,  slate-800, 0.7)" : "rgba(255, 255, 255, 0.7)");
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--mud-palette-divider);
+    }
+</style>
+
+@code {
+    private List<AuditLogDto> logs = new();
+    private bool isLoading = true;
+    private string searchString = "";
+    private AuditLogDto? selectedLog;
+    [Inject] IDialogService DialogService { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLogs();
+    }
+
+    private async Task LoadLogs()
+    {
+        isLoading = true;
+        try {
+            logs = await Http.GetFromJsonAsync<List<AuditLogDto>>("api/Admin/audit-logs") ?? new();
+        } catch {
+            Snackbar.Add("Failed to load audit logs.", Severity.Error);
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    private bool FilterFunc(AuditLogDto element)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (element.Description.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.EventType.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.UserId?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private Color GetEventColor(string type) => type switch {
+        "ADMIN_LOGIN" => Color.Primary,
+        "SECURITY_ALERT" => Color.Error,
+        "ADMIN_EDIT_BALANCE" => Color.Warning,
+        "ADMIN_FORCE_COOLDOWN" => Color.Warning,
+        "SYSTEM_START" => Color.Info,
+        "DATABASE_BACKUP" => Color.Success,
+        _ => Color.Default
+    };
+
+    private async Task ShowDetails(AuditLogDto log)
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var parameters = new DialogParameters { ["Content"] = log.MetadataJson };
+        await DialogService.ShowAsync<AleaSim.Client.Components.RoundDetailsDialog>("Event Metadata", parameters, options);
+    }
+
+    private async Task VerifyIntegrity() {
+        var response = await Http.GetFromJsonAsync<IntegrityResponse>("api/Admin/audit/verify");
+        if (response != null && response.IsValid) {
+            Snackbar.Add(response.Message, Severity.Success);
+        } else {
+            Snackbar.Add(response?.Message ?? "Integrity check failed!", Severity.Error);
+        }
+    }
+
+    private record IntegrityResponse(bool IsValid, string Message);
+}

@@ -23,7 +23,9 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // Add Services
 builder.Services.AddControllers();
-builder.Services.AddSignalR(); 
+
+var redisConn = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+builder.Services.AddSignalR().AddStackExchangeRedis(redisConn); 
 builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
 builder.Services.AddCors(options => {
     options.AddPolicy("AllowBlazor",

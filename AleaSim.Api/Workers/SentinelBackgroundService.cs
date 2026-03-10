@@ -29,13 +29,77 @@ public class SentinelBackgroundService : BackgroundService {
         while (!stoppingToken.IsCancellationRequested) {
             try {
                 await ScanForAnomalies();
+                await ReconcileBalances();
+                await PeriodicCleanup();
             }
             catch (Exception ex) {
                 _logger.LogError(ex, "Sentinel Scan Error");
             }
 
+            // Runs every 5 minutes for balance reconciliation, 30s for general scan
             await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
         }
+    }
+
+    private async Task PeriodicCleanup() {
+        using var scope = _scopeFactory.CreateScope();
+        var redis = scope.ServiceProvider.GetRequiredService<AleaSim.Domain.Services.IRedisCacheService>();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+
+        string lockKey = "sentinel:last_cleanup";
+        var lastRun = await redis.GetAsync<DateTime?>(lockKey);
+        
+        // Run once a day
+        if (lastRun != null && (DateTime.UtcNow - lastRun.Value).TotalHours < 24) return;
+        await redis.SetAsync(lockKey, DateTime.UtcNow, TimeSpan.FromHours(25));
+
+        _logger.LogInformation("Sentinel: Performing Periodic System Cleanup...");
+        repo.CleanupOldRtpStats(30); // Keep last 30 days of stats
+        _logger.LogInformation("Sentinel: System Cleanup complete.");
+    }
+
+    private async Task ReconcileBalances() {
+        using var scope = _scopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        var audit = scope.ServiceProvider.GetRequiredService<IAuditService>();
+        
+        // Use Redis to only run this once every 10 minutes system-wide
+        var redis = scope.ServiceProvider.GetRequiredService<AleaSim.Domain.Services.IRedisCacheService>();
+        string lockKey = "sentinel:last_reconciliation";
+        var lastRun = await redis.GetAsync<DateTime?>(lockKey);
+        
+        if (lastRun != null && (DateTime.UtcNow - lastRun.Value).TotalMinutes < 10) return;
+        await redis.SetAsync(lockKey, DateTime.UtcNow, TimeSpan.FromMinutes(15));
+
+        _logger.LogInformation("Sentinel: Starting Financial Reconciliation...");
+        
+        var users = repo.GetAllUsers();
+        foreach (var user in users) {
+            if (user.Username.StartsWith("Sim_")) continue; // Skip simulation users
+
+            var transactions = repo.GetUserTransactions(user.Id, 1000); // Check last 1000 tx
+            decimal calculatedBalance = transactions.Sum(t => t.Amount); 
+            
+            // Note: This logic assumes user starts at 0 and all credit/debit are in Transactions.
+            // For AleaSim, starting balance is 5000 or 1000000 for Admin.
+            decimal expectedStartingBalance = (user.Role == AleaSim.Domain.Enums.Role.Admin) ? 1000000m : 5000m;
+            decimal diff = Math.Abs(user.Balance - (expectedStartingBalance + calculatedBalance));
+
+            if (diff > 0.01m) {
+                AddAlert(new SentinelAlertDto {
+                    Id = Guid.NewGuid(),
+                    UserId = user.Id,
+                    Username = user.Username,
+                    AlertType = "BalanceMismatch",
+                    Severity = "Critical",
+                    Description = $"Balance discrepancy: DB={user.Balance:C}, TX_SUM={expectedStartingBalance + calculatedBalance:C}. Diff={diff:C}",
+                    Timestamp = DateTime.UtcNow
+                });
+                
+                audit.LogEvent("SECURITY_ALERT", $"Financial Discrepancy for {user.Username}. Diff: {diff}", user.Id.ToString(), $"{{ \"Expected\": {expectedStartingBalance + calculatedBalance}, \"Actual\": {user.Balance} }}");
+            }
+        }
+        _logger.LogInformation("Sentinel: Financial Reconciliation complete.");
     }
 
     private Task ScanForAnomalies() {

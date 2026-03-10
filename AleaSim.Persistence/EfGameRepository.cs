@@ -145,6 +145,10 @@ public class EfGameRepository : IGameRepository {
             .ToList();
     }
 
+    public IEnumerable<User> GetAllUsers() {
+        return _context.Users.ToList();
+    }
+
     public int GetTotalUserCount() {
         return _context.Users.Count(u => u.Role != Role.Admin && !u.Username.StartsWith("Sim_"));
     }
@@ -445,6 +449,13 @@ public class EfGameRepository : IGameRepository {
         return _context.RTPStatistics.ToList();
     }
 
+    public void CleanupOldRtpStats(int daysToKeep) {
+        var cutoff = DateTime.UtcNow.AddDays(-daysToKeep);
+        // Only cleanup non-global and non-user aggregate stats if needed, 
+        // but here we just delete anything older than cutoff to keep it lean.
+        _context.Database.ExecuteSqlRaw("DELETE FROM RTPStatistics WHERE LastCalculated < {0}", cutoff);
+    }
+
     public IEnumerable<Jackpot> GetJackpots() {
         var jackpots = _context.Jackpots.ToList();
         if (!jackpots.Any(j => j.Tier == JackpotTier.Clubs)) {
@@ -692,6 +703,14 @@ public class EfGameRepository : IGameRepository {
             s.IsActive = false;
         }
         _context.SaveChanges();
+    }
+
+    public void DeleteUserSession(Guid sessionId) {
+        var session = _context.UserSessions.FirstOrDefault(s => s.Id == sessionId);
+        if (session != null) {
+            session.IsActive = false;
+            _context.SaveChanges();
+        }
     }
 
     public void SaveTransaction(Transaction transaction) {

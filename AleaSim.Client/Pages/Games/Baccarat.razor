@@ -165,7 +165,41 @@
 
     protected override async Task OnInitializedAsync() {
         await Audio.Init();
+        await LoadData();
+    }
+
+    private async Task LoadData() {
         await RefreshBalance();
+        try {
+            var session = await GameService.ResumeSession("baccarat");
+            if (session != null) {
+                sessionId = session.SessionId;
+                if (session.GameState != null) {
+                    var state = JsonSerializer.Deserialize<BaccaratStateUI>(session.GameState.ToString() ?? "{}", new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (state != null) {
+                        // Restore with slight animation for UX
+                        for (int i = 0; i < Math.Min(2, state.PlayerHand.Count); i++) {
+                            playerHand.Add(state.PlayerHand[i]);
+                            await Task.Delay(200); StateHasChanged();
+                            if (i < state.BankerHand.Count) {
+                                bankerHand.Add(state.BankerHand[i]);
+                                await Task.Delay(200); StateHasChanged();
+                            }
+                        }
+                        if (state.PlayerHand.Count > 2) {
+                            await Task.Delay(400); playerHand.Add(state.PlayerHand[2]); StateHasChanged();
+                        }
+                        if (state.BankerHand.Count > 2) {
+                            await Task.Delay(400); bankerHand.Add(state.BankerHand[2]); StateHasChanged();
+                        }
+
+                        playerScore = state.PlayerScore;
+                        bankerScore = state.BankerScore;
+                    }
+                }
+                Snackbar.Add("Session Resumed!", Severity.Info);
+            }
+        } catch { }
     }
 
     private async Task RefreshBalance() {
