@@ -14,7 +14,7 @@
         We use a deterministic HMAC-SHA256 algorithm. You can verify every outcome yourself.
     </MudText>
 
-    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Class="mb-8">
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Class="mb-8" @bind-ActivePanelIndex="_activeTabIndex">
         <MudTabPanel Text="Recent Activity">
             <div class="d-flex justify-space-between align-center mb-4">
                 <MudText Typo="Typo.h5">Audit Chain (Immutable Ledger)</MudText>
@@ -94,10 +94,29 @@
     private string? verificationResult;
     private List<AuditLogDto> auditChain = new();
     private bool isLoadingChain = true;
+    private int _activeTabIndex = 0;
+
+    [Parameter][SupplyParameterFromQuery] public string? Game { get; set; }
+    [Parameter][SupplyParameterFromQuery(Name = "nonce")] public int? NonceParam { get; set; }
+    [Parameter][SupplyParameterFromQuery(Name = "clientSeed")] public string? ClientSeedParam { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadAuditChain();
+
+        if (Game != null || NonceParam != null || ClientSeedParam != null) {
+            if (Game != null) selectedGame = Game;
+            if (NonceParam != null) nonce = NonceParam.Value;
+            if (ClientSeedParam != null) clientSeed = ClientSeedParam;
+            
+            _activeTabIndex = 1; // Switch to Verify tab
+            
+            if (!string.IsNullOrEmpty(serverSeed) && !string.IsNullOrEmpty(clientSeed)) {
+                VerifyOutcome();
+            } else if (!string.IsNullOrEmpty(clientSeed)) {
+                Snackbar.Add("Please enter the Server Seed to complete verification.", Severity.Info);
+            }
+        }
     }
 
     private string Truncate(string? value, int length)

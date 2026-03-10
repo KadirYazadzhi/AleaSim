@@ -1,6 +1,7 @@
 @using AleaSim.Shared.Models
 @using System.Text.Json
 @using AleaSim.Client.Models
+@inject NavigationManager Nav
 
 <MudDialog>
     <TitleContent>
@@ -75,6 +76,11 @@
                         <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-primary);">@Round.Nonce</MudText>
                     </MudItem>
                 </MudGrid>
+                
+                <div class="d-flex justify-end mt-4">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.VerifiedUser" OnClick="VerifyOnPage" Size="Size.Small">Verify on Page</MudButton>
+                </div>
+
                 <MudAlert Severity="Severity.Info" Class="mt-4" Dense="true" Variant="Variant.Outlined">
                     You can verify the fairness of this round by hashing the revealed Server Seed once the session is closed.
                 </MudAlert>
@@ -91,6 +97,21 @@
     [Parameter] public GameRoundDto Round { get; set; } = new();
 
     private void Close() => MudDialog.Close();
+
+    private void VerifyOnPage() {
+        string game = Round.GameName.ToLower() switch {
+            var s when s.Contains("slot") => "slot",
+            var r when r.Contains("roulette") => "roulette",
+            var d when r.Contains("dice") => "dice",
+            var b when r.Contains("baccarat") => "baccarat",
+            _ => "dice"
+        };
+        
+        // Note: ServerSeed is hidden in DTO until session is revealed, 
+        // but we pass the hash if seed is empty so user sees something.
+        Nav.NavigateTo($"/fairness?game={game}&nonce={Round.Nonce}&clientSeed={Uri.EscapeDataString(Round.ClientSeed)}");
+        MudDialog.Close();
+    }
 
     private int[][] ParseSlotGrid() {
         try {
