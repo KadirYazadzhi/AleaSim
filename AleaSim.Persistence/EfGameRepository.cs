@@ -369,6 +369,7 @@ public class EfGameRepository : IGameRepository {
                 ResultSummary = x.r.DecisionType,
                 FullResultJson = x.r.RandomResult,
                 PlayedAt = x.r.ExecutedAt,
+                ServerSeed = x.s.IsActive ? null : x.s.ServerSeed,
                 ServerSeedHash = x.s.ServerSeedHash,
                 ClientSeed = x.s.ClientSeed,
                 Nonce = x.r.RoundNumber
@@ -392,6 +393,7 @@ public class EfGameRepository : IGameRepository {
                 ResultSummary = x.r.DecisionType,
                 FullResultJson = x.r.RandomResult,
                 PlayedAt = x.r.ExecutedAt,
+                ServerSeed = x.s.IsActive ? null : x.s.ServerSeed,
                 ServerSeedHash = x.s.ServerSeedHash,
                 ClientSeed = x.s.ClientSeed,
                 Nonce = x.r.RoundNumber

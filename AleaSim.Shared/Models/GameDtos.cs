@@ -79,6 +79,7 @@ public class GameRoundDto {
     public string ResultSummary { get; set; } = string.Empty;
     public string FullResultJson { get; set; } = string.Empty; // Added for Replay
     public DateTime PlayedAt { get; set; }
+    public string? ServerSeed { get; set; }
     public string? ServerSeedHash { get; set; }
     public string? ClientSeed { get; set; }
     public int Nonce { get; set; }

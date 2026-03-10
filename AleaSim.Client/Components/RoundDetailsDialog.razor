@@ -99,17 +99,23 @@
     private void Close() => MudDialog.Close();
 
     private void VerifyOnPage() {
-        string game = Round.GameName.ToLower() switch {
-            var s when s.Contains("slot") => "slot",
-            var r when r.Contains("roulette") => "roulette",
-            var d when r.Contains("dice") => "dice",
-            var b when r.Contains("baccarat") => "baccarat",
-            _ => "dice"
+        var name = Round.GameName.ToLower();
+        string game = name switch {
+            _ when name.Contains("slot") => "slot",
+            _ when name.Contains("roulette") => "roulette",
+            _ when name.Contains("blackjack") => "blackjack",
+            _ when name.Contains("baccarat") => "baccarat",
+            _ when name.Contains("crazy") || name.Contains("multi") => "dice_multi",
+            _ => "dice" // Neon Dice / Default
         };
         
         // Note: ServerSeed is hidden in DTO until session is revealed, 
-        // but we pass the hash if seed is empty so user sees something.
-        Nav.NavigateTo($"/fairness?game={game}&nonce={Round.Nonce}&clientSeed={Uri.EscapeDataString(Round.ClientSeed)}");
+        // but we pass it if we have it.
+        var url = $"/fairness?game={game}&nonce={Round.Nonce}&clientSeed={Uri.EscapeDataString(Round.ClientSeed ?? "")}";
+        if (!string.IsNullOrEmpty(Round.ServerSeed)) {
+            url += $"&serverSeed={Uri.EscapeDataString(Round.ServerSeed)}";
+        }
+        Nav.NavigateTo(url);
         MudDialog.Close();
     }
 

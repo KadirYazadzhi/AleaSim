@@ -102,21 +102,23 @@
     [Parameter][SupplyParameterFromQuery] public string? Game { get; set; }
     [Parameter][SupplyParameterFromQuery(Name = "nonce")] public int? NonceParam { get; set; }
     [Parameter][SupplyParameterFromQuery(Name = "clientSeed")] public string? ClientSeedParam { get; set; }
+    [Parameter][SupplyParameterFromQuery(Name = "serverSeed")] public string? ServerSeedParam { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadAuditChain();
 
-        if (Game != null || NonceParam != null || ClientSeedParam != null) {
+        if (Game != null || NonceParam != null || ClientSeedParam != null || ServerSeedParam != null) {
             if (Game != null) selectedGame = Game;
             if (NonceParam != null) nonce = NonceParam.Value;
             if (ClientSeedParam != null) clientSeed = ClientSeedParam;
+            if (ServerSeedParam != null) serverSeed = ServerSeedParam;
             
             _activeTabIndex = 1; // Switch to Verify tab
             
             if (!string.IsNullOrEmpty(serverSeed) && !string.IsNullOrEmpty(clientSeed)) {
                 VerifyOutcome();
-            } else if (!string.IsNullOrEmpty(clientSeed)) {
+            } else if (!string.IsNullOrEmpty(clientSeed) && string.IsNullOrEmpty(serverSeed)) {
                 Snackbar.Add("Please enter the Server Seed to complete verification.", Severity.Info);
             }
         }
