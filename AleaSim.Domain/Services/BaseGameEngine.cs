@@ -28,7 +28,7 @@ public abstract class BaseGameEngine : IGame {
         LockService = lockService;
     }
 
-    public virtual async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string betData) {
+    public virtual async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string? betData) {
         await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var stop = repo.GetGlobalSetting("EmergencyStop");
             if (stop == "true") throw new InvalidOperationException("EMERGENCY STOP: Game rounds suspended by administrator.");
@@ -170,6 +170,20 @@ public abstract class BaseGameEngine : IGame {
         } catch {
             tx.Rollback();
             throw;
+        }
+    }
+
+    protected void RotateServerSeed(GameSession session, int roundCount) {
+        // Rotate server seed every 100 rounds to prevent long-term pattern analysis
+        if (roundCount > 0 && roundCount % 100 == 0) {
+            var newServerSeed = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(newServerSeed));
+            var newServerSeedHash = Convert.ToHexString(hashBytes);
+
+            session.ServerSeed = newServerSeed;
+            session.ServerSeedHash = newServerSeedHash;
+            // Note: In a real app, we might want to preserve the old seed for verification of past rounds
+            // but for simplicity here we rotate and future rounds use the new one.
         }
     }
 }

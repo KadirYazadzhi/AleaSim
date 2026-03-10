@@ -12,7 +12,7 @@ public class BaccaratGameEngine : BaseGameEngine {
         : base(rng, vault, brain, promo, jackpot, realTime, scope, lockService) {
     }
 
-    public override async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string betData) {
+    public override async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string? betData) {
         try {
             var data = JsonSerializer.Deserialize<Dictionary<string, string>>(betData ?? "{}");
             string betType = data?.GetValueOrDefault("Type") ?? "Player";
@@ -59,14 +59,13 @@ public class BaccaratGameEngine : BaseGameEngine {
                 Sequence = seq 
             };
             
-            // Integrate with THE BRAIN
             var directive = BrainService.GetNextDirective(session.UserId, session.GameId, lastBet.Amount, repo);
 
             // Initial Deal
-            state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
-            state.BankerHand.Add(DrawCard(session.Seed, ref seq));
-            state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
-            state.BankerHand.Add(DrawCard(session.Seed, ref seq));
+            state.PlayerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
+            state.BankerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
+            state.PlayerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
+            state.BankerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
 
             state.PlayerScore = CalculateScore(state.PlayerHand);
             state.BankerScore = CalculateScore(state.BankerHand);
@@ -80,7 +79,7 @@ public class BaccaratGameEngine : BaseGameEngine {
                 int? playerThirdCardVal = null;
 
                 if (state.PlayerScore <= 5) {
-                    string card = DrawCard(session.Seed, ref seq);
+                    string card = DrawCard(session.ServerSeed, session.ClientSeed, ref seq);
                     state.PlayerHand.Add(card);
                     playerDrewThird = true;
                     playerThirdCardVal = GetCardValue(card);
@@ -104,7 +103,7 @@ public class BaccaratGameEngine : BaseGameEngine {
                 }
 
                 if (bankerDraws) {
-                    state.BankerHand.Add(DrawCard(session.Seed, ref seq));
+                    state.BankerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
                     state.BankerScore = CalculateScore(state.BankerHand);
                 }
             }
@@ -141,6 +140,10 @@ public class BaccaratGameEngine : BaseGameEngine {
             }
 
             BrainService.UpdateProfile(session.UserId, lastBet.Amount, win, repo);
+            
+            int roundCount = repo.GetRoundCount(sessionId);
+            RotateServerSeed(session, roundCount);
+
             repo.SaveRound(round);
             
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Game = "Baccarat", State = state });
@@ -179,9 +182,9 @@ public class BaccaratGameEngine : BaseGameEngine {
         return int.Parse(rank);
     }
 
-    private string DrawCard(int seed, ref int seq) {
+    private string DrawCard(string serverSeed, string clientSeed, ref int seq) {
         seq++;
-        int idx = RngService.GetNextInt(seed, seq, 0, 52);
+        int idx = RngService.GetNextInt(serverSeed, clientSeed, seq, 0, 52);
         int rankIdx = idx % 13;
         int suitIdx = idx / 13;
         

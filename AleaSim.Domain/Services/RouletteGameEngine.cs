@@ -14,7 +14,7 @@ public class RouletteGameEngine : BaseGameEngine {
     public RouletteGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, ILockService lockService)
         : base(rng, vault, brain, promo, jackpot, realTime, scope, lockService) {
     }
-    public override async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string betData) {
+    public override async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string? betData) {
         var bets = new List<RouletteBetDto>();
         try {
             if (!string.IsNullOrEmpty(betData)) {
@@ -125,24 +125,24 @@ public class RouletteGameEngine : BaseGameEngine {
             var allNumbers = Enumerable.Range(0, 37).ToList();
 
             if (directive.DecisionType.Equals("Random", StringComparison.OrdinalIgnoreCase)) {
-                number = RngService.GetNextInt(session.Seed, nonce, 0, 37);
+                number = RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce, 0, 37);
             }
             else if (directive.TargetWinAmount > 0) {
                 var winningCandidates = allNumbers.Where(n => CalculatePayout(n, bets, mode) > 0).ToList();
                 if (winningCandidates.Any()) {
-                    int idx = RngService.GetNextInt(session.Seed, nonce, 0, winningCandidates.Count);
+                    int idx = RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce, 0, winningCandidates.Count);
                     number = winningCandidates[idx];
                 } else {
-                    number = RngService.GetNextInt(session.Seed, nonce, 0, 37); 
+                    number = RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce, 0, 37); 
                 }
             } 
             else {
                 var losingCandidates = allNumbers.Where(n => CalculatePayout(n, bets, mode) == 0).ToList();
                 if (losingCandidates.Any()) {
-                    int idx = RngService.GetNextInt(session.Seed, nonce, 0, losingCandidates.Count);
+                    int idx = RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce, 0, losingCandidates.Count);
                     number = losingCandidates[idx];
                 } else {
-                    number = RngService.GetNextInt(session.Seed, nonce, 0, 37); 
+                    number = RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce, 0, 37); 
                 }
             }
             
@@ -150,12 +150,12 @@ public class RouletteGameEngine : BaseGameEngine {
             var luckyNumbers = new Dictionary<int, int>();
             if (mode.Equals("Extreme", StringComparison.OrdinalIgnoreCase)) {
                 // Use nonce-based seeds for randomness every spin
-                int count = RngService.GetNextInt(session.Seed, nonce + 500, 1, 6); // 1-5 numbers
+                int count = RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce + 500, 1, 6); // 1-5 numbers
                 for (int i = 0; i < count; i++) {
-                    int ln = RngService.GetNextInt(session.Seed, nonce + i + 1000, 0, 37);
+                    int ln = RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce + i + 1000, 0, 37);
                     if (!luckyNumbers.ContainsKey(ln)) {
                         int[] pool = { 50, 100, 100, 200, 250, 500 };
-                        int mult = pool[RngService.GetNextInt(session.Seed, nonce + i + 2000, 0, pool.Length)];
+                        int mult = pool[RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce + i + 2000, 0, pool.Length)];
                         luckyNumbers[ln] = mult;
                     }
                 }
@@ -169,7 +169,7 @@ public class RouletteGameEngine : BaseGameEngine {
             // Async Call
             if (actualWin > 0 && !await VaultService.CanAffordWinAsync(session.UserId, GameId, actualWin, repo, strictShadowCheck: !isRandom)) {
                 var losingCandidates = allNumbers.Where(n => CalculatePayout(n, bets, mode) == 0).ToList();
-                if (losingCandidates.Any()) number = losingCandidates[RngService.GetNextInt(session.Seed, 99, 0, losingCandidates.Count)];
+                if (losingCandidates.Any()) number = losingCandidates[RngService.GetNextInt(session.ServerSeed, session.ClientSeed, 99, 0, losingCandidates.Count)];
                 actualWin = CalculatePayout(number, bets, mode);
                 winMultiplier = 0; // Lost multiplier if moved to losing num
             }
@@ -183,6 +183,7 @@ public class RouletteGameEngine : BaseGameEngine {
             BrainService.UpdateProfile(session.UserId, betAmount, actualWin, repo);
 
             int roundCount = repo.GetRoundCount(sessionId);
+            RotateServerSeed(session, roundCount);
 
             var round = new GameRound {
                 Id = Guid.NewGuid(),

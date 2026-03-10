@@ -52,16 +52,19 @@ public class BlackjackGameEngine : BaseGameEngine {
             // Check for forced directives
             var directive = BrainService.GetNextDirective(session.UserId, session.GameId, lastBet.Amount, repo);
 
-            state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
-            state.DealerHand.Add(DrawCard(session.Seed, ref seq));
-            state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
-            state.DealerHand.Add(DrawCard(session.Seed, ref seq));
+            state.PlayerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
+            state.DealerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
+            state.PlayerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
+            state.DealerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
             state.Sequence = seq;
 
             if (CalculateHandValue(state.PlayerHand) == 21) {
                 // Blackjack! Check dealer right away.
                 await FinishRoundAsync(session, state, repo, questService);
             }
+
+            int roundCount = repo.GetRoundCount(sessionId);
+            RotateServerSeed(session, roundCount);
 
             var round = new GameRound {
                 Id = Guid.NewGuid(),
@@ -107,7 +110,7 @@ public class BlackjackGameEngine : BaseGameEngine {
                     else state.IsDoubleDown = true;
 
                     int seq = state.Sequence;
-                    targetHand.Add(DrawCard(session.Seed, ref seq));
+                    targetHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
                     state.Sequence = seq;
                     
                     if (state.SplitHand != null && state.ActiveHandIndex == 0) {
@@ -130,8 +133,8 @@ public class BlackjackGameEngine : BaseGameEngine {
                         state.PlayerHand.RemoveAt(1);
                         if (r1 == "A") state.IsSplitAces = true;
                         int seq = state.Sequence;
-                        state.PlayerHand.Add(DrawCard(session.Seed, ref seq));
-                        if (state.SplitHand != null) state.SplitHand.Add(DrawCard(session.Seed, ref seq));
+                        state.PlayerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
+                        if (state.SplitHand != null) state.SplitHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
                         state.Sequence = seq;
                     } else throw new Exception("Insufficient funds for Split");
                 }
@@ -157,7 +160,7 @@ public class BlackjackGameEngine : BaseGameEngine {
             else if (action.ToLower() == "hit") {
                 if (state.IsSplitAces && targetHand.Count >= 2) throw new Exception("Cannot hit on split Aces.");
                 int seq = state.Sequence;
-                targetHand.Add(DrawCard(session.Seed, ref seq));
+                targetHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
                 state.Sequence = seq;
                 if (CalculateHandValue(targetHand) >= 21) {
                     if (state.SplitHand != null && state.ActiveHandIndex == 0) {
@@ -204,7 +207,7 @@ public class BlackjackGameEngine : BaseGameEngine {
         if (pAlive || sAlive) {
             int seq = state.Sequence;
             while (dVal < 17) {
-                state.DealerHand.Add(DrawCard(session.Seed, ref seq));
+                state.DealerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
                 dVal = CalculateHandValue(state.DealerHand);
             }
             state.Sequence = seq;
@@ -255,9 +258,9 @@ public class BlackjackGameEngine : BaseGameEngine {
         return win;
     }
 
-    private string DrawCard(int seed, ref int seq) {
+    private string DrawCard(string serverSeed, string clientSeed, ref int seq) {
         seq++;
-        int idx = RngService.GetNextInt(seed, seq, 0, 52);
+        int idx = RngService.GetNextInt(serverSeed, clientSeed, seq, 0, 52);
         int rankIdx = idx % 13;
         int suitIdx = idx / 13;
         

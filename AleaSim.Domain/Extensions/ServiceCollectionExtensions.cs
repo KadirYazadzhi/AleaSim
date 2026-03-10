@@ -47,7 +47,7 @@ public static class ServiceCollectionExtensions {
             sp.GetRequiredService<IRealTimeService>(),
             sp.GetRequiredService<IServiceScopeFactory>(),
             sp.GetRequiredService<ILockService>(),
-            sp.GetRequiredService<IMemoryCache>()
+            sp.GetRequiredService<IRedisCacheService>()
         ));
 
         // Game Factory Strategy
