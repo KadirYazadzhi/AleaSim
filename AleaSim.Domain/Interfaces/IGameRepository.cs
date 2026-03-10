@@ -11,6 +11,7 @@ public interface IGameRepository {
     // Sessions & Users
     GameSession CreateSession(GameSession session);
     GameSession? GetSession(Guid sessionId);
+    void UpdateSession(GameSession session);
     IEnumerable<GameSession> GetAllActiveSessions(); // Added
     IEnumerable<ActiveSessionDto> GetActiveSessionsDetails();
     void EndSession(Guid sessionId);
@@ -154,4 +155,7 @@ public interface IGameRepository {
     void SaveChatMessage(ChatMessage message);
     IEnumerable<ChatMessage> GetGlobalChatMessages(int count);
     IEnumerable<ChatMessage> GetPrivateChatHistory(Guid userId1, Guid userId2, int count);
+    
+    // Infrastructure
+    AleaSim.Domain.Services.IRedisCacheService GetRedisCache();
 }

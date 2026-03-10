@@ -130,6 +130,20 @@ public class GameController : ControllerBase {
         }
     }
 
+    [HttpPost("{gameType}/seed/rotate")]
+    public async Task<IActionResult> RotateSeed(string gameType) {
+        try {
+            var userId = GetUserIdOrThrow();
+            var session = await _gameDirector.RotateSeed(gameType, userId);
+            return Ok(new StartSessionResponse(session.Id, session.GameId, session.StartedAt, session.ClientSeed, session.ServerSeedHash));
+        }
+        catch (UnauthorizedAccessException) { return Unauthorized(); }
+        catch (Exception ex) {
+            _logger.LogError(ex, "Error in RotateSeed");
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpPost("{gameType}/bet/{sessionId}")]
     public async Task<IActionResult> PlaceBet(string gameType, Guid sessionId, [FromBody] PlaceBetRequest request) {
         try {
@@ -246,13 +260,42 @@ public class GameController : ControllerBase {
             Id = l.Id,
             Timestamp = l.Timestamp,
             EventType = l.EventType,
-            Description = l.Description,
-            UserId = l.UserId,
-            MetadataJson = l.MetadataJson,
+            Description = AnonymizeDescription(l.Description),
+            UserId = MaskUserId(l.UserId),
+            MetadataJson = "{}", // Hide metadata from public
             Hash = l.Hash,
             PreviousHash = l.PreviousHash
         });
         return Ok(result);
+    }
+
+    private string MaskUserId(string? userId) {
+        if (string.IsNullOrEmpty(userId) || userId == "SYSTEM") return "SYSTEM";
+        if (Guid.TryParse(userId, out _)) return "User_" + userId.Substring(0, 4);
+        return userId.Length > 3 ? userId.Substring(0, 2) + "***" : "***";
+    }
+
+    private string AnonymizeDescription(string desc) {
+        if (string.IsNullOrEmpty(desc)) return "";
+        
+        // 1. Format long decimals (e.g. 6.000000 -> 6.00)
+        // Match numbers with more than 4 decimal places
+        var regexNumbers = new System.Text.RegularExpressions.Regex(@"(\d+\.\d{3,})");
+        desc = regexNumbers.Replace(desc, m => {
+            if (decimal.TryParse(m.Value, out decimal val)) return val.ToString("F2");
+            return m.Value;
+        });
+
+        // 2. Hide specific usernames if mentioned (e.g. "for admin" -> "for ad***")
+        // This is a bit heuristic, but effective for the common pattern "for [username]"
+        var regexUser = new System.Text.RegularExpressions.Regex(@"(for\s+)([a-zA-Z0-9_]{3,})", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        desc = regexUser.Replace(desc, m => {
+            string user = m.Groups[2].Value;
+            if (user.Equals("admin", StringComparison.OrdinalIgnoreCase)) return m.Groups[1].Value + "ad***";
+            return m.Groups[1].Value + user.Substring(0, 2) + "***";
+        });
+
+        return desc;
     }
 
     [AllowAnonymous]

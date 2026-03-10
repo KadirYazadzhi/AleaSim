@@ -93,11 +93,11 @@ public class SentinelBackgroundService : BackgroundService {
                     Username = user.Username,
                     AlertType = "BalanceMismatch",
                     Severity = "Critical",
-                    Description = $"Balance discrepancy: DB={user.Balance:C}, TX_SUM={expectedStartingBalance + calculatedBalance:C}. Diff={diff:C}",
+                    Description = $"Balance discrepancy: DB={user.Balance:F2}, TX_SUM={expectedStartingBalance + calculatedBalance:F2}. Diff={diff:F2}",
                     Timestamp = DateTime.UtcNow
                 });
                 
-                audit.LogEvent("SECURITY_ALERT", $"Financial Discrepancy for {user.Username}. Diff: {diff}", user.Id.ToString(), $"{{ \"Expected\": {expectedStartingBalance + calculatedBalance}, \"Actual\": {user.Balance} }}");
+                audit.LogEvent("SECURITY_ALERT", $"Financial Discrepancy for {user.Username}. Diff: {diff:F2}", user.Id.ToString(), $"{{ \"Expected\": {expectedStartingBalance + calculatedBalance:F2}, \"Actual\": {user.Balance:F2} }}");
             }
         }
         _logger.LogInformation("Sentinel: Financial Reconciliation complete.");

@@ -47,6 +47,12 @@ public class EfGameRepository : IGameRepository {
         return session;
     }
 
+    public void UpdateSession(GameSession session) {
+        _context.GameSessions.Update(session);
+        _context.SaveChanges();
+        _redisCache.SetAsync($"session:{session.Id}", session, TimeSpan.FromHours(2)).GetAwaiter().GetResult();
+    }
+
     public IEnumerable<GameSession> GetAllActiveSessions() {
         return _context.GameSessions.Where(s => s.IsActive).ToList();
     }
@@ -828,29 +834,32 @@ public class EfGameRepository : IGameRepository {
             .ToList();
     }
 
-    public void DeleteUser(Guid userId) {
-        var user = _context.Users.Find(userId);
-        if (user != null) {
-            // Manual cleanup to ensure no FK constraints block deletion
-            var sessions = _context.GameSessions.Where(s => s.UserId == userId).ToList();
-            var sessionIds = sessions.Select(s => s.Id).ToList();
-
-            if (sessionIds.Any()) {
-                var rounds = _context.GameRounds.Where(r => sessionIds.Contains(r.GameSessionId)).ToList();
-                _context.GameRounds.RemoveRange(rounds);
-
-                var bets = _context.Bets.Where(b => sessionIds.Contains(b.GameSessionId)).ToList();
-                _context.Bets.RemoveRange(bets);
+        public void DeleteUser(Guid userId) {
+            var user = _context.Users.Find(userId);
+            if (user != null) {
+                // Manual cleanup to ensure no FK constraints block deletion
+                var sessions = _context.GameSessions.Where(s => s.UserId == userId).ToList();
+                var sessionIds = sessions.Select(s => s.Id).ToList();
+    
+                if (sessionIds.Any()) {
+                    var rounds = _context.GameRounds.Where(r => sessionIds.Contains(r.GameSessionId)).ToList();
+                    _context.GameRounds.RemoveRange(rounds);
+    
+                    var bets = _context.Bets.Where(b => sessionIds.Contains(b.GameSessionId)).ToList();
+                    _context.Bets.RemoveRange(bets);
+                    
+                    _context.GameSessions.RemoveRange(sessions);
+                }
                 
-                _context.GameSessions.RemoveRange(sessions);
+                var profile = _context.PlayerProfiles.FirstOrDefault(p => p.UserId == userId);
+                if (profile != null) _context.PlayerProfiles.Remove(profile);
+    
+                _context.Users.Remove(user);
+                _context.SaveChanges();
             }
-            
-            var profile = _context.PlayerProfiles.FirstOrDefault(p => p.UserId == userId);
-            if (profile != null) _context.PlayerProfiles.Remove(profile);
-
-            _context.Users.Remove(user);
-            _context.SaveChanges();
         }
+    
+        public IRedisCacheService GetRedisCache() => _redisCache;
+    
     }
-
-}
+    

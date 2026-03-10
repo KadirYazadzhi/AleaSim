@@ -29,7 +29,7 @@
                     <MudTh>Hash (Prev / Current)</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Time">@context.Timestamp.ToString("HH:mm:ss.fff")</MudTd>
+                    <MudTd DataLabel="Time">@context.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
                     <MudTd DataLabel="Type">
                         <MudChip T="string" Size="Size.Small" Color="@GetEventColor(context.EventType)" Variant="Variant.Filled">@context.EventType</MudChip>
                     </MudTd>
@@ -70,8 +70,9 @@
                     <MudItem xs="12">
                         <MudTextField @bind-Value="clientSeed" Label="Client Seed" Variant="Variant.Outlined" Placeholder="Your custom seed..." />
                     </MudItem>
-                    <MudItem xs="12" Class="d-flex justify-center">
+                    <MudItem xs="12" Class="d-flex justify-center gap-4">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="VerifyOutcome" StartIcon="@Icons.Material.Filled.CheckCircle">Verify Result</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Large" OnClick="RotateCurrentSeed" StartIcon="@Icons.Material.Filled.Autorenew">Reveal & Rotate Current Seed</MudButton>
                     </MudItem>
                 </MudGrid>
 
@@ -150,6 +151,25 @@
         "SystemUpdate" => Color.Primary,
         _ => Color.Default
     };
+
+    private async Task RotateCurrentSeed() {
+        try {
+            // We need to know which game to rotate. 
+            // In fairness page, selectedGame is already bound.
+            var res = await GameService.RotateSeed(selectedGame);
+            
+            // Note: StartSessionResponse doesn't return the OLD seed (the one just revealed),
+            // it returns the NEW session info.
+            // We should ideally have an endpoint that reveals and returns the OLD seed.
+            // But for now, we'll tell the user to check their History as the old session is now closed.
+            Snackbar.Add("Current seed rotated! Check your Game History to see the revealed seed for previous rounds.", Severity.Success);
+            
+            // Refresh audit chain to show the rotation
+            await LoadAuditChain();
+        } catch (Exception ex) {
+            Snackbar.Add("Rotation failed: " + ex.Message, Severity.Error);
+        }
+    }
 
     private void VerifyOutcome()
     {

@@ -7,6 +7,7 @@ public interface IGameService {
     event Action<float>? OnFlowStateChanged;
     Task<StartSessionResponse> StartSession(string gameType);
     Task<StartSessionResponse?> ResumeSession(string gameType); // Added
+    Task<StartSessionResponse> RotateSeed(string gameType);
     Task<PlaceBetResponse> PlaceBet(string gameType, Guid sessionId, decimal amount, object betData);
     Task<GameActionResponse> PerformAction(string gameType, Guid sessionId, string action, object? actionData = null);
     Task<DailyBonusResponse> SpinDailyBonus();
@@ -34,6 +35,14 @@ public class GameService : IGameService {
 
     public async Task<StartSessionResponse> StartSession(string gameType) {
         var response = await _http.PostAsJsonAsync($"api/Game/{gameType}/session", new StartSessionRequest());
+        if (response.IsSuccessStatusCode) {
+            return await response.Content.ReadFromJsonAsync<StartSessionResponse>() ?? throw new Exception("Invalid response");
+        }
+        throw new Exception(await response.Content.ReadAsStringAsync());
+    }
+
+    public async Task<StartSessionResponse> RotateSeed(string gameType) {
+        var response = await _http.PostAsync($"api/Game/{gameType}/seed/rotate", null);
         if (response.IsSuccessStatusCode) {
             return await response.Content.ReadFromJsonAsync<StartSessionResponse>() ?? throw new Exception("Invalid response");
         }

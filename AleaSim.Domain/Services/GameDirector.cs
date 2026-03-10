@@ -7,6 +7,7 @@ namespace AleaSim.Domain.Services;
 
 public interface IGameDirector {
     Task<GameSession> StartSession(string gameType, Guid userId, string? clientSeed = null);
+    Task<GameSession> RotateSeed(string gameType, Guid userId);
     Task<GameRound> PlayRound(string gameType, Guid userId, Guid sessionId, decimal amount, object betData);
     Task<object> ProcessAction(string gameType, Guid userId, Guid sessionId, string action, object? actionData);
     Task<object?> GetCurrentState(string gameType, Guid sessionId);
@@ -44,6 +45,26 @@ public class GameDirector : IGameDirector {
 
         var engine = _gameResolver(gameType);
         return await engine.StartSession(userId, game.Id, clientSeed: clientSeed);
+    }
+
+    public async Task<GameSession> RotateSeed(string gameType, Guid userId) {
+        var game = _repo.GetGameByType(gameType);
+        if (game == null) throw new Exception("Invalid game type");
+
+        // 1. Find and close current active session
+        var activeSessions = _repo.GetAllActiveSessions().Where(s => s.UserId == userId && s.GameId == game.Id).ToList();
+        foreach (var s in activeSessions) {
+            s.IsActive = false;
+            s.EndedAt = DateTime.UtcNow;
+            _repo.UpdateSession(s);
+        }
+
+        // 2. Clear Redis cache for session lookup
+        string sessionCacheKey = $"active_session:{userId}:{game.Id}";
+        await _repo.GetRedisCache().RemoveAsync(sessionCacheKey);
+
+        // 3. Start a fresh session
+        return await StartSession(gameType, userId);
     }
 
     public async Task<GameRound> PlayRound(string gameType, Guid userId, Guid sessionId, decimal amount, object betData) {
