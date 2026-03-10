@@ -86,6 +86,7 @@ public interface IGameRepository {
     void LogAudit(AuditEvent auditEvent);
     IEnumerable<AuditEvent> GetAuditLogs(int count);
     IEnumerable<AuditEvent> GetAllAuditLogs();
+    void CleanupOldAuditLogs(int daysToKeep);
     string? GetLastAuditHash();
 
     // Admin Reporting
@@ -125,6 +126,7 @@ public interface IGameRepository {
 
     // User Sessions
     void CreateUserSession(UserSession session);
+    UserSession? GetUserSession(Guid sessionId);
     List<UserSession> GetUserSessions(Guid userId);
     void InactivateSession(string refreshToken);
     void InactivateAllUserSessions(Guid userId);

@@ -50,22 +50,10 @@ public class AuthController : ControllerBase {
 
             var response = GenerateToken(user.Username, user.Id, user.Role);
             
-            // Save Refresh Token to DB
+            // Sync user's primary refresh token
             user.RefreshToken = response.RefreshToken;
             user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
             _repository.UpdateUser(user);
-
-            // Record Session
-            _repository.CreateUserSession(new UserSession {
-                Id = Guid.NewGuid(),
-                UserId = user.Id,
-                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
-                UserAgent = Request.Headers["User-Agent"].ToString(),
-                CreatedAt = DateTime.UtcNow,
-                LastActiveAt = DateTime.UtcNow,
-                IsActive = true,
-                RefreshToken = response.RefreshToken
-            });
 
             return Ok(response);
         }
@@ -93,18 +81,8 @@ public class AuthController : ControllerBase {
 
         var response = GenerateToken(user.Username, user.Id, user.Role);
         user.RefreshToken = response.RefreshToken;
+        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
         _repository.UpdateUser(user);
-
-        _repository.CreateUserSession(new UserSession {
-            Id = Guid.NewGuid(),
-            UserId = user.Id,
-            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
-            UserAgent = Request.Headers["User-Agent"].ToString(),
-            CreatedAt = DateTime.UtcNow,
-            LastActiveAt = DateTime.UtcNow,
-            IsActive = true,
-            RefreshToken = response.RefreshToken
-        });
 
         return Ok(response);
     }
@@ -436,16 +414,8 @@ public class AuthController : ControllerBase {
         var secretKey = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key missing");
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(secretKey);
-        var tokenDescriptor = new SecurityTokenDescriptor {
-            Subject = new ClaimsIdentity(new[] {
-                new Claim(ClaimTypes.Name, username),
-                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                new Claim(ClaimTypes.Role, role.ToString()), new Claim("role", role.ToString()), new Claim("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", role.ToString())
-            }),
-            Expires = DateTime.UtcNow.AddMinutes(30), // Shortened access token lifetime (30m)
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        };
-        var token = tokenHandler.CreateToken(tokenDescriptor);
+        
+        var sessionId = Guid.NewGuid();
         
         // Generate Cryptographically Secure Refresh Token
         var randomNumber = new byte[32];
@@ -453,6 +423,30 @@ public class AuthController : ControllerBase {
         rng.GetBytes(randomNumber);
         var refreshToken = Convert.ToBase64String(randomNumber);
 
+        // Record Session in DB
+        _repository.CreateUserSession(new UserSession {
+            Id = sessionId,
+            UserId = userId,
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
+            UserAgent = Request.Headers["User-Agent"].ToString(),
+            CreatedAt = DateTime.UtcNow,
+            LastActiveAt = DateTime.UtcNow,
+            IsActive = true,
+            RefreshToken = refreshToken
+        });
+
+        var tokenDescriptor = new SecurityTokenDescriptor {
+            Subject = new ClaimsIdentity(new[] {
+                new Claim(ClaimTypes.Name, username),
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim(JwtRegisteredClaimNames.Jti, sessionId.ToString()), // Use session ID as token identifier
+                new Claim(ClaimTypes.Role, role.ToString()), new Claim("role", role.ToString()), new Claim("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", role.ToString())
+            }),
+            Expires = DateTime.UtcNow.AddMinutes(30), 
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        
         return new LoginResponse { 
             Token = tokenHandler.WriteToken(token), 
             RefreshToken = refreshToken,

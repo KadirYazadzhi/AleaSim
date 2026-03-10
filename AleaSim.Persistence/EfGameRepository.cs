@@ -517,6 +517,11 @@ public class EfGameRepository : IGameRepository {
         return _context.AuditLogs.OrderBy(x => x.Timestamp).ToList();
     }
 
+    public void CleanupOldAuditLogs(int daysToKeep) {
+        var cutoff = DateTime.UtcNow.AddDays(-daysToKeep);
+        _context.Database.ExecuteSqlRaw("DELETE FROM AuditLogs WHERE Timestamp < {0}", cutoff);
+    }
+
     public string? GetLastAuditHash() {
         return _context.AuditLogs.OrderByDescending(x => x.Timestamp).Select(x => x.Hash).FirstOrDefault();
     }
@@ -679,6 +684,10 @@ public class EfGameRepository : IGameRepository {
     public void CreateUserSession(UserSession session) {
         _context.UserSessions.Add(session);
         _context.SaveChanges();
+    }
+
+    public UserSession? GetUserSession(Guid sessionId) {
+        return _context.UserSessions.FirstOrDefault(s => s.Id == sessionId);
     }
 
     public List<UserSession> GetUserSessions(Guid userId) {

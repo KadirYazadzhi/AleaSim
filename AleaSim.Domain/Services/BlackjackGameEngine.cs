@@ -12,27 +12,26 @@ public class BlackjackGameEngine : BaseGameEngine {
     public BlackjackGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, ILockService lockService)
         : base(rng, vault, brain, promo, jackpot, realTime, scope, lockService) {
     }
+
     public class BlackjackHand {
         public List<string> Cards { get; set; } = new();
         public decimal Bet { get; set; }
         public bool IsDoubled { get; set; }
         public bool IsStand { get; set; }
-        public bool IsBusted { get; set; }
-        public bool IsBlackjack { get; set; }
-        public bool IsSplitAces { get; set; } // Added restriction flag
+        public bool IsSplitHand { get; set; }
     }
 
     public class BlackjackState {
-        public List<string> PlayerHand { get; set; } = new();
+        public List<BlackjackHand> PlayerHands { get; set; } = new();
         public List<string> DealerHand { get; set; } = new();
-        public List<string>? SplitHand { get; set; } = null;
-        public int ActiveHandIndex { get; set; } = 0; // 0 = Main = 1 = Split
-        public bool IsDoubleDown { get; set; } // Tracks main hand double
-        public bool IsSplitDoubleDown { get; set; } // Tracks split hand double
-        public bool IsSplitAces { get; set; } // Added: Tracks if split was on Aces
-        public decimal BetAmount { get; set; }
+        public int ActiveHandIndex { get; set; } = 0; 
         public bool IsRoundOver { get; set; }
         public int Sequence { get; set; }
+        public decimal TotalInitialBet { get; set; }
+        
+        // Legacy fields for UI compatibility if needed, but we should update UI
+        public List<string> PlayerHand => PlayerHands.Count > 0 ? PlayerHands[0].Cards : new();
+        public List<string>? SplitHand => PlayerHands.Count > 1 ? PlayerHands[1].Cards : null;
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
@@ -47,19 +46,20 @@ public class BlackjackGameEngine : BaseGameEngine {
             int roundNum = repo.GetRoundCount(sessionId) + 1;
             int seq = roundNum * 100;
 
-            var state = new BlackjackState { BetAmount = lastBet.Amount, Sequence = seq };
+            var state = new BlackjackState { TotalInitialBet = lastBet.Amount, Sequence = seq };
+            var mainHand = new BlackjackHand { Bet = lastBet.Amount };
+            state.PlayerHands.Add(mainHand);
             
             // Check for forced directives
             var directive = BrainService.GetNextDirective(session.UserId, session.GameId, lastBet.Amount, repo);
 
-            state.PlayerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
+            mainHand.Cards.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
             state.DealerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
-            state.PlayerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
+            mainHand.Cards.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
             state.DealerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
             state.Sequence = seq;
 
-            if (CalculateHandValue(state.PlayerHand) == 21) {
-                // Blackjack! Check dealer right away.
+            if (CalculateHandValue(mainHand.Cards) == 21) {
                 await FinishRoundAsync(session, state, repo, questService);
             }
 
@@ -80,8 +80,7 @@ public class BlackjackGameEngine : BaseGameEngine {
                 DecisionType = directive.DecisionType
             };
             
-            // If instant finish (Blackjack)
-            if (state.IsRoundOver) round.TotalWinAmount = (CalculateHandValue(state.PlayerHand) == 21 && CalculateHandValue(state.DealerHand) != 21) ? state.BetAmount * 2.5m : state.BetAmount; 
+            if (state.IsRoundOver) round.TotalWinAmount = CalculateWin(state);
 
             repo.SaveRound(round);
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Game = "Blackjack", State = state });
@@ -100,116 +99,97 @@ public class BlackjackGameEngine : BaseGameEngine {
             var state = JsonSerializer.Deserialize<BlackjackState>(round.RandomResult);
             if (state == null || state.IsRoundOver) return;
 
-            var targetHand = (state.ActiveHandIndex == 1 && state.SplitHand != null) ? state.SplitHand : state.PlayerHand;
+            var currentHand = state.PlayerHands[state.ActiveHandIndex];
 
-            if (action.ToLower() == "double" && targetHand.Count == 2) {
-                // RULE: No Double Down after Split
-                if (state.SplitHand != null) throw new Exception("Double Down not allowed after Split.");
+            if (action.ToLower() == "double" && currentHand.Cards.Count == 2) {
+                if (state.PlayerHands.Count > 1) throw new Exception("Double Down not allowed after Split.");
                 
-                // RULE: Only Double on 10 or 11
-                int handVal = CalculateHandValue(targetHand);
-                if (handVal != 10 && handVal != 11) throw new Exception("You can only Double on 10 or 11.");
+                int val = CalculateHandValue(currentHand.Cards);
+                if (val != 10 && val != 11) throw new Exception("Only double on 10 or 11.");
 
-                if (await VaultService.ProcessBetAsync(session.UserId, state.BetAmount, repo)) {
-                    repo.UpdateRtpStats(session.GameId, session.UserId, state.BetAmount, 0); 
-                    
-                    state.IsDoubleDown = true;
+                if (await VaultService.ProcessBetAsync(session.UserId, currentHand.Bet, repo)) {
+                    repo.UpdateRtpStats(session.GameId, session.UserId, currentHand.Bet, 0); 
+                    currentHand.IsDoubled = true;
+                    currentHand.Bet *= 2;
 
                     int seq = state.Sequence;
-                    targetHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
+                    currentHand.Cards.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
                     state.Sequence = seq;
                     
-                    await FinishRoundAsync(session, state, repo, questService);
-                } else throw new Exception("Insufficient funds for Double Down");
+                    await AdvanceOrFinish(session, state, repo, questService);
+                } else throw new Exception("Insufficient funds");
             } 
-            else if (action.ToLower() == "split" && state.PlayerHand.Count == 2 && state.SplitHand == null) {
-                string r1 = state.PlayerHand[0].Substring(0, state.PlayerHand[0].Length - 1);
-                string r2 = state.PlayerHand[1].Substring(0, state.PlayerHand[1].Length - 1);
-                bool isTenValue1 = (r1 == "10" || r1 == "J" || r1 == "Q" || r1 == "K");
-                bool isTenValue2 = (r2 == "10" || r2 == "J" || r2 == "Q" || r2 == "K");
+            else if (action.ToLower() == "split" && state.PlayerHands.Count == 1 && currentHand.Cards.Count == 2) {
+                string r1 = GetRank(currentHand.Cards[0]);
+                string r2 = GetRank(currentHand.Cards[1]);
                 
-                if (r1 == r2 || (isTenValue1 && isTenValue2)) {
-                    if (await VaultService.ProcessBetAsync(session.UserId, state.BetAmount, repo)) {
-                        repo.UpdateRtpStats(session.GameId, session.UserId, state.BetAmount, 0);
-                        state.SplitHand = new List<string> { state.PlayerHand[1] };
-                        state.PlayerHand.RemoveAt(1);
-                        if (r1 == "A") state.IsSplitAces = true;
+                if (r1 == r2 || (IsTenValue(r1) && IsTenValue(r2))) {
+                    if (await VaultService.ProcessBetAsync(session.UserId, currentHand.Bet, repo)) {
+                        repo.UpdateRtpStats(session.GameId, session.UserId, currentHand.Bet, 0);
+                        
+                        var secondHand = new BlackjackHand { 
+                            Bet = currentHand.Bet, 
+                            IsSplitHand = true,
+                            Cards = new List<string> { currentHand.Cards[1] }
+                        };
+                        currentHand.Cards.RemoveAt(1);
+                        state.PlayerHands.Add(secondHand);
+
                         int seq = state.Sequence;
-                        state.PlayerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
-                        if (state.SplitHand != null) state.SplitHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
+                        currentHand.Cards.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
+                        secondHand.Cards.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
                         state.Sequence = seq;
-                    } else throw new Exception("Insufficient funds for Split");
+                    } else throw new Exception("Insufficient funds");
                 }
             } 
             else if (action.ToLower() == "insurance" && state.DealerHand.Count == 2 && state.DealerHand[0].StartsWith("A") && !state.IsRoundOver) {
-                // RULE: No Insurance after Split
-                if (state.SplitHand != null) throw new Exception("Insurance not allowed after Split.");
-
-                decimal insuranceBet = state.BetAmount / 2;
-                if (await VaultService.ProcessBetAsync(session.UserId, insuranceBet, repo)) {
-                    // Check dealer hole card
+                if (state.PlayerHands.Count > 1) throw new Exception("No insurance after split.");
+                decimal ins = currentHand.Bet / 2;
+                if (await VaultService.ProcessBetAsync(session.UserId, ins, repo)) {
                     if (CalculateHandValue(state.DealerHand) == 21) {
-                        // Dealer has BJ, insurance pays 2:1
-                        decimal win = insuranceBet * 3; // Return bet + win (2x)
-                        
+                        decimal win = ins * 3;
                         repo.UpdateGamePoolBalance(session.GameId, -win);
-
                         await VaultService.ProcessWinAsync(session.UserId, win, repo);
-                        repo.UpdateRtpStats(session.GameId, session.UserId, insuranceBet, win);
+                        repo.UpdateRtpStats(session.GameId, session.UserId, ins, win);
                     } else {
-                        // Dealer does not have BJ, insurance lost.
-                        repo.UpdateRtpStats(session.GameId, session.UserId, insuranceBet, 0);
+                        repo.UpdateRtpStats(session.GameId, session.UserId, ins, 0);
                     }
-                } else throw new Exception("Insufficient funds for Insurance");
+                }
             }
             else if (action.ToLower() == "hit") {
-                if (state.IsSplitAces && targetHand.Count >= 2) throw new Exception("Cannot hit on split Aces.");
                 int seq = state.Sequence;
-                targetHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
+                currentHand.Cards.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
                 state.Sequence = seq;
-                if (CalculateHandValue(targetHand) >= 21) {
-                    if (state.SplitHand != null && state.ActiveHandIndex == 0) {
-                        state.ActiveHandIndex = 1; // Move to next hand on bust/21
-                    } else {
-                        await FinishRoundAsync(session, state, repo, questService);
-                    }
+                if (CalculateHandValue(currentHand.Cards) >= 21) {
+                    await AdvanceOrFinish(session, state, repo, questService);
                 }
             } 
             else if (action.ToLower() == "stand") {
-                if (state.SplitHand != null && state.ActiveHandIndex == 0) {
-                    state.ActiveHandIndex = 1; // Move to next hand
-                } else {
-                    await FinishRoundAsync(session, state, repo, questService);
-                }
+                currentHand.IsStand = true;
+                await AdvanceOrFinish(session, state, repo, questService);
             }
 
-            // Update Round
             round.RandomResult = JsonSerializer.Serialize(state);
-            // If round is over, update TotalWinAmount here for persistence
-            if (state.IsRoundOver) {
-                decimal win = CalculateWin(state);
-                round.TotalWinAmount = win;
-            }
-
+            if (state.IsRoundOver) round.TotalWinAmount = CalculateWin(state);
             repo.SaveRound(round);
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Action = action, State = state });
         });
     }
 
+    private async Task AdvanceOrFinish(GameSession session, BlackjackState state, IGameRepository repo, IQuestService questService) {
+        if (state.ActiveHandIndex < state.PlayerHands.Count - 1) {
+            state.ActiveHandIndex++;
+        } else {
+            await FinishRoundAsync(session, state, repo, questService);
+        }
+    }
+
     private async Task FinishRoundAsync(GameSession session, BlackjackState state, IGameRepository repo, IQuestService questService) {
-        if (session == null) return;
         state.IsRoundOver = true;
-        int pVal = CalculateHandValue(state.PlayerHand);
         int dVal = CalculateHandValue(state.DealerHand);
-        
-        bool hasSplit = state.SplitHand != null;
-        int sVal = hasSplit ? CalculateHandValue(state.SplitHand!) : 0;
+        bool anyHandAlive = state.PlayerHands.Any(h => CalculateHandValue(h.Cards) <= 21);
 
-        // DEALER LOGIC FIX: Dealer plays if ANY player hand is not busted (<= 21)
-        bool pAlive = pVal <= 21;
-        bool sAlive = hasSplit && sVal <= 21;
-
-        if (pAlive || sAlive) {
+        if (anyHandAlive) {
             int seq = state.Sequence;
             while (dVal < 17) {
                 state.DealerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
@@ -218,91 +198,66 @@ public class BlackjackGameEngine : BaseGameEngine {
             state.Sequence = seq;
         }
 
-        decimal win = CalculateWin(state);
-
-        if (win > 0) {
-            repo.UpdateGamePoolBalance(session.GameId, -win);
-            await VaultService.ProcessWinAsync(session.UserId, win, repo);
-            repo.UpdateRtpStats(session.GameId, session.UserId, 0, win);
-            await questService.UpdateProgressAsync(session.UserId, "WinAmount", win, repo, RealTimeService, VaultService);
+        decimal totalWin = CalculateWin(state);
+        if (totalWin > 0) {
+            repo.UpdateGamePoolBalance(session.GameId, -totalWin);
+            await VaultService.ProcessWinAsync(session.UserId, totalWin, repo);
+            repo.UpdateRtpStats(session.GameId, session.UserId, 0, totalWin);
+            await questService.UpdateProgressAsync(session.UserId, "WinAmount", totalWin, repo, RealTimeService, VaultService);
         }
-        BrainService.UpdateProfile(session.UserId, state.BetAmount, win, repo);
+        BrainService.UpdateProfile(session.UserId, state.TotalInitialBet, totalWin, repo);
     }
 
     private decimal CalculateWin(BlackjackState state) {
-        int pVal = CalculateHandValue(state.PlayerHand);
         int dVal = CalculateHandValue(state.DealerHand);
-        decimal win = 0;
-        decimal bet1 = state.IsDoubleDown ? state.BetAmount * 2 : state.BetAmount;
-        
-        // Main Hand
-        if (pVal <= 21) {
-            bool isBJ = pVal == 21 && state.PlayerHand.Count == 2;
-            bool dBJ = dVal == 21 && state.DealerHand.Count == 2;
+        bool dBus = dVal > 21;
+        bool dBJ = dVal == 21 && state.DealerHand.Count == 2;
+        decimal totalWin = 0;
 
-            if (isBJ) {
-                if (dBJ) win += bet1; // Push
-                else win += bet1 * 2.5m; // 3:2 Payout
-            }
-            else {
-                if (dVal > 21 || pVal > dVal) win += bet1 * 2;
-                else if (pVal == dVal) win += bet1;
+        foreach (var hand in state.PlayerHands) {
+            int pVal = CalculateHandValue(hand.Cards);
+            if (pVal > 21) continue; // Bust
+
+            bool pBJ = pVal == 21 && hand.Cards.Count == 2 && !hand.IsSplitHand;
+
+            if (pBJ) {
+                if (dBJ) totalWin += hand.Bet; // Push
+                else totalWin += hand.Bet * 2.5m; // 3:2
+            } else {
+                if (dBJ) continue; // Dealer BJ beats everything except Player BJ
+                if (dBus || pVal > dVal) totalWin += hand.Bet * 2;
+                else if (pVal == dVal) totalWin += hand.Bet;
             }
         }
-
-        // Split Hand
-        if (state.SplitHand != null) {
-            int sVal = CalculateHandValue(state.SplitHand);
-            decimal bet2 = state.IsSplitDoubleDown ? state.BetAmount * 2 : state.BetAmount;
-            
-            if (sVal <= 21) {
-                if (dVal > 21 || sVal > dVal) win += bet2 * 2;
-                else if (sVal == dVal) win += bet2;
-            }
-        }
-        return win;
+        return totalWin;
     }
+
+    private int CalculateHandValue(List<string> hand) {
+        int val = 0; int aces = 0;
+        foreach (var c in hand) {
+            string r = GetRank(c);
+            if (r == "A") aces++;
+            else if (IsTenValue(r)) val += 10;
+            else val += int.Parse(r);
+        }
+        for (int i = 0; i < aces; i++) val += (val + 11 <= 21) ? 11 : 1;
+        return val;
+    }
+
+    private string GetRank(string card) => card.Substring(0, card.Length - 1);
+    private bool IsTenValue(string r) => r == "10" || r == "J" || r == "Q" || r == "K";
 
     private string DrawCard(string serverSeed, string clientSeed, ref int seq) {
         seq++;
         int idx = RngService.GetNextInt(serverSeed, clientSeed, seq, 0, 52);
-        int rankIdx = idx % 13;
-        int suitIdx = idx / 13;
-        
-        string rank = rankIdx switch {
-            0 => "A",
-            9 => "10",
-            10 => "J",
-            11 => "Q",
-            12 => "K",
-            _ => (rankIdx + 1).ToString()
-        };
-        
-        string suit = "HDCS"[suitIdx].ToString();
-        return rank + suit;
+        string[] ranks = { "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K" };
+        string[] suits = { "H", "D", "C", "S" };
+        return ranks[idx % 13] + suits[idx / 13];
     }
 
-    private int CalculateHandValue(List<string> hand) {
-        int value = 0;
-        int aces = 0;
-        foreach (var card in hand) {
-            if (string.IsNullOrEmpty(card)) continue;
-            string rank = card.Substring(0, card.Length - 1);
-            if (rank == "A") aces++;
-            else if (rank == "J" || rank == "Q" || rank == "K") value += 10;
-            else if (int.TryParse(rank, out int val)) value += val;
-        }
-        for (int i = 0; i < aces; i++) {
-            if (value + 11 <= 21) value += 11;
-            else value += 1;
-        }
-        return value;
-    }
     public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome { GameRoundId = roundId });
-    
     public override async Task<object?> GetCurrentState(Guid sessionId) {
-        if (LockService is null) return null;
-        return await ExecuteScopedAsync((repo, _, _) => {
+        return await ExecuteScopedAsync(repo => {
             var round = repo.GetLastRound(sessionId);
             if (round == null) return Task.FromResult<object?>(null);
             return Task.FromResult<object?>(JsonSerializer.Deserialize<BlackjackState>(round.RandomResult));

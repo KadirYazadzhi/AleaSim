@@ -115,6 +115,10 @@
     [SupplyParameterFromQuery]
     public string? Reason { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
     protected override void OnInitialized() {
         if (Reason == "expired") {
             Snackbar.Add("Your session has expired. Please login again.", Severity.Info);
@@ -169,7 +173,11 @@
 
     private void CompleteLogin(LoginResponse response) {
         Snackbar.Add("Login successful!", Severity.Success);
-        if (response.Role == "Admin") {
+        
+        if (!string.IsNullOrEmpty(ReturnUrl)) {
+            Navigation.NavigateTo(ReturnUrl);
+        }
+        else if (response.Role == "Admin") {
             Navigation.NavigateTo("/dashboard");
         } else {
             Navigation.NavigateTo("/");

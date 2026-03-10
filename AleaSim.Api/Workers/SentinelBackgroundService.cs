@@ -55,6 +55,7 @@ public class SentinelBackgroundService : BackgroundService {
 
         _logger.LogInformation("Sentinel: Performing Periodic System Cleanup...");
         repo.CleanupOldRtpStats(30); // Keep last 30 days of stats
+        repo.CleanupOldAuditLogs(90); // Keep last 90 days of audit logs
         _logger.LogInformation("Sentinel: System Cleanup complete.");
     }
 

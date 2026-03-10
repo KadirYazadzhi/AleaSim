@@ -103,6 +103,30 @@ builder.Services.AddAuthentication(x => {
                 context.Token = accessToken;
             }
             return Task.CompletedTask;
+        },
+        OnTokenValidated = async context => {
+            var repo = context.HttpContext.RequestServices.GetRequiredService<IGameRepository>();
+            var redis = context.HttpContext.RequestServices.GetRequiredService<AleaSim.Domain.Services.IRedisCacheService>();
+            
+            var jtiClaim = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti);
+            if (jtiClaim == null || !Guid.TryParse(jtiClaim.Value, out var sessionId)) {
+                context.Fail("Missing JTI");
+                return;
+            }
+
+            // Check Cache first
+            string cacheKey = $"session_active:{sessionId}";
+            var isActive = await redis.GetAsync<bool?>(cacheKey);
+            
+            if (isActive == null) {
+                var session = repo.GetUserSession(sessionId);
+                isActive = session != null && session.IsActive;
+                await redis.SetAsync(cacheKey, isActive.Value, TimeSpan.FromMinutes(2)); // Cache for 2m
+            }
+
+            if (!isActive.Value) {
+                context.Fail("Session revoked");
+            }
         }
     };
 });

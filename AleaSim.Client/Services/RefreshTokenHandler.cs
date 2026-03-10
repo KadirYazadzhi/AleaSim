@@ -46,14 +46,10 @@ public class RefreshTokenHandler : DelegatingHandler {
                     // Retry original request with new token
                     request.Headers.Authorization = new AuthenticationHeaderValue("bearer", newToken);
                     response = await base.SendAsync(request, cancellationToken);
-                } else {
-                    // Refresh failed, token is definitely invalid/expired
-                    _navigationManager.NavigateTo("login?reason=expired");
                 }
             }
             catch {
-                // Any error during refresh should probably lead to login
-                _navigationManager.NavigateTo("login?reason=expired");
+                // Let the UI handle unauthorized access if it's a protected page
             }
             finally {
                 _isRefreshing = false;
