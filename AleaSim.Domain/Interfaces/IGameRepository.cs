@@ -92,6 +92,7 @@ public interface IGameRepository {
 
     // Admin Reporting
     (decimal TotalBets, decimal TotalWins) GetDailyFinancials(DateTime date);
+    decimal GetMonthlyWagering(DateTime month);
     decimal GetGlobalTotalRewardsPaid();
     IEnumerable<(DateTime Hour, decimal Bets, decimal Wins)> GetRtpTrend(int hours);
     int GetActivePlayerCount(int minutes);

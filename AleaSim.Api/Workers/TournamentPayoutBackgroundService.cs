@@ -66,20 +66,15 @@ public class TournamentPayoutBackgroundService : BackgroundService {
     }
 
     private async Task ProcessPayoutForMonth(DateTime month, IGameRepository repo, IVaultService vault, IAuditService audit) {
-        // Calculate Pool (Base 25000 + 1% of total wagers)
         var startOfMonth = new DateTime(month.Year, month.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var endOfMonth = startOfMonth.AddMonths(1).AddSeconds(-1);
 
-        // Calculate total wagers for the month using context if possible, or assume a fixed logic if complex.
-        // We will just use the repository's Top entries which we can fetch.
         var topEntries = repo.GetTopTournamentEntries(endOfMonth, 10).ToList();
-
         if (!topEntries.Any()) return;
 
-        // Since we don't have a direct repo method for monthly total wagers, we'll estimate or use base.
-        // For production, a dedicated GetMonthlyWagers method should be used.
+        decimal monthlyWagering = repo.GetMonthlyWagering(month);
         decimal basePool = 25000m;
-        decimal totalPool = basePool; // Simplified for now. 
+        decimal totalPool = basePool + (monthlyWagering * 0.01m); 
 
         // Distribution: 1st 40%, 2nd 25%, 3rd 15%, 4th-10th share 20%
         decimal[] distribution = { 0.40m, 0.25m, 0.15m, 0.05m, 0.03m, 0.03m, 0.03m, 0.02m, 0.02m, 0.02m };
@@ -102,7 +97,8 @@ public class TournamentPayoutBackgroundService : BackgroundService {
                 Username = user.Username,
                 AvatarUrl = user.AvatarUrl ?? "",
                 PrizeAmount = prize,
-                Score = entry.Score,
+                Rank = i + 1,
+                Score = entry.RoiPercentage,
                 Month = startOfMonth
             });
             

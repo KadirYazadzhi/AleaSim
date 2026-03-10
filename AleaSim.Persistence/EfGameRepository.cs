@@ -554,6 +554,17 @@ public class EfGameRepository : IGameRepository {
         return (bets, wins);
     }
 
+    public decimal GetMonthlyWagering(DateTime month) {
+        var start = new DateTime(month.Year, month.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var end = start.AddMonths(1);
+
+        return _context.Bets
+            .Where(b => b.CreatedAt >= start && b.CreatedAt < end)
+            .Join(_context.Users, b => b.UserId, u => u.Id, (b, u) => new { b, u })
+            .Where(x => !x.u.Username.StartsWith("Sim_") && x.u.Role != Role.Admin)
+            .Sum(x => (decimal?)x.b.Amount) ?? 0m;
+    }
+
     public decimal GetGlobalTotalRewardsPaid() {
         return _context.GameRounds
             .Join(_context.GameSessions, r => r.GameSessionId, s => s.Id, (r, s) => new { r, s })
