@@ -180,18 +180,20 @@ public class SlotGameEngine : BaseGameEngine {
 
             do {
                 attempts++;
+                int attemptOffset = (roundNum * 10000) + (attempts * 1000);
+
                 if (state.IsBonusActive) { 
-                    PlayBonusRound(state, session.ServerSeed, session.ClientSeed, repo, config); 
+                    PlayBonusRound(state, session.ServerSeed, session.ClientSeed, attemptOffset, repo, config); 
                 } 
                 else {
                     if (directive.IsNearMiss && attempts == 1) {
-                         GenerateNearMissGrid(state, directive.PreferredNearMissSymbol ?? 7, config, session.ServerSeed, session.ClientSeed);
+                         GenerateNearMissGrid(state, directive.PreferredNearMissSymbol ?? 7, config, session.ServerSeed, session.ClientSeed, attemptOffset);
                     } else if (attempts > 40) {
                         // Force Logic to break loop
                         if (directive.TargetWinAmount > 0) ForceWinGrid(state, config);
                         else ForceLoseGrid(state, config);
                     } else {
-                        instantWin = PlayStandardRound(state, session.ServerSeed, session.ClientSeed, activeStrip, config);
+                        instantWin = PlayStandardRound(state, session.ServerSeed, session.ClientSeed, attemptOffset, activeStrip, config);
                     }
                 }
 
@@ -301,8 +303,8 @@ public class SlotGameEngine : BaseGameEngine {
         for(int c=0; c<3; c++) state.Grid[0][c] = 1; // 3 of a kind
     }
 
-    private void GenerateNearMissGrid(SlotState state, int symbol, SlotGameConfig config, string serverSeed, string clientSeed) {
-        int nonce = 1000;
+    private void GenerateNearMissGrid(SlotState state, int symbol, SlotGameConfig config, string serverSeed, string clientSeed, int attemptOffset) {
+        int nonce = 1000 + attemptOffset;
         // Random fill first
         for(int r=0; r<config.Rows; r++) for(int c=0; c<config.Cols; c++) state.Grid[r][c] = config.BaseStrip[RngService.GetNextInt(serverSeed, clientSeed, nonce++, 0, config.BaseStrip.Length)];
         // Set near miss: 2 symbols on line 1, miss on reel 3
@@ -311,8 +313,8 @@ public class SlotGameEngine : BaseGameEngine {
         state.Grid[1][2] = (symbol == 1) ? 2 : 1; // Blocker
     }
 
-    private decimal PlayStandardRound(SlotState state, string serverSeed, string clientSeed, int[] strip, SlotGameConfig config) {
-        int nonce = 0; decimal coinWin = 0;
+    private decimal PlayStandardRound(SlotState state, string serverSeed, string clientSeed, int attemptOffset, int[] strip, SlotGameConfig config) {
+        int nonce = 0 + attemptOffset; decimal coinWin = 0;
         var stickyMap = new HashSet<(int,int)>(state.StickyClovers.Select(p => (p.R, p.C)));
         int[] stops = new int[config.Cols];
 
@@ -375,16 +377,16 @@ public class SlotGameEngine : BaseGameEngine {
                  state.IsBonusActive = true; 
                  state.BonusLives = 3; 
                  state.IsRespinActive = false; 
-                 InitializeBonusGrid(state, serverSeed, clientSeed, config); 
+                 InitializeBonusGrid(state, serverSeed, clientSeed, attemptOffset, config); 
              }
              else { state.IsRespinActive = false; state.StickyClovers.Clear(); }
         }
         return coinWin;
     }
 
-    private void InitializeBonusGrid(SlotState state, string serverSeed, string clientSeed, SlotGameConfig config) {
+    private void InitializeBonusGrid(SlotState state, string serverSeed, string clientSeed, int attemptOffset, SlotGameConfig config) {
         state.BonusBells.Clear();
-        int nonce = 5000;
+        int nonce = 5000 + attemptOffset;
         for(int r=0; r<config.Rows; r++) for(int c=0; c<config.Cols; c++) state.Grid[r][c] = 0;
         foreach(var p in state.StickyClovers) {
             state.Grid[p.R][p.C] = config.ScatterSymbol;
@@ -393,8 +395,8 @@ public class SlotGameEngine : BaseGameEngine {
         }
     }
 
-    private void PlayBonusRound(SlotState state, string serverSeed, string clientSeed, IGameRepository repo, SlotGameConfig config) {
-        bool landed = false; int nonce = 0;
+    private void PlayBonusRound(SlotState state, string serverSeed, string clientSeed, int attemptOffset, IGameRepository repo, SlotGameConfig config) {
+        bool landed = false; int nonce = 0 + attemptOffset;
         for (int r = 0; r < config.Rows; r++) {
             for (int c = 0; c < config.Cols; c++) {
                 if (state.Grid[r][c] == config.ScatterSymbol) continue;

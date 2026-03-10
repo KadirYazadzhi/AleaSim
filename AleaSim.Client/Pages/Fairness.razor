@@ -53,9 +53,12 @@
                 <MudGrid>
                     <MudItem xs="12" sm="6">
                         <MudSelect T="string" @bind-Value="selectedGame" Label="Select Game" Variant="Variant.Outlined">
-                            <MudSelectItem Value="@("dice")">Dice</MudSelectItem>
-                            <MudSelectItem Value="@("roulette")">Roulette</MudSelectItem>
-                            <MudSelectItem Value="@("baccarat")">Baccarat</MudSelectItem>
+                            <MudSelectItem Value="@("slot")">Clover Chase (Slot)</MudSelectItem>
+                            <MudSelectItem Value="@("roulette")">Roulette Royale</MudSelectItem>
+                            <MudSelectItem Value="@("blackjack")">Blackjack</MudSelectItem>
+                            <MudSelectItem Value="@("baccarat")">Baccarat Royale</MudSelectItem>
+                            <MudSelectItem Value="@("dice")">Neon Dice (Slider)</MudSelectItem>
+                            <MudSelectItem Value="@("dice_multi")">Crazy Dice (Multi)</MudSelectItem>
                         </MudSelect>
                     </MudItem>
                     <MudItem xs="12" sm="6">
@@ -155,24 +158,47 @@
         }
 
         try {
-            double rand = GetNextDouble(serverSeed, clientSeed, nonce);
-            
             if (selectedGame == "dice") {
+                double rand = GetNextDouble(serverSeed, clientSeed, nonce);
                 double roll = Math.Round(rand * 100, 2);
                 verificationResult = $"DICE ROLL: {roll}";
             }
+            else if (selectedGame == "dice_multi") {
+                var dice = new List<int>();
+                for (int i = 0; i < 10; i++) {
+                    double rand = GetNextDouble(serverSeed, clientSeed, nonce + i);
+                    dice.Add((int)Math.Floor(rand * 6) + 1);
+                }
+                verificationResult = $"MULTI DICE: {string.Join(", ", dice)}";
+            }
             else if (selectedGame == "roulette") {
+                double rand = GetNextDouble(serverSeed, clientSeed, nonce);
                 int number = (int)Math.Floor(rand * 37);
                 string color = GetRouletteColor(number);
                 verificationResult = $"ROULETTE NUMBER: {number} ({color})";
             }
+            else if (selectedGame == "blackjack") {
+                int baseNonce = nonce * 100;
+                var p = new List<string> { GetCard(serverSeed, clientSeed, baseNonce + 1), GetCard(serverSeed, clientSeed, baseNonce + 3) };
+                var d = new List<string> { GetCard(serverSeed, clientSeed, baseNonce + 2), GetCard(serverSeed, clientSeed, baseNonce + 4) };
+                verificationResult = $"BLACKJACK INITIAL: Player[{string.Join(",", p)}] vs Dealer[{string.Join(",", d)}]";
+            }
             else if (selectedGame == "baccarat") {
-                // Simplified Baccarat verification (first 4 cards)
-                string p1 = GetCard(serverSeed, clientSeed, nonce * 100 + 1);
-                string b1 = GetCard(serverSeed, clientSeed, nonce * 100 + 2);
-                string p2 = GetCard(serverSeed, clientSeed, nonce * 100 + 3);
-                string b2 = GetCard(serverSeed, clientSeed, nonce * 100 + 4);
+                int baseNonce = nonce * 100;
+                string p1 = GetCard(serverSeed, clientSeed, baseNonce + 1);
+                string b1 = GetCard(serverSeed, clientSeed, baseNonce + 2);
+                string p2 = GetCard(serverSeed, clientSeed, baseNonce + 3);
+                string b2 = GetCard(serverSeed, clientSeed, baseNonce + 4);
                 verificationResult = $"BACCARAT DEAL: P[{p1},{p2}] vs B[{b1},{b2}]";
+            }
+            else if (selectedGame == "slot") {
+                var stops = new List<int>();
+                int baseOffset = (nonce * 10000) + 1000; 
+                for (int c = 0; c < 5; c++) {
+                    double rand = GetNextDouble(serverSeed, clientSeed, baseOffset + c);
+                    stops.Add((int)Math.Floor(rand * 46)); 
+                }
+                verificationResult = $"SLOT REEL STOPS: {string.Join(", ", stops)}";
             }
         } catch (Exception ex) {
             verificationResult = $"Error: {ex.Message}";
