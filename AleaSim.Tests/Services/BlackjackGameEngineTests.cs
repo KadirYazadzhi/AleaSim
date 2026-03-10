@@ -81,7 +81,7 @@ public class BlackjackGameEngineTests {
         // Arrange
         var userId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
-        var session = new GameSession { Id = sessionId, UserId = userId, Seed = 12345 };
+        var session = new GameSession { Id = sessionId, UserId = userId, ServerSeed = "test", ClientSeed = "client" };
         var bet = new Bet { GameSessionId = sessionId, Amount = 10m };
         
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
@@ -90,7 +90,7 @@ public class BlackjackGameEngineTests {
                   .Returns(new AleaSim.Domain.Models.BrainDirective { DecisionType = "Random" });
 
         // Draw cards: P1, D1, P2, D2
-        _mockRng.SetupSequence(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 52))
+        _mockRng.SetupSequence(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 0, 52))
                 .Returns(0)  // P1: Ace (H)
                 .Returns(1)  // D1: 2 (H)
                 .Returns(10) // P2: Jack (H) -> Blackjack!
@@ -111,12 +111,13 @@ public class BlackjackGameEngineTests {
         var sessionId = Guid.NewGuid();
         // Setup state where Player has 12, Dealer has 2
         var state = new BlackjackGameEngine.BlackjackState {
-            PlayerHand = new List<string> { "2H", "10H" },
+            PlayerHands = new List<BlackjackGameEngine.BlackjackHand> {
+                new BlackjackGameEngine.BlackjackHand { Cards = new List<string> { "2H", "10H" }, Bet = 10m }
+            },
             DealerHand = new List<string> { "2D" },
-            IsRoundOver = false,
-            BetAmount = 10m
+            IsRoundOver = false
         };
-        var session = new GameSession { Id = sessionId, UserId = userId };
+        var session = new GameSession { Id = sessionId, UserId = userId, ServerSeed = "test", ClientSeed = "client" };
         var lastRound = new GameRound { 
             GameSessionId = sessionId, 
             RandomResult = JsonSerializer.Serialize(state) 
@@ -126,7 +127,7 @@ public class BlackjackGameEngineTests {
         _mockRepo.Setup(r => r.GetLastRound(sessionId)).Returns(lastRound);
 
         // Next card is a 9
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 52)).Returns(8); // 9H
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 0, 52)).Returns(8); // 9H
 
         // Act
         await _engine.ProcessAction(userId, sessionId, "Hit", "{}");

@@ -24,7 +24,7 @@ public class DiceGameEngineTests {
     private readonly Mock<IServiceScope> _mockScope;
     private readonly Mock<IServiceProvider> _mockServiceProvider;
     private readonly Mock<IGameRepository> _mockRepo;
-    private readonly IMemoryCache _cache;
+    private readonly Mock<IRedisCacheService> _mockRedis;
     private readonly DiceGameEngine _engine;
 
     public DiceGameEngineTests() {
@@ -33,6 +33,8 @@ public class DiceGameEngineTests {
         _mockBrain = new Mock<IBrainService>();
         _mockPromo = new Mock<IPromotionService>();
         _mockJackpot = new Mock<IJackpotService>();
+        _mockRedis = new Mock<IRedisCacheService>();
+        
         _mockJackpot.Setup(x => x.Contribute(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
                     .Returns(Task.CompletedTask);
 
@@ -80,7 +82,7 @@ public class DiceGameEngineTests {
         var mockTx = new Mock<ITransaction>();
         _mockRepo.Setup(r => r.BeginTransaction()).Returns(mockTx.Object);
 
-        _engine = new DiceGameEngine(_mockRng.Object, _mockVault.Object, _mockBrain.Object, _mockPromo.Object, _mockJackpot.Object, _mockRealTime.Object, _mockScopeFactory.Object, _mockLock.Object, _cache);
+        _engine = new DiceGameEngine(_mockRng.Object, _mockVault.Object, _mockBrain.Object, _mockPromo.Object, _mockJackpot.Object, _mockRealTime.Object, _mockScopeFactory.Object, _mockLock.Object, _mockRedis.Object);
     }
 
     [Fact]
@@ -88,7 +90,7 @@ public class DiceGameEngineTests {
         // Arrange
         var userId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
-        var session = new GameSession { Id = sessionId, UserId = userId, Seed = 12345 };
+        var session = new GameSession { Id = sessionId, UserId = userId, ServerSeed = "test", ClientSeed = "client", Seed = 12345 };
         var betData = new DiceBetDto { Mode = "Slider", TargetValue = 50.50m, Condition = "Over" };
         var bet = new Bet { GameSessionId = sessionId, Amount = 10m, BetData = JsonSerializer.Serialize(betData) };
         
@@ -98,7 +100,7 @@ public class DiceGameEngineTests {
                   .Returns(new BrainDirective { DecisionType = "Random" });
 
         // Force roll 75.00
-        _mockRng.Setup(r => r.GetNextDouble(It.IsAny<int>(), It.IsAny<int>())).Returns(0.75);
+        _mockRng.Setup(r => r.GetNextDouble(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>())).Returns(0.75);
 
         // Act
         var round = await _engine.ResolveRound(sessionId);
@@ -124,7 +126,7 @@ public class DiceGameEngineTests {
                   .Returns(new BrainDirective { DecisionType = "Random" });
 
         // Force roll 6 for all 10 dice
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 1, 7)).Returns(6);
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 1, 7)).Returns(6);
 
         // Act
         var round = await _engine.ResolveRound(sessionId);

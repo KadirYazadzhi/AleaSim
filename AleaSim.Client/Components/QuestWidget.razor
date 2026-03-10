@@ -1,12 +1,13 @@
 @using AleaSim.Shared.Models
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject LayoutService LayoutService
 @implements IDisposable
 
 @if (Compact)
 {
     <!-- COMPACT SIDEBAR DESIGN -->
-    <MudPaper Class="pa-3 compact-missions" Elevation="0" Style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+    <MudPaper Class='@($"pa-3 compact-missions {(LayoutService.IsDarkMode ? "" : "light-mode")}")' Elevation="0">
         <div class="d-flex align-center mb-2">
             <MudIcon Icon="@Icons.Material.Filled.FlashOn" Color="Color.Warning" Size="Size.Small" Class="mr-2" />
             <MudText Typo="Typo.caption" Class="fw-black tracking-wider uppercase opacity-70">Missions</MudText>
@@ -97,6 +98,25 @@ else
     .quest-bar-compact, .quest-bar-classic {
         border-radius: 50px !important;
         background-color: rgba(255,255,255,0.05) !important;
+    }
+
+    .compact-missions {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .compact-missions.light-mode {
+        background: rgba(0,0,0,0.03);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .compact-missions.light-mode .quest-bar-compact {
+        background-color: rgba(0,0,0,0.05) !important;
+    }
+
+    .compact-missions.light-mode .progress-text-compact {
+        color: var(--mud-palette-text-primary);
+        text-shadow: none;
     }
 
     .progress-wrapper { position: relative; height: 16px; }
