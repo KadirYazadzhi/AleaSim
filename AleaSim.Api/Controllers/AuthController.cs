@@ -55,10 +55,23 @@ public class AuthController : ControllerBase {
             user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
             _repository.UpdateUser(user);
 
+            SetRefreshTokenCookie(response.RefreshToken);
+            response.RefreshToken = ""; // Clear from body
+
             return Ok(response);
         }
         
         return Unauthorized("Invalid credentials.");
+    }
+
+    private void SetRefreshTokenCookie(string refreshToken) {
+        var cookieOptions = new CookieOptions {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTime.UtcNow.AddDays(7)
+        };
+        Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
     }
 
     [AllowAnonymous]
@@ -84,12 +97,17 @@ public class AuthController : ControllerBase {
         user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
         _repository.UpdateUser(user);
 
+        SetRefreshTokenCookie(response.RefreshToken);
+        response.RefreshToken = "";
+
         return Ok(response);
     }
 
     [AllowAnonymous]
     [HttpPost("refresh")]
     public IActionResult Refresh([FromBody] RefreshTokenRequest request) {
+        var refreshToken = Request.Cookies["refreshToken"] ?? request.RefreshToken; // Fallback to body for legacy/tests
+
         var principal = GetPrincipalFromExpiredToken(request.Token);
         if (principal == null) return BadRequest("Invalid Token");
 
@@ -97,7 +115,7 @@ public class AuthController : ControllerBase {
         if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId)) return BadRequest("Invalid Token Claims");
 
         var user = _repository.GetUser(userId);
-        if (user == null || user.RefreshToken != request.RefreshToken || user.RefreshTokenExpiry < DateTime.UtcNow) {
+        if (user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiry < DateTime.UtcNow) {
             return BadRequest("Invalid or Expired Refresh Token");
         }
 
@@ -107,6 +125,9 @@ public class AuthController : ControllerBase {
         user.RefreshToken = newTokens.RefreshToken;
         user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
         _repository.UpdateUser(user);
+
+        SetRefreshTokenCookie(newTokens.RefreshToken);
+        newTokens.RefreshToken = "";
 
         return Ok(newTokens);
     }
@@ -138,19 +159,22 @@ public class AuthController : ControllerBase {
     [HttpPost("logout")]
     public IActionResult Logout([FromBody] RefreshTokenRequest request) {
         var userId = GetUserIdOrThrow();
+        var refreshToken = Request.Cookies["refreshToken"] ?? request.RefreshToken;
         
         // Invalidate current session refresh token
-        if (!string.IsNullOrEmpty(request.RefreshToken)) {
-            _repository.InactivateSession(request.RefreshToken);
+        if (!string.IsNullOrEmpty(refreshToken)) {
+            _repository.InactivateSession(refreshToken);
         }
 
         // Also clear user's current refresh token if it matches
         var user = _repository.GetUser(userId);
-        if (user != null && user.RefreshToken == request.RefreshToken) {
+        if (user != null && user.RefreshToken == refreshToken) {
             user.RefreshToken = null;
             user.RefreshTokenExpiry = null;
             _repository.UpdateUser(user);
         }
+
+        Response.Cookies.Delete("refreshToken");
 
         return Ok(new { Message = "Logged out successfully" });
     }
@@ -369,12 +393,14 @@ public class AuthController : ControllerBase {
     public IActionResult GetSessions([FromBody] SessionRequest? request) {
         var userId = GetUserIdOrThrow();
         var sessions = _repository.GetUserSessions(userId);
+        var currentToken = Request.Cookies["refreshToken"] ?? request?.RefreshToken;
+
         return Ok(sessions.Select(s => new {
             s.Id,
             s.IpAddress,
             Device = s.UserAgent,
             LastActive = s.LastActiveAt,
-            IsCurrent = !string.IsNullOrEmpty(request?.RefreshToken) && s.RefreshToken == request.RefreshToken
+            IsCurrent = !string.IsNullOrEmpty(currentToken) && s.RefreshToken == currentToken
         }));
     }
 

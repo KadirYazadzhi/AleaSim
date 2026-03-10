@@ -81,8 +81,23 @@ public class GameDirector : IGameDirector {
             if (user.LastBetTimestamp.HasValue && (DateTime.UtcNow - user.LastBetTimestamp.Value).TotalMilliseconds < 300) {
                  throw new Exception("You are spinning too fast! Please wait.");
             }
+
+            // Responsible Gaming: Daily Loss Limit Check
+            if (amount > 0 && user.DailyLossLimit > 0) {
+                decimal currentLoss = _repo.GetUserDailyLoss(userId, DateTime.UtcNow);
+                if (currentLoss + amount > user.DailyLossLimit) {
+                    throw new Exception($"Bet declined: Exceeds your daily loss limit of {user.DailyLossLimit:C}. Current net loss today: {currentLoss:C}.");
+                }
+            }
         }
         if (amount < 0) throw new ArgumentException("Bet amount cannot be negative.");
+
+        var game = _repo.GetGameByType(gameType);
+        if (game != null) {
+            if (amount > 0 && amount < game.MinBet) throw new Exception($"Minimum bet for {game.Name} is {game.MinBet:C}.");
+            if (amount > game.MaxBet) throw new Exception($"Maximum bet for {game.Name} is {game.MaxBet:C}.");
+        }
+
         var gameEngine = _gameResolver(gameType);
         
         SpinProfile profile = SpinProfile.Standard;

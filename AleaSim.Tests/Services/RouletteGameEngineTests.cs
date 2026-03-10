@@ -84,7 +84,7 @@ public class RouletteGameEngineTests {
         // Arrange
         var userId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
-        var session = new GameSession { Id = sessionId, UserId = userId, Seed = 12345 };
+        var session = new GameSession { Id = sessionId, UserId = userId, ServerSeed = "test", ClientSeed = "client" };
         var betData = new { 
             Bets = new[] { new { Type = "color", Value = "red", Amount = 10m } },
             Mode = "Classic"
@@ -97,7 +97,7 @@ public class RouletteGameEngineTests {
                   .Returns(new BrainDirective { DecisionType = "Random" });
 
         // Force number 1 (Red)
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 37)).Returns(1);
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 0, 37)).Returns(1);
 
         // Act
         var round = await _engine.ResolveRound(sessionId);
@@ -112,7 +112,7 @@ public class RouletteGameEngineTests {
         // Arrange
         var userId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
-        var session = new GameSession { Id = sessionId, UserId = userId, Seed = 12345 };
+        var session = new GameSession { Id = sessionId, UserId = userId, ServerSeed = "test", ClientSeed = "client" };
         var betData = new { 
             Bets = new[] { new { Type = "number", Value = "17", Amount = 10m } },
             Mode = "Extreme"
@@ -124,20 +124,16 @@ public class RouletteGameEngineTests {
         _mockBrain.Setup(b => b.GetNextDirective(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
                   .Returns(new BrainDirective { DecisionType = "Random" });
 
-        // Force sequence for RngService.GetNextInt(seed, nonce, min, max)
-        // 1. Result Number (nonce)
-        // 2. Lucky Count (nonce + 1)
-        // 3. Lucky Number 1 (nonce + 2)
-        // 4. Lucky Multiplier 1 (nonce + 10)
-        
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 37)).Returns(17);
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 1, 6)).Returns(1);
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 1, 11)).Returns(5); // 50x multiplier
+        // Force sequence for RngService.GetNextInt(serverSeed, clientSeed, nonce, min, max)
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 0, 37)).Returns(17);
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 1, 6)).Returns(1);
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 0, 6)).Returns(0); // Specifically for pool.Length=6
 
         // Act
         var round = await _engine.ResolveRound(sessionId);
 
         // Assert
+        // Payout for number 17 is 35:1 + mult. Our pool starts at 50x.
         Assert.Equal(500m, round.TotalWinAmount);
     }
 }

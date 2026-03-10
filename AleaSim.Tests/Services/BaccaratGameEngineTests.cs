@@ -83,7 +83,7 @@ public class BaccaratGameEngineTests {
         // Arrange
         var userId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
-        var session = new GameSession { Id = sessionId, UserId = userId, Seed = 12345 };
+        var session = new GameSession { Id = sessionId, UserId = userId, ServerSeed = "test", ClientSeed = "client" };
         var bet = new Bet { 
             GameSessionId = sessionId, 
             Amount = 10m, 
@@ -95,13 +95,12 @@ public class BaccaratGameEngineTests {
         _mockBrain.Setup(b => b.GetNextDirective(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
                   .Returns(new AleaSim.Domain.Models.BrainDirective { DecisionType = "Random" });
 
-        _mockRng.SetupSequence(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 52))
+        _mockRng.SetupSequence(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 0, 52))
                 .Returns(2)  // P1: 3H (3)
                 .Returns(0)  // B1: AH (1)
                 .Returns(3)  // P2: 4H (4) -> P Total: 7
-                .Returns(1); // B2: 2H (2) -> B Total: 3. No natural.
-        
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), 105, 0, 52)).Returns(0); // B3: AH (1) -> B Total: 4.
+                .Returns(1)  // B2: 2H (2) -> B Total: 3. No natural.
+                .Returns(0); // B3: AH (1) -> B Total: 4.
 
         // Act
         var round = await _engine.ResolveRound(sessionId);
@@ -116,7 +115,7 @@ public class BaccaratGameEngineTests {
         // Arrange
         var userId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
-        var session = new GameSession { Id = sessionId, UserId = userId, Seed = 12345 };
+        var session = new GameSession { Id = sessionId, UserId = userId, ServerSeed = "test", ClientSeed = "client" };
         var bet = new Bet { 
             GameSessionId = sessionId, 
             Amount = 10m, 
@@ -129,7 +128,7 @@ public class BaccaratGameEngineTests {
                   .Returns(new AleaSim.Domain.Models.BrainDirective { DecisionType = "Random" });
 
         // Force a Natural Tie (9-9)
-        _mockRng.SetupSequence(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 52))
+        _mockRng.SetupSequence(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 0, 52))
                 .Returns(8) // P1: 9 (Value 9)
                 .Returns(8) // B1: 9 (Value 9)
                 .Returns(9) // P2: 10 (Value 0)

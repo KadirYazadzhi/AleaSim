@@ -53,7 +53,6 @@ public class DiceGameEngineTests {
 
         _mockLock = new Mock<ILockService>();
         _mockRepo = new Mock<IGameRepository>();
-        _cache = new MemoryCache(new MemoryCacheOptions());
 
         var mockQuest = new Mock<IQuestService>();
         mockQuest.Setup(x => x.GenerateDailyQuests(It.IsAny<Guid>(), It.IsAny<IGameRepository>()))

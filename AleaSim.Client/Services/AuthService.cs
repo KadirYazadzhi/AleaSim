@@ -50,17 +50,14 @@ public class AuthService : IAuthService {
 
     private async Task StoreAuthResult(LoginResponse result) {
         await _localStorage.SetItemAsync("authToken", result.Token);
-        await _localStorage.SetItemAsync("refreshToken", result.RefreshToken);
         ((CustomAuthStateProvider)_authStateProvider).NotifyUserAuthentication(result.Token);
     }
 
     public async Task<string> RefreshToken() {
         var token = await _localStorage.GetItemAsync<string>("authToken");
-        var refreshToken = await _localStorage.GetItemAsync<string>("refreshToken");
 
         var response = await _httpClient.PostAsJsonAsync("api/Auth/refresh", new RefreshTokenRequest { 
-            Token = token, 
-            RefreshToken = refreshToken 
+            Token = token
         });
 
         if (!response.IsSuccessStatusCode) {
@@ -75,7 +72,6 @@ public class AuthService : IAuthService {
         }
 
         await _localStorage.SetItemAsync("authToken", result.Token);
-        await _localStorage.SetItemAsync("refreshToken", result.RefreshToken);
 
         return result.Token;
     }
@@ -89,8 +85,8 @@ public class AuthService : IAuthService {
     }
 
     public async Task Logout() {
+        await _httpClient.PostAsync("api/Auth/logout", null); // Notify server to clear cookie and revoke session
         await _localStorage.RemoveItemAsync("authToken");
-        await _localStorage.RemoveItemAsync("refreshToken");
         ((CustomAuthStateProvider)_authStateProvider).NotifyUserLogout();
     }
 
