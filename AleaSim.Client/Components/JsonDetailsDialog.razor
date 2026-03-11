@@ -1,35 +1,189 @@
 @using System.Text.Json
+@using System.Dynamic
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">@Title</MudText>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@GetTitleIcon()" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">@Title</MudText>
+        </div>
     </TitleContent>
     <DialogContent>
-        <MudPaper Class="pa-4 mud-background-grey" Elevation="0" Style="max-height: 500px; overflow: auto;">
-            <pre style="font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-all;">@FormattedJson</pre>
-        </MudPaper>
+        <div class="d-flex flex-column gap-4">
+            <!-- VISUAL REPLAY SECTION -->
+            @if (detectedGameType != "") {
+                <MudPaper Class="pa-4 rounded-lg border-2 border-dashed border-primary shadow-lg" Style="background: rgba(var(--mud-palette-primary-rgb), 0.05);">
+                    <MudText Typo="Typo.overline" Class="mb-2 d-block fw-bold color-primary">Visual Replay</MudText>
+                    
+                    @if (detectedGameType == "slot") {
+                        <div class="d-flex justify-center py-2">
+                            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;">
+                                @foreach (var row in slotGrid) {
+                                    @foreach (var cell in row) {
+                                        <div class="pa-2 rounded border border-solid border-white-10" style="background: rgba(0,0,0,0.3); font-size: 1.5rem; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                            @GetSlotEmoji(cell)
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    } else if (detectedGameType == "blackjack") {
+                        <div class="d-flex flex-column gap-4 align-center py-2">
+                            <div class="text-center">
+                                <MudText Typo="Typo.caption" Class="opacity-60 uppercase">Dealer Hand</MudText>
+                                <div class="d-flex gap-2 justify-center mt-1">
+                                    @foreach (var card in dealerHand) {
+                                        <div class="pa-1 rounded bg-white text-dark fw-bold px-2 border">@FormatCard(card)</div>
+                                    }
+                                </div>
+                            </div>
+                            <MudDivider Style="width: 100px;" />
+                            <div class="text-center">
+                                <MudText Typo="Typo.caption" Class="opacity-60 uppercase">Player Hands</MudText>
+                                @foreach (var hand in playerHands) {
+                                    <div class="d-flex gap-2 justify-center mt-1 mb-2">
+                                        @foreach (var card in hand.Cards) {
+                                            <div class="pa-1 rounded bg-info text-white fw-bold px-2">@FormatCard(card)</div>
+                                        }
+                                        <MudText Typo="Typo.caption" Class="ml-2 mt-1">(@hand.Bet.ToString("C0"))</MudText>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    } else if (detectedGameType == "roulette") {
+                        <div class="d-flex justify-center py-4">
+                            <div class='@($"roulette-ball {GetRouletteColor(rouletteNumber).ToLower()}")'>
+                                @rouletteNumber
+                            </div>
+                        </div>
+                    } else if (detectedGameType == "dice") {
+                        <div class="d-flex justify-center align-center py-4 gap-8">
+                            <div class="dice-box">
+                                <MudText Typo="Typo.h3" Class="fw-black color-primary">@diceResult.ToString("F2")</MudText>
+                                <MudText Typo="Typo.caption">ROLL RESULT</MudText>
+                            </div>
+                        </div>
+                    }
+                </MudPaper>
+            }
+
+            <!-- RAW DATA SECTION -->
+            <MudExpansionPanels Elevation="0">
+                <MudExpansionPanel Text="Raw Metadata (JSON)" Class="mud-background-grey">
+                    <MudPaper Class="pa-4" Elevation="0" Style="max-height: 300px; overflow: auto; background: #1a1a1a; color: #00ff00;">
+                        <pre style="font-family: 'Cascadia Code', monospace; font-size: 0.8rem; white-space: pre-wrap;">@FormattedJson</pre>
+                    </MudPaper>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Close" Color="Color.Primary" Variant="Variant.Filled">Close</MudButton>
+        <MudButton OnClick="Close" Color="Color.Primary" Variant="Variant.Filled">Close Inspector</MudButton>
     </DialogActions>
 </MudDialog>
+
+<style>
+    .fw-black { font-weight: 900; }
+    .color-primary { color: var(--mud-palette-primary); }
+    .roulette-ball {
+        width: 80px; height: 80px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2rem; font-weight: 900; color: white;
+        border: 4px solid white; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    .roulette-ball.red { background: #e53935; }
+    .roulette-ball.black { background: #212121; }
+    .roulette-ball.green { background: #43a047; }
+    .dice-box { text-align: center; border: 2px solid var(--mud-palette-divider); padding: 16px; border-radius: 12px; }
+</style>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public string Content { get; set; } = "";
     [Parameter] public string Title { get; set; } = "Details";
 
+    private string detectedGameType = "";
+    
+    // Parsed Data
+    private int[][] slotGrid = Array.Empty<int[]>();
+    private List<string> dealerHand = new();
+    private List<BjHandProxy> playerHands = new();
+    private int rouletteNumber = 0;
+    private decimal diceResult = 0;
+
+    protected override void OnInitialized() {
+        ParseGameData();
+    }
+
+    private void ParseGameData() {
+        try {
+            var root = JsonSerializer.Deserialize<JsonElement>(Content);
+            if (root.TryGetProperty("Result", out var resProp)) {
+                string innerJson = resProp.ValueKind == JsonValueKind.String ? resProp.GetString()! : resProp.GetRawText();
+                var gameData = JsonSerializer.Deserialize<JsonElement>(innerJson);
+
+                if (gameData.TryGetProperty("Grid", out _)) {
+                    detectedGameType = "slot";
+                    slotGrid = JsonSerializer.Deserialize<int[][]>(gameData.GetProperty("Grid").GetRawText()) ?? Array.Empty<int[]>();
+                } 
+                else if (gameData.TryGetProperty("PlayerHands", out var phProp)) {
+                    detectedGameType = "blackjack";
+                    playerHands = JsonSerializer.Deserialize<List<BjHandProxy>>(phProp.GetRawText()) ?? new();
+                    dealerHand = JsonSerializer.Deserialize<List<string>>(gameData.GetProperty("DealerHand").GetRawText()) ?? new();
+                }
+                else if (gameData.TryGetProperty("WinningNumber", out var wnProp)) {
+                    detectedGameType = "roulette";
+                    rouletteNumber = wnProp.GetInt32();
+                }
+                else if (gameData.TryGetProperty("ResultValue", out var rvProp)) {
+                    detectedGameType = "dice";
+                    diceResult = rvProp.GetDecimal();
+                }
+            }
+        } catch { }
+    }
+
     private string FormattedJson {
         get {
             try {
                 if (string.IsNullOrWhiteSpace(Content) || Content == "{}") return "No additional data.";
-                var obj = JsonSerializer.Deserialize<object>(Content);
-                return JsonSerializer.Serialize(obj, new JsonSerializerOptions { WriteIndented = true });
-            } catch {
-                return Content;
-            }
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                var obj = JsonSerializer.Deserialize<JsonElement>(Content);
+                
+                // If nested Result exists, pretty print it inside the main view
+                if (obj.TryGetProperty("Result", out var r) && r.ValueKind == JsonValueKind.String) {
+                    try {
+                        var inner = JsonSerializer.Deserialize<object>(r.GetString()!);
+                        var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(Content);
+                        if (dict != null) { dict["Result"] = inner!; return JsonSerializer.Serialize(dict, options); }
+                    } catch {}
+                }
+                return JsonSerializer.Serialize(obj, options);
+            } catch { return Content; }
         }
     }
 
+    private string GetSlotEmoji(int id) => id switch {
+        1 => "🍒", 2 => "🍋", 3 => "🍊", 4 => "🍇", 5 => "🔔", 6 => "💎", 7 => "7️⃣", 8 => "🍀", 9 => "⭐", 10 => "💰", 11 => "📥", 12 => "👑", _ => "🍃"
+    };
+
+    private string FormatCard(string card) => card.Replace("H", "♥").Replace("D", "♦").Replace("C", "♣").Replace("S", "♠");
+
+    private string GetRouletteColor(int n) {
+        if (n == 0) return "Green";
+        int[] red = { 1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36 };
+        return red.Contains(n) ? "Red" : "Black";
+    }
+
+    private string GetTitleIcon() => detectedGameType switch {
+        "slot" => Icons.Material.Filled.Casino,
+        "blackjack" => Icons.Material.Filled.Style,
+        "roulette" => Icons.Material.Filled.RadioButtonChecked,
+        "dice" => Icons.Material.Filled.Games,
+        _ => Icons.Material.Filled.Info
+    };
+
     private void Close() => MudDialog.Close();
+
+    private class BjHandProxy { public List<string> Cards { get; set; } = new(); public decimal Bet { get; set; } }
 }
