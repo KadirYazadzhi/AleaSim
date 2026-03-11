@@ -32,8 +32,12 @@
                             <div class="text-center">
                                 <MudText Typo="Typo.caption" Class="opacity-60 uppercase">Dealer Hand</MudText>
                                 <div class="d-flex gap-2 justify-center mt-1">
-                                    @foreach (var card in dealerHand) {
-                                        <div class="pa-1 rounded bg-white text-dark fw-bold px-2 border">@FormatCard(card)</div>
+                                    @for (int i = 0; i < dealerHand.Count; i++) {
+                                        if (i == 1 && !isRoundOver) {
+                                            <div class="pa-1 rounded bg-error text-white fw-bold px-2 border" style="width: 40px; text-align: center;">?</div>
+                                        } else {
+                                            <div class="pa-1 rounded bg-white text-dark fw-bold px-2 border">@FormatCard(dealerHand[i])</div>
+                                        }
                                     }
                                 </div>
                             </div>
@@ -45,7 +49,7 @@
                                         @foreach (var card in hand.Cards) {
                                             <div class="pa-1 rounded bg-info text-white fw-bold px-2">@FormatCard(card)</div>
                                         }
-                                        <MudText Typo="Typo.caption" Class="ml-2 mt-1">(@hand.Bet.ToString("C0"))</MudText>
+                                        <MudText Typo="Typo.caption" Class="ml-2 mt-1">(@hand.Bet.ToString("C2"))</MudText>
                                     </div>
                                 }
                             </div>
@@ -103,6 +107,7 @@
     [Parameter] public string Title { get; set; } = "Details";
 
     private string detectedGameType = "";
+    private bool isRoundOver = true;
     
     // Parsed Data
     private int[][] slotGrid = Array.Empty<int[]>();
@@ -121,6 +126,10 @@
             if (root.TryGetProperty("Result", out var resProp)) {
                 string innerJson = resProp.ValueKind == JsonValueKind.String ? resProp.GetString()! : resProp.GetRawText();
                 var gameData = JsonSerializer.Deserialize<JsonElement>(innerJson);
+
+                if (gameData.TryGetProperty("IsRoundOver", out var roProp)) {
+                    isRoundOver = roProp.GetBoolean();
+                }
 
                 if (gameData.TryGetProperty("Grid", out _)) {
                     detectedGameType = "slot";
@@ -167,7 +176,10 @@
         1 => "🍒", 2 => "🍋", 3 => "🍊", 4 => "🍇", 5 => "🔔", 6 => "💎", 7 => "7️⃣", 8 => "🍀", 9 => "⭐", 10 => "💰", 11 => "📥", 12 => "👑", _ => "🍃"
     };
 
-    private string FormatCard(string card) => card.Replace("H", "♥").Replace("D", "♦").Replace("C", "♣").Replace("S", "♠");
+    private string FormatCard(string card) {
+        if (string.IsNullOrEmpty(card)) return "";
+        return card.Replace("H", "♥").Replace("D", "♦").Replace("C", "♣").Replace("S", "♠");
+    }
 
     private string GetRouletteColor(int n) {
         if (n == 0) return "Green";

@@ -36,31 +36,45 @@ public class TournamentPayoutBackgroundService : BackgroundService {
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         var vault = scope.ServiceProvider.GetRequiredService<IVaultService>();
         var redis = scope.ServiceProvider.GetRequiredService<AleaSim.Domain.Services.IRedisCacheService>();
+        var lockService = scope.ServiceProvider.GetRequiredService<ILockService>();
 
         var now = DateTime.UtcNow;
         var previousMonth = now.AddMonths(-1);
-        string payoutKey = $"tournament_payout_{previousMonth.Year}_{previousMonth.Month}";
+        string payoutKey = $"TournamentPaid_{previousMonth.Year}_{previousMonth.Month}";
 
         // If we are on the 1st day of the month and haven't paid out yet
         if (now.Day == 1) {
-            var alreadyPaid = await redis.GetAsync<bool?>(payoutKey);
+            // 1. Quick check in Redis
+            var redisFlag = await redis.GetAsync<bool?>(payoutKey);
+            if (redisFlag == true) return;
+
+            // 2. Distributed Lock
+            using var lockHandle = await lockService.AcquireLockAsync("tournament_payout_lock", TimeSpan.FromMinutes(10));
             
-            if (alreadyPaid == null || !alreadyPaid.Value) {
-                // Ensure only one server instance processes this by acquiring a lock
-                var lockService = scope.ServiceProvider.GetRequiredService<ILockService>();
-                using var lockHandle = await lockService.AcquireLockAsync("tournament_payout_lock", TimeSpan.FromMinutes(5));
-                
-                // Double check after lock
-                alreadyPaid = await redis.GetAsync<bool?>(payoutKey);
-                if (alreadyPaid == null || !alreadyPaid.Value) {
-                    _logger.LogInformation($"Processing Tournament Payout for {previousMonth.ToString("MMMM yyyy")}...");
+            // 3. Database Check + Transaction
+            using var tx = repo.BeginTransaction();
+            try {
+                var dbFlag = repo.GetGlobalSetting(payoutKey);
+                if (string.IsNullOrEmpty(dbFlag)) {
+                    _logger.LogInformation($"Processing Tournament Payout for {previousMonth:MMMM yyyy}...");
                     
                     var audit = scope.ServiceProvider.GetRequiredService<IAuditService>();
                     await ProcessPayoutForMonth(previousMonth, repo, vault, audit);
                     
-                    await redis.SetAsync(payoutKey, true, TimeSpan.FromDays(40)); // Keep flag for 40 days
+                    // Mark as paid in DB
+                    repo.SetGlobalSetting(payoutKey, "true", $"Tournament Payout processed on {now}");
+                    
+                    tx.Commit();
+
+                    // Update Redis for quick check
+                    await redis.SetAsync(payoutKey, true, TimeSpan.FromDays(40));
                     _logger.LogInformation("Tournament Payout completed successfully.");
+                } else {
+                    tx.Rollback();
                 }
+            } catch (Exception ex) {
+                tx.Rollback();
+                _logger.LogError(ex, "Failed to process tournament payout transaction");
             }
         }
     }
@@ -102,12 +116,11 @@ public class TournamentPayoutBackgroundService : BackgroundService {
                 Month = startOfMonth
             });
             
-            audit.LogEvent("SYSTEM_UPDATE", $"Tournament payout for {month:MMM yyyy}: {user.Username} won {prize:C}", "SYSTEM", "Tournament Payout");
+            audit.LogEvent("SYSTEM_UPDATE", $"Tournament payout for {month:MMM yyyy}: {user.Username} won {prize:C2}", "SYSTEM", "Tournament Payout");
         }
 
         if (winnersToSave.Any()) {
             repo.SaveTournamentWinners(winnersToSave);
         }
     }
-
 }
