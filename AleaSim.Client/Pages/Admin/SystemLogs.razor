@@ -114,8 +114,11 @@
     private async Task ShowDetails(AuditLogDto log)
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var parameters = new DialogParameters { ["Content"] = log.MetadataJson };
-        await DialogService.ShowAsync<AleaSim.Client.Components.RoundDetailsDialog>("Event Metadata", parameters, options);
+        var parameters = new DialogParameters { 
+            ["Content"] = log.MetadataJson,
+            ["Title"] = $"Event Details: {log.EventType}"
+        };
+        await DialogService.ShowAsync<AleaSim.Client.Components.JsonDetailsDialog>("Metadata Viewer", parameters, options);
     }
 
     private async Task VerifyIntegrity() {

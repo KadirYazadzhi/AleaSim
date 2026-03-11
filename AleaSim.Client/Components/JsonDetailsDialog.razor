@@ -1,0 +1,35 @@
+@using System.Text.Json
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Title</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudPaper Class="pa-4 mud-background-grey" Elevation="0" Style="max-height: 500px; overflow: auto;">
+            <pre style="font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-all;">@FormattedJson</pre>
+        </MudPaper>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Color="Color.Primary" Variant="Variant.Filled">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public string Content { get; set; } = "";
+    [Parameter] public string Title { get; set; } = "Details";
+
+    private string FormattedJson {
+        get {
+            try {
+                if (string.IsNullOrWhiteSpace(Content) || Content == "{}") return "No additional data.";
+                var obj = JsonSerializer.Deserialize<object>(Content);
+                return JsonSerializer.Serialize(obj, new JsonSerializerOptions { WriteIndented = true });
+            } catch {
+                return Content;
+            }
+        }
+    }
+
+    private void Close() => MudDialog.Close();
+}
