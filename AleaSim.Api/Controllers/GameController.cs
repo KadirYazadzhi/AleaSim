@@ -348,9 +348,6 @@ public class GameController : ControllerBase {
         
         var tournamentEndsAt = startOfMonth.AddMonths(1).AddSeconds(-1);
         
-        // Tournament pool: Base $25,000 + 1% of MONTHLY wagering volume
-        decimal tournamentPool = 25000m + (monthlyBets * 0.01m); 
-
         // 2. Tournament Avatars & Season
         var topEntries = _repo.GetTopTournamentEntries(now, 5);
         var avatars = topEntries.Select(e => _repo.GetUser(e.UserId)?.AvatarUrl ?? "").Where(a => !string.IsNullOrEmpty(a)).ToList();
