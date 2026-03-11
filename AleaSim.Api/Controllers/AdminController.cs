@@ -5,6 +5,7 @@ using AleaSim.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace AleaSim.Api.Controllers;
 

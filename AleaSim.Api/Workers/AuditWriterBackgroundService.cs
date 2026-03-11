@@ -61,8 +61,8 @@ public class AuditWriterBackgroundService : BackgroundService {
         }
     }
 
-    private async Task FlushBatch(List<AuditEvent> batch) {
-        if (!batch.Any()) return;
+    private Task FlushBatch(List<AuditEvent> batch) {
+        if (!batch.Any()) return Task.CompletedTask;
 
         try {
             using var scope = _scopeFactory.CreateScope();
@@ -74,5 +74,6 @@ public class AuditWriterBackgroundService : BackgroundService {
             _logger.LogError(ex, "Failed to flush audit batch");
             // Note: In production, consider retry logic or dead-letter storage
         }
+        return Task.CompletedTask;
     }
 }
