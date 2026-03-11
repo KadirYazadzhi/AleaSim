@@ -73,7 +73,8 @@ public class BrainService : IBrainService {
         if (profile == null) return new BrainDirective { DecisionType = "Random" };
 
         // 2.5 Global Shadow Mode Check
-        if (repo.GetGlobalSetting("GlobalShadowMode").ToLower() == "true") {
+        var globalShadow = repo.GetGlobalSetting("GlobalShadowMode");
+        if (!string.IsNullOrEmpty(globalShadow) && globalShadow.ToLower() == "true") {
             return new BrainDirective { DecisionType = "Random", Reason = "Global Shadow Mode Active" };
         }
 

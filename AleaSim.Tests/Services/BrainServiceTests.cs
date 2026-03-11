@@ -23,6 +23,10 @@ public class BrainServiceTests {
 
     public BrainServiceTests() {
         _mockRepo = new Mock<IGameRepository>();
+        _mockRepo.Setup(r => r.GetGlobalSetting("GlobalShadowMode")).Returns("false");
+        _mockRepo.Setup(r => r.GetGlobalSetting("GlobalTargetRtp")).Returns("95");
+        _mockRepo.Setup(r => r.GetGlobalSetting("VolatilityMode")).Returns("Medium");
+
         _mockVault = new Mock<IVaultService>();
         _mockVault.Setup(v => v.CanAffordWinCheck(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>())).Returns(true);
         
