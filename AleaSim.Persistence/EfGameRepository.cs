@@ -219,7 +219,8 @@ public class EfGameRepository : IGameRepository {
     }
 
     public TournamentEntry GetOrCreateTournamentEntry(Guid userId, DateTime date) {
-        var targetDate = date.Date;
+        // Normalize to the start of the month for monthly tournaments
+        var targetDate = new DateTime(date.Year, date.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var entry = _context.TournamentEntries
             .FirstOrDefault(t => t.UserId == userId && t.TournamentDate == targetDate);
             
@@ -243,11 +244,11 @@ public class EfGameRepository : IGameRepository {
     }
 
     public IEnumerable<TournamentEntry> GetTopTournamentEntries(DateTime date, int topCount) {
-        var targetDate = date.Date;
+        var targetDate = new DateTime(date.Year, date.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         return _context.TournamentEntries
             .Include(t => t.User)
             .Where(t => t.TournamentDate == targetDate)
-            .AsEnumerable() // Move to memory to support ordering by computed property RoiPercentage
+            .AsEnumerable() 
             .Where(t => t.User != null && !t.User.Username.StartsWith("Sim_") && t.User.Role != Role.Admin)
             .OrderByDescending(t => t.RoiPercentage)
             .Take(topCount)

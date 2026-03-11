@@ -13,10 +13,14 @@ namespace AleaSim.Api.Controllers;
 public class VaultController : ControllerBase {
     private readonly IGameRepository _repo;
     private readonly IVaultService _vault;
+    private readonly ILockService _lockService;
+    private readonly AleaSim.Domain.Services.IRedisCacheService _redisCache;
 
-    public VaultController(IGameRepository repo, IVaultService vault) {
+    public VaultController(IGameRepository repo, IVaultService vault, ILockService lockService, AleaSim.Domain.Services.IRedisCacheService redisCache) {
         _repo = repo;
         _vault = vault;
+        _lockService = lockService;
+        _redisCache = redisCache;
     }
 
     [Authorize(Roles = "Admin")]
@@ -49,9 +53,18 @@ public class VaultController : ControllerBase {
     }
 
     [HttpPost("faucet")]
-    public IActionResult ClaimFaucet() {
+    public async Task<IActionResult> ClaimFaucet() {
         try {
             var userId = GetUserIdOrThrow();
+
+            // 1. Rate Limit (1 per hour via Redis)
+            if (await _redisCache.IncrementRateLimitAsync($"ratelimit:faucet:{userId}", TimeSpan.FromHours(1), 1)) {
+                return BadRequest("Faucet is cooling down. Please wait 1 hour.");
+            }
+
+            // 2. Distributed Lock
+            using var lockHandle = await _lockService.AcquireLockAsync($"faucet_lock_{userId}", TimeSpan.FromSeconds(5));
+
             var user = _repo.GetUser(userId);
             if (user == null) return NotFound();
 
@@ -59,14 +72,14 @@ public class VaultController : ControllerBase {
                 return BadRequest("Balance too high for faucet.");
             }
 
-            var lastFaucet = _repo.GetUserTransactions(userId, 50)
+            // 3. Double Check with DB History
+            var lastFaucet = _repo.GetUserTransactions(userId, 10)
                                   .Where(t => t.Type == TransactionType.Faucet)
                                   .OrderByDescending(t => t.Timestamp)
                                   .FirstOrDefault();
 
             if (lastFaucet != null && (DateTime.UtcNow - lastFaucet.Timestamp).TotalHours < 1) {
-                var remainingMinutes = 60 - (int)(DateTime.UtcNow - lastFaucet.Timestamp).TotalMinutes;
-                return BadRequest($"Faucet is cooling down. Try again in {remainingMinutes} minutes.");
+                return BadRequest("Faucet cooldown in progress.");
             }
 
             decimal reliefAmount = 100;
@@ -87,6 +100,9 @@ public class VaultController : ControllerBase {
             return Ok(new { NewBalance = user.Balance });
         }
         catch (UnauthorizedAccessException) { return Unauthorized(); }
+        catch (Exception ex) {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpGet("transactions")]
