@@ -135,7 +135,12 @@ public class GameController : ControllerBase {
         try {
             var userId = GetUserIdOrThrow();
             var session = await _gameDirector.RotateSeed(gameType, userId);
-            return Ok(new StartSessionResponse(session.Id, session.GameId, session.StartedAt, session.ClientSeed, session.ServerSeedHash));
+            
+            // Extract revealed seed from temporary transport field
+            string? revealed = session.GameState as string;
+            session.GameState = ""; // Clear it
+
+            return Ok(new StartSessionResponse(session.Id, session.GameId, session.StartedAt, session.ClientSeed, session.ServerSeedHash, revealed));
         }
         catch (UnauthorizedAccessException) { return Unauthorized(); }
         catch (Exception ex) {

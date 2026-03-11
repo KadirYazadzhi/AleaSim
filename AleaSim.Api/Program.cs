@@ -24,6 +24,15 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 // Add Services
 builder.Services.AddControllers();
 
+builder.Services.AddCors(options => {
+    options.AddPolicy("DefaultCors", policy => {
+        policy.SetIsOriginAllowed(_ => true) // In production, replace with specific domains
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 var redisConn = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
 builder.Services.AddSignalR().AddStackExchangeRedis(redisConn); 
 builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
@@ -144,7 +153,7 @@ if (app.Environment.IsDevelopment()) {
 // app.UseHttpsRedirection(); // Disabled to fix CORS preflight redirect issue
 app.UseMiddleware<AleaSim.Api.Middleware.ExceptionHandlingMiddleware>();
 app.UseRouting(); // Explicit routing
-app.UseCors("AllowBlazor");
+app.UseCors("DefaultCors");
 app.UseAuthentication();
 app.UseAuthorization();
 

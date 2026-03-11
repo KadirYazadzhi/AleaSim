@@ -122,7 +122,20 @@ public class GameHub : Hub {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, gameType);
     }
 
+    public override async Task OnConnectedAsync() {
+        var userId = Context.UserIdentifier;
+        if (!string.IsNullOrEmpty(userId)) {
+            await _redisCache.SetAsync($"online_user:{userId}", true, TimeSpan.FromMinutes(5));
+        }
+        await base.OnConnectedAsync();
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception) {
+        var userId = Context.UserIdentifier;
+        if (!string.IsNullOrEmpty(userId)) {
+            await _redisCache.RemoveAsync($"online_user:{userId}");
+        }
+
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Slot");
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Roulette");
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Blackjack");

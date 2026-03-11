@@ -53,7 +53,10 @@ public class GameDirector : IGameDirector {
 
         // 1. Find and close current active session
         var activeSessions = _repo.GetAllActiveSessions().Where(s => s.UserId == userId && s.GameId == game.Id).ToList();
+        string? revealedSeed = null;
+
         foreach (var s in activeSessions) {
+            revealedSeed = s.ServerSeed; // Store before closing
             s.IsActive = false;
             s.EndedAt = DateTime.UtcNow;
             _repo.UpdateSession(s);
@@ -64,7 +67,16 @@ public class GameDirector : IGameDirector {
         await _repo.GetRedisCache().RemoveAsync(sessionCacheKey);
 
         // 3. Start a fresh session
-        return await StartSession(gameType, userId);
+        var newSession = await StartSession(gameType, userId);
+        
+        // Pass revealed seed back through memory (StartSession creates a new object, we attach revealed to it for the response)
+        // Note: We use a custom field in StartSessionResponse, so we return the session and controller will wrap it.
+        // We'll return the new session, but we need to pass the revealed one somehow.
+        // Easiest is to return a tuple or just have the controller handle it if we modify engine?
+        // Let's modify engine to potentially return the old seed or just store it in the new session object temporarily.
+        newSession.GameState = revealedSeed ?? ""; // Temporary transport mechanism
+        
+        return newSession;
     }
 
     public async Task<GameRound> PlayRound(string gameType, Guid userId, Guid sessionId, decimal amount, object betData) {

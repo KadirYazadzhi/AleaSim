@@ -11,15 +11,17 @@ public class StartSessionResponse {
     public DateTime StartedAt { get; set; }
     public string ClientSeed { get; set; } = string.Empty;
     public string ServerSeedHash { get; set; } = string.Empty;
+    public string? PreviousServerSeed { get; set; } // Revealed after rotation
     public object? GameState { get; set; } // Added for Resume Session
     
     public StartSessionResponse() {}
-    public StartSessionResponse(Guid sessionId, Guid gameId, DateTime startedAt, string clientSeed, string serverSeedHash) {
+    public StartSessionResponse(Guid sessionId, Guid gameId, DateTime startedAt, string clientSeed, string serverSeedHash, string? previousServerSeed = null) {
         SessionId = sessionId;
         GameId = gameId;
         StartedAt = startedAt;
         ClientSeed = clientSeed;
         ServerSeedHash = serverSeedHash;
+        PreviousServerSeed = previousServerSeed;
     }
 }
 

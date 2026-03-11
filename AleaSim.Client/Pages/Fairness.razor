@@ -50,6 +50,13 @@
                 <MudText Typo="Typo.h5" Class="mb-4">Outcome Verifier</MudText>
                 <MudText Typo="Typo.body2" Class="mb-6">Enter the seeds and nonce from your game history to verify the result was deterministic and fair.</MudText>
                 
+                @if (!string.IsNullOrEmpty(revealedSeed)) {
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="mb-6 animate-pulse">
+                        Your Previous Server Seed: <b>@revealedSeed</b> <br/>
+                        <MudText Typo="Typo.caption">This seed is now revealed. You can use it to verify past rounds.</MudText>
+                    </MudAlert>
+                }
+
                 <MudGrid>
                     <MudItem xs="12" sm="6">
                         <MudSelect T="string" @bind-Value="selectedGame" Label="Select Game" Variant="Variant.Outlined">
@@ -93,6 +100,7 @@
 @code {
     private string serverSeed = "";
     private string clientSeed = "";
+    private string? revealedSeed;
     private int nonce = 1;
     private string selectedGame = "dice";
     private string? verificationResult;
@@ -154,17 +162,14 @@
 
     private async Task RotateCurrentSeed() {
         try {
-            // We need to know which game to rotate. 
-            // In fairness page, selectedGame is already bound.
             var res = await GameService.RotateSeed(selectedGame);
+            revealedSeed = res.PreviousServerSeed;
             
-            // Note: StartSessionResponse doesn't return the OLD seed (the one just revealed),
-            // it returns the NEW session info.
-            // We should ideally have an endpoint that reveals and returns the OLD seed.
-            // But for now, we'll tell the user to check their History as the old session is now closed.
-            Snackbar.Add("Current seed rotated! Check your Game History to see the revealed seed for previous rounds.", Severity.Success);
+            if (!string.IsNullOrEmpty(revealedSeed)) {
+                serverSeed = revealedSeed; // Auto-fill for convenience
+                Snackbar.Add("Current seed revealed and rotated!", Severity.Success);
+            }
             
-            // Refresh audit chain to show the rotation
             await LoadAuditChain();
         } catch (Exception ex) {
             Snackbar.Add("Rotation failed: " + ex.Message, Severity.Error);
