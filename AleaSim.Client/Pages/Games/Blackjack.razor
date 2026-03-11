@@ -40,16 +40,29 @@
                     <MudText Typo="Typo.subtitle1" Style="opacity: 0.2;">Dealer must stand on 17 and draw to 16</MudText>
                 </div>
 
-                <div class="text-center mt-16">
-                    <div class="d-flex justify-center gap-2 mb-2">
-                        @foreach (var card in playerHand)
-                        {
-                            <div @key="card" class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "")">
-                                @FormatCard(card)
+                <div class="d-flex justify-center gap-12 mt-16">
+                    @for (int i = 0; i < playerHands.Count; i++)
+                    {
+                        var hand = playerHands[i];
+                        bool isActive = !isRoundOver && i == activeHandIndex;
+                        <div class='@($"hand-container {(isActive ? "active-hand" : "")} {(CalculateValue(hand.Cards) > 21 ? "bust-hand" : "")}")'>
+                            <div class="d-flex justify-center gap-2 mb-2">
+                                @foreach (var card in hand.Cards)
+                                {
+                                    <div @key="card" class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "")">
+                                        @FormatCard(card)
+                                    </div>
+                                }
                             </div>
-                        }
-                    </div>
-                    <MudText Typo="Typo.h5" Color="Color.Info">Your Hand: @CalculateValue(playerHand)</MudText>
+                            <MudText Typo="Typo.h6" Class="fw-bold">
+                                Value: @CalculateValue(hand.Cards) 
+                                @if (hand.IsDoubled) { <span class="ml-2 color-warning">x2</span> }
+                            </MudText>
+                            @if (isActive) {
+                                <div class="active-indicator animate-pulse">YOUR TURN</div>
+                            }
+                        </div>
+                    }
                 </div>
 
                 @if (!string.IsNullOrEmpty(gameResult))
@@ -65,17 +78,30 @@
             <MudPaper Class="pa-6 d-flex flex-column gap-4">
                 <MudText Typo="Typo.h5">Balance: <span style="color: #4caf50;">@balance.ToString("C2")</span></MudText>
                 
-                <MudNumericField @bind-Value="betAmount" Label="Bet" Variant="Variant.Outlined" Min="1" Max="500" Disabled="@(!isRoundOver && playerHand.Any())" />
+                <MudNumericField @bind-Value="betAmount" Label="Bet" Variant="Variant.Outlined" Min="1" Max="500" Disabled="@(!isRoundOver && playerHands.Any())" />
 
-                @if (isRoundOver || !playerHand.Any())
+                @if (isRoundOver || !playerHands.Any())
                 {
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="OnDeal" Style="height: 80px;">DEAL</MudButton>
                 }
                 else
                 {
-                    <div class="d-flex gap-2">
-                        <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" OnClick='() => OnAction("hit")' Style="height: 60px;">HIT</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick='() => OnAction("stand")' Style="height: 60px;">STAND</MudButton>
+                    <div class="d-flex flex-column gap-2">
+                        <div class="d-flex gap-2">
+                            <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" OnClick='() => OnAction("hit")' Style="height: 60px;">HIT</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick='() => OnAction("stand")' Style="height: 60px;">STAND</MudButton>
+                        </div>
+                        <div class="d-flex gap-2">
+                            @if (CanSplit()) {
+                                <MudButton Variant="Variant.Outlined" Color="Color.Info" FullWidth="true" OnClick='() => OnAction("split")'>SPLIT</MudButton>
+                            }
+                            @if (CanDouble()) {
+                                <MudButton Variant="Variant.Outlined" Color="Color.Warning" FullWidth="true" OnClick='() => OnAction("double")'>DOUBLE</MudButton>
+                            }
+                        </div>
+                        @if (CanInsurance()) {
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" OnClick='() => OnAction("insurance")'>INSURANCE</MudButton>
+                        }
                     </div>
                 }
 
@@ -103,11 +129,18 @@
         70% { transform: translate(-50%, -50%) scale(1.1); }
         100% { transform: translate(-50%, -50%) scale(1.0); }
     }
+
+    .hand-container { text-align: center; padding: 16px; border-radius: 16px; transition: all 0.3s ease; position: relative; }
+    .active-hand { background: rgba(255,255,255,0.1); border: 2px solid var(--mud-palette-info); transform: scale(1.05); }
+    .bust-hand { opacity: 0.5; filter: grayscale(1); }
+    .active-indicator { position: absolute; top: -25px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; font-weight: 900; color: var(--mud-palette-info); background: white; padding: 2px 8px; border-radius: 4px; }
+    .color-warning { color: #ff9800; }
 </style>
 
 @code {
-    private List<string> playerHand = new();
+    private List<BlackjackHandUI> playerHands = new();
     private List<string> dealerHand = new();
+    private int activeHandIndex = 0;
     private decimal balance = 0;
     private decimal betAmount = 10.0m;
     private bool isRoundOver = true;
@@ -166,7 +199,7 @@
         
         gameResult = "";
         isRoundOver = false;
-        playerHand.Clear();
+        playerHands.Clear();
         dealerHand.Clear();
         
         layoutService.SetBalanceUpdateSuppression(true);
@@ -213,20 +246,22 @@
     }
 
     private async Task UpdateUI(BlackjackStateUI state) {
-        playerHand = state.PlayerHand;
+        playerHands = state.PlayerHands;
         dealerHand = state.DealerHand;
+        activeHandIndex = state.ActiveHandIndex;
         isRoundOver = state.IsRoundOver;
         
         if (isRoundOver) {
-            int pVal = CalculateValue(playerHand);
-            int dVal = CalculateValue(dealerHand);
+            bool anyWin = false;
+            foreach(var hand in playerHands) {
+                int pVal = CalculateValue(hand.Cards);
+                int dVal = CalculateValue(dealerHand);
+                if (pVal <= 21 && (dVal > 21 || pVal >= dVal)) anyWin = true;
+            }
             
-            if (pVal > 21) gameResult = "BUST!";
-            else if (dVal > 21 || pVal > dVal) gameResult = "YOU WIN!";
-            else if (pVal == dVal) gameResult = "PUSH";
-            else gameResult = "DEALER WINS";
-
-            if (gameResult.Contains("WIN")) await Audio.PlayWin();
+            if (anyWin) await Audio.PlayWin();
+            
+            // Wait for animations
             await Task.Delay(turboMode ? 200 : 1000);
             
             var user = await AuthService.GetMe();
@@ -248,13 +283,47 @@
         foreach (var card in hand) {
             string rank = card.Substring(0, card.Length - 1);
             if (rank == "A") aces++;
-            else if (new[] { "J", "Q", "K" }.Contains(rank)) value += 10;
+            else if (new[] { "J", "Q", "K", "10" }.Contains(rank)) value += 10;
             else value += int.Parse(rank);
         }
         for (int i = 0; i < aces; i++) value += (value + 11 <= 21) ? 11 : 1;
         return value;
     }
 
+    private bool CanSplit() {
+        if (isRoundOver || playerHands.Count != 1) return false;
+        var hand = playerHands[0];
+        if (hand.Cards.Count != 2) return false;
+        string r1 = hand.Cards[0].Substring(0, hand.Cards[0].Length - 1);
+        string r2 = hand.Cards[1].Substring(0, hand.Cards[1].Length - 1);
+        return r1 == r2 || (new[] { "10", "J", "Q", "K" }.Contains(r1) && new[] { "10", "J", "Q", "K" }.Contains(r2));
+    }
+
+    private bool CanDouble() {
+        if (isRoundOver || activeHandIndex >= playerHands.Count) return false;
+        var hand = playerHands[activeHandIndex];
+        if (hand.Cards.Count != 2 || playerHands.Count > 1) return false;
+        int val = CalculateValue(hand.Cards);
+        return val == 10 || val == 11;
+    }
+
+    private bool CanInsurance() {
+        if (isRoundOver || playerHands.Count > 1 || dealerHand.Count != 2) return false;
+        return dealerHand[0].StartsWith("A");
+    }
+
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-    public class BlackjackStateUI { public List<string> PlayerHand { get; set; } = new(); public List<string> DealerHand { get; set; } = new(); public bool IsRoundOver { get; set; } }
+    public class BlackjackHandUI { 
+        public List<string> Cards { get; set; } = new(); 
+        public decimal Bet { get; set; } 
+        public bool IsDoubled { get; set; } 
+        public bool IsStand { get; set; } 
+        public bool IsSplitHand { get; set; }
+    }
+    public class BlackjackStateUI { 
+        public List<BlackjackHandUI> PlayerHands { get; set; } = new(); 
+        public List<string> DealerHand { get; set; } = new(); 
+        public int ActiveHandIndex { get; set; }
+        public bool IsRoundOver { get; set; } 
+    }
 }

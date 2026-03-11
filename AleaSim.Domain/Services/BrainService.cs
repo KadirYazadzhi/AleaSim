@@ -48,7 +48,7 @@ public class BrainService : IBrainService {
     }
 
     public void SetForcedDirective(Guid userId, BrainDirective directive) {
-        _cache.Set($"brain_force_{userId}", directive, TimeSpan.FromHours(1));
+        _cache.Set($"brain_force_{userId}", directive, TimeSpan.FromMinutes(10));
     }
 
     public BrainDirective DecideOutcome(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo, bool isShadowMode = false) {
@@ -71,6 +71,11 @@ public class BrainService : IBrainService {
         }
 
         if (profile == null) return new BrainDirective { DecisionType = "Random" };
+
+        // 2.5 Global Shadow Mode Check
+        if (repo.GetGlobalSetting("GlobalShadowMode").ToLower() == "true") {
+            return new BrainDirective { DecisionType = "Random", Reason = "Global Shadow Mode Active" };
+        }
 
         if (profile.User != null && profile.User.Username.StartsWith("Sim_")) {
             return new BrainDirective { DecisionType = "Random", VolatilityModifier = 1.0, Reason = "Simulation Standard" };

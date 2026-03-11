@@ -207,11 +207,42 @@
             }
             else if (selectedGame == "baccarat") {
                 int baseNonce = nonce * 100;
-                string p1 = GetCard(serverSeed, clientSeed, baseNonce + 1);
-                string b1 = GetCard(serverSeed, clientSeed, baseNonce + 2);
-                string p2 = GetCard(serverSeed, clientSeed, baseNonce + 3);
-                string b2 = GetCard(serverSeed, clientSeed, baseNonce + 4);
-                verificationResult = $"BACCARAT DEAL: P[{p1},{p2}] vs B[{b1},{b2}]";
+                var pHand = new List<string> { GetCard(serverSeed, clientSeed, baseNonce + 1), GetCard(serverSeed, clientSeed, baseNonce + 3) };
+                var bHand = new List<string> { GetCard(serverSeed, clientSeed, baseNonce + 2), GetCard(serverSeed, clientSeed, baseNonce + 4) };
+                
+                int pScore = (GetCardScore(pHand[0]) + GetCardScore(pHand[1])) % 10;
+                int bScore = (GetCardScore(bHand[0]) + GetCardScore(bHand[1])) % 10;
+
+                bool pDrew = false;
+                int p3Val = -1;
+
+                if (pScore < 8 && bScore < 8) { // No natural
+                    if (pScore <= 5) {
+                        string p3 = GetCard(serverSeed, clientSeed, baseNonce + 5);
+                        pHand.Add(p3);
+                        pDrew = true;
+                        p3Val = GetCardScore(p3);
+                        pScore = (pScore + p3Val) % 10;
+                    }
+
+                    bool bDraws = false;
+                    if (!pDrew) {
+                        if (bScore <= 5) bDraws = true;
+                    } else {
+                        if (bScore <= 2) bDraws = true;
+                        else if (bScore == 3 && p3Val != 8) bDraws = true;
+                        else if (bScore == 4 && p3Val >= 2 && p3Val <= 7) bDraws = true;
+                        else if (bScore == 5 && p3Val >= 4 && p3Val <= 7) bDraws = true;
+                        else if (bScore == 6 && (p3Val == 6 || p3Val == 7)) bDraws = true;
+                    }
+
+                    if (bDraws) {
+                        bHand.Add(GetCard(serverSeed, clientSeed, baseNonce + 6));
+                        bScore = (bScore + GetCardScore(bHand.Last())) % 10;
+                    }
+                }
+
+                verificationResult = $"BACCARAT RESULT: Player[{string.Join(",", pHand)}] ({pScore}) vs Banker[{string.Join(",", bHand)}] ({bScore})";
             }
             else if (selectedGame == "slot") {
                 var symbols = new List<string>();
@@ -266,6 +297,13 @@
         string[] ranks = { "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K" };
         string[] suits = { "H", "D", "C", "S" };
         return ranks[idx % 13] + suits[idx / 13];
+    }
+
+    private int GetCardScore(string card) {
+        string rank = card.Substring(0, card.Length - 1);
+        if (rank == "A") return 1;
+        if (rank == "10" || rank == "J" || rank == "Q" || rank == "K") return 0;
+        return int.Parse(rank);
     }
 
     private string GetRouletteColor(int n) {

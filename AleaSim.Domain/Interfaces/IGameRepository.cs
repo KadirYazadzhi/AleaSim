@@ -85,6 +85,7 @@ public interface IGameRepository {
 
     // Audit
     void LogAudit(AuditEvent auditEvent);
+    void LogAuditBatch(IEnumerable<AuditEvent> auditEvents);
     IEnumerable<AuditEvent> GetAuditLogs(int count);
     IEnumerable<AuditEvent> GetAllAuditLogs();
     void CleanupOldAuditLogs(int daysToKeep);

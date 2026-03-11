@@ -8,10 +8,12 @@ namespace AleaSim.Domain.Services;
 
 public class AuditService : IAuditService {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IAuditBuffer _buffer;
     private string _lastHash = "GENESIS";
 
-    public AuditService(IServiceScopeFactory scopeFactory) {
+    public AuditService(IServiceScopeFactory scopeFactory, IAuditBuffer buffer) {
         _scopeFactory = scopeFactory;
+        _buffer = buffer;
         InitializeLastHash();
     }
 
@@ -43,11 +45,10 @@ public class AuditService : IAuditService {
             var hash = CalculateHash(auditEvent);
             auditEvent.Hash = hash;
 
-            using var scope = _scopeFactory.CreateScope();
-            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-            repo.LogAudit(auditEvent);
+            // Buffer the event for background batch writing
+            _buffer.Enqueue(auditEvent);
             
-            // Only update memory after successful persistence
+            // Update memory immediately to maintain hash chain continuity
             _lastHash = hash;
         }
     }

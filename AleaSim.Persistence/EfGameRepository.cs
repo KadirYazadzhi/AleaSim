@@ -440,17 +440,18 @@ public class EfGameRepository : IGameRepository {
         var gStats = GetOrCreateGameStats(gameId);
         var uStats = GetOrCreateUserStats(userId);
 
-        gStats.TotalWagered += bet;
-        gStats.TotalPaid += win;
-        if (bet > 0) gStats.TotalRounds++;
-        gStats.LastCalculated = DateTime.UtcNow;
+        int roundInc = bet > 0 ? 1 : 0;
+        var now = DateTime.UtcNow;
 
-        uStats.TotalWagered += bet;
-        uStats.TotalPaid += win;
-        if (bet > 0) uStats.TotalRounds++;
-        uStats.LastCalculated = DateTime.UtcNow;
+        // Atomic update for Game Stats
+        _context.Database.ExecuteSqlRaw(
+            "UPDATE RTPStatistics SET TotalWagered = TotalWagered + {0}, TotalPaid = TotalPaid + {1}, TotalRounds = TotalRounds + {2}, LastCalculated = {3} WHERE Id = {4}",
+            bet, win, roundInc, now, gStats.Id);
 
-        _context.SaveChanges();
+        // Atomic update for User Stats
+        _context.Database.ExecuteSqlRaw(
+            "UPDATE RTPStatistics SET TotalWagered = TotalWagered + {0}, TotalPaid = TotalPaid + {1}, TotalRounds = TotalRounds + {2}, LastCalculated = {3} WHERE Id = {4}",
+            bet, win, roundInc, now, uStats.Id);
     }
 
     public IEnumerable<RTPStatistics> GetAllRtpStats() {
@@ -514,6 +515,12 @@ public class EfGameRepository : IGameRepository {
 
     public void LogAudit(AuditEvent auditEvent) {
         _context.AuditLogs.Add(auditEvent);
+        _context.SaveChanges();
+    }
+
+    public void LogAuditBatch(IEnumerable<AuditEvent> auditEvents) {
+        if (!auditEvents.Any()) return;
+        _context.AuditLogs.AddRange(auditEvents);
         _context.SaveChanges();
     }
 

@@ -216,11 +216,17 @@ public class AdminController : ControllerBase {
 
     [HttpPost("players/{userId}/force-outcome")]
     public IActionResult ForceOutcome(Guid userId, [FromBody] BrainDirective directive) {
+        var targetUser = _repo.GetUser(userId);
+        if (targetUser == null) return NotFound();
+
+        // Safety: Log this action heavily
+        _auditService.LogEvent("ADMIN_FORCE_OUTCOME", $"Admin forced {directive.DecisionType} for user {targetUser.Username}. Reason: {directive.Reason}", GetCurrentUserId().ToString(), JsonSerializer.Serialize(directive));
+
         using var scope = HttpContext.RequestServices.CreateScope();
         var brain = scope.ServiceProvider.GetRequiredService<IBrainService>();
         
         brain.SetForcedDirective(userId, directive);
-        return Ok(new { Message = "Next spin outcome forced for user." });
+        return Ok(new { Message = $"Next spin outcome forced for {targetUser.Username}. (Expires in 10m)" });
     }
 
     
