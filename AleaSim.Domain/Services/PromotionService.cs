@@ -8,11 +8,15 @@ public class PromotionService : IPromotionService {
     private readonly IRealTimeService _realTimeService;
     private readonly IVaultService _vaultService;
     private readonly IRngService _rngService;
+    private readonly IRedisCacheService _redisCache;
+    private readonly ILockService _lockService;
 
-    public PromotionService(IRealTimeService realTimeService, IVaultService vaultService, IRngService rngService) {
+    public PromotionService(IRealTimeService realTimeService, IVaultService vaultService, IRngService rngService, IRedisCacheService redisCache, ILockService lockService) {
         _realTimeService = realTimeService;
         _vaultService = vaultService;
         _rngService = rngService;
+        _redisCache = redisCache;
+        _lockService = lockService;
     }
 
     public void ProcessBetActivity(Guid userId, decimal betAmount, IGameRepository repo) {
@@ -34,6 +38,31 @@ public class PromotionService : IPromotionService {
         entry.TotalWagered += betAmount;
         entry.RoundCount++;
         repo.UpdateTournamentEntry(entry);
+
+        // Update Global Tournament Pool (1% contribution)
+        UpdateTournamentPool(betAmount * 0.01m, repo);
+    }
+
+    private void UpdateTournamentPool(decimal increase, IGameRepository repo) {
+        // Use Redis for high-frequency updates
+        string cacheKey = "tournament:prize_pool";
+        var current = _redisCache.GetAsync<decimal?>(cacheKey).GetAwaiter().GetResult();
+        
+        if (current == null) {
+            if (decimal.TryParse(repo.GetGlobalSetting("TournamentPrizePool"), out var dbVal)) {
+                current = dbVal;
+            } else {
+                current = 25000m; // Starting base
+            }
+        }
+
+        decimal newValue = current.Value + increase;
+        _redisCache.SetAsync(cacheKey, newValue, TimeSpan.FromHours(2)).GetAwaiter().GetResult();
+
+        // Periodic Sync to DB (every $10 increase) to keep it safe but fast
+        if (Math.Floor(newValue / 10) > Math.Floor(current.Value / 10)) {
+            repo.SetGlobalSetting("TournamentPrizePool", newValue.ToString("F2"), "Monthly Cumulative Pool");
+        }
     }
     
     public void ProcessWinActivity(Guid userId, decimal winAmount, IGameRepository repo) {

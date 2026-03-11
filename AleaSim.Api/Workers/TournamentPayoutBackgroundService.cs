@@ -64,6 +64,10 @@ public class TournamentPayoutBackgroundService : BackgroundService {
                     // Mark as paid in DB
                     repo.SetGlobalSetting(payoutKey, "true", $"Tournament Payout processed on {now}");
                     
+                    // RESET POOL to base $25,000 for next month
+                    repo.SetGlobalSetting("TournamentPrizePool", "25000.00", "Base pool for new month");
+                    await redis.RemoveAsync("tournament:prize_pool");
+
                     tx.Commit();
 
                     // Update Redis for quick check
@@ -86,9 +90,11 @@ public class TournamentPayoutBackgroundService : BackgroundService {
         var topEntries = repo.GetTopTournamentEntries(endOfMonth, 10).ToList();
         if (!topEntries.Any()) return;
 
-        decimal monthlyWagering = repo.GetMonthlyWagering(month);
-        decimal basePool = 25000m;
-        decimal totalPool = basePool + (monthlyWagering * 0.01m); 
+        // Use the persisted pool value
+        decimal totalPool = 25000m;
+        if (decimal.TryParse(repo.GetGlobalSetting("TournamentPrizePool"), out var dbVal)) {
+            totalPool = dbVal;
+        }
 
         // Distribution: 1st 40%, 2nd 25%, 3rd 15%, 4th-10th share 20%
         decimal[] distribution = { 0.40m, 0.25m, 0.15m, 0.05m, 0.03m, 0.03m, 0.03m, 0.02m, 0.02m, 0.02m };

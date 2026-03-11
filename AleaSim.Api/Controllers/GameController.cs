@@ -319,16 +319,24 @@ public class GameController : ControllerBase {
 
     [AllowAnonymous]
     [HttpGet("platform-stats")]
-    public IActionResult GetPlatformStats() {
+    public async Task<IActionResult> GetPlatformStats() {
         var now = DateTime.UtcNow;
         var startOfMonth = new DateTime(now.Year, now.Month, 1);
         
-        // 1. Monthly wagering for Tournament Pool
-        var monthlyBets = _context.Bets
-            .Where(b => b.CreatedAt >= startOfMonth)
-            .Join(_context.Users, b => b.UserId, u => u.Id, (b, u) => new { b, u })
-            .Where(x => !x.u.Username.StartsWith("Sim_") && x.u.Role != AleaSim.Domain.Enums.Role.Admin)
-            .Sum(x => (decimal?)x.b.Amount) ?? 0m;
+        var redis = HttpContext.RequestServices.GetRequiredService<AleaSim.Domain.Services.IRedisCacheService>();
+        
+        // 1. Live Tournament Pool from Redis or DB
+        string cacheKey = "tournament:prize_pool";
+        decimal tournamentPool = await redis.GetAsync<decimal?>(cacheKey) ?? 0m;
+        
+        if (tournamentPool == 0) {
+            if (decimal.TryParse(_repo.GetGlobalSetting("TournamentPrizePool"), out var dbVal)) {
+                tournamentPool = dbVal;
+            } else {
+                tournamentPool = 25000m;
+            }
+            await redis.SetAsync(cacheKey, tournamentPool, TimeSpan.FromHours(2));
+        }
 
         var activeCount = _repo.GetActivePlayerCount(10);
         

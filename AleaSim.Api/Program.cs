@@ -24,9 +24,13 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 // Add Services
 builder.Services.AddControllers();
 
+builder.WebHost.ConfigureKestrel(serverOptions => {
+    serverOptions.Limits.MaxRequestBodySize = 1024 * 1024; // 1MB Limit to prevent RAM DoS
+});
+
 builder.Services.AddCors(options => {
     options.AddPolicy("DefaultCors", policy => {
-        policy.SetIsOriginAllowed(_ => true) // In production, replace with specific domains
+        policy.SetIsOriginAllowed(_ => true) 
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -36,14 +40,6 @@ builder.Services.AddCors(options => {
 var redisConn = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
 builder.Services.AddSignalR().AddStackExchangeRedis(redisConn); 
 builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
-builder.Services.AddCors(options => {
-    options.AddPolicy("AllowBlazor",
-        policy => policy
-            .SetIsOriginAllowed(_ => true) // Allow any origin for Dev (fixes localhost http vs https mismatches)
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials());
-});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c => {
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme {
@@ -164,7 +160,7 @@ app.MapHub<AleaSim.Api.Hubs.GameHub>("/gamehub"); // Added
 using (var scope = app.Services.CreateScope()) {
     var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
     
-    db.Database.EnsureCreated(); // Auto-create tables if missing
+    db.Database.Migrate(); // PRODUCTION: Apply all migrations automatically
 
     // Create SupportMessages table if missing
     try {
