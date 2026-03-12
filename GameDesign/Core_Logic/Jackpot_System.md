@@ -250,6 +250,7 @@ CREATE TABLE JackpotWins (
     SessionId     VARCHAR(64)     NOT NULL,
     WonAt         DATETIME        NOT NULL,
     SeedResetTo   DECIMAL(18, 2)  NOT NULL,
+    Paid          BOOL            NOT NULL DEFAULT FALSE,
     INDEX idx_user     (UserId),
     INDEX idx_tier     (Tier),
     INDEX idx_won_at   (WonAt)

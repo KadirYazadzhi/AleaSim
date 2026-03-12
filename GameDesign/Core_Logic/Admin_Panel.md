@@ -435,10 +435,10 @@ CREATE TABLE AuditLog (
     ResultStatus    VARCHAR(32)     NOT NULL,    -- "success" | "failure" | "pending_approval"
     ResultMessage   VARCHAR(512),
     CreatedAt       DATETIME        NOT NULL,
-    INDEX idx_admin   (AdminId, CreatedAt),
-    INDEX idx_target  (TargetType, TargetId),
-    INDEX idx_action  (Action),
-    INDEX idx_created (CreatedAt)
+    INDEX idx_admin       (AdminId, CreatedAt),
+    INDEX idx_target_time (TargetType, TargetId, CreatedAt),
+    INDEX idx_action      (Action),
+    INDEX idx_created     (CreatedAt)
 );
 ```
 

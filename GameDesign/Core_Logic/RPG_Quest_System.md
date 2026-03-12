@@ -268,7 +268,8 @@ CREATE TABLE PlayerXpLedger (
     Source      VARCHAR(64)  NOT NULL,  -- e.g. "quest:reel_runner"
     TotalAfter  INT          NOT NULL,
     CreatedAt   DATETIME     NOT NULL,
-    INDEX idx_user (UserId)
+    INDEX idx_user         (UserId),
+    INDEX idx_user_created (UserId, CreatedAt)
 );
 ```
 

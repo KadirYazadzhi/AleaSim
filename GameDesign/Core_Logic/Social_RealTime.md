@@ -214,7 +214,7 @@ CREATE TABLE ChatMessages (
     SentAt      DATETIME     NOT NULL,
     DeletedAt   DATETIME     NULL,
     DeletedBy   VARCHAR(64)  NULL,
-    INDEX idx_room_time (RoomId, SentAt)
+    INDEX idx_room_time (RoomId, SentAt, DeletedAt)
 );
 ```
 
