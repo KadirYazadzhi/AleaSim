@@ -45,7 +45,7 @@
                                 <div class="grid-cell @(symbol == 0 ? "empty" : (isColFalling ? "falling" : "")) @(isExplodingFlag ? "exploding" : "")">
                                     @if (symbol > 0)
                                     {
-                                        <span class="symbol-icon" style="animation-delay: @(c * 0.15)s">@GetSymbolEmoji(symbol)</span>
+                                        <span class="symbol-icon" style="animation-delay: @(c * 0.1)s">@GetSymbolEmoji(symbol)</span>
                                     }
                                 </div>
                             }
@@ -203,8 +203,8 @@
             var session = await GameService.ResumeSession("fruitblast");
             if (session != null) {
                 sessionId = session.SessionId;
-                if (!string.IsNullOrEmpty(session.GameState)) {
-                     var state = JsonSerializer.Deserialize<FruitBlastState>(session.GameState);
+                if (session.GameState != null) {
+                     var state = JsonSerializer.Deserialize<FruitBlastState>(session.GameState.ToString()!);
                      if (state != null) {
                          denomination = state.Denomination;
                          juiceMeter = state.JuiceMeter;
