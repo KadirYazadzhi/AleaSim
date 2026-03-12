@@ -221,7 +221,8 @@ ChurnRisk = (w1 × NormLossStreak) + (w2 × SpinIntervalDelta) + (w3 × NormSess
 - pRTP drops: `$3,990 / $4,206 = 94.86%` — within tolerance.
 - `AvgSpinInterval` slows to 5.8s (player hesitating).
 - `SpinIntervalDelta = (5.8 − 3.2) / 3.2 = 0.81`.
-- `ChurnRisk = (0.45 × 0.6) + (0.35 × 0.81) + (0.20 × 0.03) = 0.27 + 0.28 + 0.01 = **0.56** (Medium)`.
+- `NormLossStreak = LossStreak / MaxExpectedStreak = 6 / 10 = 0.60` (MaxExpectedStreak is 10 by default config).
+- `ChurnRisk = (0.45 × 0.60) + (0.35 × 0.81) + (0.20 × 0.03) = 0.27 + 0.28 + 0.01 = **0.56** (Medium)`.
 - Brain sets DecisionType: `LowerVolatility` (popcorn wins to re-engage).
 
 ### Step 4 — Spin 8 (Brain Intervenes — Popcorn Win)
