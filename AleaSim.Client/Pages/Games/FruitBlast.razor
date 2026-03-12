@@ -56,11 +56,11 @@
                                         {
                                             var symbol = currentGrid[r][c];
                                             var isExplodingFlag = isExploding(r, c);
-                                            var isColFalling = isFalling && activeColumns.Contains(c);
+                                            var isColFalling = isFalling && activeColumns != null && activeColumns.Contains(c);
                                             <div class="grid-cell @(symbol == 0 ? "empty" : (isColFalling ? "falling" : "")) @(isExplodingFlag ? "exploding" : "")">
                                                 @if (symbol > 0)
                                                 {
-                                                    <span class="symbol-icon" style="animation-delay: @(c * 0.05)s">@GetSymbolEmoji(symbol)</span>
+                                                    <span class="symbol-icon" style="animation-delay: @(c * 0.1)s">@GetSymbolEmoji(symbol)</span>
                                                 }
                                             </div>
                                         }
@@ -100,7 +100,7 @@
                     <MudSelectItem Value="@(1.00m)">@((1.00m).ToString("C2"))</MudSelectItem>
                 </MudSelect>
 
-                <MudNumericField @bind-Value="creditsBet" Label="Bet (Credits)" Variant="Variant.Filled" Min="1" Max="1000" Step="1" 
+                <MudNumericField @bind-Value="creditsBet" Label="Bet (Credits)" Variant="Variant.Filled" Min="10" Max="1000" Step="10" 
                                  Disabled="@isSpinning" />
                 
                 <div class="mt-n2 text-center">
@@ -249,7 +249,7 @@
         _ => ""
     };
 
-    private bool isExploding(int r, int c) => explodingCells.Any(p => p.R == r && p.C == c);
+    private bool isExploding(int r, int c) => explodingCells != null && explodingCells.Any(p => p.R == r && p.C == c);
 
     private async Task UpdateGridSequential(int[][] newGrid, List<int>? columns = null) {
         if (newGrid == null) return;
@@ -260,7 +260,7 @@
 
         foreach (int c in colsToUpdate) {
             for (int r = 0; r < 5; r++) {
-                if (newGrid.Length > r && newGrid[r] != null && newGrid[r].Length > c)
+                if (newGrid.Length > r && newGrid[r] != null && newGrid[r].Length > c && currentGrid.Length > r && currentGrid[r] != null)
                 {
                     currentGrid[r][c] = newGrid[r][c];
                 }
@@ -282,7 +282,8 @@
         lastWin = 0;
         juiceMeter = 0;
         totalMultiplier = 1;
-        explodingCells.Clear();
+        if (explodingCells != null) explodingCells.Clear();
+        else explodingCells = new();
 
         var betAmount = creditsBet * denomination;
 
@@ -304,44 +305,50 @@
             
             if (fullState != null) {
                 // 1. Initial Drop (Reel by Reel)
-                if (fullState.History.Any()) {
+                if (fullState.History != null && fullState.History.Any()) {
                     await UpdateGridSequential(fullState.History.First().GridBefore);
                 }
                 await Task.Delay(300);
 
                 // Play back history (Avalanches)
-                int stepIdx = 0;
-                foreach (var step in fullState.History) {
-                    explodingCells = step.WinningClusters;
-                    explodingCells.AddRange(step.Explosions.SelectMany(e => e.Affected));
-                    
-                    if (explodingCells.Any()) {
-                        isShaking = true;
-                        await Audio.PlayBonus(); // Explosion sound
-                        StateHasChanged();
-                        await Task.Delay(400); // Faster explosion
-                        isShaking = false;
-                        StateHasChanged();
-                    }
-                    
-                    // 2. Clear exploded cells
-                    foreach(var p in explodingCells) {
-                        if (currentGrid.Length > p.R && currentGrid[p.R] != null && currentGrid[p.R].Length > p.C)
+                if (fullState.History != null)
+                {
+                    int stepIdx = 0;
+                    foreach (var step in fullState.History) {
+                        explodingCells = step.WinningClusters ?? new();
+                        if (step.Explosions != null)
                         {
-                            currentGrid[p.R][p.C] = 0;
+                            explodingCells.AddRange(step.Explosions.SelectMany(e => e.Affected ?? new List<Point>()));
                         }
-                    }
-                    explodingCells.Clear();
-                    juiceMeter = step.JuiceMeterValue;
-                    StateHasChanged();
-                    await Task.Delay(300);
+                        
+                        if (explodingCells.Any()) {
+                            isShaking = true;
+                            await Audio.PlayBonus(); // Explosion sound
+                            StateHasChanged();
+                            await Task.Delay(1200); // Pause on explosion
+                            isShaking = false;
+                            StateHasChanged();
+                        }
+                        
+                        // 2. Clear exploded cells
+                        foreach(var p in explodingCells) {
+                            if (currentGrid.Length > p.R && currentGrid[p.R] != null && currentGrid[p.R].Length > p.C)
+                            {
+                                currentGrid[p.R][p.C] = 0;
+                            }
+                        }
+                        explodingCells.Clear();
+                        juiceMeter = step.JuiceMeterValue;
+                        StateHasChanged();
+                        await Task.Delay(800);
 
-                    // 3. Fall & Fill (Only affected columns)
-                    stepIdx++;
-                    if (stepIdx < fullState.History.Count) {
-                        await UpdateGridSequential(fullState.History[stepIdx].GridBefore, step.AffectedColumns);
+                        // 3. Fall & Fill (Only affected columns)
+                        stepIdx++;
+                        if (stepIdx < fullState.History.Count) {
+                            await UpdateGridSequential(fullState.History[stepIdx].GridBefore, step.AffectedColumns);
+                        }
+                        await Task.Delay(600);
                     }
-                    await Task.Delay(200);
                 }
 
                 totalMultiplier = fullState.TotalMultiplier;
