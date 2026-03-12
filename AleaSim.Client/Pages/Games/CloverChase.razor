@@ -11,7 +11,7 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JSRuntime
 @inject IDialogService DialogService
-@inject LayoutService layoutService
+@inject LayoutService LayoutService
 @inject IAuthService AuthService
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
@@ -222,12 +222,12 @@
                 return;
             }
             balance -= betAmount;
-            layoutService.DeductOptimisticBalance(betAmount); // Update Navbar immediately
+            LayoutService.DeductOptimisticBalance(betAmount); // Update Navbar immediately
             StateHasChanged();
         }
 
         // Suppress Navbar updates to prevent spoilers
-        layoutService.SetBalanceUpdateSuppression(true);
+        LayoutService.SetBalanceUpdateSuppression(true);
         
         try {
             await Audio.PlaySpin();
@@ -274,7 +274,7 @@
         finally { 
             isSpinning = false; 
             // Release Navbar updates
-            layoutService.SetBalanceUpdateSuppression(false);
+            LayoutService.SetBalanceUpdateSuppression(false);
             StateHasChanged(); 
         }
     }

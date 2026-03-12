@@ -9,7 +9,7 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IAuthService AuthService
-@inject LayoutService layoutService
+@inject LayoutService LayoutService
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudGrid Justify="Justify.Center">
@@ -19,9 +19,10 @@
                 <div class="text-center mb-16">
                     <MudText Typo="Typo.h6" Class="mb-2" Style="opacity: 0.7;">DEALER</MudText>
                     <div class="d-flex justify-center gap-2">
-                        @foreach (var card in dealerHand)
+                        @for (int j = 0; j < dealerHand.Count; j++)
                         {
-                            <div @key="card" class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "")">
+                            var card = dealerHand[j];
+                            <div @key='@($"dealer_card_{j}_{card}")' class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "")">
                                 @FormatCard(card)
                             </div>
                         }
@@ -47,9 +48,10 @@
                         bool isActive = !isRoundOver && i == activeHandIndex;
                         <div class='@($"hand-container {(isActive ? "active-hand" : "")} {(CalculateValue(hand.Cards) > 21 ? "bust-hand" : "")}")'>
                             <div class="d-flex justify-center gap-2 mb-2">
-                                @foreach (var card in hand.Cards)
+                                @for (int j = 0; j < hand.Cards.Count; j++)
                                 {
-                                    <div @key="card" class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "")">
+                                    var card = hand.Cards[j];
+                                    <div @key='@($"player_card_{i}_{j}_{card}")' class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "")">
                                         @FormatCard(card)
                                     </div>
                                 }
@@ -202,27 +204,27 @@
         playerHands.Clear();
         dealerHand.Clear();
         
-        layoutService.SetBalanceUpdateSuppression(true);
+        LayoutService.SetBalanceUpdateSuppression(true);
         StateHasChanged();
 
         try {
             await Audio.PlaySpin();
             balance -= betAmount;
-            layoutService.DeductOptimisticBalance(betAmount); 
+            LayoutService.DeductOptimisticBalance(betAmount); 
             
             var result = await GameService.PlaceBet("blackjack", sessionId.Value, betAmount, new { });
             var state = JsonSerializer.Deserialize<BlackjackStateUI>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (state != null) await UpdateUI(state);
             
             if (!isRoundOver) {
-                layoutService.SetBalanceUpdateSuppression(false);
+                LayoutService.SetBalanceUpdateSuppression(false);
                 var user = await AuthService.GetMe();
                 if (user != null) balance = user.TotalBalance;
             }
         } catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
             isRoundOver = true;
-            layoutService.SetBalanceUpdateSuppression(false);
+            LayoutService.SetBalanceUpdateSuppression(false);
             await RefreshBalance();
         }
     }
@@ -230,7 +232,7 @@
     private async Task OnAction(string action) {
         if (sessionId == null || isRoundOver) return;
         await Audio.PlayClick();
-        layoutService.SetBalanceUpdateSuppression(true);
+        LayoutService.SetBalanceUpdateSuppression(true);
         
         try {
             var response = await GameService.PerformAction("blackjack", sessionId.Value, action);
@@ -238,10 +240,10 @@
                 var state = JsonSerializer.Deserialize<BlackjackStateUI>(response.UpdatedStateJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (state != null) await UpdateUI(state);
             }
-            if (!isRoundOver) layoutService.SetBalanceUpdateSuppression(false);
+            if (!isRoundOver) LayoutService.SetBalanceUpdateSuppression(false);
         } catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
-            layoutService.SetBalanceUpdateSuppression(false);
+            LayoutService.SetBalanceUpdateSuppression(false);
         }
     }
 
@@ -266,7 +268,7 @@
             
             var user = await AuthService.GetMe();
             if (user != null) balance = user.TotalBalance;
-            layoutService.SetBalanceUpdateSuppression(false);
+            LayoutService.SetBalanceUpdateSuppression(false);
         }
         StateHasChanged();
     }
