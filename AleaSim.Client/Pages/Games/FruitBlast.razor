@@ -12,13 +12,14 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JSRuntime
 @inject IDialogService DialogService
-@inject LayoutService layoutService
+@inject LayoutService LayoutService
 @inject IAuthService AuthService
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudGrid>
         <MudItem xs="12" lg="8">
-            <MudPaper Class="@($"pa-4 relative overflow-hidden {(isShaking ? "shake-grid" : "")}")" Style="background: radial-gradient(circle, #2a0845 0%, #000000 100%); border: 8px solid #4a148c; border-radius: 30px; min-height: 600px; box-shadow: 0 0 50px rgba(74, 20, 140, 0.4);">
+            <MudPaper Class="@($"pa-4 relative overflow-hidden {(LayoutService.IsDarkMode ? "game-dark" : "game-light")}")" 
+                      Style='@($"border: 8px solid var(--game-border); border-radius: 30px; min-height: 600px; box-shadow: 0 0 50px var(--game-glow);")'>
                 
                 <!-- Juice Meter -->
                 <div class="juice-meter-container">
@@ -32,7 +33,7 @@
                 </div>
 
                 <!-- Game Grid -->
-                <div class="fruit-grid">
+                <div class="fruit-grid @(isShaking ? "shake-grid" : "")">
                     @for (int r = 0; r < 5; r++)
                     {
                         <div class="grid-row">
@@ -43,7 +44,7 @@
                                 <div class="grid-cell @(symbol == 0 ? "empty" : (isFalling ? "falling" : "")) @(isExplodingFlag ? "exploding" : "")">
                                     @if (symbol > 0)
                                     {
-                                        <span class="symbol-icon" style="animation-delay: @(c * 0.1)s">@GetSymbolEmoji(symbol)</span>
+                                        <span class="symbol-icon" style="animation-delay: @(c * 0.2)s">@GetSymbolEmoji(symbol)</span>
                                     }
                                 </div>
                             }
@@ -63,10 +64,10 @@
         </MudItem>
 
         <MudItem xs="12" lg="4">
-            <MudPaper Class="pa-6 d-flex flex-column gap-4" Style="background: #111; color: white; border-radius: 20px; border: 2px solid #333;">
+            <MudPaper Class="pa-6 d-flex flex-column gap-4" Style='@($"background: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border-radius: 20px; border: 2px solid var(--mud-palette-divider);")'>
                 <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Primary" Style="font-weight: 900; letter-spacing: 2px;">FRUIT BLAST</MudText>
                 
-                <div class="balance-widget pa-4 rounded-lg mb-2" style="background: rgba(255,255,255,0.05);">
+                <div class="balance-widget pa-4 rounded-lg mb-2" style="background: var(--mud-palette-background-grey);">
                     <MudText Typo="Typo.caption" Class="opacity-50">BALANCE</MudText>
                     <MudText Typo="Typo.h4" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
                 </div>
@@ -78,7 +79,7 @@
                            Color="Color.Primary" 
                            OnClick="OnSpin" 
                            Disabled="@(isSpinning || balance < betAmount)" 
-                           Style="height: 80px; font-size: 1.5rem; font-weight: 900; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
+                           Style="height: 80px; font-size: 1.5rem; font-weight: 900; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
                     @(isSpinning ? "AVALANCHE..." : "SPIN")
                 </MudButton>
 
@@ -87,7 +88,7 @@
                     <div class="d-flex flex-wrap gap-2">
                         @foreach (var s in new[] { 7, 6, 5, 4, 3, 2, 1 })
                         {
-                            <div class="pa-2 rounded glass-panel d-flex align-center gap-2" style="width: 45%;">
+                            <div class="pa-2 rounded glass-panel d-flex align-center gap-2" style="width: 45%; border: 1px solid var(--mud-palette-divider);">
                                 <span>@GetSymbolEmoji(s)</span>
                                 <MudText Typo="Typo.caption">@(s == 7 ? "High" : (s > 4 ? "Mid" : "Low"))</MudText>
                             </div>
@@ -95,9 +96,9 @@
                     </div>
                 </div>
 
-                <div class="mt-4 pa-4 rounded-lg" style="background: rgba(0,0,0,0.3); border: 1px solid #444;">
-                    <MudText Typo="Typo.caption" Style="color: #888;">NUCLEAR BOMBS: 2+ trigger row/col wipe</MudText><br/>
-                    <MudText Typo="Typo.caption" Style="color: #888;">SUPERNOVA: Doubles total multiplier!</MudText>
+                <div class="mt-4 pa-4 rounded-lg" style="background: var(--mud-palette-background-grey); border: 1px solid var(--mud-palette-divider);">
+                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">NUCLEAR BOMBS: 2+ trigger row/col wipe</MudText><br/>
+                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">SUPERNOVA: Doubles total multiplier!</MudText>
                 </div>
             </MudPaper>
         </MudItem>
@@ -105,23 +106,41 @@
 </MudContainer>
 
 <style>
+    :root {
+        --game-border: #4a148c;
+        --game-glow: rgba(74, 20, 140, 0.4);
+        --juice-text: #ab47bc;
+    }
+    .game-light { 
+        background: radial-gradient(circle, #f3e5f5 0%, #ffffff 100%); 
+        --game-border: #7b1fa2;
+        --game-glow: rgba(123, 31, 162, 0.2);
+        --juice-text: #7b1fa2;
+    }
+    .game-dark { 
+        background: radial-gradient(circle, #2a0845 0%, #000000 100%); 
+        --game-border: #4a148c;
+        --game-glow: rgba(74, 20, 140, 0.4);
+        --juice-text: #ab47bc;
+    }
+
     .fruit-grid { display: flex; flex-direction: column; gap: 8px; justify-content: center; align-items: center; height: 500px; padding: 20px; transition: transform 0.1s; }
-    .shake-grid { animation: shake 0.3s infinite; }
+    .shake-grid { animation: shakeGrid 0.4s ease-in-out; }
     .grid-row { display: flex; gap: 8px; }
-    .grid-cell { width: 70px; height: 70px; background: rgba(255,255,255,0.05); border-radius: 12px; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden; }
-    .grid-cell.empty { background: transparent; border: 1px dashed rgba(255,255,255,0.05); }
-    .grid-cell.falling .symbol-icon { animation: fallIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
-    .symbol-icon { font-size: 2.5rem; filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); transform-origin: center; }
+    .grid-cell { width: 70px; height: 70px; background: rgba(128,128,128,0.1); border-radius: 12px; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(128,128,128,0.2); position: relative; overflow: hidden; }
+    .grid-cell.empty { background: transparent; border: 1px dashed rgba(128,128,128,0.1); }
+    .grid-cell.falling .symbol-icon { animation: fallIn 1.0s cubic-bezier(0.175, 0.885, 0.32, 1.2) both; }
+    .symbol-icon { font-size: 2.5rem; filter: drop-shadow(0 0 5px rgba(0,0,0,0.2)); transform-origin: center; display: inline-block; }
     
-    @@keyframes fallIn { 0% { transform: translateY(-500px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-    @@keyframes explode { 0% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.6); filter: brightness(3) hue-rotate(45deg); opacity: 0.8; } 100% { transform: scale(0); opacity: 0; } }
-    @@keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
+    @@keyframes fallIn { 0% { transform: translateY(-600px); opacity: 0; } 60% { transform: translateY(20px); opacity: 1; } 100% { transform: translateY(0); opacity: 1; } }
+    @@keyframes explode { 0% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.4); filter: brightness(2) hue-rotate(45deg); opacity: 0.9; } 100% { transform: scale(0); opacity: 0; } }
+    @@keyframes shakeGrid { 0%, 100% { transform: translate(0,0); } 10%, 30%, 50%, 70%, 90% { transform: translate(-4px, 0); } 20%, 40%, 60%, 80% { transform: translate(4px, 0); } }
     
     .exploding .symbol-icon { animation: explode 0.5s forwards !important; }
 
-    .juice-meter-container { position: absolute; left: 20px; top: 50px; bottom: 50px; width: 40px; background: rgba(0,0,0,0.5); border: 2px solid #4a148c; border-radius: 20px; overflow: hidden; }
+    .juice-meter-container { position: absolute; left: 20px; top: 50px; bottom: 50px; width: 40px; background: rgba(0,0,0,0.15); border: 2px solid #4a148c; border-radius: 20px; overflow: hidden; }
     .juice-meter-fill { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, #4a148c, #ab47bc, #ffeb3b); transition: height 0.5s ease-out; box-shadow: 0 0 15px rgba(171, 71, 188, 0.5); }
-    .juice-meter-text { position: absolute; top: -30px; left: -10px; width: 60px; text-align: center; color: #ab47bc; font-weight: 900; font-size: 0.8rem; }
+    .juice-meter-text { position: absolute; top: -30px; left: -10px; width: 60px; text-align: center; font-weight: 900; font-size: 0.8rem; color: var(--juice-text); }
     .multiplier-badge { position: absolute; top: 20px; right: 20px; background: #ffeb3b; color: black; padding: 10px 20px; border-radius: 10px; font-weight: 900; font-size: 1.5rem; box-shadow: 0 0 20px rgba(255,235,59,0.5); border: 2px solid black; }
     .win-display { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); font-size: 3rem; font-weight: 900; color: #4caf50; text-shadow: 0 0 30px black, 0 0 10px #4caf50; opacity: 0; transition: opacity 0.3s; z-index: 10; }
     .win-display.visible { opacity: 1; animation: winPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -143,8 +162,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        for (int i = 0; i < 5; i++) currentGrid[i] = new int[6] { 1, 2, 3, 4, 5, 6 };
+        for (int i = 0; i < 5; i++) currentGrid[i] = new int[6];
+        LayoutService.OnMajorUpdate += StateHasChanged;
         await LoadData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) {
+            await Audio.Init();
+        }
     }
 
     private async Task LoadData()
@@ -167,7 +194,7 @@
         1 => "🍋", 2 => "🍒", 3 => "🍊", 4 => "🍇", 
         5 => "🍉", 6 => "🍎", 7 => "⭐", 
         8 => "🧨", 9 => "☢️", 10 => "💥",
-        _ => "❓"
+        _ => ""
     };
 
     private bool isExploding(int r, int c) => explodingCells.Any(p => p.R == r && p.C == c);
@@ -180,8 +207,8 @@
                 currentGrid[r][c] = newGrid[r][c];
             }
             StateHasChanged();
-            await Audio.PlayClick(); // Play land sound per column
-            await Task.Delay(100);
+            await Audio.PlayClick(); // land sound
+            await Task.Delay(350); // Much slower landing
         }
         isFalling = false;
         StateHasChanged();
@@ -215,12 +242,12 @@
                 // Initial Grid - Empty it first
                 for (int r = 0; r < 5; r++) for (int c = 0; c < 6; c++) currentGrid[r][c] = 0;
                 StateHasChanged();
-                await Task.Delay(200);
+                await Task.Delay(400);
 
                 if (fullState.History.Any()) {
                     await UpdateGridSequential(fullState.History.First().GridBefore);
                 }
-                await Task.Delay(400);
+                await Task.Delay(800);
 
                 // Play back history
                 int stepIdx = 0;
@@ -233,8 +260,9 @@
                         isShaking = true;
                         await Audio.PlayBonus(); // Explosion sound
                         StateHasChanged();
-                        await Task.Delay(600);
+                        await Task.Delay(1000); // Slower explosion visibility
                         isShaking = false;
+                        StateHasChanged();
                     }
                     
                     // 2. Clear exploded cells (show empty spots)
@@ -242,14 +270,14 @@
                     explodingCells.Clear();
                     juiceMeter = step.JuiceMeterValue;
                     StateHasChanged();
-                    await Task.Delay(300);
+                    await Task.Delay(600);
 
                     // 3. Fall & Fill (Next Step)
                     stepIdx++;
                     if (stepIdx < fullState.History.Count) {
                         await UpdateGridSequential(fullState.History[stepIdx].GridBefore);
                     }
-                    await Task.Delay(300);
+                    await Task.Delay(600);
                 }
 
                 // Final State
@@ -271,7 +299,10 @@
         }
     }
 
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    public ValueTask DisposeAsync() {
+        LayoutService.OnMajorUpdate -= StateHasChanged;
+        return ValueTask.CompletedTask;
+    }
 
     // Local DTOs for state playback
     public class FruitBlastState {

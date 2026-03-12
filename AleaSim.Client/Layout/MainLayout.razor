@@ -529,6 +529,7 @@
 
     protected override async Task OnInitializedAsync() {
         await LayoutService.InitializeAsync();
+        await Audio.Init(); // Ensure audio system is ready
         NotifService.OnNotificationsChanged += StateHasChanged;
         GameService.OnFlowStateChanged += HandleFlowStateChange; 
         LayoutService.OnMajorUpdate += StateHasChanged;

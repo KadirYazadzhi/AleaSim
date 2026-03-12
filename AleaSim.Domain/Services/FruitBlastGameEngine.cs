@@ -80,7 +80,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
             int avalancheCount = 0;
             bool continueAvalanche = true;
 
-            while (continueAvalanche && avalancheCount < 50) { // Safety cap
+            while (continueAvalanche && avalancheCount < 15) { // Capped at 15 steps for better pacing
                 var step = new AvalancheStep {
                     GridBefore = CopyGrid(state.Grid),
                     JuiceMeterValue = state.JuiceMeter
@@ -105,7 +105,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
                         foreach (var p in exp.Affected) state.Grid[p.R][p.C] = 0;
                         if (exp.Type == 10) {
                              state.TotalMultiplier *= 2; // Supernova doubles multiplier
-                             if (state.TotalMultiplier > 1000) state.TotalMultiplier = 1000; // Cap to prevent Overflow
+                             if (state.TotalMultiplier > 100) state.TotalMultiplier = 100; // Cap to 100x for sanity
                         }
                     }
                 }
@@ -189,9 +189,9 @@ public class FruitBlastGameEngine : BaseGameEngine {
 
     private int GetWeightedSymbol(string serverSeed, string clientSeed, int nonce) {
         int val = RngService.GetNextInt(serverSeed, clientSeed, nonce, 1, 101);
-        // 85% Fruits (1-7), 10% TNT (8), 4% Nuclear (9), 1% Supernova (10)
-        if (val <= 85) return RngService.GetNextInt(serverSeed, clientSeed, nonce + 1000, 1, 8); 
-        if (val <= 95) return 8; 
+        // 92% Fruits (1-7), 6% TNT (8), 1.5% Nuclear (9), 0.5% Supernova (10)
+        if (val <= 92) return RngService.GetNextInt(serverSeed, clientSeed, nonce + 1000, 1, 8); 
+        if (val <= 98) return 8; 
         if (val <= 99) return 9;
         return 10;
     }
