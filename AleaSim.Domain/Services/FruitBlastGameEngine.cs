@@ -219,8 +219,8 @@ public class FruitBlastGameEngine : BaseGameEngine {
 
     private int GetWeightedSymbol(string serverSeed, string clientSeed, int nonce) {
         int val = RngService.GetNextInt(serverSeed, clientSeed, nonce, 1, 101);
-        // 92% Fruits (1-7), 6% TNT (8), 1.5% Nuclear (9), 0.5% Supernova (10)
-        if (val <= 92) return RngService.GetNextInt(serverSeed, clientSeed, nonce + 1000, 1, 8); 
+        // 95.5% Fruits (1-7), 3% TNT (8), 1% Nuclear (9), 0.5% Supernova (10)
+        if (val <= 95) return RngService.GetNextInt(serverSeed, clientSeed, nonce + 1000, 1, 8); 
         if (val <= 98) return 8; 
         if (val <= 99) return 9;
         return 10;

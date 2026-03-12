@@ -19,46 +19,45 @@
     <MudGrid>
         <MudItem xs="12" lg="8">
             <MudPaper Class="@($"pa-4 relative overflow-hidden {(LayoutService.IsDarkMode ? "game-dark" : "game-light")}")" 
-                      Style='@($"border: 8px solid var(--game-border); border-radius: 30px; min-height: 600px; box-shadow: 0 0 50px var(--game-glow);")'>
+                      Style='@($"border: 8px solid var(--game-border); border-radius: 30px; min-height: 650px; box-shadow: 0 0 50px var(--game-glow); display: flex; flex-direction: column; align-items: center; justify-content: center;")'>
                 
-                <!-- Juice Meter -->
-                <div class="juice-meter-container">
-                    <div class="juice-meter-fill" style="height: @(Math.Min(100, (juiceMeter * 5)))%"></div>
-                    <div class="juice-meter-text">JUICE: @juiceMeter</div>
-                    <div class="juice-meter-milestones">
-                        <div class="milestone @(juiceMeter >= 20 ? "active" : "")">10X</div>
-                        <div class="milestone @(juiceMeter >= 10 ? "active" : "")">3X</div>
-                        <div class="milestone @(juiceMeter >= 5 ? "active" : "")">2X</div>
+                <!-- Juice Meter (New Redesigned Styles) -->
+                <div class="juice-meter-sidebar">
+                    <div class="juice-meter-track">
+                        <div class="juice-meter-fill" style="height: @(Math.Min(100, (juiceMeter * 5)))%">
+                            <div class="juice-meter-glow"></div>
+                        </div>
+                        <div class="juice-meter-markers">
+                            <div class="juice-marker @(juiceMeter >= 20 ? "active" : "")"><span>10X</span></div>
+                            <div class="juice-marker @(juiceMeter >= 10 ? "active" : "")"><span>3X</span></div>
+                            <div class="juice-marker @(juiceMeter >= 5 ? "active" : "")"><span>2X</span></div>
+                        </div>
                     </div>
+                    <div class="juice-label">JUICE</div>
+                    <div class="juice-value">@juiceMeter</div>
                 </div>
 
                 <!-- Game Grid -->
-                <div class="fruit-grid @(isShaking ? "shake-grid" : "")">
-                    @if (currentGrid != null)
+                <div class="fruit-grid-container @(isShaking ? "shake-grid" : "")">
+                    @for (int r = 0; r < 5; r++)
                     {
-                        @for (int r = 0; r < 5; r++)
-                        {
-                            <div class="grid-row">
-                                @if (currentGrid.Length > r && currentGrid[r] != null)
-                                {
-                                    @for (int c = 0; c < 6; c++)
+                        <div class="grid-row">
+                            @for (int c = 0; c < 6; c++)
+                            {
+                                var row = r;
+                                var col = c;
+                                var symbol = (currentGrid != null && currentGrid.Length > row && currentGrid[row] != null && currentGrid[row].Length > col) ? currentGrid[row][col] : 0;
+                                var isExplodingFlag = isExploding(row, col);
+                                var isLanding = isFalling && activeColumn == col;
+                                
+                                <div class="grid-cell @(symbol == 0 ? "empty" : "") @(isLanding ? "landing-anim" : "") @(isExplodingFlag ? "exploding" : "")">
+                                    @if (symbol > 0)
                                     {
-                                        if (currentGrid[r].Length > c)
-                                        {
-                                            var symbol = currentGrid[r][c];
-                                            var isExplodingFlag = isExploding(r, c);
-                                            var isColFalling = isFalling && activeColumns != null && activeColumns.Contains(c);
-                                            <div class="grid-cell @(symbol == 0 ? "empty" : (isColFalling ? "falling" : "")) @(isExplodingFlag ? "exploding" : "")">
-                                                @if (symbol > 0)
-                                                {
-                                                    <span class="symbol-icon" style="animation-delay: @(c * 0.1)s">@GetSymbolEmoji(symbol)</span>
-                                                }
-                                            </div>
-                                        }
+                                        <span class="symbol-icon">@GetSymbolEmoji(symbol)</span>
                                     }
-                                }
-                            </div>
-                        }
+                                </div>
+                            }
+                        </div>
                     }
                 </div>
 
@@ -74,10 +73,10 @@
         </MudItem>
 
         <MudItem xs="12" lg="4">
-            <MudPaper Class="pa-6 d-flex flex-column gap-4" Style='@($"background: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border-radius: 20px; border: 2px solid var(--mud-palette-divider);")'>
+            <MudPaper Class="pa-6 d-flex flex-column gap-4" Style='@($"background: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border-radius: 20px; border: 2px solid var(--mud-palette-divider); height: 100%;")'>
                 <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Primary" Style="font-weight: 900; letter-spacing: 2px;">FRUIT BLAST</MudText>
                 
-                <div class="balance-widget pa-4 rounded-lg mb-2" style="background: var(--mud-palette-background-grey);">
+                <div class="balance-widget pa-4 rounded-lg mb-2" style="background: var(--mud-palette-background-grey); text-align: center;">
                     <MudText Typo="Typo.caption" Class="opacity-50">BALANCE</MudText>
                     <MudText Typo="Typo.h4" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
                 </div>
@@ -102,26 +101,21 @@
                            Color="Color.Primary" 
                            OnClick="OnSpin" 
                            Disabled="@(isSpinning || balance < (creditsBet * denomination))" 
-                           Style="height: 80px; font-size: 1.5rem; font-weight: 900; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
-                    @(isSpinning ? "AVALANCHE..." : "SPIN")
+                           Style="height: 100px; font-size: 2rem; font-weight: 900; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.3);">
+                    @(isSpinning ? "WAIT..." : "SPIN")
                 </MudButton>
 
                 <div class="mt-4">
-                    <MudText Typo="Typo.subtitle2" Class="mb-2 opacity-50">PAYTABLE PREVIEW</MudText>
+                    <MudText Typo="Typo.subtitle2" Class="mb-2 opacity-50">PAYTABLE</MudText>
                     <div class="d-flex flex-wrap gap-2">
                         @foreach (var s in new[] { 7, 6, 5, 4, 3, 2, 1 })
                         {
-                            <div class="pa-2 rounded glass-panel d-flex align-center gap-2" style="width: 45%; border: 1px solid var(--mud-palette-divider);">
-                                <span>@GetSymbolEmoji(s)</span>
+                            <div class="pa-2 rounded glass-panel d-flex align-center justify-center gap-2" style="width: 45%; border: 1px solid var(--mud-palette-divider);">
+                                <span style="font-size: 1.5rem;">@GetSymbolEmoji(s)</span>
                                 <MudText Typo="Typo.caption">@(s == 7 ? "High" : (s > 4 ? "Mid" : "Low"))</MudText>
                             </div>
                         }
                     </div>
-                </div>
-
-                <div class="mt-4 pa-4 rounded-lg" style="background: var(--mud-palette-background-grey); border: 1px solid var(--mud-palette-divider);">
-                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">NUCLEAR BOMBS: 2+ trigger row/col wipe</MudText><br/>
-                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">SUPERNOVA: Doubles total multiplier!</MudText>
                 </div>
             </MudPaper>
         </MudItem>
@@ -132,44 +126,57 @@
     :root {
         --game-border: #4a148c;
         --game-glow: rgba(74, 20, 140, 0.4);
-        --juice-text: #ab47bc;
+        --juice-color: #ab47bc;
     }
     .game-light { 
         background: radial-gradient(circle, #f3e5f5 0%, #ffffff 100%); 
         --game-border: #7b1fa2;
         --game-glow: rgba(123, 31, 162, 0.2);
-        --juice-text: #7b1fa2;
+        --juice-color: #7b1fa2;
     }
     .game-dark { 
         background: radial-gradient(circle, #2a0845 0%, #000000 100%); 
         --game-border: #4a148c;
         --game-glow: rgba(74, 20, 140, 0.4);
-        --juice-text: #ab47bc;
+        --juice-color: #ab47bc;
     }
 
-    .audio-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; cursor: pointer; border-radius: 30px; }
+    /* Juice Meter Sidebar */
+    .juice-meter-sidebar { position: absolute; left: 30px; top: 50%; transform: translateY(-50%); width: 60px; height: 400px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .juice-meter-track { position: relative; width: 30px; height: 100%; background: rgba(0,0,0,0.3); border: 3px solid var(--game-border); border-radius: 15px; overflow: hidden; box-shadow: inset 0 0 10px black; }
+    .juice-meter-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, var(--juice-color), #ffeb3b); transition: height 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .juice-meter-glow { position: absolute; top: 0; left: 0; width: 100%; height: 10px; background: white; filter: blur(5px); opacity: 0.8; }
+    .juice-meter-markers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-around; pointer-events: none; }
+    .juice-marker { width: 100%; height: 2px; background: rgba(255,255,255,0.2); position: relative; }
+    .juice-marker span { position: absolute; left: 35px; top: -10px; font-size: 0.8rem; font-weight: 900; color: rgba(255,255,255,0.3); transition: all 0.3s; }
+    .juice-marker.active span { color: #ffeb3b; text-shadow: 0 0 10px #ffeb3b; transform: scale(1.2); }
+    .juice-label { font-weight: 900; font-size: 0.7rem; letter-spacing: 2px; color: var(--juice-color); opacity: 0.7; }
+    .juice-value { font-weight: 900; font-size: 1.5rem; color: var(--juice-color); }
 
-    .fruit-grid { display: flex; flex-direction: column; gap: 8px; justify-content: center; align-items: center; height: 500px; padding: 20px; transition: transform 0.1s; }
+    /* Grid Styles */
+    .fruit-grid-container { display: flex; flex-direction: column; gap: 10px; }
+    .grid-row { display: flex; gap: 10px; }
+    .grid-cell { width: 85px; height: 85px; background: rgba(128,128,128,0.1); border-radius: 15px; display: flex; justify-content: center; align-items: center; border: 2px solid rgba(128,128,128,0.1); position: relative; overflow: visible; box-shadow: inset 0 0 15px rgba(0,0,0,0.2); }
+    .grid-cell.empty { background: rgba(0,0,0,0.2); border-style: dashed; }
+    .symbol-icon { font-size: 3rem; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.4)); display: inline-block; transition: transform 0.2s; }
+    
+    /* Falling / Landing Animation */
+    .landing-anim .symbol-icon { animation: fallIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.2) both; }
+    @@keyframes fallIn { 0% { transform: translateY(-600px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+
+    /* Explosion Animation */
+    .exploding .symbol-icon { animation: explode 0.6s forwards; z-index: 10; }
+    @@keyframes explode { 0% { transform: scale(1); filter: brightness(1); } 40% { transform: scale(1.8); filter: brightness(2) hue-rotate(45deg); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
+
+    /* Shake Grid */
     .shake-grid { animation: shakeGrid 0.4s ease-in-out; }
-    .grid-row { display: flex; gap: 8px; }
-    .grid-cell { width: 70px; height: 70px; background: rgba(128,128,128,0.1); border-radius: 12px; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(128,128,128,0.2); position: relative; overflow: hidden; }
-    .grid-cell.empty { background: transparent; border: 1px dashed rgba(128,128,128,0.1); }
-    .grid-cell.falling .symbol-icon { animation: fallIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.2) both; }
-    .symbol-icon { font-size: 2.5rem; filter: drop-shadow(0 0 5px rgba(0,0,0,0.2)); transform-origin: center; display: inline-block; }
-    
-    @@keyframes fallIn { 0% { transform: translateY(-600px); opacity: 0; } 60% { transform: translateY(20px); opacity: 1; } 100% { transform: translateY(0); opacity: 1; } }
-    @@keyframes explode { 0% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.4); filter: brightness(2) hue-rotate(45deg); opacity: 0.9; } 100% { transform: scale(0); opacity: 0; } }
-    @@keyframes shakeGrid { 0%, 100% { transform: translate(0,0); } 10%, 30%, 50%, 70%, 90% { transform: translate(-4px, 0); } 20%, 40%, 60%, 80% { transform: translate(4px, 0); } }
-    
-    .exploding .symbol-icon { animation: explode 0.5s forwards !important; }
+    @@keyframes shakeGrid { 0%, 100% { transform: translate(0,0); } 10%, 30%, 50%, 70%, 90% { transform: translate(-5px, 0); } 20%, 40%, 60%, 80% { transform: translate(5px, 0); } }
 
-    .juice-meter-container { position: absolute; left: 20px; top: 50px; bottom: 50px; width: 40px; background: rgba(0,0,0,0.15); border: 2px solid #4a148c; border-radius: 20px; overflow: hidden; }
-    .juice-meter-fill { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, #4a148c, #ab47bc, #ffeb3b); transition: height 0.5s ease-out; box-shadow: 0 0 15px rgba(171, 71, 188, 0.5); }
-    .juice-meter-text { position: absolute; top: -30px; left: -10px; width: 60px; text-align: center; font-weight: 900; font-size: 0.8rem; color: var(--juice-text); }
-    .multiplier-badge { position: absolute; top: 20px; right: 20px; background: #ffeb3b; color: black; padding: 10px 20px; border-radius: 10px; font-weight: 900; font-size: 1.5rem; box-shadow: 0 0 20px rgba(255,235,59,0.5); border: 2px solid black; }
-    .win-display { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); font-size: 3rem; font-weight: 900; color: #4caf50; text-shadow: 0 0 30px black, 0 0 10px #4caf50; opacity: 0; transition: opacity 0.3s; z-index: 10; }
+    .multiplier-badge { position: absolute; top: 30px; right: 30px; background: #ffeb3b; color: black; padding: 15px 30px; border-radius: 15px; font-weight: 900; font-size: 2rem; box-shadow: 0 0 30px rgba(255,235,59,0.6); border: 3px solid black; animation: pulse 1s infinite; }
+    .win-display { position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); font-size: 4rem; font-weight: 900; color: #4caf50; text-shadow: 0 0 30px black, 0 0 10px #4caf50; opacity: 0; transition: opacity 0.3s; z-index: 10; pointer-events: none; }
     .win-display.visible { opacity: 1; animation: winPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
     @@keyframes winPop { 0% { transform: translateX(-50%) scale(0.5); } 100% { transform: translateX(-50%) scale(1); } }
+    @@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 </style>
 
 @code {
@@ -185,24 +192,17 @@
     private Guid? sessionId;
     private int[][] currentGrid = new int[5][];
     private List<Point> explodingCells = new();
-    private List<int> activeColumns = new();
+    private int activeColumn = -1;
 
     protected override async Task OnInitializedAsync()
     {
         var rnd = new Random();
         for (int i = 0; i < 5; i++) {
             currentGrid[i] = new int[6];
-            for (int j = 0; j < 6; j++) currentGrid[i][j] = rnd.Next(1, 8); // Start with random fruits
+            for (int j = 0; j < 6; j++) currentGrid[i][j] = rnd.Next(1, 8); 
         }
         LayoutService.OnMajorUpdate += StateHasChanged;
         await LoadData();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender) {
-            await Audio.Init();
-        }
     }
 
     private async Task LoadData()
@@ -214,14 +214,13 @@
             var session = await GameService.ResumeSession("fruitblast");
             if (session != null) {
                 sessionId = session.SessionId;
-                if (session.GameState != null) {
-                     var state = JsonSerializer.Deserialize<FruitBlastState>(session.GameState.ToString()!);
+                if (!string.IsNullOrEmpty(session.GameState)) {
+                     var state = JsonSerializer.Deserialize<FruitBlastState>(session.GameState);
                      if (state != null) {
                          denomination = state.Denomination;
                          juiceMeter = state.JuiceMeter;
                          totalMultiplier = state.TotalMultiplier;
-                         if (state.Grid != null && state.Grid.Length == 5 && state.Grid[0].Any(x => x > 0))
-                         {
+                         if (state.Grid != null && state.Grid.Length == 5 && state.Grid[0].Any(x => x > 0)) {
                              currentGrid = state.Grid;
                          }
                      }
@@ -245,24 +244,25 @@
     private async Task UpdateGridSequential(int[][] newGrid, List<int>? columns = null) {
         if (newGrid == null) return;
         isFalling = true;
-        // Strictly Reel 1 to 6 (sorted)
-        var colsToUpdate = (columns ?? Enumerable.Range(0, 6).ToList()).OrderBy(c => c).ToList();
-        activeColumns = colsToUpdate;
+        
+        // Always iterate through all columns to check if they need update
+        var colsToProcess = columns ?? Enumerable.Range(0, 6).ToList();
+        colsToProcess = colsToProcess.OrderBy(c => c).ToList();
 
-        foreach (int c in colsToUpdate) {
+        foreach (int c in colsToProcess) {
+            activeColumn = c; // Trigger CSS for this column
             for (int r = 0; r < 5; r++) {
-                if (newGrid.Length > r && newGrid[r] != null && newGrid[r].Length > c && currentGrid.Length > r && currentGrid[r] != null)
-                {
+                if (newGrid.Length > r && newGrid[r] != null && newGrid[r].Length > c) {
                     currentGrid[r][c] = newGrid[r][c];
                 }
             }
             StateHasChanged();
-            await Audio.PlayClick(); // land sound
-            await Task.Delay(150); // Faster but still sequential
+            await Audio.PlayClick(); 
+            await Task.Delay(250); 
         }
         
         isFalling = false;
-        activeColumns.Clear();
+        activeColumn = -1;
         StateHasChanged();
     }
 
@@ -273,8 +273,7 @@
         lastWin = 0;
         juiceMeter = 0;
         totalMultiplier = 1;
-        if (explodingCells != null) explodingCells.Clear();
-        else explodingCells = new();
+        explodingCells = new();
 
         var betAmount = creditsBet * denomination;
 
@@ -283,6 +282,9 @@
             isSpinning = false;
             return;
         }
+
+        // Initialize Audio on first click (Browser Policy bypass)
+        await Audio.Init();
 
         balance -= betAmount;
         LayoutService.DeductOptimisticBalance(betAmount);
@@ -294,50 +296,46 @@
             var fullState = JsonSerializer.Deserialize<FruitBlastState>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             
             if (fullState != null) {
-                // 1. Initial Drop (Reel by Reel)
+                // 1. Initial Reveal (Column by Column)
                 if (fullState.History != null && fullState.History.Any()) {
                     await UpdateGridSequential(fullState.History.First().GridBefore);
                 }
-                await Task.Delay(300);
+                await Task.Delay(500);
 
                 // Play back history (Avalanches)
                 if (fullState.History != null)
                 {
                     int stepIdx = 0;
                     foreach (var step in fullState.History) {
+                        // 1. Highlight exploding symbols
                         explodingCells = step.WinningClusters ?? new();
-                        if (step.Explosions != null)
-                        {
+                        if (step.Explosions != null) {
                             explodingCells.AddRange(step.Explosions.SelectMany(e => e.Affected ?? new List<Point>()));
                         }
                         
                         if (explodingCells.Any()) {
                             isShaking = true;
-                            await Audio.PlayBonus(); // Explosion sound
+                            await Audio.PlayBonus(); 
                             StateHasChanged();
-                            await Task.Delay(1200); // Pause on explosion
+                            await Task.Delay(1000); 
                             isShaking = false;
-                            StateHasChanged();
                         }
                         
-                        // 2. Clear exploded cells
+                        // 2. Symbols disappear (show empty holes)
                         foreach(var p in explodingCells) {
-                            if (currentGrid.Length > p.R && currentGrid[p.R] != null && currentGrid[p.R].Length > p.C)
-                            {
-                                currentGrid[p.R][p.C] = 0;
-                            }
+                            if (currentGrid.Length > p.R && currentGrid[p.R] != null) currentGrid[p.R][p.C] = 0;
                         }
                         explodingCells.Clear();
                         juiceMeter = step.JuiceMeterValue;
                         StateHasChanged();
-                        await Task.Delay(800);
+                        await Task.Delay(600);
 
-                        // 3. Fall & Fill (Only affected columns)
+                        // 3. New symbols fall into the specific columns
                         stepIdx++;
                         if (stepIdx < fullState.History.Count) {
                             await UpdateGridSequential(fullState.History[stepIdx].GridBefore, step.AffectedColumns);
                         }
-                        await Task.Delay(600);
+                        await Task.Delay(400);
                     }
                 }
 
@@ -354,7 +352,7 @@
         } finally {
             isSpinning = false;
             isFalling = false;
-            isShaking = false;
+            activeColumn = -1;
             StateHasChanged();
         }
     }
