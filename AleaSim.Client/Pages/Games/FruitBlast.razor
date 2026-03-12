@@ -18,7 +18,7 @@
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudGrid>
         <MudItem xs="12" lg="8">
-            <MudPaper Class="pa-4 relative overflow-hidden @(isShaking ? "shake-grid" : "")" Style="background: radial-gradient(circle, #2a0845 0%, #000000 100%); border: 8px solid #4a148c; border-radius: 30px; min-height: 600px; box-shadow: 0 0 50px rgba(74, 20, 140, 0.4);">
+            <MudPaper Class="@($"pa-4 relative overflow-hidden {(isShaking ? "shake-grid" : "")}")" Style="background: radial-gradient(circle, #2a0845 0%, #000000 100%); border: 8px solid #4a148c; border-radius: 30px; min-height: 600px; box-shadow: 0 0 50px rgba(74, 20, 140, 0.4);">
                 
                 <!-- Juice Meter -->
                 <div class="juice-meter-container">
