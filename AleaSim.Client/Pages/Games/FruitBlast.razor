@@ -21,6 +21,15 @@
             <MudPaper Class="@($"pa-4 relative overflow-hidden {(LayoutService.IsDarkMode ? "game-dark" : "game-light")}")" 
                       Style='@($"border: 8px solid var(--game-border); border-radius: 30px; min-height: 600px; box-shadow: 0 0 50px var(--game-glow);")'>
                 
+                <!-- Audio Block Overlay -->
+                @if (!isAudioInitialized)
+                {
+                    <div class="audio-overlay" @onclick="InitAudioManual">
+                        <MudIcon Icon="@Icons.Material.Filled.VolumeUp" Size="Size.Large" Class="mb-2" />
+                        <MudText Typo="Typo.h6">Click to Enable Sound</MudText>
+                    </div>
+                }
+
                 <!-- Juice Meter -->
                 <div class="juice-meter-container">
                     <div class="juice-meter-fill" style="height: @(Math.Min(100, (juiceMeter * 5)))%"></div>
@@ -34,22 +43,31 @@
 
                 <!-- Game Grid -->
                 <div class="fruit-grid @(isShaking ? "shake-grid" : "")">
-                    @for (int r = 0; r < 5; r++)
+                    @if (currentGrid != null)
                     {
-                        <div class="grid-row">
-                            @for (int c = 0; c < 6; c++)
-                            {
-                                var symbol = currentGrid[r][c];
-                                var isExplodingFlag = isExploding(r, c);
-                                var isColFalling = isFalling && activeColumns.Contains(c);
-                                <div class="grid-cell @(symbol == 0 ? "empty" : (isColFalling ? "falling" : "")) @(isExplodingFlag ? "exploding" : "")">
-                                    @if (symbol > 0)
+                        @for (int r = 0; r < 5; r++)
+                        {
+                            <div class="grid-row">
+                                @if (currentGrid.Length > r && currentGrid[r] != null)
+                                {
+                                    @for (int c = 0; c < 6; c++)
                                     {
-                                        <span class="symbol-icon" style="animation-delay: @(c * 0.1)s">@GetSymbolEmoji(symbol)</span>
+                                        if (currentGrid[r].Length > c)
+                                        {
+                                            var symbol = currentGrid[r][c];
+                                            var isExplodingFlag = isExploding(r, c);
+                                            var isColFalling = isFalling && activeColumns.Contains(c);
+                                            <div class="grid-cell @(symbol == 0 ? "empty" : (isColFalling ? "falling" : "")) @(isExplodingFlag ? "exploding" : "")">
+                                                @if (symbol > 0)
+                                                {
+                                                    <span class="symbol-icon" style="animation-delay: @(c * 0.05)s">@GetSymbolEmoji(symbol)</span>
+                                                }
+                                            </div>
+                                        }
                                     }
-                                </div>
-                            }
-                        </div>
+                                }
+                            </div>
+                        }
                     }
                 </div>
 
@@ -82,7 +100,7 @@
                     <MudSelectItem Value="@(1.00m)">@((1.00m).ToString("C2"))</MudSelectItem>
                 </MudSelect>
 
-                <MudNumericField @bind-Value="creditsBet" Label="Bet (Credits)" Variant="Variant.Filled" Min="10" Max="100" Step="10" 
+                <MudNumericField @bind-Value="creditsBet" Label="Bet (Credits)" Variant="Variant.Filled" Min="1" Max="1000" Step="1" 
                                  Disabled="@isSpinning" />
                 
                 <div class="mt-n2 text-center">
@@ -138,12 +156,14 @@
         --juice-text: #ab47bc;
     }
 
+    .audio-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; cursor: pointer; border-radius: 30px; }
+
     .fruit-grid { display: flex; flex-direction: column; gap: 8px; justify-content: center; align-items: center; height: 500px; padding: 20px; transition: transform 0.1s; }
     .shake-grid { animation: shakeGrid 0.4s ease-in-out; }
     .grid-row { display: flex; gap: 8px; }
     .grid-cell { width: 70px; height: 70px; background: rgba(128,128,128,0.1); border-radius: 12px; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(128,128,128,0.2); position: relative; overflow: hidden; }
     .grid-cell.empty { background: transparent; border: 1px dashed rgba(128,128,128,0.1); }
-    .grid-cell.falling .symbol-icon { animation: fallIn 1.0s cubic-bezier(0.175, 0.885, 0.32, 1.2) both; }
+    .grid-cell.falling .symbol-icon { animation: fallIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.2) both; }
     .symbol-icon { font-size: 2.5rem; filter: drop-shadow(0 0 5px rgba(0,0,0,0.2)); transform-origin: center; display: inline-block; }
     
     @@keyframes fallIn { 0% { transform: translateY(-600px); opacity: 0; } 60% { transform: translateY(20px); opacity: 1; } 100% { transform: translateY(0); opacity: 1; } }
@@ -165,6 +185,7 @@
     private bool isSpinning = false;
     private bool isFalling = false;
     private bool isShaking = false;
+    private bool isAudioInitialized = false;
     private decimal balance = 0;
     private decimal denomination = 0.01m;
     private int creditsBet = 10;
@@ -187,11 +208,10 @@
         await LoadData();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender) {
-            await Audio.Init();
-        }
+    private async Task InitAudioManual() {
+        await Audio.Init();
+        isAudioInitialized = true;
+        StateHasChanged();
     }
 
     private async Task LoadData()
@@ -209,7 +229,10 @@
                          denomination = state.Denomination;
                          juiceMeter = state.JuiceMeter;
                          totalMultiplier = state.TotalMultiplier;
-                         currentGrid = state.Grid;
+                         if (state.Grid != null && state.Grid.Length == 5)
+                         {
+                             currentGrid = state.Grid;
+                         }
                      }
                 }
             } else {
@@ -229,6 +252,7 @@
     private bool isExploding(int r, int c) => explodingCells.Any(p => p.R == r && p.C == c);
 
     private async Task UpdateGridSequential(int[][] newGrid, List<int>? columns = null) {
+        if (newGrid == null) return;
         isFalling = true;
         // Strictly Reel 1 to 6 (sorted)
         var colsToUpdate = (columns ?? Enumerable.Range(0, 6).ToList()).OrderBy(c => c).ToList();
@@ -236,11 +260,14 @@
 
         foreach (int c in colsToUpdate) {
             for (int r = 0; r < 5; r++) {
-                currentGrid[r][c] = newGrid[r][c];
+                if (newGrid.Length > r && newGrid[r] != null && newGrid[r].Length > c)
+                {
+                    currentGrid[r][c] = newGrid[r][c];
+                }
             }
             StateHasChanged();
             await Audio.PlayClick(); // land sound
-            await Task.Delay(400); // Slower landing for impact
+            await Task.Delay(150); // Faster but still sequential
         }
         
         isFalling = false;
@@ -270,6 +297,7 @@
         StateHasChanged();
 
         try {
+            if (!isAudioInitialized) await InitAudioManual();
             await Audio.PlaySpin();
             var result = await GameService.PlaceBet("fruitblast", sessionId.Value, betAmount, new { Denomination = denomination });
             var fullState = JsonSerializer.Deserialize<FruitBlastState>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -279,7 +307,7 @@
                 if (fullState.History.Any()) {
                     await UpdateGridSequential(fullState.History.First().GridBefore);
                 }
-                await Task.Delay(800);
+                await Task.Delay(300);
 
                 // Play back history (Avalanches)
                 int stepIdx = 0;
@@ -291,24 +319,29 @@
                         isShaking = true;
                         await Audio.PlayBonus(); // Explosion sound
                         StateHasChanged();
-                        await Task.Delay(1200); // Pause on explosion
+                        await Task.Delay(400); // Faster explosion
                         isShaking = false;
                         StateHasChanged();
                     }
                     
                     // 2. Clear exploded cells
-                    foreach(var p in explodingCells) currentGrid[p.R][p.C] = 0;
+                    foreach(var p in explodingCells) {
+                        if (currentGrid.Length > p.R && currentGrid[p.R] != null && currentGrid[p.R].Length > p.C)
+                        {
+                            currentGrid[p.R][p.C] = 0;
+                        }
+                    }
                     explodingCells.Clear();
                     juiceMeter = step.JuiceMeterValue;
                     StateHasChanged();
-                    await Task.Delay(800);
+                    await Task.Delay(300);
 
                     // 3. Fall & Fill (Only affected columns)
                     stepIdx++;
                     if (stepIdx < fullState.History.Count) {
                         await UpdateGridSequential(fullState.History[stepIdx].GridBefore, step.AffectedColumns);
                     }
-                    await Task.Delay(600);
+                    await Task.Delay(200);
                 }
 
                 totalMultiplier = fullState.TotalMultiplier;

@@ -161,76 +161,42 @@ using (var scope = app.Services.CreateScope()) {
     var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
     
     try {
-        db.Database.Migrate(); // Try applying migrations
+        db.Database.Migrate(); // Apply all migrations
     } catch (Exception ex) {
-        // Fallback for cases where DB was created via EnsureCreated() without history table
-        Console.WriteLine("Migration failed (likely existing schema). Falling back to EnsureCreated. Error: " + ex.Message);
+        Console.WriteLine("Migration failed. If the DB is new, try 'dotnet ef database update'. Error: " + ex.Message);
+        // Fallback for emergency only
         db.Database.EnsureCreated(); 
     }
 
-    // Create SupportMessages table if missing
-    try {
-        db.Database.ExecuteSqlRaw(@"
-            CREATE TABLE IF NOT EXISTS SupportMessages (
-                Id CHAR(36) PRIMARY KEY,
-                UserId CHAR(36) NULL,
-                SenderName VARCHAR(255) NOT NULL,
-                SenderEmail VARCHAR(255) NOT NULL,
-                Subject VARCHAR(255) NOT NULL,
-                Message TEXT NOT NULL,
-                CreatedAt DATETIME NOT NULL,
-                IsRead TINYINT(1) NOT NULL DEFAULT 0
-            );");
-    } catch { }
-
-    // Create ChatMessages table if missing
-    try {
-        db.Database.ExecuteSqlRaw(@"
-            CREATE TABLE IF NOT EXISTS ChatMessages (
-                Id CHAR(36) PRIMARY KEY,
-                SenderId CHAR(36) NOT NULL,
-                SenderUsername VARCHAR(255) NOT NULL,
-                SenderAvatarUrl VARCHAR(255) NOT NULL,
-                ReceiverId CHAR(36) NULL,
-                Message TEXT NOT NULL,
-                Timestamp DATETIME NOT NULL,
-                Type INT NOT NULL DEFAULT 0
-            );");
-    } catch { }
-
     // Seed Games if missing
-    var existingGames = db.Games.ToList();
-    void UpdateMinBet(string type, decimal minBet) {
+    List<AleaSim.Domain.Entities.Game> existingGames = new();
+    try {
+        existingGames = db.Games.ToList();
+    } catch {
+        Console.WriteLine("Could not read Games table. Schema might be out of sync.");
+    }
+
+    void UpdateGame(string type, string name, decimal minBet, decimal maxBet, decimal rtp) {
         var g = existingGames.FirstOrDefault(x => x.Type.Equals(type, StringComparison.OrdinalIgnoreCase));
-        if (g != null && g.MinBet > minBet) {
+        if (g == null) {
+            db.Games.Add(new AleaSim.Domain.Entities.Game { 
+                Id = Guid.NewGuid(), Name = name, Type = type, Provider = "AleaSim Originals", 
+                MinBet = minBet, MaxBet = maxBet, TargetRTP = rtp, IsActive = true, PoolBalance = 1000000m 
+            });
+        } else {
             g.MinBet = minBet;
+            g.MaxBet = maxBet;
+            g.TargetRTP = rtp;
             db.Games.Update(g);
         }
     }
 
-    if (!existingGames.Any(g => g.Type == "Slot")) 
-        db.Games.Add(new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000001"), Name = "Slot Machine", Type = "Slot", Provider = "AleaSim Originals", MinBet = 0.1m, MaxBet = 1000, TargetRTP = 0.95m, IsActive = true, PoolBalance = 1000000m });
-    else UpdateMinBet("Slot", 0.1m);
-
-    if (!existingGames.Any(g => g.Type == "Roulette"))
-        db.Games.Add(new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = "European Roulette", Type = "Roulette", Provider = "AleaSim Originals", MinBet = 0.1m, MaxBet = 100000, TargetRTP = 0.97m, IsActive = true, PoolBalance = 1000000m });
-    else UpdateMinBet("Roulette", 0.1m);
-
-    if (!existingGames.Any(g => g.Type == "Blackjack"))
-        db.Games.Add(new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000003"), Name = "Blackjack", Type = "Blackjack", Provider = "AleaSim Originals", MinBet = 0.1m, MaxBet = 1000, TargetRTP = 0.99m, IsActive = true, PoolBalance = 1000000m });
-    else UpdateMinBet("Blackjack", 0.1m);
-
-    if (!existingGames.Any(g => g.Type == "Baccarat"))
-        db.Games.Add(new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000004"), Name = "Baccarat Royale", Type = "Baccarat", Provider = "AleaSim Originals", MinBet = 0.1m, MaxBet = 5000, TargetRTP = 0.989m, IsActive = true, PoolBalance = 1000000m });
-    else UpdateMinBet("Baccarat", 0.1m);
-
-    if (!existingGames.Any(g => g.Type == "dice"))
-        db.Games.Add(new AleaSim.Domain.Entities.Game { Id = Guid.Parse("77777777-7777-7777-7777-777777777777"), Name = "Neon Dice", Type = "dice", Provider = "AleaSim Originals", MinBet = 0.1m, MaxBet = 1000, TargetRTP = 0.99m, IsActive = true, PoolBalance = 1000000m });
-    else UpdateMinBet("dice", 0.1m);
-
-    if (!existingGames.Any(g => g.Type == "fruitblast"))
-        db.Games.Add(new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000005"), Name = "Fruit Blast (Nuclear)", Type = "fruitblast", Provider = "AleaSim Originals", MinBet = 0.1m, MaxBet = 1000, TargetRTP = 0.968m, IsActive = true, PoolBalance = 1000000m });
-    else UpdateMinBet("fruitblast", 0.1m);
+    UpdateGame("Slot", "Clover Chase", 0.01m, 1000m, 0.95m);
+    UpdateGame("Roulette", "Roulette Royale", 0.01m, 100000m, 0.973m);
+    UpdateGame("Blackjack", "Blackjack High", 0.01m, 1000m, 0.992m);
+    UpdateGame("Baccarat", "Baccarat Royale", 0.01m, 5000m, 0.989m);
+    UpdateGame("dice", "Neon Dice", 0.01m, 1000m, 0.99m);
+    UpdateGame("fruitblast", "Fruit Blast (Nuclear)", 0.01m, 1000m, 0.968m);
     
     db.SaveChanges();
 

@@ -1,0 +1,87 @@
+Using launch settings from /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Api/Properties/launchSettings.json...
+Building...
+/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Domain/AleaSim.Domain.csproj : warning NU1903: Package 'Microsoft.Extensions.Caching.Memory' 8.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-qj66-m88j-hmgj [/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Api/AleaSim.Api.csproj]
+/home/anonymous/Documents/GitHub/AleaSim/AleaSim.Domain/AleaSim.Domain.csproj : warning NU1903: Package 'Microsoft.Extensions.Caching.Memory' 8.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-qj66-m88j-hmgj
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (36ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      DROP TABLE IF EXISTS ChatMessages;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (21ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      DROP TABLE IF EXISTS SupportMessages;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (12ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='aleasim' AND TABLE_NAME='__EFMigrationsHistory';
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='aleasim' AND TABLE_NAME='__EFMigrationsHistory';
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT `MigrationId`, `ProductVersion`
+      FROM `__EFMigrationsHistory`
+      ORDER BY `MigrationId`;
+info: Microsoft.EntityFrameworkCore.Migrations[20402]
+      Applying migration '20260312191853_AddGameProvider'.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      DELETE FROM `Achievements`
+      WHERE `Id` = '0ef77176-d741-4379-8146-80daefef7309';
+      SELECT ROW_COUNT();
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      DELETE FROM `Achievements`
+      WHERE `Id` = '3e0a2d2f-d39f-48c9-ac67-ee44711e81a6';
+      SELECT ROW_COUNT();
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      DELETE FROM `Achievements`
+      WHERE `Id` = '49aa2988-3b48-40b7-abdb-1bbc8d838c4d';
+      SELECT ROW_COUNT();
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      DELETE FROM `Achievements`
+      WHERE `Id` = '90df2b26-8c02-4e2a-8f64-6128d5159f21';
+      SELECT ROW_COUNT();
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      DELETE FROM `Achievements`
+      WHERE `Id` = 'fc4a6a4d-986a-4da7-94b5-404fc46ccc68';
+      SELECT ROW_COUNT();
+fail: Microsoft.EntityFrameworkCore.Database.Command[20102]
+      Failed executing DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      ALTER TABLE `Quests` DROP COLUMN `CreatedAt`;
+Migration failed (likely existing schema). Falling back to EnsureCreated. Error: Can't DROP 'CreatedAt'; check that column/key exists
+info: AleaSim.Api.Workers.SentinelBackgroundService[0]
+      Sentinel Security Monitor started.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT `g`.`Id`, `g`.`ClientSeed`, `g`.`DecisionType`, `g`.`DirectiveId`, `g`.`ExecutedAt`, `g`.`GameSessionId`, `g`.`InputData`, `g`.`Nonce`, `g`.`RandomResult`, `g`.`RoundNumber`, `g`.`ServerSeed`, `g`.`ServerSeedHash`, `g`.`ShadowBrainResult`, `g`.`TargetWinAmount`, `g`.`TotalBetAmount`, `g`.`TotalWinAmount`
+      FROM `GameRounds` AS `g`
+      INNER JOIN `GameSessions` AS `g0` ON `g`.`GameSessionId` = `g0`.`Id`
+      INNER JOIN `Users` AS `u` ON `g0`.`UserId` = `u`.`Id`
+      WHERE `u`.`Username` NOT LIKE 'Sim\\_%' AND (`u`.`Role` <> 1)
+      ORDER BY `g`.`ExecutedAt` DESC
+      LIMIT @__p_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT `a`.`Hash`
+      FROM `AuditLogs` AS `a`
+      ORDER BY `a`.`Timestamp` DESC
+      LIMIT 1
+info: AleaSim.Api.Workers.DailyBonusBackgroundService[0]
+      Daily Bonus Job waiting for system warm-up...
+info: AleaSim.Api.Workers.TournamentPayoutBackgroundService[0]
+      Tournament Payout Worker started.
+info: AleaSim.Api.Workers.AuditWriterBackgroundService[0]
+      Audit Writer Background Service started.
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5286
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /home/anonymous/Documents/GitHub/AleaSim/AleaSim.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: AleaSim.Api.Workers.AuditWriterBackgroundService[0]
+      Audit Writer received shutdown signal. Draining buffer...

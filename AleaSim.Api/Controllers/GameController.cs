@@ -398,7 +398,7 @@ public class GameController : ControllerBase {
             return Ok(result);
         }
         catch (Exception ex) {
-            _logger.LogError(ex, "Error in ClaimStreakReward");
+            _logger.LogWarning(ex, "Validation in ClaimStreakReward: {Message}", ex.Message);
             return BadRequest(ex.Message);
         }
     }
