@@ -103,7 +103,10 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     // Apply Explosions (Remove symbols)
                     foreach (var exp in explosions) {
                         foreach (var p in exp.Affected) state.Grid[p.R][p.C] = 0;
-                        if (exp.Type == 10) state.TotalMultiplier *= 2; // Supernova doubles multiplier
+                        if (exp.Type == 10) {
+                             state.TotalMultiplier *= 2; // Supernova doubles multiplier
+                             if (state.TotalMultiplier > 1000) state.TotalMultiplier = 1000; // Cap to prevent Overflow
+                        }
                     }
                 }
 
