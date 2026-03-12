@@ -172,7 +172,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
     private void FillGrid(int[][] grid, GameSession session, int nonce) {
         for (int r = 0; r < Rows; r++) {
             for (int c = 0; c < Cols; c++) {
-                grid[r][c] = RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce + r * Cols + c, 1, 11);
+                grid[r][c] = GetWeightedSymbol(session.ServerSeed, session.ClientSeed, nonce + (r * Cols + c));
             }
         }
     }
@@ -181,10 +181,19 @@ public class FruitBlastGameEngine : BaseGameEngine {
         for (int r = 0; r < Rows; r++) {
             for (int c = 0; c < Cols; c++) {
                 if (grid[r][c] == 0) {
-                    grid[r][c] = RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce + r * Cols + c, 1, 11);
+                    grid[r][c] = GetWeightedSymbol(session.ServerSeed, session.ClientSeed, nonce + (r * Cols + c));
                 }
             }
         }
+    }
+
+    private int GetWeightedSymbol(string serverSeed, string clientSeed, int nonce) {
+        int val = RngService.GetNextInt(serverSeed, clientSeed, nonce, 1, 101);
+        // 85% Fruits (1-7), 10% TNT (8), 4% Nuclear (9), 1% Supernova (10)
+        if (val <= 85) return RngService.GetNextInt(serverSeed, clientSeed, nonce + 1000, 1, 8); 
+        if (val <= 95) return 8; 
+        if (val <= 99) return 9;
+        return 10;
     }
 
     private int[][] CopyGrid(int[][] grid) {

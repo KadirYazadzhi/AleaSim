@@ -39,7 +39,8 @@
                             @for (int c = 0; c < 6; c++)
                             {
                                 var symbol = currentGrid[r][c];
-                                <div class="grid-cell @(isExploding(r,c) ? "exploding" : "")">
+                                var isExplodingFlag = isExploding(r, c);
+                                <div class="grid-cell @(symbol == 0 ? "empty" : "falling") @(isExplodingFlag ? "exploding" : "")">
                                     @if (symbol > 0)
                                     {
                                         <span class="symbol-icon">@GetSymbolEmoji(symbol)</span>
@@ -104,21 +105,24 @@
 </MudContainer>
 
 <style>
-    .fruit-grid { display: flex; flex-direction: column; gap: 8px; justify-content: center; align-items: center; height: 500px; }
+    .fruit-grid { display: flex; flex-direction: column; gap: 8px; justify-content: center; align-items: center; height: 500px; padding: 20px; }
     .grid-row { display: flex; gap: 8px; }
-    .grid-cell { width: 70px; height: 70px; background: rgba(255,255,255,0.05); border-radius: 12px; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.1); position: relative; transition: all 0.2s; }
-    .symbol-icon { font-size: 2.5rem; filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); }
+    .grid-cell { width: 70px; height: 70px; background: rgba(255,255,255,0.05); border-radius: 12px; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden; }
+    .grid-cell.empty { background: transparent; border: 1px dashed rgba(255,255,255,0.05); }
+    .grid-cell.falling { animation: fallIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .symbol-icon { font-size: 2.5rem; filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); transform-origin: center; }
+    
+    @@keyframes fallIn { 0% { transform: translateY(-300px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    @@keyframes explode { 0% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.8); filter: brightness(4) hue-rotate(90deg); opacity: 0.8; } 100% { transform: scale(0); opacity: 0; } }
+    .exploding .symbol-icon { animation: explode 0.6s forwards; }
+
     .juice-meter-container { position: absolute; left: 20px; top: 50px; bottom: 50px; width: 40px; background: rgba(0,0,0,0.5); border: 2px solid #4a148c; border-radius: 20px; overflow: hidden; }
-    .juice-meter-fill { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, #4a148c, #ab47bc); transition: height 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    .juice-meter-text { position: absolute; top: -30px; left: -10px; width: 60px; text-align: center; color: #ab47bc; font-weight: 900; }
-    .juice-meter-milestones { position: absolute; top: 0; bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; justify-content: space-around; align-items: center; }
-    .milestone { color: rgba(255,255,255,0.2); font-size: 0.7rem; font-weight: 900; }
-    .milestone.active { color: #ffeb3b; text-shadow: 0 0 5px #ffeb3b; }
-    .multiplier-badge { position: absolute; top: 20px; right: 20px; background: #ffeb3b; color: black; padding: 10px 20px; border-radius: 10px; font-weight: 900; font-size: 1.5rem; box-shadow: 0 0 20px rgba(255,235,59,0.5); }
-    .win-display { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); font-size: 2.5rem; font-weight: 900; color: #4caf50; text-shadow: 0 0 20px black; opacity: 0; transition: opacity 0.3s; }
-    .win-display.visible { opacity: 1; }
-    .exploding { animation: explode 0.5s forwards; }
-    @@keyframes explode { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.5; filter: brightness(3); } 100% { transform: scale(0); opacity: 0; } }
+    .juice-meter-fill { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, #4a148c, #ab47bc, #ffeb3b); transition: height 0.5s ease-out; box-shadow: 0 0 15px rgba(171, 71, 188, 0.5); }
+    .juice-meter-text { position: absolute; top: -30px; left: -10px; width: 60px; text-align: center; color: #ab47bc; font-weight: 900; font-size: 0.8rem; }
+    .multiplier-badge { position: absolute; top: 20px; right: 20px; background: #ffeb3b; color: black; padding: 10px 20px; border-radius: 10px; font-weight: 900; font-size: 1.5rem; box-shadow: 0 0 20px rgba(255,235,59,0.5); border: 2px solid black; }
+    .win-display { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); font-size: 3rem; font-weight: 900; color: #4caf50; text-shadow: 0 0 30px black, 0 0 10px #4caf50; opacity: 0; transition: opacity 0.3s; z-index: 10; }
+    .win-display.visible { opacity: 1; animation: winPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @@keyframes winPop { 0% { transform: translateX(-50%) scale(0.5); } 100% { transform: translateX(-50%) scale(1); } }
 </style>
 
 @code {
@@ -184,31 +188,50 @@
         StateHasChanged();
 
         try {
+            await Audio.PlaySpin();
             var result = await GameService.PlaceBet("fruitblast", sessionId.Value, betAmount, new { });
             var fullState = JsonSerializer.Deserialize<FruitBlastState>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             
             if (fullState != null) {
                 // Initial Grid
-                if (fullState.History.Any()) {
-                    currentGrid = fullState.History.First().GridBefore;
-                }
+                if (fullState.History.Any()) currentGrid = fullState.History.First().GridBefore;
                 StateHasChanged();
+                await Task.Delay(600);
 
                 // Play back history
+                int stepIdx = 0;
                 foreach (var step in fullState.History) {
                     currentGrid = step.GridBefore;
                     StateHasChanged();
-                    await Task.Delay(500);
+                    await Task.Delay(400);
 
-                    // Show explosions/wins
+                    // 1. Show explosions/wins
                     explodingCells = step.WinningClusters;
                     explodingCells.AddRange(step.Explosions.SelectMany(e => e.Affected));
-                    StateHasChanged();
                     
-                    await Task.Delay(500);
+                    if (explodingCells.Any()) {
+                        await Audio.PlayBonus(); // Explosion sound
+                        StateHasChanged();
+                        await Task.Delay(600);
+                    }
+                    
+                    // 2. Clear exploded cells (show empty spots)
+                    foreach(var p in explodingCells) currentGrid[p.R][p.C] = 0;
                     explodingCells.Clear();
                     juiceMeter = step.JuiceMeterValue;
                     StateHasChanged();
+                    await Task.Delay(300);
+
+                    // 3. Show "Falling" state (next grid before fill - if we had it)
+                    // For now, we'll just show the next step's grid which includes the fall & fill
+                    stepIdx++;
+                    if (stepIdx < fullState.History.Count) {
+                        currentGrid = fullState.History[stepIdx].GridBefore;
+                    } else {
+                        // This is the last step, show final symbols
+                    }
+                    StateHasChanged();
+                    await Task.Delay(400);
                 }
 
                 // Final State
