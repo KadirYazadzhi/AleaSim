@@ -41,10 +41,11 @@
                             {
                                 var symbol = currentGrid[r][c];
                                 var isExplodingFlag = isExploding(r, c);
-                                <div class="grid-cell @(symbol == 0 ? "empty" : (isFalling ? "falling" : "")) @(isExplodingFlag ? "exploding" : "")">
+                                var isColFalling = isFalling && activeColumns.Contains(c);
+                                <div class="grid-cell @(symbol == 0 ? "empty" : (isColFalling ? "falling" : "")) @(isExplodingFlag ? "exploding" : "")">
                                     @if (symbol > 0)
                                     {
-                                        <span class="symbol-icon" style="animation-delay: @(c * 0.2)s">@GetSymbolEmoji(symbol)</span>
+                                        <span class="symbol-icon" style="animation-delay: @(c * 0.15)s">@GetSymbolEmoji(symbol)</span>
                                     }
                                 </div>
                             }
@@ -72,13 +73,26 @@
                     <MudText Typo="Typo.h4" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
                 </div>
 
-                <MudNumericField @bind-Value="betAmount" Label="Bet Amount" Variant="Variant.Filled" Min="1" Max="1000" Step="1" 
-                                 Disabled="@isSpinning" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
+                <MudSelect T="decimal" Label="Denomination" @bind-Value="denomination" Variant="Variant.Filled" Class="mb-2" 
+                           Disabled="@isSpinning">
+                    <MudSelectItem Value="@(0.01m)">@((0.01m).ToString("C2"))</MudSelectItem>
+                    <MudSelectItem Value="@(0.05m)">@((0.05m).ToString("C2"))</MudSelectItem>
+                    <MudSelectItem Value="@(0.10m)">@((0.10m).ToString("C2"))</MudSelectItem>
+                    <MudSelectItem Value="@(0.50m)">@((0.50m).ToString("C2"))</MudSelectItem>
+                    <MudSelectItem Value="@(1.00m)">@((1.00m).ToString("C2"))</MudSelectItem>
+                </MudSelect>
+
+                <MudNumericField @bind-Value="creditsBet" Label="Bet (Credits)" Variant="Variant.Filled" Min="10" Max="100" Step="10" 
+                                 Disabled="@isSpinning" />
+                
+                <div class="mt-n2 text-center">
+                    <MudText Typo="Typo.caption" Style="color: #888;">Total Stake: <b>@((creditsBet * denomination).ToString("C2"))</b></MudText>
+                </div>
 
                 <MudButton Variant="Variant.Filled" 
                            Color="Color.Primary" 
                            OnClick="OnSpin" 
-                           Disabled="@(isSpinning || balance < betAmount)" 
+                           Disabled="@(isSpinning || balance < (creditsBet * denomination))" 
                            Style="height: 80px; font-size: 1.5rem; font-weight: 900; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
                     @(isSpinning ? "AVALANCHE..." : "SPIN")
                 </MudButton>
@@ -152,17 +166,23 @@
     private bool isFalling = false;
     private bool isShaking = false;
     private decimal balance = 0;
-    private decimal betAmount = 10;
+    private decimal denomination = 0.01m;
+    private int creditsBet = 10;
     private decimal lastWin = 0;
     private int juiceMeter = 0;
     private decimal totalMultiplier = 1;
     private Guid? sessionId;
     private int[][] currentGrid = new int[5][];
     private List<Point> explodingCells = new();
+    private List<int> activeColumns = new();
 
     protected override async Task OnInitializedAsync()
     {
-        for (int i = 0; i < 5; i++) currentGrid[i] = new int[6];
+        var rnd = new Random();
+        for (int i = 0; i < 5; i++) {
+            currentGrid[i] = new int[6];
+            for (int j = 0; j < 6; j++) currentGrid[i][j] = rnd.Next(1, 8); // Start with random fruits
+        }
         LayoutService.OnMajorUpdate += StateHasChanged;
         await LoadData();
     }
@@ -183,6 +203,15 @@
             var session = await GameService.ResumeSession("fruitblast");
             if (session != null) {
                 sessionId = session.SessionId;
+                if (!string.IsNullOrEmpty(session.GameState)) {
+                     var state = JsonSerializer.Deserialize<FruitBlastState>(session.GameState);
+                     if (state != null) {
+                         denomination = state.Denomination;
+                         juiceMeter = state.JuiceMeter;
+                         totalMultiplier = state.TotalMultiplier;
+                         currentGrid = state.Grid;
+                     }
+                }
             } else {
                 var newSession = await GameService.StartSession("fruitblast");
                 sessionId = newSession.SessionId;
@@ -199,18 +228,23 @@
 
     private bool isExploding(int r, int c) => explodingCells.Any(p => p.R == r && p.C == c);
 
-    private async Task UpdateGridSequential(int[][] newGrid) {
+    private async Task UpdateGridSequential(int[][] newGrid, List<int>? columns = null) {
         isFalling = true;
-        // Update column by column for staggered landing
-        for (int c = 0; c < 6; c++) {
+        // Strictly Reel 1 to 6 (sorted)
+        var colsToUpdate = (columns ?? Enumerable.Range(0, 6).ToList()).OrderBy(c => c).ToList();
+        activeColumns = colsToUpdate;
+
+        foreach (int c in colsToUpdate) {
             for (int r = 0; r < 5; r++) {
                 currentGrid[r][c] = newGrid[r][c];
             }
             StateHasChanged();
             await Audio.PlayClick(); // land sound
-            await Task.Delay(350); // Much slower landing
+            await Task.Delay(400); // Slower landing for impact
         }
+        
         isFalling = false;
+        activeColumns.Clear();
         StateHasChanged();
     }
 
@@ -222,6 +256,8 @@
         juiceMeter = 0;
         totalMultiplier = 1;
         explodingCells.Clear();
+
+        var betAmount = creditsBet * denomination;
 
         if (balance < betAmount) {
             Snackbar.Add("Insufficient Balance", Severity.Warning);
@@ -235,24 +271,19 @@
 
         try {
             await Audio.PlaySpin();
-            var result = await GameService.PlaceBet("fruitblast", sessionId.Value, betAmount, new { });
+            var result = await GameService.PlaceBet("fruitblast", sessionId.Value, betAmount, new { Denomination = denomination });
             var fullState = JsonSerializer.Deserialize<FruitBlastState>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             
             if (fullState != null) {
-                // Initial Grid - Empty it first
-                for (int r = 0; r < 5; r++) for (int c = 0; c < 6; c++) currentGrid[r][c] = 0;
-                StateHasChanged();
-                await Task.Delay(400);
-
+                // 1. Initial Drop (Reel by Reel)
                 if (fullState.History.Any()) {
                     await UpdateGridSequential(fullState.History.First().GridBefore);
                 }
                 await Task.Delay(800);
 
-                // Play back history
+                // Play back history (Avalanches)
                 int stepIdx = 0;
                 foreach (var step in fullState.History) {
-                    // 1. Show explosions/wins
                     explodingCells = step.WinningClusters;
                     explodingCells.AddRange(step.Explosions.SelectMany(e => e.Affected));
                     
@@ -260,27 +291,26 @@
                         isShaking = true;
                         await Audio.PlayBonus(); // Explosion sound
                         StateHasChanged();
-                        await Task.Delay(1000); // Slower explosion visibility
+                        await Task.Delay(1200); // Pause on explosion
                         isShaking = false;
                         StateHasChanged();
                     }
                     
-                    // 2. Clear exploded cells (show empty spots)
+                    // 2. Clear exploded cells
                     foreach(var p in explodingCells) currentGrid[p.R][p.C] = 0;
                     explodingCells.Clear();
                     juiceMeter = step.JuiceMeterValue;
                     StateHasChanged();
-                    await Task.Delay(600);
+                    await Task.Delay(800);
 
-                    // 3. Fall & Fill (Next Step)
+                    // 3. Fall & Fill (Only affected columns)
                     stepIdx++;
                     if (stepIdx < fullState.History.Count) {
-                        await UpdateGridSequential(fullState.History[stepIdx].GridBefore);
+                        await UpdateGridSequential(fullState.History[stepIdx].GridBefore, step.AffectedColumns);
                     }
                     await Task.Delay(600);
                 }
 
-                // Final State
                 totalMultiplier = fullState.TotalMultiplier;
                 lastWin = result.TotalWin;
                 if (lastWin > 0) await Audio.PlayWin();
@@ -304,15 +334,18 @@
         return ValueTask.CompletedTask;
     }
 
-    // Local DTOs for state playback
     public class FruitBlastState {
+        public int[][] Grid { get; set; } = new int[5][];
         public decimal TotalMultiplier { get; set; }
+        public int JuiceMeter { get; set; }
+        public decimal Denomination { get; set; }
         public List<AvalancheStep> History { get; set; } = new();
     }
     public class AvalancheStep {
         public int[][] GridBefore { get; set; } = Array.Empty<int[]>();
         public List<Point> WinningClusters { get; set; } = new();
         public List<BombExplosion> Explosions { get; set; } = new();
+        public List<int> AffectedColumns { get; set; } = new();
         public int JuiceMeterValue { get; set; }
     }
     public class Point { public int R { get; set; } public int C { get; set; } }

@@ -36,6 +36,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
         public List<AvalancheStep> History { get; set; } = new();
         public decimal CurrentRoundWin { get; set; } = 0;
         public bool IsFinished { get; set; } = false;
+        public decimal Denomination { get; set; } = 0.01m;
 
         public FruitBlastState() {
             for (int r = 0; r < Rows; r++) Grid[r] = new int[Cols];
@@ -48,6 +49,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
         public List<BombExplosion> Explosions { get; set; } = new();
         public decimal WinAmount { get; set; }
         public int JuiceMeterValue { get; set; }
+        public List<int> AffectedColumns { get; set; } = new();
     }
 
     public class Point { public int R { get; set; } public int C { get; set; } }
@@ -58,6 +60,23 @@ public class FruitBlastGameEngine : BaseGameEngine {
         _cache = cache;
     }
 
+    public override async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string? betData) {
+        decimal denom = 0.01m; 
+        try { 
+            if (!string.IsNullOrEmpty(betData)) {
+                var json = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(betData);
+                if (json.TryGetProperty("Denomination", out var d) || json.TryGetProperty("denomination", out d)) 
+                    denom = d.GetDecimal();
+            }
+        } catch {}
+
+        // Validation similar to Slot Engine
+        decimal minBet = 10 * denom; 
+        if (amount < minBet && amount > 0) throw new Exception($"Minimum bet for this denomination is {minBet:C2}.");
+
+        await base.PlaceBet(userId, sessionId, amount, betData);
+    }
+
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
         return await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
@@ -66,10 +85,17 @@ public class FruitBlastGameEngine : BaseGameEngine {
             var bet = repo.GetLastBet(sessionId);
             if (bet == null) throw new Exception("Bet not found");
 
+            decimal denom = 0.01m;
+            try {
+                var json = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(bet.BetData);
+                if (json.TryGetProperty("Denomination", out var d) || json.TryGetProperty("denomination", out d)) 
+                    denom = d.GetDecimal();
+            } catch {}
+
             // 1. Ask the Brain for a directive
             var directive = BrainService.GetNextDirective(session.UserId, session.GameId, bet.Amount, repo);
             
-            var state = new FruitBlastState();
+            var state = new FruitBlastState { Denomination = denom };
             int roundNum = repo.GetRoundCount(sessionId) + 1;
             int baseNonce = roundNum * 1000;
 
@@ -94,6 +120,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     state.CurrentRoundWin += stepWin;
                     step.WinAmount = stepWin;
                     state.JuiceMeter += clusters.Count; // Increment meter by number of clusters
+                    step.AffectedColumns.AddRange(step.WinningClusters.Select(p => p.C).Distinct());
                 }
 
                 // Find Bombs (TNT, Nuclear, Supernova)
@@ -103,12 +130,15 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     // Apply Explosions (Remove symbols)
                     foreach (var exp in explosions) {
                         foreach (var p in exp.Affected) state.Grid[p.R][p.C] = 0;
+                        step.AffectedColumns.AddRange(exp.Affected.Select(p => p.C).Distinct());
                         if (exp.Type == 10) {
                              state.TotalMultiplier *= 2; // Supernova doubles multiplier
                              if (state.TotalMultiplier > 100) state.TotalMultiplier = 100; // Cap to 100x for sanity
                         }
                     }
                 }
+
+                step.AffectedColumns = step.AffectedColumns.Distinct().OrderBy(c => c).ToList();
 
                 // If no wins and no explosions, stop
                 if (!clusters.Any() && !explosions.Any()) {
