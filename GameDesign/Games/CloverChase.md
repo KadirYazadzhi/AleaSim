@@ -94,3 +94,119 @@ These special bells have constant values based on the **Denomination**, not the 
 *   **RTP Control:** 
     *   The "Paid Respin" phase has high RTP due to Sticky Wilds. Math must account for this.
     *   Bonus Game values must be generated *after* checking the `RtpEngine` (Pool Balance). If Pool is low, generate low multipliers (0.2x).
+
+---
+
+## 7. Paytable
+
+All values are **multipliers of the Total Bet** for a matching payline combination.
+
+| Symbol | 3-of-a-Kind | 4-of-a-Kind | 5-of-a-Kind |
+| :--- | :---: | :---: | :---: |
+| **Clover** (Wild) | 5x | 20x | 100x |
+| **Seven (7)** | 4x | 15x | 75x |
+| **Bell** (Bonus only) | — | — | — |
+| **Cherry** | 1x | 5x | 25x |
+| **Plum** | 0.8x | 4x | 20x |
+| **Orange** | 0.6x | 3x | 15x |
+| **Lemon** | 0.4x | 2x | 10x |
+
+> **Notes:**
+> - The Clover acts as a Universal Wild and substitutes for every symbol including the Seven.
+> - Bell symbols have no payline value — their cash value is assigned individually during the Bell Bonus Game.
+> - Pays are evaluated left-to-right on each of the configured paylines.
+
+---
+
+## 8. Visual ASCII Grid
+
+The game plays on a **5 Reel × 4 Row** grid (20 symbol positions total).
+
+```
+       Reel 1   Reel 2   Reel 3   Reel 4   Reel 5
+Row 1 [ Lemon ] [  7  ] [ 🍒  ] [ Plum ] [  7  ]
+Row 2 [ 🍊   ] [Clover] [ 🍋  ] [  7  ] [Cherry]
+Row 3 [ Plum  ] [ 🍋  ] [  7  ] [Clover] [ Plum ]
+Row 4 [  7   ] [ 🍊  ] [ Plum] [ 🍒  ] [ Lemon]
+```
+
+**Example Respin State** — Two Clovers locked, 3 lives remaining:
+
+```
+       Reel 1   Reel 2   Reel 3   Reel 4   Reel 5
+Row 1 [ Lemon ] [  7  ] [ 🍒  ] [ Plum ] [  7  ]
+Row 2 [ 🍊   ] [★CLV★] [ 🍋  ] [  7  ] [Cherry]   ← Sticky Clover (Reel 2, Row 2)
+Row 3 [ Plum  ] [ 🍋  ] [  7  ] [★CLV★] [ Plum ]   ← Sticky Clover (Reel 4, Row 3)
+Row 4 [  7   ] [ 🍊  ] [ Plum] [ 🍒  ] [ Lemon]
+```
+
+`★CLV★` = Locked Sticky Clover Wild (does not spin, acts as universal wild for payline evaluation).
+
+---
+
+## 9. State Machine Diagram
+
+Text-based flowchart of the full Clover Chase respin and bonus flow:
+
+```
+                        ┌───────────────┐
+                        │   BASE GAME   │  ← Normal spin, standard RNG
+                        └───────┬───────┘
+                                │
+                    Clover lands on reels?
+                      ┌─────────┴─────────┐
+                     YES                  NO
+                      │                   │
+                      ▼                   ▼
+               ┌─────────────┐     Continue base game
+               │ CLOVERLANDS │  ← Clover locked; lives = 3
+               │  (Entry)    │
+               └──────┬──────┘
+                      │
+               Spin (bet deducted)
+                      │
+              ┌───────┴────────┐
+          New Clover?        No new Clover
+              │                    │
+              ▼                    ▼
+   ┌──────────────────┐   ┌─────────────────┐
+   │  RESPIN ACTIVE   │   │ DECREMENT LIVES │
+   │  Reset lives = 3 │   │  lives = lives-1 │
+   │  Lock new Clover │   └────────┬────────┘
+   └──────────┬───────┘            │
+              │              lives > 0?
+              │           ┌────────┴────────┐
+              │          YES               NO
+              │           │                 │
+              │     Loop back to       ┌────▼──────────┐
+              │     "Spin (bet         │ RETURN TO BASE│
+              │      deducted)"        │  Release all  │
+              │                        │  Clovers;     │
+              │                        │  eval paylines│
+              │                        └───────────────┘
+              │
+   Total Clovers locked ≥ 5?
+       ┌──────┴──────┐
+      YES            NO
+       │              │
+       ▼          Continue Respin loop
+┌─────────────────┐
+│ BELL BONUS GATE │  ← All Clovers flip to Bells with random cash values
+└────────┬────────┘
+         │
+         ▼
+┌──────────────────────┐
+│  BELL BONUS ACTIVE   │  ← 3 free spins (no bet deducted)
+│  Reel: Bells + Blank │     New Bell lands → lock + reset to 3
+└──────────┬───────────┘
+           │
+    Lives = 0 OR grid full?
+           │
+           ▼
+  ┌────────────────────┐
+  │  COLLECT & RESOLVE │  ← Sum Bells; apply 2x (15+ Bells) or 3x (20 Bells)
+  └────────────────────┘
+           │
+           ▼
+  Return to BASE GAME
+```
