@@ -189,7 +189,9 @@
             
             if (fullState != null) {
                 // Initial Grid
-                for (int i = 0; i < 5; i++) currentGrid[i] = fullState.History.FirstOrDefault()?.GridBefore ?? new int[6];
+                if (fullState.History.Any()) {
+                    currentGrid = fullState.History.First().GridBefore;
+                }
                 StateHasChanged();
 
                 // Play back history
