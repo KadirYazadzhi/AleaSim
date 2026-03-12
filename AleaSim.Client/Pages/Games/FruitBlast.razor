@@ -18,7 +18,7 @@
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudGrid>
         <MudItem xs="12" lg="8">
-            <MudPaper Class="pa-4 relative overflow-hidden" Style="background: radial-gradient(circle, #2a0845 0%, #000000 100%); border: 8px solid #4a148c; border-radius: 30px; min-height: 600px; box-shadow: 0 0 50px rgba(74, 20, 140, 0.4);">
+            <MudPaper Class="pa-4 relative overflow-hidden @(isShaking ? "shake-grid" : "")" Style="background: radial-gradient(circle, #2a0845 0%, #000000 100%); border: 8px solid #4a148c; border-radius: 30px; min-height: 600px; box-shadow: 0 0 50px rgba(74, 20, 140, 0.4);">
                 
                 <!-- Juice Meter -->
                 <div class="juice-meter-container">
@@ -40,10 +40,10 @@
                             {
                                 var symbol = currentGrid[r][c];
                                 var isExplodingFlag = isExploding(r, c);
-                                <div class="grid-cell @(symbol == 0 ? "empty" : "falling") @(isExplodingFlag ? "exploding" : "")">
+                                <div class="grid-cell @(symbol == 0 ? "empty" : (isFalling ? "falling" : "")) @(isExplodingFlag ? "exploding" : "")">
                                     @if (symbol > 0)
                                     {
-                                        <span class="symbol-icon">@GetSymbolEmoji(symbol)</span>
+                                        <span class="symbol-icon" style="animation-delay: @(c * 0.1)s">@GetSymbolEmoji(symbol)</span>
                                     }
                                 </div>
                             }
@@ -105,16 +105,19 @@
 </MudContainer>
 
 <style>
-    .fruit-grid { display: flex; flex-direction: column; gap: 8px; justify-content: center; align-items: center; height: 500px; padding: 20px; }
+    .fruit-grid { display: flex; flex-direction: column; gap: 8px; justify-content: center; align-items: center; height: 500px; padding: 20px; transition: transform 0.1s; }
+    .shake-grid { animation: shake 0.3s infinite; }
     .grid-row { display: flex; gap: 8px; }
     .grid-cell { width: 70px; height: 70px; background: rgba(255,255,255,0.05); border-radius: 12px; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden; }
     .grid-cell.empty { background: transparent; border: 1px dashed rgba(255,255,255,0.05); }
-    .grid-cell.falling { animation: fallIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .grid-cell.falling .symbol-icon { animation: fallIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
     .symbol-icon { font-size: 2.5rem; filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); transform-origin: center; }
     
-    @@keyframes fallIn { 0% { transform: translateY(-300px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-    @@keyframes explode { 0% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.8); filter: brightness(4) hue-rotate(90deg); opacity: 0.8; } 100% { transform: scale(0); opacity: 0; } }
-    .exploding .symbol-icon { animation: explode 0.6s forwards; }
+    @@keyframes fallIn { 0% { transform: translateY(-500px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    @@keyframes explode { 0% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.6); filter: brightness(3) hue-rotate(45deg); opacity: 0.8; } 100% { transform: scale(0); opacity: 0; } }
+    @@keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
+    
+    .exploding .symbol-icon { animation: explode 0.5s forwards !important; }
 
     .juice-meter-container { position: absolute; left: 20px; top: 50px; bottom: 50px; width: 40px; background: rgba(0,0,0,0.5); border: 2px solid #4a148c; border-radius: 20px; overflow: hidden; }
     .juice-meter-fill { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, #4a148c, #ab47bc, #ffeb3b); transition: height 0.5s ease-out; box-shadow: 0 0 15px rgba(171, 71, 188, 0.5); }
@@ -127,6 +130,8 @@
 
 @code {
     private bool isSpinning = false;
+    private bool isFalling = false;
+    private bool isShaking = false;
     private decimal balance = 0;
     private decimal betAmount = 10;
     private decimal lastWin = 0;
@@ -151,7 +156,6 @@
             var session = await GameService.ResumeSession("fruitblast");
             if (session != null) {
                 sessionId = session.SessionId;
-                // Parse state if exists...
             } else {
                 var newSession = await GameService.StartSession("fruitblast");
                 sessionId = newSession.SessionId;
@@ -167,6 +171,21 @@
     };
 
     private bool isExploding(int r, int c) => explodingCells.Any(p => p.R == r && p.C == c);
+
+    private async Task UpdateGridSequential(int[][] newGrid) {
+        isFalling = true;
+        // Update column by column for staggered landing
+        for (int c = 0; c < 6; c++) {
+            for (int r = 0; r < 5; r++) {
+                currentGrid[r][c] = newGrid[r][c];
+            }
+            StateHasChanged();
+            await Audio.PlayClick(); // Play land sound per column
+            await Task.Delay(100);
+        }
+        isFalling = false;
+        StateHasChanged();
+    }
 
     private async Task OnSpin()
     {
@@ -193,26 +212,29 @@
             var fullState = JsonSerializer.Deserialize<FruitBlastState>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             
             if (fullState != null) {
-                // Initial Grid
-                if (fullState.History.Any()) currentGrid = fullState.History.First().GridBefore;
+                // Initial Grid - Empty it first
+                for (int r = 0; r < 5; r++) for (int c = 0; c < 6; c++) currentGrid[r][c] = 0;
                 StateHasChanged();
-                await Task.Delay(600);
+                await Task.Delay(200);
+
+                if (fullState.History.Any()) {
+                    await UpdateGridSequential(fullState.History.First().GridBefore);
+                }
+                await Task.Delay(400);
 
                 // Play back history
                 int stepIdx = 0;
                 foreach (var step in fullState.History) {
-                    currentGrid = step.GridBefore;
-                    StateHasChanged();
-                    await Task.Delay(400);
-
                     // 1. Show explosions/wins
                     explodingCells = step.WinningClusters;
                     explodingCells.AddRange(step.Explosions.SelectMany(e => e.Affected));
                     
                     if (explodingCells.Any()) {
+                        isShaking = true;
                         await Audio.PlayBonus(); // Explosion sound
                         StateHasChanged();
                         await Task.Delay(600);
+                        isShaking = false;
                     }
                     
                     // 2. Clear exploded cells (show empty spots)
@@ -222,21 +244,18 @@
                     StateHasChanged();
                     await Task.Delay(300);
 
-                    // 3. Show "Falling" state (next grid before fill - if we had it)
-                    // For now, we'll just show the next step's grid which includes the fall & fill
+                    // 3. Fall & Fill (Next Step)
                     stepIdx++;
                     if (stepIdx < fullState.History.Count) {
-                        currentGrid = fullState.History[stepIdx].GridBefore;
-                    } else {
-                        // This is the last step, show final symbols
+                        await UpdateGridSequential(fullState.History[stepIdx].GridBefore);
                     }
-                    StateHasChanged();
-                    await Task.Delay(400);
+                    await Task.Delay(300);
                 }
 
                 // Final State
                 totalMultiplier = fullState.TotalMultiplier;
                 lastWin = result.TotalWin;
+                if (lastWin > 0) await Audio.PlayWin();
                 
                 var profile = await AuthService.GetMe();
                 if (profile != null) balance = profile.TotalBalance;
@@ -246,6 +265,8 @@
             Snackbar.Add(ex.Message, Severity.Error);
         } finally {
             isSpinning = false;
+            isFalling = false;
+            isShaking = false;
             StateHasChanged();
         }
     }
