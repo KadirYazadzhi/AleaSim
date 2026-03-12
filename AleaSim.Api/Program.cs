@@ -210,6 +210,8 @@ using (var scope = app.Services.CreateScope()) {
         db.Games.Add(new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000004"), Name = "Baccarat Royale", Type = "Baccarat", Provider = "AleaSim Originals", MinBet = 1, MaxBet = 5000, TargetRTP = 0.989m, IsActive = true, PoolBalance = 1000000m });
     if (!existingGames.Any(g => g.Type == "dice"))
         db.Games.Add(new AleaSim.Domain.Entities.Game { Id = Guid.Parse("77777777-7777-7777-7777-777777777777"), Name = "Neon Dice", Type = "dice", Provider = "AleaSim Originals", MinBet = 0.1m, MaxBet = 1000, TargetRTP = 0.99m, IsActive = true, PoolBalance = 1000000m });
+    if (!existingGames.Any(g => g.Type == "fruitblast"))
+        db.Games.Add(new AleaSim.Domain.Entities.Game { Id = Guid.Parse("00000000-0000-0000-0000-000000000005"), Name = "Fruit Blast (Nuclear)", Type = "fruitblast", Provider = "AleaSim Originals", MinBet = 1, MaxBet = 1000, TargetRTP = 0.968m, IsActive = true, PoolBalance = 1000000m });
     
     db.SaveChanges();
 
