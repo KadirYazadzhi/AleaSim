@@ -63,17 +63,18 @@ public class FruitBlastGameEngine : BaseGameEngine {
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
 
-            var bet = repo.GetLatestBet(sessionId);
+            var bet = repo.GetLastBet(sessionId);
             if (bet == null) throw new Exception("Bet not found");
 
             // 1. Ask the Brain for a directive
             var directive = BrainService.GetNextDirective(session.UserId, session.GameId, bet.Amount, repo);
             
             var state = new FruitBlastState();
-            int nonce = session.Nonce++;
+            int roundNum = repo.GetRoundCount(sessionId) + 1;
+            int baseNonce = roundNum * 1000;
 
             // Initial Grid Fill
-            FillGrid(state.Grid, session, nonce);
+            FillGrid(state.Grid, session, baseNonce);
 
             // Avalanche Logic (Recursive/Loop)
             int avalancheCount = 0;
@@ -89,14 +90,14 @@ public class FruitBlastGameEngine : BaseGameEngine {
                 var clusters = FindClusters(state.Grid);
                 if (clusters.Any()) {
                     step.WinningClusters = clusters.SelectMany(c => c).ToList();
-                    decimal stepWin = CalculateClusterWin(clusters, bet.Amount, state.JuiceMeter);
+                    decimal stepWin = CalculateClusterWin(state.Grid, clusters, bet.Amount, state.JuiceMeter);
                     state.CurrentRoundWin += stepWin;
                     step.WinAmount = stepWin;
                     state.JuiceMeter += clusters.Count; // Increment meter by number of clusters
                 }
 
                 // Find Bombs (TNT, Nuclear, Supernova)
-                var explosions = ProcessBombs(state.Grid, session, nonce + avalancheCount);
+                var explosions = ProcessBombs(state.Grid, session, baseNonce + avalancheCount + 50);
                 if (explosions.Any()) {
                     step.Explosions = explosions;
                     // Apply Explosions (Remove symbols)
@@ -117,7 +118,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
 
                     // Fall and Fill
                     ApplyGravity(state.Grid);
-                    FillMissing(state.Grid, session, nonce + 100 + avalancheCount);
+                    FillMissing(state.Grid, session, baseNonce + 100 + avalancheCount);
                     
                     state.History.Add(step);
                     avalancheCount++;
@@ -132,7 +133,6 @@ public class FruitBlastGameEngine : BaseGameEngine {
                 // FORCE LOSS/RE-ROLL (Near Miss logic)
                 totalWin = 0;
                 state.CurrentRoundWin = 0;
-                // We'd ideally re-run or just cap it. For simplicity, we cap/fail.
             }
 
             // 3. Process Win
@@ -147,7 +147,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
             var round = new GameRound {
                 Id = Guid.NewGuid(),
                 GameSessionId = sessionId,
-                RoundNumber = session.Nonce,
+                RoundNumber = roundNum,
                 TotalBetAmount = bet.Amount,
                 TotalWinAmount = totalWin,
                 DecisionType = directive.DecisionType,
@@ -156,7 +156,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
                 ExecutedAt = DateTime.UtcNow,
                 ServerSeed = session.ServerSeed,
                 ClientSeed = session.ClientSeed,
-                Nonce = nonce
+                Nonce = baseNonce
             };
 
             repo.SaveRound(round);
@@ -212,7 +212,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
     }
 
     private void DFS(int[][] grid, int r, int c, int symbol, bool[,] visited, List<Point> cluster) {
-        if (r < 0 || r >= Rows || c < 0 || c >= Cols || visited[r, c] || grid[r, c] != symbol) return;
+        if (r < 0 || r >= Rows || c < 0 || c >= Cols || visited[r, c] || grid[r][c] != symbol) return;
 
         visited[r, c] = true;
         cluster.Add(new Point { R = r, C = c });
@@ -223,7 +223,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
         DFS(grid, r, c + 1, symbol, visited, cluster);
     }
 
-    private decimal CalculateClusterWin(List<List<Point>> clusters, decimal bet, int juiceMeter) {
+    private decimal CalculateClusterWin(int[][] grid, List<List<Point>> clusters, decimal bet, int juiceMeter) {
         decimal totalWin = 0;
         decimal juiceMultiplier = 1.0m;
         if (juiceMeter >= 20) juiceMultiplier = 10.0m;
@@ -231,7 +231,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
         else if (juiceMeter >= 5) juiceMultiplier = 2.0m;
 
         foreach (var cluster in clusters) {
-            int symbol = gridValueAt(cluster[0]); // Helper to get symbol
+            int symbol = grid[cluster[0].R][cluster[0].C]; 
             if (Paytable.TryGetValue(symbol, out var multipliers)) {
                 int count = cluster.Count;
                 decimal mult = 0;
@@ -245,15 +245,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
             }
         }
         return totalWin;
-
-        int gridValueAt(Point p) {
-            // This is a placeholder since we don't have grid here easily
-            // Logic would be: return grid[p.R][p.C];
-            return 1; // Simplified for compile
-        }
     }
-
-    private int gridValueAt(int[][] grid, Point p) => grid[p.R][p.C];
 
     private void ApplyGravity(int[][] grid) {
         for (int c = 0; c < Cols; c++) {
@@ -309,7 +301,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
     }
 
     public override async Task<Outcome> GetOutcome(Guid roundId) {
-        return await Task.FromResult(new Outcome { Success = true });
+        return await Task.FromResult(new Outcome { Id = Guid.NewGuid(), GameRoundId = roundId });
     }
 
     public override async Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData) {
