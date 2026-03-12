@@ -160,7 +160,13 @@ app.MapHub<AleaSim.Api.Hubs.GameHub>("/gamehub"); // Added
 using (var scope = app.Services.CreateScope()) {
     var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
     
-    db.Database.Migrate(); // PRODUCTION: Apply all migrations automatically
+    try {
+        db.Database.Migrate(); // Try applying migrations
+    } catch (Exception ex) {
+        // Fallback for cases where DB was created via EnsureCreated() without history table
+        Console.WriteLine("Migration failed (likely existing schema). Falling back to EnsureCreated. Error: " + ex.Message);
+        db.Database.EnsureCreated(); 
+    }
 
     // Create SupportMessages table if missing
     try {

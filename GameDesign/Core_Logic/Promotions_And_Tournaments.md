@@ -1,59 +1,40 @@
-# 🏆 Promotions, Raffles & Tournaments
+# 🏆 Promotions & Competitive Ecosystem
 
-## Overview
-To maximize player retention and create peak traffic periods, the system implements three types of automated promotional events: **Weekly Raffles**, **Monthly Raffles**, and **The Monthly Multiplier Tournament**.
-
----
-
-## 1. Eligibility: The "Active Player" Rule
-A player is considered **ELIGIBLE** for a prize drop only if they meet the "Active" criteria:
-*   **Active Status:** Must have placed at least one bet of any amount within the **last 3 minutes** prior to the prize draw.
-*   **Rationale:** This ensures that prizes are awarded to players currently engaged with the games, rather than idle sessions or bot accounts.
+AleaSim utilizes automated social and competitive layers to maximize player retention and platform turnover.
 
 ---
 
-## 2. Raffle Mechanics (Weekly & Monthly)
+## 1. The ROI Tournament (Fair Competition)
+Unlike standard total-win leaderboards, AleaSim uses an **ROI (Return on Investment)** ranking model.
 
-### Tickets & Probability
-*   **Ticket Generation:** 1 Ticket is awarded for every **50 units** of total turnover (wagered amount).
-*   **Weighted Random:** The draw uses a weighted probability model. A player with 15,000 tickets has a much higher statistical chance than a player with 1 ticket, but the outcome remains stochastic (not guaranteed).
+*   **Formula:** `((Total Payout - Total Wagered) / Total Wagered) * 100`.
+*   **Period:** Full Calendar Month (Aggregation starts on the 1st at 00:00:00).
+*   **Payout:** Automated by the `TournamentPayoutWorker` on the **1st of the next month**.
+*   **Prize Pool:** 
+    *   **Base:** $25,000.00
+    *   **Dynamic:** +1% of every bet placed on the platform during the month.
+*   **Distribution:** 1st place (40%), 2nd place (25%), 3rd place (15%), 4th-10th (shared 20%).
 
-### Scheduling & Distribution
-*   **Weekly Raffle:** Every Sunday, 19:00 - 21:00. (Pool: 20,000).
-*   **Monthly Raffle:** 30th of every month, 19:00 - 21:00. (Pool: 50,000).
-*   **Time-Gated Drops:** Prizes are not awarded all at once. A scheduler distributes "Drop Points" randomly across the 120-minute window.
-*   **Randomized Payout Order:** The sequence of prize amounts (e.g., 500, 5000, 1000) is shuffled. Players never know when the "Big One" will drop.
-*   **The Re-roll Logic:** If the system draws a winner who is currently **OFFLINE** or **INACTIVE** (no bet in 3 mins), the system immediately performs a new draw for the same amount until an active player is found.
+## 2. Raffle Mechanics (Random Drops)
+Raffles provide excitement through unpredictable "Cash Drops" from the global pool.
 
----
+### Eligibility
+*   **Active Criteria:** Must have placed a bet within **3 minutes** of the draw.
+*   **Tickets:** 1 Ticket per $50.00 of monthly turnover.
+*   **Re-roll:** If an inactive user is picked, the system performs a recursive re-roll until an active player is found.
 
-## 3. Monthly Multiplier Tournament
+### Frequency
+*   **Weekly:** Every Sunday evening.
+*   **Monthly:** Last day of the month.
 
-*   **Duration:** 24 Hours on the 30th of every month (00:00 - 23:59).
-*   **Goal:** Highest **Profit Percentage Difference** (Multiplier).
-    *   *Formula:* `(Total Win / Total Bet) * 100`.
-    *   *Benefit:* Allows low-stakes players to compete fairly against high-rollers.
-*   **Leaderboard:** Top 10 players share a **20,000 pool** in descending order.
-*   **Payout:** Automatically credited at 00:01 on the 1st of the next month.
+## 3. The Wallet Flow (Bonus Funds)
+All promotional rewards (Raffles, Tournaments, Daily Streak) enter the **Bonus Wallet**.
 
----
+*   **Usage:** Bonus funds are consumed *before* real balance.
+*   **Wagering:** 1x Wagering requirement. 
+*   **Conversion:** Once the total wagered amount equals the awarded bonus, the remaining bonus balance is converted to real cash.
 
-## 4. The Wallet System: Locked Bonus Logic
-
-Prizes from Raffles and Tournaments are not credited as "Raw Cash". They enter the **Bonus Wallet** with specific rules:
-
-### Funds Hierarchy
-1.  **Bonus First:** When a player has a bonus balance, the system automatically uses **Bonus Funds** for bets instead of the Real Balance.
-2.  **Real Balance Freeze:** The player's original capital remains untouched while the bonus is active.
-
-### Wagering Requirement (The 1x Rule)
-*   **Requirement:** 1x Wagering. The player must place total bets equal to the prize amount received.
-*   **Conversion:** Once the total bets reach the prize value, the remaining balance in the Bonus Wallet is converted and moved to the **Real Balance**.
-*   **Restrictions:** Players cannot withdraw or use the prize for non-game actions until the 1x wagering is complete.
-
----
-
-## 5. Technical Implementation Notes
-*   **Scheduler:** Requires a background worker that pre-calculates drop timestamps at the start of the event.
-*   **Activity Tracker:** A high-speed cache (e.g., Redis) should store the `LastBetTimestamp` for every user to allow near-instant "Active" checks during draws.
-*   **Leaderboard Engine:** A real-time scoring system to track multipliers without heavy DB queries.
+## 4. Daily Retention Incentives
+*   **Bonus Wheel:** Available every 24h. Offers random cash prizes or XP boosts.
+*   **Daily Streak:** Increasing rewards for consecutive days played (capped at 50 units).
+*   **Cashback:** Accrued in real-time based on VIP level and loss volume.

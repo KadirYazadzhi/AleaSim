@@ -1,34 +1,28 @@
-# 🤖 Automation & Tournament Logic Specs
+# 🤖 Automation & System Reliability
 
-## 1. The Tournament (Strict Rules)
-*   **Schedule:** Runs strictly on the **30th of every month** from **00:00:00** to **23:59:59**.
-*   **Isolation:** Data from previous days (e.g., 29th) or subsequent days must NOT count.
-*   **Ranking Criteria:** **ROI Percentage (Return on Investment).**
-    *   It is NOT based on total absolute profit.
-    *   Formula: `((TotalPayout - TotalWagered) / TotalWagered) * 100`.
-    *   *Example:* Player A bets 10, wins 100. Profit = 90. ROI = 900%.
-    *   *Example:* Player B bets 1000, wins 1500. Profit = 500. ROI = 50%.
-    *   **Winner:** Player A (900% > 50%).
-*   **Entry Threshold:** To filter out noise (e.g., 1 spin), players might need a minimum bet count (e.g., 10 spins) to qualify (Optional, but recommended).
+AleaSim relies on a series of specialized background workers to maintain platform integrity, process promotions, and optimize data storage.
 
-## 2. Background Workers (The Schedulers)
+---
 
-### A. `RaffleWorker` (Runs continuously)
-*   **Weekly Raffle:**
-    *   Time: Sunday 19:00 - 21:00.
-    *   Logic: Random "Drops" distributed in this window.
-*   **Monthly Raffle:**
-    *   Time: 30th 19:00 - 21:00.
-    *   Logic: Same as weekly, larger pool.
+## 1. The Tournament Engine (`TournamentPayoutWorker`)
+*   **Cycle:** Monthly. Checks for finalization every hour.
+*   **Finalization Date:** Strictly on the **1st of every month**.
+*   **Ranking:** ROI-based (`((Wins-Bets)/Bets) * 100`) calculated across the entire month's wagering volume.
+*   **Prize Pool:** Base $25,000 + 1% of total platform wagering volume for that month.
+*   **Idempotency:** Uses a database-backed execution flag (`TournamentPaid_YYYY_MM`) within a SQL transaction to guarantee Top 10 winners are paid exactly once.
 
-### B. `DailyProcessingJob` (Runs at 00:01 daily)
-*   **Task 1: Daily Retention Bonuses**
-    *   Calculate yesterday's Net P/L (`TotalPaid - TotalWagered`).
-    *   If **Loss**: Give **10% Cashback** (Bonus Wallet).
-    *   If **Win**: Give **5% Loyalty Reward** (Bonus Wallet).
-    *   *Constraint:* User notified they can forfeit bonus for 1/10th real cash value (if > 100).
-*   **Task 2: Tournament Finalization**
-    *   Check: "Was yesterday the 30th?"
-    *   If Yes: Query `TournamentEntries` for Top 10 by ROI.
-    *   Action: Award prizes to winners.
-    *   Action: Wipe leaderboard for next month.
+## 2. Security & Compliance (`SentinelWorker`)
+*   **Financial Reconciliation:** Every 10 minutes, the worker verifies that `Sum(Transactions) == CurrentBalance` for all users. Discrepancies are logged as "Critical Anomaly" alerts.
+*   **Old Data Cleanup:** 
+    *   **RTP Statistics:** Records older than 30 days are purged to keep performance high.
+    *   **Audit Logs:** Logs older than 90 days are archived/deleted.
+*   **Presence Tracking:** Periodically sweeps Redis to ensure "Online" counts reflect real connections.
+
+## 3. Distributed Infrastructure
+*   **Redis Locks:** All critical operations (Betting, Claiming Jackpots, Faucet) use distributed locks to prevent "Double Spend" or concurrent request abuse in a clustered environment.
+*   **Graceful Fallback:** If the Redis cluster is unreachable, all services automatically fall back to local `IMemoryCache` and `InMemoryLocks` to maintain uptime.
+
+## 4. Financial Workers
+*   **`RaffleWorker`:** Randomly distributes prize drops to **ACTIVE** players (must have bet in the last 3 minutes).
+*   **`DailyBonusWorker`:** Resets the "Daily Spin" eligibility at 00:00 UTC and calculates daily retention cashback stats.
+*   **`AuditWriterWorker`:** An asynchronous batch-writer that flushes the `IAuditBuffer` queue to the database every 5 seconds or 100 logs, optimizing disk throughput.

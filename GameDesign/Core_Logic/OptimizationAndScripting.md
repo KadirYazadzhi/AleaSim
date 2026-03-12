@@ -1,43 +1,39 @@
-# Technical Architecture: Optimization & Scripting
+# ⚡ Optimization & Data Strategy
 
-## 1. Data Strategy: Hot vs. Cold
-To handle millions of spins without DB crashes, we use a tiered data approach.
+AleaSim is optimized for high-throughput gaming sessions through a tiered state management approach.
 
-### Tier 1: Hot State (In-Memory / Cache)
-*   **Storage:** Redis or In-Memory Dictionary (Concurrent).
-*   **Content:** The Active Session State.
-    *   `SessionId`
-    *   `CurrentScript` (If running a scripted bonus)
-    *   `ActiveGameState` (Grid, StickySymbols, RespinsLeft, LockedBetAmount)
-*   **Speed:** < 1ms access.
-*   **Persistence:** Volatile. Saved to DB only on "Session End" or "Critical Checkpoint" (Bonus Entry).
+---
 
-### Tier 2: Cold Storage (Database)
-*   **Storage:** SQL / NoSQL.
-*   **Content:**
-    *   Completed Rounds (Audit Logs).
-    *   Financial Transactions (Balance Updates).
-    *   User Profiles.
-*   **Write Strategy:** Batch writing (Write-Behind) or Critical-Only writes. We do NOT write every spin state to SQL unless necessary for crash recovery.
+## 1. Hot vs. Cold Storage
 
-## 2. The Script Engine (Reverse Math)
-The core of the "Illusion of Control". Instead of generating random numbers, we generate **Outcomes**.
+### Hot State (Redis / Local Cache)
+*   **Purpose:** Instant access to active game rounds.
+*   **Stored Data:** 
+    *   Active Slot Grids (Respin/Bonus state).
+    *   Blackjack Hands.
+    *   User Online Status.
+    *   Recent Audit Log Hashes.
+*   **Resilience:** Every engine implements a **Graceful Fallback**. If Redis is unreachable, the system transparently utilizes local `IMemoryCache`.
 
-### Workflow
-1.  **Objective:** Brain sets a goal (e.g., "Win 50.00 USD").
-2.  **Blueprint Selection:** Engine picks a template matching the goal (e.g., "Bell Bonus with Mini").
-3.  **Filling:** Algorithm distributes the win amount into specific symbols.
-    *   *Problem:* 50.00 needs to be split into 5 bells.
-    *   *Solution:* 20 (Mini) + 10 + 10 + 5 + 5.
-4.  **Pacing (The Drama):** The script distributes these events over time to create an emotional curve.
-    *   *Start:* Hope (2 bells).
-    *   *Middle:* Fear (2 dead spins).
-    *   *Climax:* Relief (Mini Jackpot lands).
-5.  **Execution:** The produced `ScriptQueue` is stored in Hot State.
-    *   Next Spin Request -> Pop item from Queue -> Return to Frontend.
-    *   Zero CPU cost during the actual spin.
+### Cold Storage (SQL)
+*   **Purpose:** Permanent record of platform activity.
+*   **Stored Data:**
+    *   Completed Game Rounds.
+    *   Transaction Ledger.
+    *   User Account Data.
+*   **Write Strategy:** Critical financial data is written immediately. Non-critical audit logs use an **Asynchronous Buffer** to batch writes every 5 seconds.
 
-## 3. Benefits
-*   **Performance:** Complex math is done ONCE (at trigger). Serving spins is just array indexing.
-*   **Control:** Exact control over RTP and User Experience.
-*   **Audit:** If a user complains, we can show the generated script plan.
+---
+
+## 2. State Restoration (UX Recovery)
+*   **The Problem:** Browser refreshes or disconnects during a bonus game can lead to player frustration.
+*   **The Solution:** 
+    1.  Engines persist partial states (e.g., Slot Lives = 2) to Redis/DB on every spin.
+    2.  Blazor frontend calls `ResumeSession` on load.
+    3.  UI visually reconstructs the previous state (Grid, Scores, Cards) with animation.
+
+---
+
+## 3. High-Performance Math
+*   **Pre-computed Strips:** Game engines use static reel strips to minimize CPU usage.
+*   **Batch Payouts:** Tournament payouts use a single SQL transaction to process Top 10 winners simultaneously, minimizing DB lock contention.

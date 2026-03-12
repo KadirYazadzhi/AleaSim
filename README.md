@@ -1,135 +1,113 @@
-# 🎰 AleaSim: The AI-Driven Casino Simulation
+# 🎰 AleaSim: The Trinity Casino Architecture
 
 ![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4?style=flat-square&logo=dotnet)
 ![Blazor](https://img.shields.io/badge/Blazor-WASM-5C2D91?style=flat-square&logo=blazor)
-![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20DDD-blue?style=flat-square)
-![AI Engine](https://img.shields.io/badge/AI-Brain%20Engine-FF4500?style=flat-square&logo=openai)
-![Status](https://img.shields.io/badge/Status-Beta%20(Active%20Dev)-yellow?style=flat-square)
-![Tests](https://img.shields.io/badge/Tests-Passing-success?style=flat-square)
+![Redis](https://img.shields.io/badge/Redis-Active-DC382D?style=flat-square&logo=redis)
+![Security](https://img.shields.io/badge/Security-Production--Ready-success?style=flat-square)
+![Provably Fair](https://img.shields.io/badge/RNG-HMAC--SHA256-orange?style=flat-square)
 
-> **A massive, enterprise-grade gambling simulation platform powered by a behavioral AI "Brain" that dynamically adjusts volatility, RTP, and player retention in real-time.**
-
----
-
-## 🧠 The Core Innovation: "The Brain" (AI Engine)
-
-AleaSim is not just a random number generator. It features a sophisticated **Artificial Intelligence layer (`BrainService`)** that acts as an invisible Game Director.
-
-### How the AI Works:
-1.  **Flow State Detection:** The AI measures the time between spins (in milliseconds).
-    *   *Too Fast (<2.5s):* Player is engaged. The AI increases volatility (bigger wins, longer dry spells) to maintain adrenaline.
-    *   *Too Slow (>7s):* Player is bored. The AI switches to "Popcorn Mode" (frequent small wins) to re-engage attention.
-2.  **Retention Hooks (Anti-Churn):**
-    *   If the AI detects a dangerous "Loss Streak" (e.g., >8 losses), it calculates the player's **Churn Risk**.
-    *   It can override the RNG to force a "Near Miss" (Teaser) or a specific "Bonus Trigger" to keep the player on the platform, provided the **Vault** can afford it.
-3.  **Shadow Balance (Personal RTP):**
-    *   The system tracks a "Shadow Wallet" for every user – the amount they *mathematically should have won*.
-    *   The AI uses this to balance luck over time, ensuring no player is unfairly destroyed and the casino remains solvent.
+AleaSim is an enterprise-grade gambling simulation platform built on the **Trinity Architecture**. It moves beyond simple random number generation to a behavioral engagement model where every outcome is mathematically deterministic, cryptographically verifiable, and AI-optimized.
 
 ---
 
-## 🎮 The Games
+## 🏗️ The Trinity Architecture
+The system is divided into three strictly decoupled layers, ensuring maximum security and scalability.
 
-All games run on a **Deterministic, Provably Fair Engine**.
+1.  **🧠 THE BRAIN (Intelligence):** Analyzes player behavior (AvgSpinInterval, Loss Streaks, LTV) to determine the *optimal* outcome for retention. It doesn't roll dice; it makes business decisions. [Read More: The Brain Intelligence](GameDesign/Core_Logic/The_Brain_Intelligence.md)
+2.  **⚙️ THE ENGINE (Visualization):** A "dumb" executor that receives a directive (e.g., "Target Win: $50") and reverse-engineers a visual result (Reel Stops, Card Sequence) that matches the target using Provably Fair logic. [Read More: CMS & Reverse Engineering](GameDesign/Core_Logic/CMS_Reverse_Engineering.md)
+3.  **🏛️ THE VAULT (Finance):** The ultimate gatekeeper. It enforces the house edge via a global `PoolBalance` and per-user `Shadow Wallets`. If the pool cannot afford a win, the Vault denies it, forcing the Brain to recalculate. [Read More: Vault & RTP Control](GameDesign/Core_Logic/Financial_Vault_RTP.md)
 
-| Game | Unique Mechanics | AI Integration |
+---
+
+## 🎮 Game Library
+All 6 games feature **Auto-Resume** technology, allowing players to recover their exact state (Grid, Hands, Bonus Lives) after a disconnect or refresh.
+
+| Game | Key Mechanics | Fairness Method |
 | :--- | :--- | :--- |
-| **🍀 Clover Chase** (Slot) | • **Hold & Win Bonus** (3 Lives)<br>• **Sticky Respins** (Wilds lock)<br>• **Mystery Nudge** (The Juice)<br>• **Gamble** (Red/Black) | AI decides when to "Nudge" a losing reel into a win. AI controls the Bonus frequency based on budget. |
-| **🔴 European Roulette** | • **Track Bets**<br>• **Complex Patterns** (Orphans, Neighbors)<br>• **State Recovery** (Resume after refresh) | AI can force the ball away from heavily covered numbers if RTP is critical, or force a hit on a "Favorite Number". |
-| **♠️ Blackjack** | • **Perfect Dealer Logic**<br>• **Split & Double Down**<br>• **Insurance** | Dealer logic is strictly math-based, but AI tracks "Card Counting" behavior via bet sizing patterns. |
+| **🍀 Clover Chase** (Slot) | Hold & Win, Sticky Wild Respins, Mystery Nudges, Multi-tier Jackpots | Reel Stop Mapping |
+| **♠️ Blackjack** | Multi-hand support, Split, Double Down, Insurance | Card Sequence |
+| **🔴 Roulette Royale** | Classic European rules, Visual Ball Tracking, High-Limit tables | Single Number |
+| **💎 Baccarat Royale** | Full "Third Card Rule" implementation, 8:1 Tie Payouts | Card Sequence |
+| **🎲 Neon Dice** | Classic Slider (0-100) with dynamic multipliers | Percentage Roll |
+| **💥 Crazy Dice** | Multi-dice mode (10 dice) with cumulative wins | Integer Sum |
 
 ---
 
-## 🏗️ System Architecture (The "Trinity")
+## 🛡️ Security & Infrastructure
+AleaSim is built for high-concurrency production environments.
 
-The system is built on three pillars, following strictly enforced **Clean Architecture**:
-
-1.  **🏛️ The Vault (Finance):**
-    *   Atomic Transactions.
-    *   **Distributed Locking (`ILockService`):** Prevents "Double Spend" attacks where a user spins 50 times in 1 millisecond.
-    *   **Bonus Wallet:** Separate wagering requirements logic.
-2.  **🧠 The Brain (Intelligence):**
-    *   Decoupled service that intercepts every game round.
-    *   Returns `BrainDirective` objects (e.g., `ForceWin`, `CoolDown`, `Random`).
-3.  **⚙️ The Engine (Physics):**
-    *   `SlotGameEngine`, `RouletteGameEngine`, etc.
-    *   Stateless logic that accepts a Seed and a Directive to produce a Result.
+*   **Cryptographic Trust:** Every round is generated via **HMAC-SHA256** using a hidden `ServerSeed`, a user-provided `ClientSeed`, and a unique `Nonce`. 
+*   **Token Revocation (Token Zombie Fix):** Real-time session validation against Redis/SQL prevents usage of leaked or terminated tokens.
+*   **Data Integrity:** A hashed **Audit Chain (Immutable Ledger)** tracks every system event. A dedicated background worker periodically verifies the ledger's integrity.
+*   **Resilience:** Native **Redis Fallback** allows the system to continue operating via local memory if the Redis cluster becomes unavailable.
+*   **Payload Protection:** Strict 1MB request limits and HTML sanitization prevent DoS and XSS attacks.
 
 ---
 
-## 📂 Project Structure & Functionality
+## 👤 User Experience (The Meta-Game)
+AleaSim treats players as RPG characters to maximize Lifetime Value (LTV).
 
-The solution is split into specialized sub-projects. [See Detailed Structure Docs](docs/Project_Structure.md).
+*   **Quest System:** Real-time missions (e.g., "Win $500 total", "Spin 100 times") with instant rewards.
+*   **Leveling & VIP:** Dynamic XP accumulation based on wager volume, unlocking higher Cashback and better Raffle odds.
+*   **Responsible Gaming:** Built-in controls for **Daily Loss Limits** and **Self-Exclusion** (24h to 30 days).
+*   **Faucet Protection:** A secure "Bankruptcy Relief" system with distributed locking to prevent parallel request abuse.
 
-*   **`AleaSim.Domain`**: The "Holy Grail". Contains Entities (`User`, `GameRound`), Interfaces, and the Core Services (`Vault`, `Brain`). **Zero external dependencies.**
-*   **`AleaSim.Persistence`**: Entity Framework Core implementation. Handles MySQL connections, heavy `JOIN` queries for history, and Transaction scopes.
-*   **`AleaSim.Api`**: The REST Interface.
-    *   **SignalR Hubs:** Pushes real-time Jackpots and Balance updates.
-    *   **Background Workers:** Runs the Raffle, Daily Bonus, and Tournament Payouts.
-    *   **Middleware:** Global Error Handling.
-*   **`AleaSim.Client`**: Blazor WebAssembly (The UI).
-    *   **PixiJS Interop:** Renders the 60FPS slot animations.
-    *   **AudioService:** Manages dynamic soundscapes.
-    *   **State Containers:** Handles Game Recovery and reactive UI.
+> **[PLACEHOLDER: User Dashboard Screenshot]**
 
 ---
 
-## 🚧 Current Status & Known Issues (Beta)
+## 👑 Administrative God Mode
+The Admin Panel provides absolute control over the platform's economics and security.
 
-**Completion:** ~85%
-**Stability:** High (Backend), Medium (Frontend)
+*   **Real-time RTP Control:** Adjust the global house edge and volatility on the fly.
+*   **Simulation Suite:** Run 1,000,000+ spins in seconds to verify game math before deployment.
+*   **Shadow Mode:** Compare "Pure RNG" vs "Brain Logic" outcomes in real-time without affecting live balances.
+*   **System Integrity Repair:** One-click tool to re-sync balances and verify the audit ledger.
+*   **Smart Replay:** Visual replay of any player round (Cards, Grid, Ball) directly from the audit logs.
 
-While the core math and banking logic are production-ready, the system has known issues typical of a Beta release.
-
-### 🐛 Critical Bugs & Missing Features
-1.  **🔊 Audio Context:** Browsers block auto-play audio. Users must interact with the page first.
-2.  **🖼️ Asset 404s:** Some placeholder images for Avatars or Slot Symbols may be missing in the repo.
-3.  **🔒 Auth Noise:** The server logs spam `Authorization failed` warnings for non-critical admin checks.
-4.  **📱 Mobile UI:** The Slot Machine canvas does not resize perfectly on vertical mobile screens.
-5.  **🐌 Database Deadlocks:** Under extreme simulation load (>1000 spins/sec), the `BrainService` and `GameEngine` sometimes fight for a row lock (Fixed in recent patch, but monitoring needed).
-6.  **📉 Performance:** `GetUserHistory` can be slow for users with >100k spins (Needs Pagination optimization).
-7.  **🛑 Redis:** Currently using `MemoryCache` and `SemaphoreSlim`. Needs Redis for multi-server scaling.
-8.  **🃏 Blackjack UI:** Split animations are instant/jarring.
-9.  **📧 Emails:** Registration does not send real emails (Service is mocked).
-10. **💳 Payments:** Deposit/Withdrawal buttons are UI-only mocks.
-
-[View Full Roadmap & Bug Tracker](docs/Development_Challenges_And_Roadmap.md)
+> **[PLACEHOLDER: Admin Dashboard & Analytics Screenshot]**
 
 ---
 
-## 🚀 Getting Started
-
-### 1. Prerequisites
-*   .NET 8 SDK
-*   MySQL / MariaDB (or use In-Memory config)
-
-### 2. Run the Backend
-```bash
-cd AleaSim.Api
-dotnet run
-# Listening on http://localhost:5286
-```
-
-### 3. Run the Client
-```bash
-cd AleaSim.Client
-dotnet run
-# Listening on https://localhost:7076
-```
-
-### 4. Admin Access
-*   **User:** `admin`
-*   **Pass:** `admin`
-*   **God Mode:** Go to `/admin/dashboard` to control RTP, inject money, or run Simulations.
+## 📂 Technical Stack
+*   **Backend:** .NET 8 WebAPI, Entity Framework Core (MySQL/MariaDB).
+*   **Caching & Locks:** Redis (StackExchange.Redis) with Local Memory fallbacks.
+*   **Real-time:** SignalR with Redis Backplane for 10,000+ concurrent connections.
+*   **Frontend:** Blazor WebAssembly + MudBlazor UI + PixiJS (60FPS Game Animations).
+*   **Automation:** Integrated Background Services for Raffles, Tournaments, and Audit Batching.
 
 ---
 
-### 🧪 Testing
-The project includes a comprehensive Test Suite (`AleaSim.Tests`) covering:
-*   ✅ **Vault Integrity:** Ensuring money is never lost.
-*   ✅ **RNG Distribution:** Verifying randomness over 1M iterations.
-*   ✅ **Brain Logic:** Ensuring Retention Hooks fire correctly.
+## 🚀 Deployment & Getting Started
+
+### Environment Configuration (Kubernetes/Cloud)
+The system is designed to read sensitive data from **Environment Variables** or **Secrets**:
+*   `ConnectionStrings__DefaultConnection`: SQL Connection String
+*   `ConnectionStrings__Redis`: Redis Connection String (with password support)
+*   `Jwt__Key`: 256-bit security key for token signing
+
+### Quick Start
+1.  **Database:** Ensure MySQL/MariaDB is running. The system will automatically apply `Migrate()` or fallback to `EnsureCreated()`.
+2.  **Run API:**
+    ```bash
+    cd AleaSim.Api && dotnet run
+    ```
+3.  **Run Client:**
+    ```bash
+    cd AleaSim.Client && dotnet run
+    ```
+
+---
+
+## 🧪 Testing Strategy
+The project maintains a high coverage test suite in `AleaSim.Tests`.
+*   **Vault Tests:** Unit tests ensuring zero-sum financial integrity.
+*   **RNG Tests:** Distribution analysis of the HMAC-SHA256 results.
+*   **Brain Tests:** Verification of retention hooks and cooling logic.
 
 ```bash
-dotnet test
+dotnet test AleaSim.Tests/AleaSim.Tests.csproj
 ```
+
+---
+*© 2026 AleaSim Entertainment - Provably Fair, AI-Driven, Scalable.*
