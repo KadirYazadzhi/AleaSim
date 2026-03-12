@@ -27,8 +27,11 @@ public class RouletteGameEngine : BaseGameEngine {
                 using var doc = JsonDocument.Parse(jsonToParse);
                 if (doc.RootElement.ValueKind == JsonValueKind.Array) {
                     bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(jsonToParse, options) ?? new();
-                } else if (doc.RootElement.TryGetProperty("Bets", out var betsEl)) {
-                    bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(betsEl.GetRawText(), options) ?? new();
+                } else {
+                    var property = doc.RootElement.EnumerateObject().FirstOrDefault(p => p.Name.Equals("bets", StringComparison.OrdinalIgnoreCase));
+                    if (property.Value.ValueKind == JsonValueKind.Array) {
+                        bets = JsonSerializer.Deserialize<List<RouletteBetDto>>(property.Value.GetRawText(), options) ?? new();
+                    }
                 }
             }
         } catch { throw new Exception("Security Alert: Invalid bet format detected."); }

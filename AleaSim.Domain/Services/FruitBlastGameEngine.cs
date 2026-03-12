@@ -351,6 +351,10 @@ public class FruitBlastGameEngine : BaseGameEngine {
     }
 
     public override async Task<object?> GetCurrentState(Guid sessionId) {
-        return await Task.FromResult(new FruitBlastState());
+        return await ExecuteScopedAsync(repo => {
+            var round = repo.GetLastRound(sessionId);
+            if (round == null) return Task.FromResult<object?>(new FruitBlastState());
+            return Task.FromResult<object?>(JsonSerializer.Deserialize<FruitBlastState>(round.RandomResult));
+        });
     }
 }

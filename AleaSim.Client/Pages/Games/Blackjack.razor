@@ -261,7 +261,14 @@
                 if (pVal <= 21 && (dVal > 21 || pVal >= dVal)) anyWin = true;
             }
             
-            if (anyWin) await Audio.PlayWin();
+            if (anyWin && state.TotalWin > 0) {
+                gameResult = $"YOU WON {state.TotalWin:C2}!";
+                await Audio.PlayWin();
+            } else if (state.TotalWin > 0) {
+                gameResult = $"PUSH! RETURNED {state.TotalWin:C2}";
+            } else {
+                gameResult = "DEALER WINS!";
+            }
             
             // Wait for animations
             await Task.Delay(turboMode ? 200 : 1000);
@@ -327,5 +334,6 @@
         public List<string> DealerHand { get; set; } = new(); 
         public int ActiveHandIndex { get; set; }
         public bool IsRoundOver { get; set; } 
+        public decimal TotalWin { get; set; }
     }
 }

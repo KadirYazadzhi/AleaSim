@@ -21,15 +21,6 @@
             <MudPaper Class="@($"pa-4 relative overflow-hidden {(LayoutService.IsDarkMode ? "game-dark" : "game-light")}")" 
                       Style='@($"border: 8px solid var(--game-border); border-radius: 30px; min-height: 600px; box-shadow: 0 0 50px var(--game-glow);")'>
                 
-                <!-- Audio Block Overlay -->
-                @if (!isAudioInitialized)
-                {
-                    <div class="audio-overlay" @onclick="InitAudioManual">
-                        <MudIcon Icon="@Icons.Material.Filled.VolumeUp" Size="Size.Large" Class="mb-2" />
-                        <MudText Typo="Typo.h6">Click to Enable Sound</MudText>
-                    </div>
-                }
-
                 <!-- Juice Meter -->
                 <div class="juice-meter-container">
                     <div class="juice-meter-fill" style="height: @(Math.Min(100, (juiceMeter * 5)))%"></div>
@@ -185,7 +176,6 @@
     private bool isSpinning = false;
     private bool isFalling = false;
     private bool isShaking = false;
-    private bool isAudioInitialized = false;
     private decimal balance = 0;
     private decimal denomination = 0.01m;
     private int creditsBet = 10;
@@ -208,10 +198,11 @@
         await LoadData();
     }
 
-    private async Task InitAudioManual() {
-        await Audio.Init();
-        isAudioInitialized = true;
-        StateHasChanged();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) {
+            await Audio.Init();
+        }
     }
 
     private async Task LoadData()
@@ -229,7 +220,7 @@
                          denomination = state.Denomination;
                          juiceMeter = state.JuiceMeter;
                          totalMultiplier = state.TotalMultiplier;
-                         if (state.Grid != null && state.Grid.Length == 5)
+                         if (state.Grid != null && state.Grid.Length == 5 && state.Grid[0].Any(x => x > 0))
                          {
                              currentGrid = state.Grid;
                          }
@@ -298,7 +289,6 @@
         StateHasChanged();
 
         try {
-            if (!isAudioInitialized) await InitAudioManual();
             await Audio.PlaySpin();
             var result = await GameService.PlaceBet("fruitblast", sessionId.Value, betAmount, new { Denomination = denomination });
             var fullState = JsonSerializer.Deserialize<FruitBlastState>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });

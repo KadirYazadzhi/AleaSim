@@ -276,11 +276,17 @@
                 }
 
                 gameResult = state.Outcome == "Tie" ? "TIE!" : $"{state.Outcome} WINS!";
+                if (result.TotalWin > 0) {
+                    gameResult += $" +{result.TotalWin:C2}";
+                }
                 history.Add(state.Outcome);
                 
-                if (state.Outcome == selectedBet) {
+                if (result.TotalWin > 0) {
                     await Audio.PlayWin();
-                    Snackbar.Add($"Winner! You won on {selectedBet}", Severity.Success);
+                    Snackbar.Add($"Winner! You won {result.TotalWin:C2} on {selectedBet}", Severity.Success);
+                } else if (state.Outcome == selectedBet && result.TotalWin == 0 && state.Outcome == "Tie") {
+                     // Just in case of push mechanics
+                    Snackbar.Add($"Push! Bet returned.", Severity.Info);
                 }
 
                 await Task.Delay(1000);
