@@ -537,6 +537,7 @@
         LayoutService.OnAvatarChanged += HandleAvatarChanged; // Added
         LayoutService.OnBalanceUpdateSuppressionChanged += HandleSuppressionChanged;
         LayoutService.OnOptimisticDeduction += HandleOptimisticDeduction;
+        LayoutService.OnOptimisticAdd += HandleOptimisticAdd;
         
         AuthStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
 
@@ -592,6 +593,7 @@
         LayoutService.OnAvatarChanged -= HandleAvatarChanged; 
         LayoutService.OnBalanceUpdateSuppressionChanged -= HandleSuppressionChanged;
         LayoutService.OnOptimisticDeduction -= HandleOptimisticDeduction;
+        LayoutService.OnOptimisticAdd -= HandleOptimisticAdd;
         PlatformStats.OnStatsUpdated -= StateHasChanged;
         AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
         if (RealTime.IsConnected) {
@@ -609,6 +611,13 @@
     private void HandleOptimisticDeduction(decimal amount) {
         if (userProfile != null) {
             userProfile.Balance -= amount;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void HandleOptimisticAdd(decimal amount) {
+        if (userProfile != null) {
+            userProfile.Balance += amount;
             InvokeAsync(StateHasChanged);
         }
     }
@@ -698,6 +707,7 @@
             if (userProfile != null && !string.IsNullOrEmpty(userProfile.PreferencesJson)) {
                 LayoutService.SetSkinFromProfile(userProfile.PreferencesJson);
             }
+            StateHasChanged();
         } catch { }
     }
 

@@ -19,124 +19,149 @@
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudGrid>
         <MudItem xs="12" lg="8">
-            <MudPaper Class="@($"pa-4 relative overflow-hidden {(LayoutService.IsDarkMode ? "game-dark" : "game-light")}")" 
-                      Style='@($"border: 8px solid var(--game-border); border-radius: 30px; min-height: 650px; box-shadow: 0 0 50px var(--game-glow); display: flex; flex-direction: column; align-items: center; justify-content: center;")'>
+            <!-- Game Top Header (Jackpots) -->
+            <div class="game-header-row d-flex align-center justify-space-between mb-6 gap-6">
+                <!-- The Juice Pot -->
+                <div class="juice-pot-card-v4 @(LayoutService.IsDarkMode ? "dark" : "light")">
+                    <div class="pot-liquid-v4"></div>
+                    <div class="d-flex align-center gap-4 relative z-10">
+                        <div class="pot-icon-v4">🍹</div>
+                        <div>
+                            <MudText Typo="Typo.caption" Class="pot-label-v4">JUICE RESERVOIR</MudText>
+                            <MudText Typo="Typo.h3" Class="pot-value-v4">@juicePotValue.ToString("C2")</MudText>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vitamin Overload -->
+                <div class="vitamin-card-v4 @(LayoutService.IsDarkMode ? "dark" : "light")">
+                    <div class="d-flex justify-space-between align-center mb-3">
+                        <MudText Typo="Typo.caption" Class="vitamin-label-v4">VITAMIN OVERLOAD</MudText>
+                        <div class="vitamin-percent-v4">@((lifetimeExplosions * 100.0 / 5000.0).ToString("F1"))%</div>
+                    </div>
+                    <div class="cyber-track-v4">
+                        <div class="cyber-fill-v4" style="width: @(Math.Min(100, (lifetimeExplosions / 50.0)))%"></div>
+                    </div>
+                    <MudText Style="font-size: 0.75rem; font-weight: 900; opacity: 0.8;" Class="mt-2 text-center d-block">
+                        @lifetimeExplosions.ToString("N0") / 5,000 FRUITS EXTRACTED
+                    </MudText>
+                </div>
+            </div>
+
+            <!-- Main Game Grid Container -->
+            <div class="game-main-paper @(LayoutService.IsDarkMode ? "dark" : "light") @(isMeltdownActive ? "meltdown-flash" : "")">
                 
-                <!-- Info Button -->
-                <div style="position: absolute; top: 15px; left: 15px; z-index: 100;">
+                <div class="info-btn-anchor">
                     <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Inherit" OnClick="OpenRules" Class="glass-panel" />
                 </div>
 
-                <!-- Juice Meter -->
+                <!-- Juice Meter (Sidebar) -->
                 <div class="juice-meter-sidebar">
                     <div class="juice-meter-track">
-                        <div class="juice-meter-fill" style="height: @(Math.Min(100, (juiceMeter * 1.25)))%">
+                        <div class="juice-meter-fill" style="height: @(Math.Min(100, (juiceMeter * 1.0)))%">
                             <div class="juice-meter-glow"></div>
                         </div>
                         <div class="juice-meter-markers">
-                            <div class="juice-marker @(juiceMeter >= 80 ? "active" : "")"><span>10X</span></div>
-                            <div class="juice-marker @(juiceMeter >= 40 ? "active" : "")"><span>5X</span></div>
-                            <div class="juice-marker @(juiceMeter >= 15 ? "active" : "")"><span>2X</span></div>
+                            <div class="juice-marker-badge @(juiceMeter >= 100 ? "active" : "")">MELTDOWN</div>
+                            <div class="juice-marker-badge @(juiceMeter >= 60 ? "active" : "")">10X</div>
+                            <div class="juice-marker-badge @(juiceMeter >= 30 ? "active" : "")">5X</div>
+                            <div class="juice-marker-badge @(juiceMeter >= 10 ? "active" : "")">2X</div>
                         </div>
                     </div>
-                    <div class="juice-label">FRUITS</div>
-                    <div class="juice-value">@juiceMeter</div>
+                    <div class="juice-label-v4">STRENGTH</div>
+                    <div class="juice-value-v4">@juiceMeter</div>
                 </div>
 
-                <!-- Game Grid -->
-                <div class="fruit-grid-container @(isShaking ? "shake-grid" : "")">
+                <!-- Grid Rendering -->
+                <div class="fruit-grid-container-v4 @(isShaking ? "shake-grid" : "") @(isMeltdownActive ? "meltdown-shake" : "")">
                     @if (currentGrid != null)
                     {
                         @for (int r = 0; r < 5; r++)
                         {
-                            <div class="grid-row">
-                                @if (currentGrid.Length > r && currentGrid[r] != null)
+                            <div class="grid-row-v4">
+                                @for (int c = 0; c < 6; c++)
                                 {
-                                    @for (int c = 0; c < 6; c++)
-                                    {
-                                        if (currentGrid[r].Length > c)
+                                    var row = r; var col = c;
+                                    var symbol = (currentGrid.Length > row && currentGrid[row] != null && currentGrid[row].Length > col) ? currentGrid[row][col] : 0;
+                                    var isExplodingFlag = isExploding(row, col);
+                                    var isSymbolFalling = fallingCells[row, col];
+                                    var isMega = megaFruit != null && row >= megaFruit.TopLeft.R && row < megaFruit.TopLeft.R + 3 && col >= megaFruit.TopLeft.C && col < megaFruit.TopLeft.C + 3;
+                                    
+                                    <div class="grid-cell-v4 @(symbol == 0 ? "empty" : "") @(isSymbolFalling ? "falling-anim" : "") @(isExplodingFlag ? "exploding" : "") @(isMega ? "mega-fruit-part" : "")">
+                                        @if (symbol > 0 && (!isMega || (row == megaFruit!.TopLeft.R && col == megaFruit!.TopLeft.C)))
                                         {
-                                            var row = r; var col = c;
-                                            var symbol = currentGrid[row][col];
-                                            var isExplodingFlag = isExploding(row, col);
-                                            var isSymbolFalling = fallingCells[row, col];
-                                            
-                                            <div class="grid-cell @(symbol == 0 ? "empty" : "") @(isSymbolFalling ? "falling-anim" : "") @(isExplodingFlag ? "exploding" : "")">
-                                                @if (symbol > 0)
-                                                {
-                                                    <span class="symbol-icon">@GetSymbolEmoji(symbol)</span>
-                                                }
-                                            </div>
+                                            <span class="symbol-icon-v4 @(isMega ? "mega-symbol" : "")">@GetSymbolEmoji(symbol)</span>
                                         }
-                                    }
+                                    </div>
                                 }
                             </div>
                         }
                     }
                 </div>
 
-                @if (totalMultiplier > 1)
-                {
-                    <div class="multiplier-badge">X@(totalMultiplier.ToString("F1"))</div>
-                }
-
-                @foreach (var fw in floatingWins)
-                {
-                    <div class="floating-win" style="left: @(fw.X)px; top: @(fw.Y)px;">
-                        +@fw.Amount.ToString("C2")
+                <!-- Multiplier Badge (Absolute Positioned - No Layout Shift) -->
+                @if (totalMultiplier > 1) {
+                    <div class="multiplier-badge-v4 animate-pop-in">
+                        <div class="badge-label">MULT</div>
+                        <div class="badge-value">X@(totalMultiplier.ToString("F1"))</div>
                     </div>
                 }
 
-                <div class="win-display @(lastWin > 0 ? "visible" : "")">
-                    <div class="win-label">WIN</div>
-                    <div class="win-amount">@lastWin.ToString("C2")</div>
+                @foreach (var fw in floatingWins) {
+                    <div class="floating-win-v4" style="left: @(fw.X)px; top: @(fw.Y)px;">+@fw.Amount.ToString("C2")</div>
+                }
+
+                @if (isMeltdownActive) {
+                    <div class="meltdown-overlay-v4">
+                        <MudText Typo="Typo.h2" Class="fw-black animate-pulse">NUCLEAR MELTDOWN!</MudText>
+                        <MudText Typo="Typo.h4" Class="fw-bold">EXTRACTING JUICE POT...</MudText>
+                    </div>
+                }
+
+                <!-- Giant Win Display -->
+                <div class="giant-win-overlay @(showWinDisplay ? "visible" : "")">
+                    <div class="win-ring"></div>
+                    <div class="win-content">
+                        <div class="win-header">TOTAL WIN</div>
+                        <div class="win-sum">@lastWin.ToString("C2")</div>
+                    </div>
                 </div>
-            </MudPaper>
+            </div>
         </MudItem>
 
+        <!-- Controls Column -->
         <MudItem xs="12" lg="4">
-            <MudPaper Class="pa-6 d-flex flex-column gap-4" Style='@($"background: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border-radius: 20px; border: 2px solid var(--mud-palette-divider); height: 100%;")'>
-                <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Primary" Style="font-weight: 900; letter-spacing: 2px;">FRUIT BLAST</MudText>
+            <MudPaper Class="pa-6 d-flex flex-column gap-4" Style='@($"background: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border-radius: 24px; border: 2px solid var(--mud-palette-divider); height: 100%;")'>
+                <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Primary" Class="fw-black" Style="letter-spacing: 2px;">REACTOR COMMAND</MudText>
                 
-                <div class="balance-widget pa-4 rounded-lg mb-2" style="background: var(--mud-palette-background-grey); text-align: center;">
-                    <MudText Typo="Typo.caption" Class="opacity-50">BALANCE</MudText>
-                    <MudText Typo="Typo.h4" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
+                <div class="pa-4 rounded-xl text-center border-2" style="background: var(--mud-palette-background-grey); border-color: var(--mud-palette-divider);">
+                    <MudText Typo="Typo.caption" Class="opacity-50">REACTOR CREDITS</MudText>
+                    <MudText Typo="Typo.h4" Style="color: #22c55e; font-weight: 950;">@balance.ToString("C2")</MudText>
                 </div>
 
-                <MudSelect T="decimal" Label="Denomination" @bind-Value="denomination" Variant="Variant.Filled" Class="mb-2" 
-                           Disabled="@isSpinning">
-                    <MudSelectItem Value="@(0.01m)">$0.01</MudSelectItem>
-                    <MudSelectItem Value="@(0.05m)">$0.05</MudSelectItem>
-                    <MudSelectItem Value="@(0.10m)">$0.10</MudSelectItem>
-                    <MudSelectItem Value="@(0.50m)">$0.50</MudSelectItem>
-                    <MudSelectItem Value="@(1.00m)">$1.00</MudSelectItem>
+                <MudSelect T="decimal" Label="Symbol Grade" @bind-Value="denomination" Variant="Variant.Filled" Class="mb-2" Disabled="@isSpinning">
+                    <MudSelectItem Value="@(0.01m)">$0.01 (Standard)</MudSelectItem>
+                    <MudSelectItem Value="@(0.05m)">$0.05 (Rare)</MudSelectItem>
+                    <MudSelectItem Value="@(0.10m)">$0.10 (Epic)</MudSelectItem>
+                    <MudSelectItem Value="@(0.50m)">$0.50 (Legendary)</MudSelectItem>
+                    <MudSelectItem Value="@(1.00m)">$1.00 (Exotic)</MudSelectItem>
                 </MudSelect>
 
-                <MudNumericField @bind-Value="creditsBet" Label="Bet (Credits)" Variant="Variant.Filled" Min="10" Max="1000" Step="10" 
-                                 Disabled="@isSpinning" />
+                <MudNumericField @bind-Value="creditsBet" Label="Energy Input" Variant="Variant.Filled" Min="10" Max="1000" Step="10" Disabled="@isSpinning" />
                 
-                <div class="mt-n2 text-center">
-                    <MudText Typo="Typo.caption" Style="color: #888;">Total Stake: <b>@((creditsBet * denomination).ToString("C2"))</b></MudText>
-                </div>
-
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Primary" 
-                           OnClick="OnSpin" 
-                           Disabled="@(isSpinning || balance < (creditsBet * denomination))" 
-                           Style="height: 100px; font-size: 2rem; font-weight: 900; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.3);">
-                    @(isSpinning ? "WAIT..." : "SPIN")
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSpin" Disabled="@(isSpinning || balance < (creditsBet * denomination))" 
+                           Style="height: 100px; font-size: 2.2rem; font-weight: 950; border-radius: 20px; box-shadow: 0 10px 30px rgba(var(--mud-palette-primary-rgb), 0.4);">
+                    @(isSpinning ? "CORE FUSION..." : "BLAST")
                 </MudButton>
 
-                <div class="mt-4">
-                    <MudText Typo="Typo.subtitle2" Class="mb-2 opacity-50">PAYTABLE</MudText>
-                    <div class="d-flex flex-wrap gap-2">
-                        @foreach (var s in new[] { 7, 6, 5, 4, 3, 2, 1 })
-                        {
-                            <div class="pa-2 rounded glass-panel d-flex align-center justify-center gap-2" style="width: 45%; border: 1px solid var(--mud-palette-divider);">
-                                <span style="font-size: 1.5rem;">@GetSymbolEmoji(s)</span>
-                                <MudText Typo="Typo.caption">@(s == 7 ? "High" : (s > 4 ? "Mid" : "Low"))</MudText>
-                            </div>
-                        }
+                <div class="mt-4 d-flex flex-column gap-3">
+                    <div class="pa-3 rounded-lg border-l-4" style="border-left: 4px solid #ab47bc; background: rgba(171,71,188,0.05);">
+                        <MudText Typo="Typo.caption" Class="fw-black" Style="color: #ab47bc;">POT MELTDOWN</MudText>
+                        <MudText Typo="Typo.body2" Class="opacity-70">100 Strength drains the pot!</MudText>
+                    </div>
+                    <div class="pa-3 rounded-lg border-l-4" style="border-left: 4px solid #ffd740; background: rgba(255,215,64,0.05);">
+                        <MudText Typo="Typo.caption" Class="fw-black" Style="color: #ffd740;">VITAMIN OVERLOAD</MudText>
+                        <MudText Typo="Typo.body2" Class="opacity-70">5K fruits triggers Mega 3x3 Symbol!</MudText>
                     </div>
                 </div>
             </MudPaper>
@@ -146,63 +171,103 @@
 
 <style>
     :root { --game-border: #4a148c; --game-glow: rgba(74, 20, 140, 0.4); --juice-color: #ab47bc; }
-    .game-light { background: radial-gradient(circle, #f3e5f5 0%, #ffffff 100%); --game-border: #7b1fa2; --game-glow: rgba(123, 31, 162, 0.2); --juice-color: #7b1fa2; }
-    .game-dark { background: radial-gradient(circle, #2a0845 0%, #000000 100%); --game-border: #4a148c; --game-glow: rgba(74, 20, 140, 0.4); --juice-color: #ab47bc; }
+    .game-light { --game-border: #7b1fa2; --game-glow: rgba(123, 31, 162, 0.2); --juice-color: #7b1fa2; }
 
-    .juice-meter-sidebar { position: absolute; left: 30px; top: 50%; transform: translateY(-50%); width: 60px; height: 400px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-    .juice-meter-track { position: relative; width: 30px; height: 100%; background: rgba(0,0,0,0.3); border: 3px solid var(--game-border); border-radius: 15px; overflow: hidden; box-shadow: inset 0 0 10px black; }
-    .juice-meter-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, var(--juice-color), #ffeb3b); transition: height 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    .juice-meter-glow { position: absolute; top: 0; left: 0; width: 100%; height: 10px; background: white; filter: blur(5px); opacity: 0.8; }
+    /* --- HEADER V4 --- */
+    .game-header-row { width: 100%; }
+    .juice-pot-card-v4, .vitamin-card-v4 { flex: 1; position: relative; border-radius: 24px; padding: 24px; overflow: hidden; border: 3px solid transparent; }
+    
+    .juice-pot-card-v4.dark { background: #1a0826; border-color: #e040fb; box-shadow: 0 15px 45px rgba(0,0,0,0.8); }
+    .juice-pot-card-v4.light { background: #fdf4ff; border-color: #7b1fa2; box-shadow: 0 8px 20px rgba(123,31,162,0.1); }
+    
+    .vitamin-card-v4.dark { background: #020617; border-color: #ffd740; box-shadow: 0 15px 45px rgba(0,0,0,0.6); }
+    .vitamin-card-v4.light { background: #fffbeb; border-color: #b45309; box-shadow: 0 8px 20px rgba(180,83,9,0.1); }
+
+    .pot-icon-v4 { font-size: 4rem; filter: drop-shadow(0 0 15px #ffeb3b); z-index: 2; }
+    .pot-label-v4 { font-weight: 950; letter-spacing: 2px; }
+    .dark .pot-label-v4 { color: #e040fb; } .light .pot-label-v4 { color: #7b1fa2; }
+    
+    .pot-value-v4 { font-weight: 950; font-family: 'JetBrains Mono', monospace; font-size: 3rem !important; }
+    .dark .pot-value-v4 { color: #ffeb3b; text-shadow: 0 0 20px rgba(255,235,59,0.6); }
+    .light .pot-value-v4 { color: #4a148c; }
+
+    .cyber-track-v4 { width: 100%; height: 24px; background: rgba(0,0,0,0.2); border-radius: 12px; overflow: hidden; border: 2px solid rgba(0,0,0,0.1); }
+    .cyber-fill-v4 { height: 100%; background: linear-gradient(90deg, #ffd740, #ff5252, #e040fb); transition: width 1s ease-out; }
+
+    /* --- MAIN PAPER --- */
+    .game-main-paper { position: relative; border-radius: 40px; min-height: 720px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 10px solid var(--game-border); box-shadow: 0 0 60px var(--game-glow); }
+    .game-main-paper.dark { background: radial-gradient(circle, #2a0845 0%, #000000 100%); }
+    .game-main-paper.light { background: radial-gradient(circle, #f8fafc 0%, #e2e8f0 100%); }
+
+    .info-btn-anchor { position: absolute; top: 25px; left: 25px; z-index: 100; }
+
+    /* --- JUICE METER V4 --- */
+    .juice-meter-sidebar { position: absolute; left: 40px; top: 50%; transform: translateY(-50%); width: 70px; height: 480px; display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 10; }
+    .juice-meter-track { position: relative; width: 35px; height: 100%; background: rgba(0,0,0,0.4); border: 3px solid var(--game-border); border-radius: 20px; overflow: visible; }
+    .juice-meter-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, #ab47bc, #ffeb3b, #00ffff); transition: height 0.8s; border-radius: 15px; }
+    
     .juice-meter-markers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-around; pointer-events: none; }
-    .juice-marker { width: 100%; height: 2px; background: rgba(255,255,255,0.2); position: relative; }
-    .juice-marker span { position: absolute; left: 35px; top: -10px; font-size: 0.8rem; font-weight: 900; color: #888; transition: all 0.3s; }
-    .juice-marker.active span { color: #ffeb3b; text-shadow: 0 0 10px #ffeb3b; transform: scale(1.2); }
-    .juice-label { font-weight: 900; font-size: 0.7rem; color: var(--juice-color); opacity: 0.7; }
-    .juice-value { font-weight: 900; font-size: 1.5rem; color: var(--juice-color); }
+    .juice-marker-badge { position: absolute; left: 45px; background: rgba(0,0,0,0.6); color: #666; padding: 2px 10px; border-radius: 6px; font-weight: 950; font-size: 0.75rem; border: 1px solid transparent; transition: all 0.3s; }
+    .juice-marker-badge.active { background: #00ffff; color: #000; box-shadow: 0 0 15px #00ffff; border-color: white; transform: scale(1.1); }
+    .light .juice-marker-badge { background: #cbd5e1; color: #475569; }
+    .light .juice-marker-badge.active { background: #7b1fa2; color: white; border-color: #4a148c; }
 
-    .fruit-grid-container { display: flex; flex-direction: column; gap: 10px; }
-    .grid-row { display: flex; gap: 10px; }
-    .grid-cell { width: 85px; height: 85px; background: rgba(128,128,128,0.1); border-radius: 15px; display: flex; justify-content: center; align-items: center; border: 2px solid rgba(128,128,128,0.1); position: relative; overflow: visible; box-shadow: inset 0 0 15px rgba(0,0,0,0.2); }
-    .grid-cell.empty { background: rgba(0,0,0,0.2); border-style: dashed; }
-    .symbol-icon { font-size: 3rem; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.4)); display: inline-block; }
+    /* --- GRID V4 --- */
+    .fruit-grid-container-v4 { display: flex; flex-direction: column; gap: 14px; position: relative; margin-left: 80px; }
+    .grid-row-v4 { display: flex; gap: 14px; }
+    .grid-cell-v4 { width: 95px; height: 95px; border-radius: 20px; display: flex; justify-content: center; align-items: center; position: relative; }
+    .dark .grid-cell-v4 { background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.05); box-shadow: inset 0 0 15px rgba(0,0,0,0.3); }
+    .light .grid-cell-v4 { background: rgba(0,0,0,0.03); border: 2px solid rgba(0,0,0,0.08); }
     
-    .falling-anim .symbol-icon { animation: fallIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.2) both; }
-    @@keyframes fallIn { 0% { transform: translateY(-500px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    .symbol-icon-v4 { font-size: 3.8rem; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4)); display: inline-block; }
 
-    .exploding .symbol-icon { animation: explode 0.6s forwards; z-index: 10; }
-    @@keyframes explode { 0% { transform: scale(1); filter: brightness(1); } 40% { transform: scale(1.8); filter: brightness(2) hue-rotate(45deg); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
+    /* --- ANIMATIONS --- */
+    .falling-anim .symbol-icon-v4 { animation: fallInV4 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
+    @@keyframes fallInV4 { 0% { transform: translateY(-600px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
 
-    .shake-grid { animation: shakeGrid 0.4s ease-in-out; }
-    @@keyframes shakeGrid { 0%, 100% { transform: translate(0,0); } 10%, 30%, 50%, 70%, 90% { transform: translate(-5px, 0); } 20%, 40%, 60%, 80% { transform: translate(5px, 0); } }
+    .exploding .symbol-icon-v4 { animation: explodeV4 0.5s ease-out forwards; z-index: 50; }
+    @@keyframes explodeV4 { 0% { transform: scale(1); } 50% { transform: scale(1.8) rotate(45deg); opacity: 1; filter: brightness(2); } 100% { transform: scale(0); opacity: 0; } }
 
-    .multiplier-badge { position: absolute; top: 30px; right: 30px; background: #ffeb3b; color: black; padding: 15px 30px; border-radius: 15px; font-weight: 900; font-size: 2rem; box-shadow: 0 0 30px rgba(255,235,59,0.6); border: 3px solid black; animation: pulse 1s infinite; z-index: 50; }
-    
-    .floating-win { position: absolute; color: #ffeb3b; font-weight: 900; font-size: 1.5rem; text-shadow: 0 0 10px black; pointer-events: none; animation: floatUp 1.2s ease-out forwards; z-index: 60; }
-    @@keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20% { opacity: 1; transform: translateY(-20px) scale(1.2); } 100% { transform: translateY(-100px) scale(1); opacity: 0; } }
+    .shake-grid { animation: shakeV4 0.4s ease-in-out; }
+    @@keyframes shakeV4 { 0%, 100% { transform: translate(0,0); } 20%, 60% { transform: translate(-8px, 0); } 40%, 80% { transform: translate(8px, 0); } }
 
-    .win-display { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; opacity: 0; transition: all 0.3s; z-index: 100; text-align: center; }
-    .win-display.visible { opacity: 1; animation: winPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    .win-label { font-size: 2rem; font-weight: 900; color: white; text-shadow: 0 0 20px #ab47bc; letter-spacing: 5px; }
-    .win-amount { font-size: 5rem; font-weight: 900; color: #ffeb3b; text-shadow: 0 0 30px black, 0 0 15px #ffeb3b; line-height: 0.8; }
-    
-    @@keyframes winPop { 0% { transform: translate(-50%, -50%) scale(0.2) rotate(-10deg); } 100% { transform: translate(-50%, -50%) scale(1) rotate(0); } }
-    @@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    /* --- MULTIPLIER BADGE --- */
+    .multiplier-badge-v4 { position: absolute; top: 100px; right: 40px; width: 100px; height: 100px; background: #ffeb3b; border: 4px solid #000; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(255,235,59,0.6); z-index: 150; animation: bounceV4 2s infinite; }
+    .badge-label { font-size: 0.7rem; font-weight: 900; color: #000; line-height: 1; }
+    .badge-value { font-size: 1.8rem; font-weight: 950; color: #000; line-height: 1; }
+    @@keyframes bounceV4 { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+    /* --- GIANT WIN OVERLAY --- */
+    .giant-win-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity 0.4s; background: rgba(0,0,0,0.1); }
+    .giant-win-overlay.visible { opacity: 1; }
+    .win-content { text-align: center; transform: scale(0.5); transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .visible .win-content { transform: scale(1); }
+    .win-header { font-size: 2.5rem; font-weight: 950; color: white; text-shadow: 0 0 20px #ab47bc; letter-spacing: 10px; margin-bottom: -10px; }
+    .win-sum { font-size: 7rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 40px black, 0 0 20px #ffeb3b; line-height: 1; }
+
+    .fw-black { font-weight: 900; }
+    .glass-panel { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1); }
 </style>
 
 @code {
     private bool isSpinning = false;
     private bool isShaking = false;
+    private bool isMeltdownActive = false;
+    private bool showWinDisplay = false;
     private decimal balance = 0;
     private decimal denomination = 0.01m;
     private int creditsBet = 10;
     private decimal lastWin = 0;
     private int juiceMeter = 0;
+    private decimal juicePotValue = 50.0m;
+    private int lifetimeExplosions = 0;
     private decimal totalMultiplier = 1;
     private Guid? sessionId;
     private int[][] currentGrid = new int[5][];
     private bool[,] fallingCells = new bool[5, 6];
-    private List<Point> explodingCells = new();
+    private List<GridPoint> explodingCells = new();
     private List<FloatingWin> floatingWins = new();
+    private MegaFruit? megaFruit = null;
 
     public class FloatingWin { public decimal Amount { get; set; } public int X { get; set; } public int Y { get; set; } }
 
@@ -217,9 +282,18 @@
 
     private async Task LoadData() {
         try {
-            var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
-            if (profile != null) balance = profile.TotalBalance;
+            var profile = await AuthService.GetMe();
+            if (profile != null) {
+                balance = profile.TotalBalance;
+                lifetimeExplosions = profile.FruitBlastLifetimeExplosions;
+            }
             var session = await GameService.ResumeSession("fruitblast");
+            if (session == null) {
+                var newSession = await GameService.StartSession("fruitblast");
+                sessionId = newSession.SessionId;
+                session = await GameService.ResumeSession("fruitblast"); // Load initial state (Jackpot, etc)
+            }
+
             if (session != null) {
                 sessionId = session.SessionId;
                 if (session.GameState != null) {
@@ -228,6 +302,8 @@
                          denomination = state.Denomination > 0 ? state.Denomination : 0.01m;
                          juiceMeter = state.JuiceMeter;
                          totalMultiplier = state.TotalMultiplier;
+                         juicePotValue = state.JuicePotValue;
+                         lifetimeExplosions = state.LifetimeExplosions;
                          if (state.Grid != null && state.Grid.Length == 5) {
                              for (int i = 0; i < 5; i++) {
                                  if (state.Grid[i] != null) currentGrid[i] = state.Grid[i];
@@ -235,15 +311,13 @@
                          }
                      }
                 }
-            } else {
-                var newSession = await GameService.StartSession("fruitblast");
-                sessionId = newSession.SessionId;
             }
+            StateHasChanged();
         } catch { }
     }
 
     private string GetSymbolEmoji(int symbol) => symbol switch {
-        1 => "🍋", 2 => "🍒", 3 => "🍊", 4 => "🍇", 5 => "🍉", 6 => "🍎", 7 => "⭐", 8 => "🧨", 9 => "☢️", 10 => "💥", _ => ""
+        1 => "🍋", 2 => "🍒", 3 => "🍊", 4 => "🍇", 5 => "🍉", 6 => "🍎", 7 => "⭐", 8 => "🧨", 9 => "☢️", 10 => "💥", 12 => "🌟", _ => ""
     };
 
     private bool isExploding(int r, int c) => explodingCells != null && explodingCells.Any(p => p.R == r && p.C == c);
@@ -264,7 +338,7 @@
             if (colChanged) {
                 StateHasChanged();
                 await Audio.PlayClick();
-                await Task.Delay(150);
+                await Task.Delay(100);
             }
         }
         for (int r = 0; r < 5; r++) for (int c = 0; c < 6; c++) fallingCells[r, c] = false;
@@ -278,9 +352,9 @@
 
     private async Task OnSpin() {
         if (isSpinning || sessionId == null) return;
-        isSpinning = true;
+        isSpinning = true; showWinDisplay = false;
         lastWin = 0; juiceMeter = 0; totalMultiplier = 1;
-        explodingCells.Clear();
+        explodingCells.Clear(); megaFruit = null; isMeltdownActive = false;
 
         var betAmount = creditsBet * denomination;
         if (balance < betAmount) { Snackbar.Add("Insufficient Balance", Severity.Warning); isSpinning = false; return; }
@@ -305,18 +379,25 @@
                 if (fullState.History != null) {
                     foreach (var step in fullState.History) {
                         explodingCells = step.WinningClusters ?? new();
-                        if (step.Explosions != null) explodingCells.AddRange(step.Explosions.SelectMany(e => e.Affected ?? new List<Point>()));
+                        if (step.Explosions != null) {
+                            explodingCells.AddRange(step.Explosions.SelectMany(e => e.Affected ?? new List<GridPoint>()));
+                            isShaking = true; // BOMB SHAKE
+                        }
                         
-                        if (explodingCells.Any()) {
-                            isShaking = true; await Audio.PlayBonus(); 
-                            
-                            // Trigger Floating Win
-                            if (step.WinAmount > 0) {
-                                var midX = 350; var midY = 300; // Center approximation
-                                floatingWins.Add(new FloatingWin { Amount = step.WinAmount, X = midX, Y = midY });
-                                _ = Task.Delay(2000).ContinueWith(_ => { floatingWins.RemoveAll(x => true); StateHasChanged(); });
-                            }
+                        if (step.MegaFruit != null) megaFruit = step.MegaFruit;
+                        if (step.MeltdownActive) {
+                            isMeltdownActive = true;
+                            await Audio.PlayBonus(); 
+                            StateHasChanged();
+                            await Task.Delay(2000);
+                        }
 
+                        if (explodingCells.Any()) {
+                            if (!isShaking) await Audio.PlayBonus();
+                            if (step.WinAmount > 0) {
+                                floatingWins.Add(new FloatingWin { Amount = step.WinAmount, X = 350, Y = 300 });
+                                _ = Task.Delay(2000).ContinueWith(_ => { floatingWins.RemoveAll(x => true); InvokeAsync(StateHasChanged); });
+                            }
                             StateHasChanged();
                             await Task.Delay(800); isShaking = false;
                         }
@@ -326,7 +407,9 @@
                         }
                         explodingCells.Clear();
                         
-                        // SMOOTH JUICE METER UPDATE
+                        juicePotValue = fullState.JuicePotValue;
+                        lifetimeExplosions = fullState.LifetimeExplosions;
+
                         int targetJuice = step.JuiceMeterValue;
                         if (juiceMeter < targetJuice) {
                             for (int i = juiceMeter; i <= targetJuice; i++) {
@@ -345,17 +428,30 @@
                     }
                 }
 
-                // Final safety step to ensure the grid is complete
                 await UpdateGridSequential(fullState.Grid);
 
                 totalMultiplier = fullState.TotalMultiplier;
                 lastWin = result.TotalWin;
-                if (lastWin > 0) await Audio.PlayWin();
+                
+                if (lastWin > 0) {
+                    balance += lastWin; // Optimistic update
+                    LayoutService.AddOptimisticBalance(lastWin); // Sync with MainLayout
+                    showWinDisplay = true;
+                    await Audio.PlayWin();
+                    StateHasChanged();
+                    await Task.Delay(3000); // Show win for 3 seconds
+                    showWinDisplay = false;
+                }
+
                 var profile = await AuthService.GetMe();
-                if (profile != null) balance = profile.TotalBalance;
+                if (profile != null) {
+                    balance = profile.TotalBalance;
+                    lifetimeExplosions = profile.FruitBlastLifetimeExplosions;
+                    LayoutService.NotifyMajorUpdate(); // FORCE UI REFRESH
+                }
             }
         } catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        finally { isSpinning = false; StateHasChanged(); }
+        finally { isSpinning = false; isMeltdownActive = false; StateHasChanged(); }
     }
 
     public ValueTask DisposeAsync() { LayoutService.OnMajorUpdate -= StateHasChanged; return ValueTask.CompletedTask; }
@@ -366,15 +462,20 @@
         public int JuiceMeter { get; set; }
         public decimal Denomination { get; set; }
         public List<AvalancheStep> History { get; set; } = new();
+        public decimal JuicePotValue { get; set; }
+        public int LifetimeExplosions { get; set; }
     }
     public class AvalancheStep {
         public int[][] GridBefore { get; set; } = Array.Empty<int[]>();
-        public List<Point> WinningClusters { get; set; } = new();
+        public List<GridPoint> WinningClusters { get; set; } = new();
         public List<BombExplosion> Explosions { get; set; } = new();
         public decimal WinAmount { get; set; }
         public List<int> AffectedColumns { get; set; } = new();
         public int JuiceMeterValue { get; set; }
+        public bool MeltdownActive { get; set; }
+        public MegaFruit? MegaFruit { get; set; }
     }
-    public class Point { public int R { get; set; } public int C { get; set; } }
-    public class BombExplosion { public List<Point> Affected { get; set; } = new(); }
+    public class GridPoint { public int R { get; set; } public int C { get; set; } }
+    public class BombExplosion { public List<GridPoint> Affected { get; set; } = new(); }
+    public class MegaFruit { public GridPoint TopLeft { get; set; } = new(); public int SymbolId { get; set; } }
 }

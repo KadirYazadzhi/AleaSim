@@ -24,6 +24,7 @@ public class LayoutService
     public event Action<string>? OnAvatarChanged;
     public event Action<bool>? OnBalanceUpdateSuppressionChanged;
     public event Action<decimal>? OnOptimisticDeduction;
+    public event Action<decimal>? OnOptimisticAdd;
 
     public LayoutService(ILocalStorageService localStorage, IJSRuntime jsRuntime, HttpClient http)
     {
@@ -218,4 +219,5 @@ public class LayoutService
         OnBalanceUpdateSuppressionChanged?.Invoke(suppressed);
     }
     public void DeductOptimisticBalance(decimal amount) => OnOptimisticDeduction?.Invoke(amount);
+    public void AddOptimisticBalance(decimal amount) => OnOptimisticAdd?.Invoke(amount);
 }
