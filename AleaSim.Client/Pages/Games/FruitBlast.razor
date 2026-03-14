@@ -57,19 +57,19 @@
 
                 <!-- Juice Meter (Sidebar) -->
                 <div class="juice-meter-sidebar">
+                    <div class="juice-value-v4">CORE @juiceMeter%</div>
                     <div class="juice-meter-track">
                         <div class="juice-meter-fill" style="height: @(Math.Min(100, (juiceMeter * 1.0)))%">
                             <div class="juice-meter-glow"></div>
                         </div>
                         <div class="juice-meter-markers">
-                            <div class="juice-marker-badge @(juiceMeter >= 100 ? "active" : "")">MELTDOWN</div>
-                            <div class="juice-marker-badge @(juiceMeter >= 60 ? "active" : "")">10X</div>
-                            <div class="juice-marker-badge @(juiceMeter >= 30 ? "active" : "")">5X</div>
-                            <div class="juice-marker-badge @(juiceMeter >= 10 ? "active" : "")">2X</div>
+                            <div class="juice-marker-badge @(juiceMeter >= 100 ? "active" : "")" style="bottom: 92%;">☢️</div>
+                            <div class="juice-marker-badge @(juiceMeter >= 60 ? "active" : "")" style="bottom: 60%;">10X</div>
+                            <div class="juice-marker-badge @(juiceMeter >= 30 ? "active" : "")" style="bottom: 30%;">5X</div>
+                            <div class="juice-marker-badge @(juiceMeter >= 10 ? "active" : "")" style="bottom: 10%;">2X</div>
                         </div>
                     </div>
-                    <div class="juice-label-v4">STRENGTH</div>
-                    <div class="juice-value-v4">@juiceMeter</div>
+                    <div class="juice-value-v4">@juiceMeter%</div>
                 </div>
 
                 <!-- Grid Rendering -->
@@ -120,7 +120,6 @@
 
                 <!-- Giant Win Display -->
                 <div class="giant-win-overlay @(showWinDisplay ? "visible" : "")">
-                    <div class="win-ring"></div>
                     <div class="win-content">
                         <div class="win-header">TOTAL WIN</div>
                         <div class="win-sum">@lastWin.ToString("C2")</div>
@@ -175,13 +174,15 @@
 
     /* --- HEADER V4 --- */
     .game-header-row { width: 100%; }
-    .juice-pot-card-v4, .vitamin-card-v4 { flex: 1; position: relative; border-radius: 24px; padding: 24px; overflow: hidden; border: 3px solid transparent; }
+    .juice-pot-card-v4, .vitamin-card-v4 { flex: 1; position: relative; border-radius: 24px; padding: 24px; overflow: hidden; border: 3px solid transparent; min-height: 140px; }
     
     .juice-pot-card-v4.dark { background: #1a0826; border-color: #e040fb; box-shadow: 0 15px 45px rgba(0,0,0,0.8); }
     .juice-pot-card-v4.light { background: #fdf4ff; border-color: #7b1fa2; box-shadow: 0 8px 20px rgba(123,31,162,0.1); }
     
     .vitamin-card-v4.dark { background: #020617; border-color: #ffd740; box-shadow: 0 15px 45px rgba(0,0,0,0.6); }
     .vitamin-card-v4.light { background: #fffbeb; border-color: #b45309; box-shadow: 0 8px 20px rgba(180,83,9,0.1); }
+
+    .pot-liquid-v4 { position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; background: linear-gradient(transparent, rgba(224, 64, 251, 0.2)); z-index: 1; }
 
     .pot-icon-v4 { font-size: 4rem; filter: drop-shadow(0 0 15px #ffeb3b); z-index: 2; }
     .pot-label-v4 { font-weight: 950; letter-spacing: 2px; }
@@ -191,29 +192,36 @@
     .dark .pot-value-v4 { color: #ffeb3b; text-shadow: 0 0 20px rgba(255,235,59,0.6); }
     .light .pot-value-v4 { color: #4a148c; }
 
-    .cyber-track-v4 { width: 100%; height: 24px; background: rgba(0,0,0,0.2); border-radius: 12px; overflow: hidden; border: 2px solid rgba(0,0,0,0.1); }
-    .cyber-fill-v4 { height: 100%; background: linear-gradient(90deg, #ffd740, #ff5252, #e040fb); transition: width 1s ease-out; }
+    .cyber-track-v4 { width: 100%; height: 24px; background: rgba(0,0,0,0.3); border-radius: 12px; overflow: hidden; border: 2px solid rgba(255,255,255,0.1); position: relative; }
+    .dark .cyber-track-v4 { background: rgba(74, 20, 140, 0.2); border-color: #e040fb; box-shadow: 0 0 10px rgba(224, 64, 251, 0.2); }
+    .cyber-fill-v4 { height: 100%; background: linear-gradient(90deg, #ffd740, #ff5252, #e040fb); transition: width 1s ease-out; box-shadow: 0 0 15px rgba(224, 64, 251, 0.4); }
 
     /* --- MAIN PAPER --- */
-    .game-main-paper { position: relative; border-radius: 40px; min-height: 720px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 10px solid var(--game-border); box-shadow: 0 0 60px var(--game-glow); }
+    .game-main-paper { position: relative; border-radius: 40px; min-height: 720px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 10px solid var(--game-border); box-shadow: 0 0 60px var(--game-glow); overflow: hidden; }
     .game-main-paper.dark { background: radial-gradient(circle, #2a0845 0%, #000000 100%); }
     .game-main-paper.light { background: radial-gradient(circle, #f8fafc 0%, #e2e8f0 100%); }
 
     .info-btn-anchor { position: absolute; top: 25px; left: 25px; z-index: 100; }
 
     /* --- JUICE METER V4 --- */
-    .juice-meter-sidebar { position: absolute; left: 40px; top: 50%; transform: translateY(-50%); width: 70px; height: 480px; display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 10; }
-    .juice-meter-track { position: relative; width: 35px; height: 100%; background: rgba(0,0,0,0.4); border: 3px solid var(--game-border); border-radius: 20px; overflow: visible; }
-    .juice-meter-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, #ab47bc, #ffeb3b, #00ffff); transition: height 0.8s; border-radius: 15px; }
+    .juice-meter-sidebar { position: absolute; left: 40px; top: 50%; transform: translateY(-50%); width: 60px; height: 480px; display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 10; }
+    .juice-meter-track { position: relative; width: 42px; height: 100%; background: rgba(0,0,0,0.7); border: 2px solid var(--game-border); border-radius: 20px; overflow: hidden; box-shadow: inset 0 0 15px rgba(0,0,0,0.8); }
     
-    .juice-meter-markers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-around; pointer-events: none; }
-    .juice-marker-badge { position: absolute; left: 45px; background: rgba(0,0,0,0.6); color: #666; padding: 2px 10px; border-radius: 6px; font-weight: 950; font-size: 0.75rem; border: 1px solid transparent; transition: all 0.3s; }
-    .juice-marker-badge.active { background: #00ffff; color: #000; box-shadow: 0 0 15px #00ffff; border-color: white; transform: scale(1.1); }
+    /* Technical Ticks (Lines) */
+    .juice-meter-track::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(transparent, transparent 14px, rgba(255,255,255,0.08) 15px); z-index: 2; pointer-events: none; }
+
+    .juice-meter-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, #ab47bc, #ffeb3b, #00ffff); transition: height 0.8s; border-radius: 15px; }
+    .juice-meter-glow { position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: white; box-shadow: 0 0 15px white; }
+    
+    .juice-meter-markers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+    .juice-marker-badge { position: absolute; left: 0; width: 100%; transform: translateY(50%); color: rgba(255,255,255,0.25); font-weight: 950; font-size: 0.8rem; transition: all 0.4s; text-align: center; text-shadow: 1px 1px 2px black; }
+    .juice-marker-badge.active { color: #fff; text-shadow: 0 0 10px white, 0 0 20px #00ffff; transform: translateY(50%) scale(1.3); font-size: 1.1rem; }
+    .juice-value-v4 { font-weight: 950; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #00ffff; margin-bottom: 5px; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
     .light .juice-marker-badge { background: #cbd5e1; color: #475569; }
     .light .juice-marker-badge.active { background: #7b1fa2; color: white; border-color: #4a148c; }
 
     /* --- GRID V4 --- */
-    .fruit-grid-container-v4 { display: flex; flex-direction: column; gap: 14px; position: relative; margin-left: 80px; }
+    .fruit-grid-container-v4 { display: flex; flex-direction: column; gap: 14px; position: relative; margin-left: 80px; z-index: 5; }
     .grid-row-v4 { display: flex; gap: 14px; }
     .grid-cell-v4 { width: 95px; height: 95px; border-radius: 20px; display: flex; justify-content: center; align-items: center; position: relative; }
     .dark .grid-cell-v4 { background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.05); box-shadow: inset 0 0 15px rgba(0,0,0,0.3); }
@@ -238,12 +246,16 @@
     @@keyframes bounceV4 { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
 
     /* --- GIANT WIN OVERLAY --- */
-    .giant-win-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity 0.4s; background: rgba(0,0,0,0.1); }
-    .giant-win-overlay.visible { opacity: 1; }
+    .giant-win-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; z-index: 2000; pointer-events: none; opacity: 0; transition: opacity 0.4s; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); }
+    .giant-win-overlay.visible { opacity: 1; pointer-events: auto; }
     .win-content { text-align: center; transform: scale(0.5); transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .visible .win-content { transform: scale(1); }
-    .win-header { font-size: 2.5rem; font-weight: 950; color: white; text-shadow: 0 0 20px #ab47bc; letter-spacing: 10px; margin-bottom: -10px; }
-    .win-sum { font-size: 7rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 40px black, 0 0 20px #ffeb3b; line-height: 1; }
+    .visible .win-content { transform: scale(1.5); }
+    .win-header { font-size: 3rem; font-weight: 950; color: white; text-shadow: 0 0 20px #ab47bc; letter-spacing: 12px; margin-bottom: 20px; }
+    .win-sum { font-size: 9rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 50px black, 0 0 30px #ffeb3b; line-height: 1; }
+
+    /* --- FLOATING WIN V4 --- */
+    .floating-win-v4 { position: absolute; font-size: 3.5rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 15px black, 0 0 10px #ffeb3b; z-index: 500; pointer-events: none; animation: floatUpV4 1.5s ease-out forwards; white-space: nowrap; }
+    @@keyframes floatUpV4 { 0% { transform: translate(-50%, 0); opacity: 1; } 100% { transform: translate(-50%, -150px); opacity: 0; } }
 
     .fw-black { font-weight: 900; }
     .glass-panel { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1); }
@@ -287,11 +299,19 @@
                 balance = profile.TotalBalance;
                 lifetimeExplosions = profile.FruitBlastLifetimeExplosions;
             }
+
+            // Fetch live jackpots directly to ensure they are visible on load
+            var jackpots = await Http.GetFromJsonAsync<List<JackpotDto>>("api/Game/jackpots");
+            if (jackpots != null) {
+                var juicePot = jackpots.FirstOrDefault(j => j.Name.Contains("Juice", StringComparison.OrdinalIgnoreCase));
+                if (juicePot != null) juicePotValue = juicePot.CurrentValue;
+            }
+
             var session = await GameService.ResumeSession("fruitblast");
             if (session == null) {
                 var newSession = await GameService.StartSession("fruitblast");
                 sessionId = newSession.SessionId;
-                session = await GameService.ResumeSession("fruitblast"); // Load initial state (Jackpot, etc)
+                session = await GameService.ResumeSession("fruitblast"); 
             }
 
             if (session != null) {
@@ -302,7 +322,7 @@
                          denomination = state.Denomination > 0 ? state.Denomination : 0.01m;
                          juiceMeter = state.JuiceMeter;
                          totalMultiplier = state.TotalMultiplier;
-                         juicePotValue = state.JuicePotValue;
+                         if (state.JuicePotValue > 50) juicePotValue = state.JuicePotValue;
                          lifetimeExplosions = state.LifetimeExplosions;
                          if (state.Grid != null && state.Grid.Length == 5) {
                              for (int i = 0; i < 5; i++) {
@@ -362,6 +382,7 @@
         await Audio.Init();
         balance -= betAmount;
         LayoutService.DeductOptimisticBalance(betAmount);
+        LayoutService.SetBalanceUpdateSuppression(true); // LOCK BALANCE UPDATES DURING SPIN
         StateHasChanged();
 
         try {
@@ -395,7 +416,8 @@
                         if (explodingCells.Any()) {
                             if (!isShaking) await Audio.PlayBonus();
                             if (step.WinAmount > 0) {
-                                floatingWins.Add(new FloatingWin { Amount = step.WinAmount, X = 350, Y = 300 });
+                                // Position Win Text relative to the grid center
+                                floatingWins.Add(new FloatingWin { Amount = step.WinAmount, X = 450, Y = 350 });
                                 _ = Task.Delay(2000).ContinueWith(_ => { floatingWins.RemoveAll(x => true); InvokeAsync(StateHasChanged); });
                             }
                             StateHasChanged();
@@ -434,24 +456,38 @@
                 lastWin = result.TotalWin;
                 
                 if (lastWin > 0) {
-                    balance += lastWin; // Optimistic update
-                    LayoutService.AddOptimisticBalance(lastWin); // Sync with MainLayout
+                    balance += lastWin; 
+                    LayoutService.AddOptimisticBalance(lastWin); 
                     showWinDisplay = true;
+                    Snackbar.Add($"NUCLEAR WIN: {lastWin:C2}!", Severity.Success);
                     await Audio.PlayWin();
                     StateHasChanged();
-                    await Task.Delay(3000); // Show win for 3 seconds
+                    
+                    // Force actual server-side refresh of balance immediately
+                    var profile = await AuthService.GetMe();
+                    if (profile != null) {
+                        balance = profile.TotalBalance;
+                        LayoutService.NotifyMajorUpdate();
+                    }
+
+                    await Task.Delay(3000); 
                     showWinDisplay = false;
                 }
 
-                var profile = await AuthService.GetMe();
-                if (profile != null) {
-                    balance = profile.TotalBalance;
-                    lifetimeExplosions = profile.FruitBlastLifetimeExplosions;
+                var profileAfter = await AuthService.GetMe();
+                if (profileAfter != null) {
+                    balance = profileAfter.TotalBalance;
+                    lifetimeExplosions = profileAfter.FruitBlastLifetimeExplosions;
                     LayoutService.NotifyMajorUpdate(); // FORCE UI REFRESH
                 }
             }
         } catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        finally { isSpinning = false; isMeltdownActive = false; StateHasChanged(); }
+        finally { 
+            isSpinning = false; 
+            isMeltdownActive = false; 
+            LayoutService.SetBalanceUpdateSuppression(false); // UNLOCK BALANCE UPDATES
+            StateHasChanged(); 
+        }
     }
 
     public ValueTask DisposeAsync() { LayoutService.OnMajorUpdate -= StateHasChanged; return ValueTask.CompletedTask; }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Http;
 using AleaSim.Client.Services;
 using Blazored.LocalStorage;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Components.Authorization;
 
 namespace AleaSim.Client;
 
@@ -68,8 +69,11 @@ public class RefreshTokenHandler : DelegatingHandler {
                 request.Headers.Authorization = new AuthenticationHeaderValue("bearer", newToken);
                 response = await base.SendAsync(request, cancellationToken);
             } else {
-                // Refresh failed, navigate to login
-                _navigationManager.NavigateTo("login?reason=expired");
+                // Refresh failed, navigate to login and clear state
+                await _localStorage.RemoveItemAsync("authToken");
+                var authProvider = _services.GetRequiredService<AuthenticationStateProvider>() as CustomAuthStateProvider;
+                authProvider?.NotifyUserLogout();
+                _navigationManager.NavigateTo("login?reason=expired", forceLoad: true);
             }
         }
 

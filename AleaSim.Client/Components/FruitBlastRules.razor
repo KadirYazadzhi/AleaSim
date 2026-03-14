@@ -32,12 +32,18 @@
                 <MudTabPanel Text="FEATURES" Icon="@Icons.Material.Filled.AutoFixHigh">
                     <div class="d-flex flex-column gap-4 mt-2">
                         <MudPaper Class="pa-4 glass-panel border-l-4" Style="border-left: 4px solid #ab47bc; background: rgba(171, 71, 188, 0.1) !important;">
-                            <MudText Typo="Typo.h6" Style="color: #ab47bc; font-weight: 900;">JUICE METER</MudText>
+                            <MudText Typo="Typo.h6" Style="color: #ab47bc; font-weight: 900;">THE JUICE POT</MudText>
                             <MudText Typo="Typo.body2" Style="color: white !important;">
-                                Every exploded fruit adds 1 point to the Juice Meter. Reach thresholds to unlock Win Multipliers:
-                                <br/>• <b>15 Fruits:</b> 2X Multiplier
-                                <br/>• <b>40 Fruits:</b> 5X Multiplier
-                                <br/>• <b>80 Fruits:</b> 10X Multiplier
+                                A local jackpot that grows with every explosion. Reach <b>100 Juice</b> in a single round to trigger a <b>Nuclear Meltdown</b>!
+                                <br/>• All fruits transform into <b>Golden Apples</b>.
+                                <br/>• The entire Juice Pot is awarded to you.
+                            </MudText>
+                        </MudPaper>
+
+                        <MudPaper Class="pa-4 glass-panel border-l-4" Style="border-left: 4px solid #ffd740; background: rgba(255, 215, 64, 0.1) !important;">
+                            <MudText Typo="Typo.h6" Style="color: #ffd740; font-weight: 900;">VITAMIN OVERLOAD</MudText>
+                            <MudText Typo="Typo.body2" Style="color: white !important;">
+                                Track your lifetime fruit explosions. Every <b>5,000 fruits</b> exploded triggers a <b>Mega 3x3 Golden Apple</b> on the grid for massive wins!
                             </MudText>
                         </MudPaper>
 
@@ -101,12 +107,13 @@
 
     private record SymbolRule(string Emoji, decimal P5, decimal P8, decimal P12, decimal P18, decimal P25);
     private List<SymbolRule> Symbols = new() {
-        new SymbolRule("⭐", 1.0m, 2.5m, 10.0m, 25.0m, 100.0m),
-        new SymbolRule("🍎", 0.4m, 0.8m, 2.0m, 4.0m, 10.0m),
-        new SymbolRule("🍉", 0.4m, 0.8m, 2.0m, 4.0m, 10.0m),
-        new SymbolRule("🍇", 0.2m, 0.4m, 1.0m, 2.0m, 5.0m),
-        new SymbolRule("🍊", 0.2m, 0.4m, 1.0m, 2.0m, 5.0m),
-        new SymbolRule("🍒", 0.1m, 0.2m, 0.5m, 1.0m, 2.5m),
-        new SymbolRule("🍋", 0.1m, 0.2m, 0.5m, 1.0m, 2.5m)
+        new SymbolRule("🌟", 50.0m, 200.0m, 1000.0m, 5000.0m, 25000.0m), // Golden Apple
+        new SymbolRule("⭐", 10.0m, 40.0m, 150.0m, 500.0m, 2500.0m),
+        new SymbolRule("🍎", 2.5m, 7.5m, 25.0m, 60.0m, 250.0m),
+        new SymbolRule("🍉", 1.5m, 4.0m, 12.0m, 30.0m, 100.0m),
+        new SymbolRule("🍇", 0.8m, 2.0m, 6.0m, 15.0m, 50.0m),
+        new SymbolRule("🍊", 0.6m, 1.5m, 4.0m, 10.0m, 35.0m),
+        new SymbolRule("🍒", 0.4m, 1.0m, 2.5m, 6.0m, 20.0m),
+        new SymbolRule("🍋", 0.4m, 1.0m, 2.5m, 6.0m, 20.0m)
     };
 }

@@ -45,5 +45,8 @@ public class PlayerProfile {
     public int CashbackLevel { get; set; } = 0;    // Each level +1% cashback
     public int XpBoostLevel { get; set; } = 0;     // Each level +10% XP
 
+    // --- Game Specific Stats ---
+    public int FruitBlastLifetimeExplosions { get; set; } = 0;
+
     public DateTime LastUpdate { get; set; } = DateTime.UtcNow;
 }

@@ -182,76 +182,90 @@ public class AuthController : ControllerBase {
     [Authorize]
     [HttpGet("me")]
     public async Task<IActionResult> GetMe() {
-        var userId = GetUserIdOrThrow();
-        var user = _repository.GetUser(userId);
-        if (user == null) return NotFound();
+        try {
+            var userId = GetUserIdOrThrow();
+            var user = _repository.GetUser(userId);
+            if (user == null) return NotFound();
 
-        var prog = _levelService.GetProgression(userId, _repository);
-        var userProfile = _repository.GetPlayerProfile(userId);
-        var rtpStats = _repository.GetOrCreateUserStats(userId);
-        var userRounds = _repository.GetUserHistory(userId, 50);
-        
-        var favGame = userRounds.GroupBy(r => r.GameName)
-            .OrderByDescending(g => g.Count())
-            .Select(g => g.Key)
-            .FirstOrDefault() ?? "N/A";
+            var prog = _levelService.GetProgression(userId, _repository);
+            var userProfile = _repository.GetPlayerProfile(userId);
+            if (userProfile == null) {
+                userProfile = new PlayerProfile { Id = Guid.NewGuid(), UserId = userId };
+                _repository.CreatePlayerProfile(userProfile);
+            }
 
-        var trend = userRounds.OrderBy(r => r.PlayedAt)
-            .TakeLast(7)
-            .Select(r => (double)(r.WinAmount - r.BetAmount))
-            .ToList();
+            var rtpStats = _repository.GetOrCreateUserStats(userId);
+            var userRounds = _repository.GetUserHistory(userId, 50).ToList();
+            
+            var favGame = userRounds.Any() ? userRounds.GroupBy(r => r.GameName)
+                .OrderByDescending(g => g.Count())
+                .Select(g => g.Key)
+                .FirstOrDefault() ?? "N/A" : "N/A";
 
-        var userAchs = await _achievementService.GetUserAchievements(userId, _repository);
+            var trend = userRounds.Any() ? userRounds.OrderBy(r => r.PlayedAt)
+                .TakeLast(7)
+                .Select(r => (double)(r.WinAmount - r.BetAmount))
+                .ToList() : new List<double>();
 
-        var activeSession = _repository.GetAllActiveSessions()
-            .Where(s => s.UserId == userId)
-            .OrderByDescending(s => s.StartedAt)
-            .FirstOrDefault();
+            var userAchs = await _achievementService.GetUserAchievements(userId, _repository);
 
-        var biggestWin = userRounds.Any() ? userRounds.Max(r => r.WinAmount) : 0;
-        var personalRtp = rtpStats.TotalWagered > 0 ? (double)(rtpStats.TotalPaid / rtpStats.TotalWagered) : 0;
-        var luckFactor = personalRtp / 0.96;
+            var activeSession = _repository.GetAllActiveSessions()
+                .Where(s => s.UserId == userId)
+                .OrderByDescending(s => s.StartedAt)
+                .FirstOrDefault();
 
-        return Ok(new UserProfileResponse {
-            Username = user.Username,
-            Balance = user.Balance,
-            BonusBalance = user.BonusBalance,
-            AvatarUrl = string.IsNullOrEmpty(user.AvatarUrl) ? $"https://api.dicebear.com/7.x/bottts/svg?seed={user.Username}" : user.AvatarUrl,
-            ActiveGameStateJson = activeSession?.GameState,
-            TotalWagered = rtpStats.TotalWagered,
-            TotalWon = rtpStats.TotalPaid,
-            TotalRounds = (int)rtpStats.TotalRounds,
-            FavoriteGame = favGame,
-            RecentWinLossTrend = trend,
-            DailyLossLimit = user.DailyLossLimit,
-            WeeklyLossLimit = user.WeeklyLossLimit,
-            IsTwoFactorEnabled = user.IsTwoFactorEnabled,
-            PreferencesJson = user.PreferencesJson,
-            LockoutUntil = user.LockoutUntil,
-            LuckyCloverLevel = userProfile?.LuckyCloverLevel ?? 0,
-            CashbackLevel = userProfile?.CashbackLevel ?? 0,
-            XpBoostLevel = userProfile?.XpBoostLevel ?? 0,
-            VolatilityScore = userProfile?.VolatilityScore ?? 5,
-            ChurnRiskScore = userProfile?.ChurnRiskScore ?? 0,
-            BiggestWin = biggestWin,
-            PendingCashback = userProfile?.PendingCashback ?? 0,
-            AvgSpinInterval = userProfile?.AvgSpinInterval ?? 5,
-            LossStreak = userProfile?.LossStreak ?? 0,
-            LuckFactor = (decimal)luckFactor,
-            Progression = new UserProgressionDto {
-                CurrentLevel = prog.CurrentLevel,
-                CurrentXP = prog.CurrentXP,
-                SkillPoints = prog.SkillPoints,
-                LifetimeXP = prog.LifetimeXP
-            },
-            CurrentStreak = user.CurrentStreak,
-            Achievements = userAchs.Select(a => new UserAchievementDto {
-                Name = a.Achievement.Name,
-                Description = a.Achievement.Description,
-                Icon = a.Achievement.Icon,
-                UnlockedAt = a.UnlockedAt
-            }).ToList()
-        });
+            var biggestWin = userRounds.Any() ? userRounds.Max(r => r.WinAmount) : 0;
+            var personalRtp = rtpStats.TotalWagered > 0 ? (double)(rtpStats.TotalPaid / rtpStats.TotalWagered) : 0;
+            var luckFactor = personalRtp / 0.96;
+
+            return Ok(new UserDto {
+                Username = user.Username,
+                Balance = user.Balance,
+                BonusBalance = user.BonusBalance,
+                Role = user.Role.ToString(),
+                AvatarUrl = string.IsNullOrEmpty(user.AvatarUrl) ? $"https://api.dicebear.com/7.x/bottts/svg?seed={user.Username}" : user.AvatarUrl,
+                ActiveGameStateJson = activeSession?.GameState,
+                SymbolAffinityJson = userProfile.SymbolAffinityJson,
+                TotalWagered = rtpStats.TotalWagered,
+                TotalWon = rtpStats.TotalPaid,
+                TotalRounds = (int)rtpStats.TotalRounds,
+                FavoriteGame = favGame,
+                RecentWinLossTrend = trend,
+                DailyLossLimit = user.DailyLossLimit,
+                WeeklyLossLimit = user.WeeklyLossLimit,
+                MonthlyLossLimit = user.MonthlyLossLimit,
+                IsTwoFactorEnabled = user.IsTwoFactorEnabled,
+                PreferencesJson = user.PreferencesJson,
+                LockoutUntil = user.LockoutUntil,
+                LuckyCloverLevel = userProfile.LuckyCloverLevel,
+                CashbackLevel = userProfile.CashbackLevel,
+                XpBoostLevel = userProfile.XpBoostLevel,
+                VolatilityScore = userProfile.VolatilityScore,
+                ChurnRiskScore = userProfile.ChurnRiskScore,
+                BiggestWin = biggestWin,
+                PendingCashback = userProfile.PendingCashback,
+                AvgSpinInterval = userProfile.AvgSpinInterval,
+                LossStreak = userProfile.LossStreak,
+                LuckFactor = (decimal)luckFactor,
+                FruitBlastLifetimeExplosions = userProfile.FruitBlastLifetimeExplosions,
+                Progression = new UserProgressionDto {
+                    CurrentLevel = prog.CurrentLevel,
+                    CurrentXP = prog.CurrentXP,
+                    SkillPoints = prog.SkillPoints,
+                    LifetimeXP = prog.LifetimeXP
+                },
+                CurrentStreak = user.CurrentStreak,
+                Achievements = userAchs.Select(a => new UserAchievementDto {
+                    Name = a.Achievement?.Name ?? "Unknown",
+                    Description = a.Achievement?.Description ?? "",
+                    Icon = a.Achievement?.Icon ?? "",
+                    UnlockedAt = a.UnlockedAt
+                }).ToList()
+            });
+        } catch (Exception ex) {
+            Console.WriteLine($"[AUTH_ERROR] Error in GetMe: {ex.Message}\n{ex.StackTrace}");
+            return StatusCode(500, "Internal server error while loading profile.");
+        }
     }
     
     [Authorize]
@@ -292,8 +306,9 @@ public class AuthController : ControllerBase {
              return BadRequest("Username already exists.");
          }
 
+         var userId = Guid.NewGuid();
          var user = new User {
-             Id = Guid.NewGuid(),
+             Id = userId,
              Username = request.Username,
              Email = request.Email,
              PasswordHash = _passwordHasher.HashPassword(request.Password), 
@@ -305,6 +320,12 @@ public class AuthController : ControllerBase {
          };
          
          _repository.CreateUser(user);
+
+         // INITIALIZE SUB-ENTITIES IMMEDIATELY
+         _repository.CreatePlayerProfile(new PlayerProfile { Id = Guid.NewGuid(), UserId = userId });
+         _levelService.GetProgression(userId, _repository); 
+         _repository.GetOrCreateUserStats(userId);
+
          return Ok(new { Message = "User created", UserId = user.Id });
     }
 
