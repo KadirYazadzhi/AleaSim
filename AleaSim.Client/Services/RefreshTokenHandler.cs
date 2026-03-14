@@ -12,7 +12,10 @@ public class RefreshTokenHandler : DelegatingHandler {
     private readonly IServiceProvider _services;
     private readonly NavigationManager _navigationManager;
     private readonly ILocalStorageService _localStorage;
-    private bool _isRefreshing = false;
+    
+    // Static task to handle simultaneous refresh requests across transient handlers
+    private static Task<string>? _refreshTask = null;
+    private static readonly object _refreshLock = new();
 
     public RefreshTokenHandler(IServiceProvider services, NavigationManager navigationManager, ILocalStorageService localStorage) {
         _services = services;
@@ -25,10 +28,11 @@ public class RefreshTokenHandler : DelegatingHandler {
 
         // Skip adding authorization header for login/register/refresh endpoints
         var absPath = request.RequestUri?.AbsolutePath ?? "";
-        if (!absPath.Contains("api/Auth/login") && 
-            !absPath.Contains("api/Auth/register") && 
-            !absPath.Contains("api/Auth/refresh")) {
-            
+        bool isAuthEndpoint = absPath.Contains("api/Auth/login") || 
+                             absPath.Contains("api/Auth/register") || 
+                             absPath.Contains("api/Auth/refresh");
+
+        if (!isAuthEndpoint) {
             var token = await _localStorage.GetItemAsync<string>("authToken");
             if (!string.IsNullOrEmpty(token)) {
                 request.Headers.Authorization = new AuthenticationHeaderValue("bearer", token);
@@ -37,28 +41,47 @@ public class RefreshTokenHandler : DelegatingHandler {
 
         var response = await base.SendAsync(request, cancellationToken);
 
-        if (response.StatusCode == HttpStatusCode.Unauthorized && !_isRefreshing) {
-            _isRefreshing = true;
-            
-            try {
-                // Resolve scoped service inside the handler
-                var authService = _services.GetRequiredService<IAuthService>();
-                var newToken = await authService.RefreshToken();
+        if (response.StatusCode == HttpStatusCode.Unauthorized && !isAuthEndpoint) {
+            string newToken = string.Empty;
 
-                if (!string.IsNullOrEmpty(newToken)) {
-                    // Retry original request with new token
-                    request.Headers.Authorization = new AuthenticationHeaderValue("bearer", newToken);
-                    response = await base.SendAsync(request, cancellationToken);
+            // Wait for existing refresh task or start a new one
+            Task<string>? localRefreshTask = null;
+            lock (_refreshLock) {
+                if (_refreshTask == null) {
+                    _refreshTask = PerformRefresh();
+                }
+                localRefreshTask = _refreshTask;
+            }
+
+            try {
+                newToken = await localRefreshTask;
+            } finally {
+                lock (_refreshLock) {
+                    // Only clear if we are the ones who finished it (or just let it stay for a moment)
+                    // In single-threaded Blazor, this is safer.
+                    _refreshTask = null;
                 }
             }
-            catch {
-                // Let the UI handle unauthorized access if it's a protected page
-            }
-            finally {
-                _isRefreshing = false;
+
+            if (!string.IsNullOrEmpty(newToken)) {
+                // Retry original request with new token
+                request.Headers.Authorization = new AuthenticationHeaderValue("bearer", newToken);
+                response = await base.SendAsync(request, cancellationToken);
+            } else {
+                // Refresh failed, navigate to login
+                _navigationManager.NavigateTo("login?reason=expired");
             }
         }
 
         return response;
+    }
+
+    private async Task<string> PerformRefresh() {
+        try {
+            var authService = _services.GetRequiredService<IAuthService>();
+            return await authService.RefreshToken();
+        } catch {
+            return string.Empty;
+        }
     }
 }

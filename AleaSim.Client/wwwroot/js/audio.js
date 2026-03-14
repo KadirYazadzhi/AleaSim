@@ -1,18 +1,34 @@
 window.aleaAudio = {
     sounds: {},
     init: function () {
-        this.sounds['spin'] = new Audio('sounds/spin.mp3');
-        this.sounds['win'] = new Audio('sounds/win.mp3');
-        this.sounds['bigwin'] = new Audio('sounds/bigwin.mp3');
-        this.sounds['click'] = new Audio('sounds/click.mp3');
+        console.log("Initializing Alea Audio System...");
+        const soundFiles = {
+            'spin': 'sounds/spin.mp3',
+            'win': 'sounds/win.mp3',
+            'bigwin': 'sounds/bigwin.mp3',
+            'click': 'sounds/click.mp3',
+            'explosion': 'sounds/bigwin.mp3' // Fallback to bigwin for now
+        };
+
+        for (const [name, path] of Object.entries(soundFiles)) {
+            const audio = new Audio(path);
+            audio.preload = 'auto';
+            audio.load();
+            this.sounds[name] = audio;
+        }
     },
     play: function (name, volume) {
-        if (this.sounds[name]) {
-            this.sounds[name].currentTime = 0;
+        const sound = this.sounds[name];
+        if (sound) {
+            sound.currentTime = 0;
             if (volume !== undefined) {
-                this.sounds[name].volume = volume;
+                sound.volume = Math.max(0, Math.min(1, volume));
             }
-            this.sounds[name].play().catch(e => console.log("Audio play blocked", e));
+            sound.play().catch(e => {
+                console.warn(`Audio play blocked for ${name}:`, e.message);
+            });
+        } else {
+            console.error(`Sound not found: ${name}`);
         }
     }
 };

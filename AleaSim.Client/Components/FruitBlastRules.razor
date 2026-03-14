@@ -1,0 +1,112 @@
+@using MudBlazor
+
+<MudDialog Class="fruitblast-rules-dialog">
+    <TitleContent>
+        <MudText Typo="Typo.h5" Class="fw-black text-gradient">FRUIT BLAST RULES</MudText>
+    </TitleContent>
+    <DialogContent>
+        <div class="dialog-scroll-container">
+            <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+                <!-- Symbols & Payouts -->
+                <MudTabPanel Text="PAYTABLE" Icon="@Icons.Material.Filled.TableChart">
+                    <MudText Typo="Typo.subtitle2" Class="mb-4 opacity-70" Style="color: white !important;">Payouts for clusters (Multiplied by Bet/10)</MudText>
+                    <MudGrid Spacing="2">
+                        @foreach (var sym in Symbols) {
+                            <MudItem xs="6" sm="4">
+                                <MudPaper Class="pa-3 text-center glass-panel h-100">
+                                    <div style="font-size: 2.5rem;" class="mb-2">@sym.Emoji</div>
+                                    <div class="d-flex flex-column gap-1">
+                                        <MudText Typo="Typo.caption" Class="d-flex justify-space-between" Style="color: #ffeb3b !important;"><span>25+</span> <b>@sym.P25.ToString("F1")x</b></MudText>
+                                        <MudText Typo="Typo.caption" Class="d-flex justify-space-between" Style="color: #e0e0e0 !important;"><span>18x</span> <b>@sym.P18.ToString("F1")x</b></MudText>
+                                        <MudText Typo="Typo.caption" Class="d-flex justify-space-between" Style="color: #bdbdbd !important;"><span>12x</span> <b>@sym.P12.ToString("F1")x</b></MudText>
+                                        <MudText Typo="Typo.caption" Class="d-flex justify-space-between" Style="color: #9e9e9e !important;"><span>8x</span> <b>@sym.P8.ToString("F1")x</b></MudText>
+                                        <MudText Typo="Typo.caption" Class="d-flex justify-space-between" Style="color: #757575 !important;"><span>5x</span> <b>@sym.P5.ToString("F1")x</b></MudText>
+                                    </div>
+                                </MudPaper>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudTabPanel>
+
+                <!-- Features -->
+                <MudTabPanel Text="FEATURES" Icon="@Icons.Material.Filled.AutoFixHigh">
+                    <div class="d-flex flex-column gap-4 mt-2">
+                        <MudPaper Class="pa-4 glass-panel border-l-4" Style="border-left: 4px solid #ab47bc; background: rgba(171, 71, 188, 0.1) !important;">
+                            <MudText Typo="Typo.h6" Style="color: #ab47bc; font-weight: 900;">JUICE METER</MudText>
+                            <MudText Typo="Typo.body2" Style="color: white !important;">
+                                Every exploded fruit adds 1 point to the Juice Meter. Reach thresholds to unlock Win Multipliers:
+                                <br/>• <b>15 Fruits:</b> 2X Multiplier
+                                <br/>• <b>40 Fruits:</b> 5X Multiplier
+                                <br/>• <b>80 Fruits:</b> 10X Multiplier
+                            </MudText>
+                        </MudPaper>
+
+                        <MudPaper Class="pa-4 glass-panel border-l-4" Style="border-left: 4px solid #ffeb3b; background: rgba(255, 235, 59, 0.1) !important;">
+                            <MudText Typo="Typo.h6" Style="color: #ffeb3b; font-weight: 900;">SPECIAL BOMBS</MudText>
+                            <MudText Typo="Typo.body2" Style="color: white !important;">
+                                <b>🧨 TNT (8):</b> Explodes in a 3x3 area.
+                                <br/><b>☢️ NUCLEAR (9):</b> Clears the entire row and column.
+                                <br/><b>💥 SUPERNOVA (10):</b> Clears the ENTIRE grid and <b>doubles</b> your Total Multiplier!
+                            </MudText>
+                        </MudPaper>
+                    </div>
+                </MudTabPanel>
+            </MudTabs>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Color="Color.Primary" Variant="Variant.Filled" Style="background: #ab47bc; color: white;" Class="rounded-pill px-8 mb-4 mr-4">LET'S BLAST!</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .fruitblast-rules-dialog { 
+        background: #1a0826 !important; 
+        color: white !important;
+        border: 2px solid #ab47bc !important;
+        border-radius: 24px !important;
+    }
+    .dialog-scroll-container { max-height: 70vh; overflow-y: auto; }
+    .fw-black { font-weight: 900; }
+    .glass-panel { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1); }
+    .text-gradient {
+        background: linear-gradient(to right, #ab47bc, #ffeb3b);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* Force Tabbar Colors */
+    .fruitblast-rules-dialog .mud-tabs-tabbar {
+        background: #2a0845 !important;
+        border-bottom: 2px solid #ab47bc;
+    }
+    .fruitblast-rules-dialog .mud-tab {
+        color: rgba(255,255,255,0.6) !important;
+        font-weight: 700;
+    }
+    .fruitblast-rules-dialog .mud-tab-active {
+        color: #ffeb3b !important;
+    }
+    .fruitblast-rules-dialog .mud-tab-slider {
+        background-color: #ffeb3b !important;
+    }
+    .fruitblast-rules-dialog .mud-icon-root {
+        color: inherit !important;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    void Close() => MudDialog.Close();
+
+    private record SymbolRule(string Emoji, decimal P5, decimal P8, decimal P12, decimal P18, decimal P25);
+    private List<SymbolRule> Symbols = new() {
+        new SymbolRule("⭐", 1.0m, 2.5m, 10.0m, 25.0m, 100.0m),
+        new SymbolRule("🍎", 0.4m, 0.8m, 2.0m, 4.0m, 10.0m),
+        new SymbolRule("🍉", 0.4m, 0.8m, 2.0m, 4.0m, 10.0m),
+        new SymbolRule("🍇", 0.2m, 0.4m, 1.0m, 2.0m, 5.0m),
+        new SymbolRule("🍊", 0.2m, 0.4m, 1.0m, 2.0m, 5.0m),
+        new SymbolRule("🍒", 0.1m, 0.2m, 0.5m, 1.0m, 2.5m),
+        new SymbolRule("🍋", 0.1m, 0.2m, 0.5m, 1.0m, 2.5m)
+    };
+}

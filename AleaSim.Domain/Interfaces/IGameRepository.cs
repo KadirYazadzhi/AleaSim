@@ -130,6 +130,7 @@ public interface IGameRepository {
     // User Sessions
     void CreateUserSession(UserSession session);
     UserSession? GetUserSession(Guid sessionId);
+    void UpdateUserSession(UserSession session);
     List<UserSession> GetUserSessions(Guid userId);
     void InactivateSession(string refreshToken);
     void InactivateAllUserSessions(Guid userId);

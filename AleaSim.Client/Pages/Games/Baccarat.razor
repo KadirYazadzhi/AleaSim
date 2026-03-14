@@ -2,6 +2,7 @@
 @using System.Text.Json
 @using AleaSim.Shared.Models
 @using AleaSim.Client.Services
+@attribute [Authorize]
 @implements IAsyncDisposable
 @inject IGameService GameService
 @inject AudioService Audio
@@ -9,7 +10,7 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IAuthService AuthService
-@inject LayoutService layoutService
+@inject LayoutService LayoutService
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudGrid Justify="Justify.Center">
@@ -21,9 +22,10 @@
                     <div class="text-center">
                         <MudText Typo="Typo.h6" Class="mb-2" Style="opacity: 0.7; letter-spacing: 2px;">BANKER</MudText>
                         <div class="d-flex justify-center gap-2">
-                            @foreach (var card in bankerHand)
+                            @for (int i = 0; i < bankerHand.Count; i++)
                             {
-                                <div @key="card" class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "") animate-draw">
+                                var card = bankerHand[i];
+                                <div @key='@($"banker_card_{i}_{card}")' class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "") animate-draw">
                                     @FormatCard(card)
                                 </div>
                             }
@@ -37,9 +39,10 @@
                     <div class="text-center">
                         <MudText Typo="Typo.h6" Class="mb-2" Style="opacity: 0.7; letter-spacing: 2px;">PLAYER</MudText>
                         <div class="d-flex justify-center gap-2">
-                            @foreach (var card in playerHand)
+                            @for (int i = 0; i < playerHand.Count; i++)
                             {
-                                <div @key="card" class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "") animate-draw">
+                                var card = playerHand[i];
+                                <div @key='@($"player_card_{i}_{card}")' class="playing-card @(card.Contains('H') || card.Contains('D') ? "red" : "") animate-draw">
                                     @FormatCard(card)
                                 </div>
                             }
@@ -238,13 +241,13 @@
         playerScore = 0;
         bankerScore = 0;
         
-        layoutService.SetBalanceUpdateSuppression(true);
+        LayoutService.SetBalanceUpdateSuppression(true);
         StateHasChanged();
 
         try {
             await Audio.PlaySpin();
             balance -= betAmount;
-            layoutService.DeductOptimisticBalance(betAmount);
+            LayoutService.DeductOptimisticBalance(betAmount);
 
             var result = await GameService.PlaceBet("baccarat", sessionId.Value, betAmount, new { Type = selectedBet });
             var state = JsonSerializer.Deserialize<BaccaratStateUI>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -274,11 +277,17 @@
                 }
 
                 gameResult = state.Outcome == "Tie" ? "TIE!" : $"{state.Outcome} WINS!";
+                if (result.TotalWin > 0) {
+                    gameResult += $" +{result.TotalWin:C2}";
+                }
                 history.Add(state.Outcome);
                 
-                if (state.Outcome == selectedBet) {
+                if (result.TotalWin > 0) {
                     await Audio.PlayWin();
-                    Snackbar.Add($"Winner! You won on {selectedBet}", Severity.Success);
+                    Snackbar.Add($"Winner! You won {result.TotalWin:C2} on {selectedBet}", Severity.Success);
+                } else if (state.Outcome == selectedBet && result.TotalWin == 0 && state.Outcome == "Tie") {
+                     // Just in case of push mechanics
+                    Snackbar.Add($"Push! Bet returned.", Severity.Info);
                 }
 
                 await Task.Delay(1000);
@@ -291,7 +300,7 @@
         }
         finally {
             isDealing = false;
-            layoutService.SetBalanceUpdateSuppression(false);
+            LayoutService.SetBalanceUpdateSuppression(false);
             StateHasChanged();
         }
     }

@@ -20,7 +20,12 @@ public class SimulationService : ISimulationService {
 
     public async Task<SimulationReport> RunSimulation(SimulationRequest request) {
         var stopwatch = Stopwatch.StartNew();
-        var engine = _gameFactory(request.GameType);
+        
+        string factoryKey = request.GameType;
+        if (factoryKey.Equals("dice_slider", StringComparison.OrdinalIgnoreCase) || 
+            factoryKey.Equals("dice_multi", StringComparison.OrdinalIgnoreCase)) factoryKey = "dice";
+            
+        var engine = _gameFactory(factoryKey);
         
         using var scope = _serviceProvider.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
@@ -46,8 +51,8 @@ public class SimulationService : ISimulationService {
         });
 
         try {
-            var game = repo.GetGameByType(request.GameType);
-            if (game == null) throw new Exception($"Game type '{request.GameType}' not found in DB.");
+            var game = repo.GetGameByType(factoryKey);
+            if (game == null) throw new Exception($"Game type '{factoryKey}' not found in DB.");
 
             if (request.BetAmount <= 0) request.BetAmount = 1.0m;
 
@@ -62,47 +67,92 @@ public class SimulationService : ISimulationService {
             var session = await engine.StartSession(dummyUser.Id, game.Id);
             bool pendingFeature = false;
 
-            // PERFORMANCE FIX: Wrap simulation in a single transaction
-            using var transaction = repo.BeginTransaction();
-
             for (int i = 0; i < request.Iterations; i++) {
                 // 1. Prepare Bet Data based on Game Type
                 string betData = "{}";
-                if (request.GameType.Equals("Roulette", StringComparison.OrdinalIgnoreCase)) {
+                string effectiveGameType = request.GameType.ToLower();
+
+                if (effectiveGameType == "roulette") {
                     var mode = request.GameMode ?? "Classic";
                     var bets = new[] { new { Type = "color", Value = "red", Amount = request.BetAmount } };
                     betData = JsonSerializer.Serialize(new { Bets = bets, Mode = mode });
-                } else if (request.GameType.Equals("Slot", StringComparison.OrdinalIgnoreCase)) {
+                } else if (effectiveGameType == "slot") {
                     betData = "{\"Denomination\":0.01}";
-                } else if (request.GameType.Equals("Blackjack", StringComparison.OrdinalIgnoreCase)) {
+                } else if (effectiveGameType == "fruitblast") {
+                    betData = "{\"Denomination\":0.01}";
+                } else if (effectiveGameType == "blackjack") {
                     betData = "{}"; // Standard bet
-                } else if (request.GameType.Equals("Baccarat", StringComparison.OrdinalIgnoreCase)) {
+                } else if (effectiveGameType == "baccarat") {
                     betData = JsonSerializer.Serialize(new { Type = "Player" });
-                } else if (request.GameType.Equals("Dice", StringComparison.OrdinalIgnoreCase)) {
+                } else if (effectiveGameType == "dice" || effectiveGameType == "dice_slider") {
                     betData = JsonSerializer.Serialize(new { 
                         Type = "Slider", 
-                        Target = 50.50m, 
-                        IsOver = true,
+                        TargetValue = 50.50m, 
+                        Condition = "Over",
                         Mode = "Slider"
+                    });
+                } else if (effectiveGameType == "dice_multi") {
+                    betData = JsonSerializer.Serialize(new { 
+                        Mode = "Multi",
+                        MultiDiceSelected = new List<int> { 6 } 
                     });
                 }
 
                 // 2. Place Bet (if not in a pending feature like Free Spins)
+                // IMPORTANT: We must track the INTENDED bet for RTP calculation even in features
+                // to see the true return of the math model.
                 if (!pendingFeature) {
                     await engine.PlaceBet(dummyUser.Id, session.Id, request.BetAmount, betData);
-                    totalBet += request.BetAmount;
                 }
+                
+                // Track total theoretical bet (the denominator for RTP)
+                totalBet += request.BetAmount;
 
                 var round = await engine.ResolveRound(session.Id);
                 
-                // For Blackjack, we need to handle actions if the round is not over
+                // For Blackjack, handle basic strategy (Hit until 17)
                 if (request.GameType.Equals("Blackjack", StringComparison.OrdinalIgnoreCase)) {
-                    // Simple simulation logic: Always Stand immediately for simplicity in mass simulation
-                    // or implement basic strategy. For now, Stand to resolve.
-                    if (round.RandomResult.Contains("\"IsRoundOver\":false")) {
-                         await engine.ProcessAction(dummyUser.Id, session.Id, "Stand", "{}");
-                         round = await engine.ResolveRound(session.Id); // Get final state
+                    int safetyGuard = 0;
+                    
+                    while (safetyGuard < 15) {
+                        safetyGuard++;
+                        var stateObj = await engine.GetCurrentState(session.Id);
+                        if (stateObj == null) break;
+                        
+                        string json = JsonSerializer.Serialize(stateObj);
+                        if (json.Contains("\"IsRoundOver\":true")) break;
+
+                        using var doc = JsonDocument.Parse(json);
+                        var root = doc.RootElement;
+                        var hands = root.GetProperty("PlayerHands");
+                        var activeIdx = root.GetProperty("ActiveHandIndex").GetInt32();
+                        var currentCards = hands[activeIdx].GetProperty("Cards");
+                        
+                        int handValue = 0;
+                        int aces = 0;
+                        foreach (var card in currentCards.EnumerateArray()) {
+                            string c = card.GetString() ?? "";
+                            string rank = c.Substring(0, c.Length - 1);
+                            if (rank == "A") aces++;
+                            else if (rank == "10" || rank == "J" || rank == "Q" || rank == "K") handValue += 10;
+                            else handValue += int.Parse(rank);
+                        }
+                        for (int a = 0; a < aces; a++) {
+                            if (handValue + 11 <= 21) handValue += 11;
+                            else handValue += 1;
+                        }
+
+                        if (handValue < 17) {
+                            await engine.ProcessAction(dummyUser.Id, session.Id, "Hit", "{}");
+                        } else {
+                            await engine.ProcessAction(dummyUser.Id, session.Id, "Stand", "{}");
+                        }
                     }
+                    
+                    // Final fetch of the round to get the WIN (from a new scope to avoid EF stale data)
+                    using var innerScope = _serviceProvider.CreateScope();
+                    var innerRepo = innerScope.ServiceProvider.GetRequiredService<IGameRepository>();
+                    round = innerRepo.GetLastRound(session.Id) ?? round;
                 }
                 // ... (multi-step logic)
 
@@ -132,7 +182,6 @@ public class SimulationService : ISimulationService {
                 distribution[dType]++;
             }
 
-            transaction.Commit();
             stopwatch.Stop();
 
             decimal rtpResult = totalBet > 0 ? (totalWin / totalBet) * 100m : 0m;

@@ -1,96 +1,262 @@
 @using AleaSim.Shared.Models
 @using System.Text.Json
 @using AleaSim.Client.Models
+@using AleaSim.Client.Services
 @inject NavigationManager Nav
+@inject LayoutService LayoutService
 
-<MudDialog>
+<MudDialog Class="round-details-dialog">
     <TitleContent>
-        <MudText Typo="Typo.h5">Round Details: @Round.GameName</MudText>
+        <div class="d-flex align-center gap-3">
+            <MudIcon Icon="@GetGameIcon(Round.GameName)" Color="Color.Primary" />
+            <MudText Typo="Typo.h5" Class="fw-black">ROUND DETAILS: @Round.GameName.ToUpper()</MudText>
+        </div>
     </TitleContent>
     <DialogContent>
-        <MudPaper Class="pa-4 mb-4" Style="background: var(--mud-palette-background-grey);">
+        <MudPaper Class="pa-6 mb-6 glass-panel rounded-xl" Elevation="0">
             <MudGrid>
-                <MudItem xs="6">
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Date:</MudText>
-                    <MudText Typo="Typo.body2">@Round.PlayedAt.ToString("g")</MudText>
+                <MudItem xs="6" sm="3">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">TIMESTAMP</MudText>
+                    <MudText Typo="Typo.body2" Class="fw-bold">@Round.PlayedAt.ToLocalTime().ToString("g")</MudText>
                 </MudItem>
-                <MudItem xs="6">
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Bet Amount:</MudText>
-                    <MudText Typo="Typo.body2">@Round.BetAmount.ToString("C2")</MudText>
+                <MudItem xs="6" sm="3">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">TOTAL BET</MudText>
+                    <MudText Typo="Typo.body2" Class="fw-bold">@Round.BetAmount.ToString("C2")</MudText>
                 </MudItem>
-                <MudItem xs="6">
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Win Amount:</MudText>
-                    <MudText Typo="Typo.body2" Color="@(Round.WinAmount > 0 ? Color.Success : Color.Default)" Style="font-weight: bold;">
+                <MudItem xs="6" sm="3">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">TOTAL WIN</MudText>
+                    <MudText Typo="Typo.body2" Color="@(Round.WinAmount > 0 ? Color.Success : Color.Default)" Class="fw-black">
                         @Round.WinAmount.ToString("C2")
                     </MudText>
                 </MudItem>
-                <MudItem xs="6">
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Decision Type:</MudText>
-                    <MudText Typo="Typo.body2">@Round.ResultSummary</MudText>
+                <MudItem xs="6" sm="3">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">MULTIPLIER</MudText>
+                    <MudText Typo="Typo.body2" Class="fw-bold">@((Round.BetAmount > 0 ? Round.WinAmount / Round.BetAmount : 0).ToString("F2"))x</MudText>
                 </MudItem>
             </MudGrid>
         </MudPaper>
 
-        <MudText Typo="Typo.h6" Class="mb-2">Visual Replay</MudText>
-        <div class="replay-area d-flex justify-center pa-4" style="background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--mud-palette-divider);">
-            @if (Round.GameName.Contains("Slot"))
+        <div class="mb-4 d-flex justify-space-between align-center">
+            <MudText Typo="Typo.h6" Class="fw-bold">VISUAL REPLAY</MudText>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info" Label="true">@Round.ResultSummary</MudChip>
+        </div>
+
+        <div class="replay-container pa-8 rounded-xl d-flex flex-column align-center justify-center">
+            @if (Round.GameName.Contains("Slot", StringComparison.OrdinalIgnoreCase) || Round.GameName.Contains("Clover", StringComparison.OrdinalIgnoreCase))
             {
-                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;">
+                <div class="slot-grid-display">
                     @foreach (var row in ParseSlotGrid())
                     {
                         @foreach (var cell in row)
                         {
-                            <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border: 1px solid var(--mud-palette-divider);">
-                                @GetEmoji(cell)
+                            <div class="slot-cell">
+                                @GetSlotEmoji(cell)
                             </div>
                         }
                     }
                 </div>
             }
-            else if (Round.GameName.Contains("Roulette"))
+            else if (Round.GameName.Contains("Fruit", StringComparison.OrdinalIgnoreCase))
             {
-                <div style="width: 80px; height: 80px; border-radius: 50%; background: #b30000; border: 4px solid var(--mud-palette-surface); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; color: white; box-shadow: 0 0 15px rgba(179,0,0,0.5);">
-                    @ParseRouletteResult()
+                <div class="fruit-grid-display">
+                    @foreach (var row in ParseFruitGrid())
+                    {
+                        @foreach (var cell in row)
+                        {
+                            <div class="slot-cell fruit-cell">
+                                @GetFruitEmoji(cell)
+                            </div>
+                        }
+                    }
                 </div>
+            }
+            else if (Round.GameName.Contains("Roulette", StringComparison.OrdinalIgnoreCase))
+            {
+                var num = ParseRouletteNumber();
+                <div class="roulette-display">
+                    <div class="roulette-ball @GetRouletteColor(num)">@num</div>
+                </div>
+            }
+            else if (Round.GameName.Contains("Blackjack", StringComparison.OrdinalIgnoreCase))
+            {
+                var bj = ParseBlackjack();
+                <div class="card-game-display">
+                    <div class="hand-section mb-6">
+                        <MudText Typo="Typo.caption" Class="mb-2 d-block opacity-50">DEALER HAND</MudText>
+                        <div class="hand-cards">
+                            @foreach(var c in bj.Dealer) { <div class="playing-card @GetSuitClass(c)">@c</div> }
+                        </div>
+                    </div>
+                    <div class="hand-section">
+                        <MudText Typo="Typo.caption" Class="mb-2 d-block opacity-50">PLAYER HAND</MudText>
+                        <div class="hand-cards">
+                            @foreach(var c in bj.Player) { <div class="playing-card @GetSuitClass(c)">@c</div> }
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (Round.GameName.Contains("Baccarat", StringComparison.OrdinalIgnoreCase))
+            {
+                var bac = ParseBaccarat();
+                <div class="card-game-display">
+                    <div class="d-flex gap-8">
+                        <div class="hand-section text-center">
+                            <MudText Typo="Typo.caption" Class="mb-2 d-block opacity-50">PLAYER (@bac.PScore)</MudText>
+                            <div class="hand-cards">
+                                @foreach(var c in bac.PHand) { <div class="playing-card @GetSuitClass(c)">@c</div> }
+                            </div>
+                        </div>
+                        <div class="hand-section text-center">
+                            <MudText Typo="Typo.caption" Class="mb-2 d-block opacity-50">BANKER (@bac.BScore)</MudText>
+                            <div class="hand-cards">
+                                @foreach(var c in bac.BHand) { <div class="playing-card @GetSuitClass(c)">@c</div> }
+                            </div>
+                        </div>
+                    </div>
+                    <MudText Typo="Typo.h5" Class="mt-4 fw-black text-center text-primary">@bac.Outcome.ToUpper() WINS</MudText>
+                </div>
+            }
+            else if (Round.GameName.Contains("Dice", StringComparison.OrdinalIgnoreCase))
+            {
+                var dice = ParseDice();
+                @if (dice.IsSlider) {
+                    <div class="dice-slider-display">
+                        <div class="dice-roll-value @(dice.IsWin ? "win" : "loss")">@dice.Value.ToString("F2")</div>
+                    </div>
+                } else {
+                    <div class="dice-multi-display">
+                        @foreach(var d in dice.MultiResults) {
+                            <div class="die-face">@GetDieIcon(d)</div>
+                        }
+                    </div>
+                }
             }
             else
             {
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Visual replay not available for this game type.</MudText>
+                <div class="text-center opacity-50 pa-8">
+                    <MudIcon Icon="@Icons.Material.Filled.HideImage" Size="Size.Large" Class="mb-2" />
+                    <MudText Typo="Typo.body2">Visualization not available for this round.</MudText>
+                </div>
             }
         </div>
 
-        <MudText Typo="Typo.h6" Class="mb-2 mt-6">Provably Fair Verification</MudText>
-        <MudExpansionPanels Elevation="0">
-            <MudExpansionPanel Text="Verification Details" Style="background: var(--mud-palette-background-grey);">
-                <MudGrid>
+        <MudExpansionPanels Elevation="0" Class="mt-6">
+            <MudExpansionPanel Text="PROVABLY FAIR VERIFICATION" Class="verification-panel">
+                <MudGrid Spacing="2">
                     <MudItem xs="12">
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Server Seed Hash:</MudText>
-                        <MudText Typo="Typo.body2" Style="word-break: break-all; font-family: monospace; color: var(--mud-palette-text-primary);">@Round.ServerSeedHash</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">SERVER SEED HASH</MudText>
+                        <MudText Typo="Typo.body2" Class="code-text">@Round.ServerSeedHash</MudText>
+                    </MudItem>
+                    @if (!string.IsNullOrEmpty(Round.ServerSeed)) {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">SERVER SEED (REVEALED)</MudText>
+                            <MudText Typo="Typo.body2" Class="code-text text-success">@Round.ServerSeed</MudText>
+                        </MudItem>
+                    }
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">CLIENT SEED</MudText>
+                        <MudText Typo="Typo.body2" Class="code-text">@Round.ClientSeed</MudText>
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Client Seed:</MudText>
-                        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-primary);">@Round.ClientSeed</MudText>
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Nonce:</MudText>
-                        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-primary);">@Round.Nonce</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">NONCE</MudText>
+                        <MudText Typo="Typo.body2" Class="code-text">@Round.Nonce</MudText>
                     </MudItem>
                 </MudGrid>
                 
                 <div class="d-flex justify-end mt-4">
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.VerifiedUser" OnClick="VerifyOnPage" Size="Size.Small">Verify on Page</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.VerifiedUser" OnClick="VerifyOnPage" Size="Size.Small" Class="rounded-pill px-4">Verify Integrity</MudButton>
                 </div>
-
-                <MudAlert Severity="Severity.Info" Class="mt-4" Dense="true" Variant="Variant.Outlined">
-                    You can verify the fairness of this round by hashing the revealed Server Seed once the session is closed.
-                </MudAlert>
             </MudExpansionPanel>
         </MudExpansionPanels>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Close" Color="Color.Primary">Close</MudButton>
+        <MudButton OnClick="Close" Color="Color.Default" Variant="Variant.Text">Close</MudButton>
     </DialogActions>
 </MudDialog>
+
+<style>
+    .round-details-dialog { 
+        background: var(--mud-palette-surface) !important; 
+        color: var(--mud-palette-text-primary) !important; 
+    }
+    .glass-panel { 
+        background: var(--mud-palette-action-default-hover) !important; 
+        border: 1px solid var(--mud-palette-divider); 
+    }
+    .replay-container { 
+        background: @(LayoutService.IsDarkMode ? "#020617" : "#f8fafc"); 
+        border: 2px solid var(--mud-palette-divider); 
+        min-height: 250px; 
+    }
+    .fw-black { font-weight: 900; }
+    .code-text { font-family: 'JetBrains Mono', monospace; word-break: break-all; font-size: 0.8rem; color: var(--mud-palette-text-primary); }
+    
+    /* Grid Games */
+    .slot-grid-display { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .fruit-grid-display { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+    .slot-cell { 
+        width: 50px; 
+        height: 50px; 
+        background: var(--mud-palette-background-grey); 
+        border-radius: 8px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 1.8rem; 
+        border: 1px solid var(--mud-palette-divider); 
+    }
+    .fruit-cell { width: 40px; height: 40px; font-size: 1.4rem; }
+
+    /* Card Games */
+    .hand-cards { display: flex; gap: 8px; justify-content: center; }
+    .playing-card { 
+        width: 50px; 
+        height: 75px; 
+        background: white; 
+        color: black; 
+        border-radius: 6px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-weight: 900; 
+        font-size: 1.1rem; 
+        border: 2px solid #cbd5e1; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+    }
+    .card-red { color: #e11d48; }
+    .card-black { color: #1e293b; }
+
+    /* Roulette */
+    .roulette-ball { 
+        width: 100px; 
+        height: 100px; 
+        border-radius: 50%; 
+        border: 6px solid var(--mud-palette-divider); 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 3rem; 
+        font-weight: 900; 
+        color: white; 
+        box-shadow: 0 0 30px rgba(0,0,0,0.2); 
+    }
+    .bg-green { background: #10b981; }
+    .bg-red { background: #ef4444; }
+    .bg-black { background: #18181b; }
+
+    /* Dice */
+    .dice-roll-value { font-size: 4rem; font-weight: 900; text-shadow: 0 0 20px rgba(var(--mud-palette-primary-rgb), 0.2); }
+    .dice-roll-value.win { color: #10b981; }
+    .dice-roll-value.loss { color: #ef4444; }
+    .dice-multi-display { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 300px; }
+    .die-face { font-size: 2.5rem; color: var(--mud-palette-primary); }
+
+    .verification-panel { 
+        background: var(--mud-palette-action-default-hover) !important; 
+        margin-top: 8px; 
+        border-radius: 12px; 
+    }
+</style>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
@@ -106,36 +272,108 @@
             _ when name.Contains("blackjack") => "blackjack",
             _ when name.Contains("baccarat") => "baccarat",
             _ when name.Contains("crazy") || name.Contains("multi") => "dice_multi",
-            _ => "dice" // Neon Dice / Default
+            _ => "dice" 
         };
-        
-        // Note: ServerSeed is hidden in DTO until session is revealed, 
-        // but we pass it if we have it.
         var url = $"/fairness?game={game}&nonce={Round.Nonce}&clientSeed={Uri.EscapeDataString(Round.ClientSeed ?? "")}";
-        if (!string.IsNullOrEmpty(Round.ServerSeed)) {
-            url += $"&serverSeed={Uri.EscapeDataString(Round.ServerSeed)}";
-        }
+        if (!string.IsNullOrEmpty(Round.ServerSeed)) url += $"&serverSeed={Uri.EscapeDataString(Round.ServerSeed)}";
         Nav.NavigateTo(url);
         MudDialog.Close();
     }
 
+    private string GetGameIcon(string name) => name.ToLower() switch {
+        _ when name.Contains("slot") => Icons.Material.Filled.Casino,
+        _ when name.Contains("roulette") => Icons.Material.Filled.RadioButtonChecked,
+        _ when name.Contains("blackjack") => Icons.Material.Filled.Style,
+        _ when name.Contains("dice") => Icons.Material.Filled.Games,
+        _ => Icons.Material.Filled.Gamepad
+    };
+
     private int[][] ParseSlotGrid() {
         try {
-            var data = JsonSerializer.Deserialize<SlotResultGrid>(Round.FullResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            return data?.Grid ?? Array.Empty<int[]>();
+            var doc = JsonDocument.Parse(Round.FullResultJson);
+            if (doc.RootElement.TryGetProperty("Grid", out var gridEl)) {
+                return JsonSerializer.Deserialize<int[][]>(gridEl.GetRawText()) ?? Array.Empty<int[]>();
+            }
+            return Array.Empty<int[]>();
         } catch { return Array.Empty<int[]>(); }
     }
 
-    private string ParseRouletteResult() {
+    private int[][] ParseFruitGrid() {
         try {
-            // Logic to parse roulette JSON
-            return "17"; 
-        } catch { return "?"; }
+            var doc = JsonDocument.Parse(Round.FullResultJson);
+            if (doc.RootElement.TryGetProperty("Grid", out var gridEl)) {
+                return JsonSerializer.Deserialize<int[][]>(gridEl.GetRawText()) ?? Array.Empty<int[]>();
+            }
+            return Array.Empty<int[]>();
+        } catch { return Array.Empty<int[]>(); }
     }
 
-    private string GetEmoji(int id) => id switch {
+    private int ParseRouletteNumber() {
+        try {
+            var doc = JsonDocument.Parse(Round.FullResultJson);
+            return doc.RootElement.GetProperty("Number").GetInt32();
+        } catch { return 0; }
+    }
+
+    private string GetRouletteColor(int n) {
+        if (n == 0) return "bg-green";
+        int[] reds = { 1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36 };
+        return reds.Contains(n) ? "bg-red" : "bg-black";
+    }
+
+    private (List<string> Player, List<string> Dealer) ParseBlackjack() {
+        try {
+            var doc = JsonDocument.Parse(Round.FullResultJson);
+            var playerHands = doc.RootElement.GetProperty("PlayerHands");
+            var player = playerHands[0].GetProperty("Cards").EnumerateArray().Select(x => x.GetString() ?? "").ToList();
+            var dealer = doc.RootElement.GetProperty("DealerHand").EnumerateArray().Select(x => x.GetString() ?? "").ToList();
+            return (player, dealer);
+        } catch { return (new(), new()); }
+    }
+
+    private (List<string> PHand, List<string> BHand, int PScore, int BScore, string Outcome) ParseBaccarat() {
+        try {
+            var doc = JsonDocument.Parse(Round.FullResultJson);
+            var root = doc.RootElement;
+            return (
+                root.GetProperty("PlayerHand").EnumerateArray().Select(x => x.GetString() ?? "").ToList(),
+                root.GetProperty("BankerHand").EnumerateArray().Select(x => x.GetString() ?? "").ToList(),
+                root.GetProperty("PlayerScore").GetInt32(),
+                root.GetProperty("BankerScore").GetInt32(),
+                root.GetProperty("Outcome").GetString() ?? "Tie"
+            );
+        } catch { return (new(), new(), 0, 0, ""); }
+    }
+
+    private (bool IsSlider, decimal Value, bool IsWin, List<int> MultiResults) ParseDice() {
+        try {
+            var doc = JsonDocument.Parse(Round.FullResultJson);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("ResultValue", out var valEl)) {
+                return (true, valEl.GetDecimal(), root.GetProperty("IsWin").GetBoolean(), new());
+            } else {
+                var res = root.GetProperty("MultiDiceResults").EnumerateArray().Select(x => x.GetInt32()).ToList();
+                return (false, 0, root.GetProperty("IsWin").GetBoolean(), res);
+            }
+        } catch { return (true, 0, false, new()); }
+    }
+
+    private string GetSuitClass(string card) {
+        if (card.EndsWith("H") || card.EndsWith("D")) return "card-red";
+        return "card-black";
+    }
+
+    private string GetSlotEmoji(int id) => id switch {
         1 => "🍒", 2 => "🍋", 3 => "🍊", 4 => "🍇",
         5 => "🔔", 6 => "💎", 7 => "7️⃣", 8 => "🍀",
-        10 => "💰", _ => "🍃"
+        10 => "💰", 12 => "🌟", _ => "🍃"
+    };
+
+    private string GetFruitEmoji(int id) => id switch {
+        1 => "🍋", 2 => "🍒", 3 => "🍊", 4 => "🍇", 5 => "🍉", 6 => "🍎", 7 => "⭐", 8 => "🧨", 9 => "☢️", 10 => "💥", _ => ""
+    };
+
+    private string GetDieIcon(int val) => val switch {
+        1 => "⚀", 2 => "⚁", 3 => "⚂", 4 => "⚃", 5 => "⚄", 6 => "⚅", _ => "?"
     };
 }

@@ -28,6 +28,7 @@ public class BlackjackGameEngine : BaseGameEngine {
         public bool IsRoundOver { get; set; }
         public int Sequence { get; set; }
         public decimal TotalInitialBet { get; set; }
+        public decimal TotalWin { get; set; } // Added for frontend reporting
         
         // Legacy fields for UI compatibility if needed, but we should update UI
         public List<string> PlayerHand => PlayerHands.Count > 0 ? PlayerHands[0].Cards : new();
@@ -83,6 +84,7 @@ public class BlackjackGameEngine : BaseGameEngine {
             if (state.IsRoundOver) round.TotalWinAmount = CalculateWin(state);
 
             repo.SaveRound(round);
+            repo.UpdateSession(session);
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Game = "Blackjack", State = state });
             return round;
         });
@@ -199,6 +201,7 @@ public class BlackjackGameEngine : BaseGameEngine {
         }
 
         decimal totalWin = CalculateWin(state);
+        state.TotalWin = totalWin;
         if (totalWin > 0) {
             repo.UpdateGamePoolBalance(session.GameId, -totalWin);
             await VaultService.ProcessWinAsync(session.UserId, totalWin, repo);

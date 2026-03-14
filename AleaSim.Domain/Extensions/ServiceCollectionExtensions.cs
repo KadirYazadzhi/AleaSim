@@ -39,6 +39,7 @@ public static class ServiceCollectionExtensions {
         services.AddSingleton<RouletteGameEngine>();
         services.AddSingleton<BlackjackGameEngine>();
         services.AddSingleton<BaccaratGameEngine>();
+        services.AddSingleton<FruitBlastGameEngine>();
         services.AddSingleton<DiceGameEngine>(sp => new DiceGameEngine(
             sp.GetRequiredService<IRngService>(),
             sp.GetRequiredService<IVaultService>(),
@@ -59,6 +60,7 @@ public static class ServiceCollectionExtensions {
                 "blackjack" => serviceProvider.GetRequiredService<BlackjackGameEngine>(),
                 "baccarat" => serviceProvider.GetRequiredService<BaccaratGameEngine>(),
                 "dice" => serviceProvider.GetRequiredService<DiceGameEngine>(),
+                "fruitblast" => serviceProvider.GetRequiredService<FruitBlastGameEngine>(),
                 _ => throw new KeyNotFoundException($"Game engine '{key}' not found")
             };
         });

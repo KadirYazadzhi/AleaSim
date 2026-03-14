@@ -16,6 +16,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject LayoutService LayoutService
 @inject PlatformStatsService PlatformStats
+@inject AudioService Audio
 
 <MudThemeProvider IsDarkMode="@LayoutService.IsDarkMode" Theme="@LayoutService.CurrentTheme" />
 <MudDialogProvider />
@@ -529,6 +530,7 @@
 
     protected override async Task OnInitializedAsync() {
         await LayoutService.InitializeAsync();
+        await Audio.Init(); // Ensure audio system is ready
         NotifService.OnNotificationsChanged += StateHasChanged;
         GameService.OnFlowStateChanged += HandleFlowStateChange; 
         LayoutService.OnMajorUpdate += StateHasChanged;
