@@ -341,8 +341,8 @@ public class FruitBlastGameEngine : BaseGameEngine {
         decimal totalWin = 0;
         decimal juiceMultiplier = 1.0m;
         if (juiceMeter >= 200) juiceMultiplier = 15.0m; 
-        else if (juiceMeter >= 150) juiceMultiplier = 8.0m; 
-        else if (juiceMeter >= 100) juiceMultiplier = 5.0m;
+        else if (juiceMeter >= 150) juiceMultiplier = 10.0m; 
+        else if (juiceMeter >= 100) juiceMultiplier = 6.0m;
         else if (juiceMeter >= 50) juiceMultiplier = 2.5m;
 
         foreach (var cluster in clusters) {
