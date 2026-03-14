@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Text.Json;
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
@@ -193,36 +194,74 @@ public class SlotGameEngine : BaseGameEngine {
 
     private decimal PlayStandardRound(SlotState state, string ss, string cs, int off, int[] strip, SlotGameConfig cfg) {
         decimal coins = 0; int n = off;
+        // 1. Generate random symbols for all cells
         for (int c = 0; c < cfg.Cols; c++) {
             int stop = RngService.GetNextInt(ss, cs, n++, 0, strip.Length);
             for (int r = 0; r < cfg.Rows; r++) state.Grid[r][c] = strip[(stop + r) % strip.Length];
         }
-        int clovers = 0;
-        for (int r = 0; r < cfg.Rows; r++) for (int c = 0; c < cfg.Cols; c++) {
-            if (state.Grid[r][c] == 8 || state.Grid[r][c] == 12) {
-                state.StickyClovers.Add(new Point { R = r, C = c }); clovers++;
-            }
-            if (state.Grid[r][c] == 11 && state.IsRespinActive) coins += state.LockedBet * 0.5m; // Increased from 0.2m
-        }
-        if (clovers > 0 && (state.IsRespinActive || state.StickyClovers.Count >= 4)) {
-            state.IsRespinActive = true; state.RespinLives = 1;
-        } else if (state.IsRespinActive) state.RespinLives--;
 
+        // 2. Force Sticky Clovers back onto the grid (so they act as Wilds for Paylines)
+        foreach (var p in state.StickyClovers) {
+            if (p.R < cfg.Rows && p.C < cfg.Cols) {
+                state.Grid[p.R][p.C] = 8; // Sticky Wild
+            }
+        }
+
+        int newClovers = 0;
+        // 3. Scan for NEW clovers that landed in this spin
+        for (int r = 0; r < cfg.Rows; r++) {
+            for (int c = 0; c < cfg.Cols; c++) {
+                int sym = state.Grid[r][c];
+                if (sym == 8 || sym == 12) {
+                    // Only add if NOT already in the sticky list
+                    if (!state.StickyClovers.Any(p => p.R == r && p.C == c)) {
+                        state.StickyClovers.Add(new Point { R = r, C = c });
+                        newClovers++;
+                    }
+                }
+                // Symbol 11 (Collect) gives instant win during respins
+                if (state.Grid[r][c] == 11 && state.IsRespinActive) coins += state.LockedBet * 0.2m; 
+            }
+        }
+
+        // 4. Update Respin State logic
+        if (newClovers > 0) {
+            state.IsRespinActive = true; 
+            state.RespinLives = 3; // Reset to 3 lives per design doc
+        } else if (state.IsRespinActive) {
+            state.RespinLives--;
+        }
+
+        // 5. Check transition to Bonus Game (Hold & Win)
         if (state.IsRespinActive && state.RespinLives <= 0) {
-            if (state.StickyClovers.Count >= 6) {
-                state.IsBonusActive = true; state.BonusLives = 3; state.IsRespinActive = false;
+            if (state.StickyClovers.Count >= 5) { // Design requires 5+ Clovers for Bonus
+                state.IsBonusActive = true; 
+                state.BonusLives = 3; 
+                state.IsRespinActive = false;
                 InitializeBonusGrid(state, ss, cs, off, cfg);
-            } else { state.IsRespinActive = false; state.StickyClovers.Clear(); }
+            } else { 
+                state.IsRespinActive = false; 
+                state.StickyClovers.Clear(); 
+            }
         }
         return coins;
     }
 
     private void InitializeBonusGrid(SlotState state, string ss, string cs, int off, SlotGameConfig cfg) {
-        state.BonusBells.Clear(); int n = off + 5000;
+        state.BonusBells.Clear(); 
+        int n = off + 5000;
+        
+        // Clear grid for bonus mode
         for(int r=0; r<cfg.Rows; r++) for(int c=0; c<cfg.Cols; c++) state.Grid[r][c] = 0;
+        
+        // Convert unique sticky clovers to bells
         foreach(var p in state.StickyClovers) {
-            state.Grid[p.R][p.C] = 9;
-            state.BonusBells.Add(new BellValue { Pos = p, Value = state.LockedBet * RngService.GetNextInt(ss, cs, n++, 2, 10), Type = BellType.Cash });
+            state.Grid[p.R][p.C] = 9; // Bell symbol
+            state.BonusBells.Add(new BellValue { 
+                Pos = p, 
+                Value = state.LockedBet * RngService.GetNextInt(ss, cs, n++, 2, 8), // Rebalanced starting values
+                Type = BellType.Cash 
+            });
         }
     }
 
