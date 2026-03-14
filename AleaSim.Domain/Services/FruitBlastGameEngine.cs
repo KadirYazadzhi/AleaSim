@@ -340,10 +340,10 @@ public class FruitBlastGameEngine : BaseGameEngine {
     private decimal CalculateClusterWin(int[][] grid, List<List<Point>> clusters, decimal bet, int juiceMeter) {
         decimal totalWin = 0;
         decimal juiceMultiplier = 1.0m;
-        if (juiceMeter >= 200) juiceMultiplier = 20.0m; 
-        else if (juiceMeter >= 150) juiceMultiplier = 12.0m; 
-        else if (juiceMeter >= 100) juiceMultiplier = 6.0m;
-        else if (juiceMeter >= 50) juiceMultiplier = 2.5m;
+        if (juiceMeter >= 200) juiceMultiplier = 18.0m; 
+        else if (juiceMeter >= 150) juiceMultiplier = 10.0m; 
+        else if (juiceMeter >= 100) juiceMultiplier = 5.0m;
+        else if (juiceMeter >= 50) juiceMultiplier = 2.0m;
 
         foreach (var cluster in clusters) {
             int symbol = grid[cluster[0].R][cluster[0].C]; 
