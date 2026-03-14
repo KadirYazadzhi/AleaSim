@@ -258,12 +258,16 @@ public class SlotGameEngine : BaseGameEngine {
         // Clear grid for bonus mode
         for(int r=0; r<cfg.Rows; r++) for(int c=0; c<cfg.Cols; c++) state.Grid[r][c] = 0;
         
+        // Natural scaling: High bets get better bonus floor
+        int minMult = state.LockedBet >= 50m ? 4 : 2;
+        int maxMult = state.LockedBet >= 50m ? 12 : 8;
+
         // Convert unique sticky clovers to bells
         foreach(var p in state.StickyClovers) {
             state.Grid[p.R][p.C] = 9; // Bell symbol
             state.BonusBells.Add(new BellValue { 
                 Pos = p, 
-                Value = state.LockedBet * RngService.GetNextInt(ss, cs, n++, 2, 8), // Rebalanced starting values
+                Value = state.LockedBet * RngService.GetNextInt(ss, cs, n++, minMult, maxMult), 
                 Type = BellType.Cash 
             });
         }
@@ -271,11 +275,20 @@ public class SlotGameEngine : BaseGameEngine {
 
     private void PlayBonusRound(SlotState state, string ss, string cs, int off, IGameRepository repo, SlotGameConfig cfg) {
         bool hit = false; int n = off;
+        
+        // Natural scaling for bonus hits
+        int minMult = state.LockedBet >= 50m ? 5 : 2;
+        int maxMult = state.LockedBet >= 50m ? 40 : 30;
+
         for (int r = 0; r < cfg.Rows; r++) for (int c = 0; c < cfg.Cols; c++) {
             if (state.Grid[r][c] == 9) continue;
-            if (RngService.GetNextDouble(ss, cs, n++) < 0.03) { // Increased to 3%
+            if (RngService.GetNextDouble(ss, cs, n++) < 0.03) { 
                 state.Grid[r][c] = 9; hit = true;
-                state.BonusBells.Add(new BellValue { Pos = new Point { R=r, C=c }, Value = state.LockedBet * RngService.GetNextInt(ss, cs, n++, 2, 30), Type = BellType.Cash });
+                state.BonusBells.Add(new BellValue { 
+                    Pos = new Point { R=r, C=c }, 
+                    Value = state.LockedBet * RngService.GetNextInt(ss, cs, n++, minMult, maxMult), 
+                    Type = BellType.Cash 
+                });
             }
         }
         if (hit) state.BonusLives = 3; else state.BonusLives--;
