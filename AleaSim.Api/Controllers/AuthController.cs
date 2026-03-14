@@ -67,8 +67,8 @@ public class AuthController : ControllerBase {
     private void SetRefreshTokenCookie(string refreshToken) {
         var cookieOptions = new CookieOptions {
             HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
+            Secure = false, // Set to false for local development over HTTP
+            SameSite = SameSiteMode.Lax, // Lax is more compatible for local development with different ports
             Expires = DateTime.UtcNow.AddDays(7)
         };
         Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
@@ -86,8 +86,6 @@ public class AuthController : ControllerBase {
         var user = _repository.GetUserByUsername(request.Username);
         if (user == null) return Unauthorized();
 
-        // Simple mock verification: In real app use TOTP library with user.TwoFactorSecret
-        // For demo, we allow '123456' or any code if we just want to show the flow
         if (request.Code != "123456" && request.Code != "000000") {
              return BadRequest("Invalid 2FA code.");
         }
@@ -106,25 +104,29 @@ public class AuthController : ControllerBase {
     [AllowAnonymous]
     [HttpPost("refresh")]
     public IActionResult Refresh([FromBody] RefreshTokenRequest request) {
-        var refreshToken = Request.Cookies["refreshToken"] ?? request.RefreshToken; // Fallback to body for legacy/tests
+        var refreshToken = Request.Cookies["refreshToken"] ?? request.RefreshToken; 
 
         var principal = GetPrincipalFromExpiredToken(request.Token);
         if (principal == null) return BadRequest("Invalid Token");
 
-        var userIdClaim = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId)) return BadRequest("Invalid Token Claims");
+        // Extract Session ID from JTI claim (try multiple possible claim types)
+        var jtiClaim = principal.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti || c.Type == "jti");
+        if (jtiClaim == null || !Guid.TryParse(jtiClaim.Value, out var sessionId)) return BadRequest("Missing Session ID");
 
-        var user = _repository.GetUser(userId);
-        if (user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiry < DateTime.UtcNow) {
-            return BadRequest("Invalid or Expired Refresh Token");
+        var session = _repository.GetUserSession(sessionId);
+        if (session == null || !session.IsActive || session.RefreshToken != refreshToken) {
+            return BadRequest("Invalid or Expired Session");
         }
 
-        var newTokens = GenerateToken(user.Username, user.Id, user.Role);
+        var user = _repository.GetUser(session.UserId);
+        if (user == null) return BadRequest("User not found");
+
+        // Generate new tokens while keeping the same session ID
+        var newTokens = GenerateToken(user.Username, user.Id, user.Role, sessionId);
         
-        // Rotate Refresh Token
-        user.RefreshToken = newTokens.RefreshToken;
-        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
-        _repository.UpdateUser(user);
+        session.RefreshToken = newTokens.RefreshToken;
+        session.LastActiveAt = DateTime.UtcNow;
+        _repository.UpdateUserSession(session);
 
         SetRefreshTokenCookie(newTokens.RefreshToken);
         newTokens.RefreshToken = "";
@@ -161,12 +163,10 @@ public class AuthController : ControllerBase {
         var userId = GetUserIdOrThrow();
         var refreshToken = Request.Cookies["refreshToken"] ?? request.RefreshToken;
         
-        // Invalidate current session refresh token
         if (!string.IsNullOrEmpty(refreshToken)) {
             _repository.InactivateSession(refreshToken);
         }
 
-        // Also clear user's current refresh token if it matches
         var user = _repository.GetUser(userId);
         if (user != null && user.RefreshToken == refreshToken) {
             user.RefreshToken = null;
@@ -186,11 +186,8 @@ public class AuthController : ControllerBase {
         var user = _repository.GetUser(userId);
         if (user == null) return NotFound();
 
-        // Get RPG Progress
         var prog = _levelService.GetProgression(userId, _repository);
         var userProfile = _repository.GetPlayerProfile(userId);
-
-        // Get Real Stats
         var rtpStats = _repository.GetOrCreateUserStats(userId);
         var userRounds = _repository.GetUserHistory(userId, 50);
         
@@ -204,19 +201,16 @@ public class AuthController : ControllerBase {
             .Select(r => (double)(r.WinAmount - r.BetAmount))
             .ToList();
 
-        // Get Achievements
         var userAchs = await _achievementService.GetUserAchievements(userId, _repository);
 
-        // Get Active Session for State Recovery
         var activeSession = _repository.GetAllActiveSessions()
             .Where(s => s.UserId == userId)
             .OrderByDescending(s => s.StartedAt)
             .FirstOrDefault();
 
         var biggestWin = userRounds.Any() ? userRounds.Max(r => r.WinAmount) : 0;
-        var avgWin = userRounds.Any(r => r.WinAmount > 0) ? userRounds.Where(r => r.WinAmount > 0).Average(r => r.WinAmount) : 0;
         var personalRtp = rtpStats.TotalWagered > 0 ? (double)(rtpStats.TotalPaid / rtpStats.TotalWagered) : 0;
-        var luckFactor = personalRtp / 0.96; // 1.0 is "on track", > 1.0 is lucky
+        var luckFactor = personalRtp / 0.96;
 
         return Ok(new UserProfileResponse {
             Username = user.Username,
@@ -224,24 +218,19 @@ public class AuthController : ControllerBase {
             BonusBalance = user.BonusBalance,
             AvatarUrl = string.IsNullOrEmpty(user.AvatarUrl) ? $"https://api.dicebear.com/7.x/bottts/svg?seed={user.Username}" : user.AvatarUrl,
             ActiveGameStateJson = activeSession?.GameState,
-            // Role = user.Role.ToString(), // Not in UserProfileResponse yet, but UserDto has it
-
             TotalWagered = rtpStats.TotalWagered,
             TotalWon = rtpStats.TotalPaid,
             TotalRounds = (int)rtpStats.TotalRounds,
             FavoriteGame = favGame,
             RecentWinLossTrend = trend,
-
             DailyLossLimit = user.DailyLossLimit,
             WeeklyLossLimit = user.WeeklyLossLimit,
             IsTwoFactorEnabled = user.IsTwoFactorEnabled,
             PreferencesJson = user.PreferencesJson,
             LockoutUntil = user.LockoutUntil,
-
             LuckyCloverLevel = userProfile?.LuckyCloverLevel ?? 0,
             CashbackLevel = userProfile?.CashbackLevel ?? 0,
             XpBoostLevel = userProfile?.XpBoostLevel ?? 0,
-            
             VolatilityScore = userProfile?.VolatilityScore ?? 5,
             ChurnRiskScore = userProfile?.ChurnRiskScore ?? 0,
             BiggestWin = biggestWin,
@@ -249,7 +238,6 @@ public class AuthController : ControllerBase {
             AvgSpinInterval = userProfile?.AvgSpinInterval ?? 5,
             LossStreak = userProfile?.LossStreak ?? 0,
             LuckFactor = (decimal)luckFactor,
-
             Progression = new UserProgressionDto {
                 CurrentLevel = prog.CurrentLevel,
                 CurrentXP = prog.CurrentXP,
@@ -271,7 +259,6 @@ public class AuthController : ControllerBase {
     public async Task<IActionResult> UpdateAvatar([FromBody] string avatarUrl) {
         var userId = GetUserIdOrThrow();
 
-        // Rate Limiting (10 per hour per user)
         if (await _redisCache.IncrementRateLimitAsync($"ratelimit:avatar:{userId}", TimeSpan.FromHours(1), 10)) {
             return StatusCode(429, "Too many avatar updates. Please try again later.");
         }
@@ -280,10 +267,9 @@ public class AuthController : ControllerBase {
             return BadRequest("Invalid avatar URL length.");
         }
 
-        // SSRF and XSS Protection: Basic Image URL Regex
         var imageRegex = new System.Text.RegularExpressions.Regex(@"^https?://.*\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         if (!imageRegex.IsMatch(avatarUrl) && !avatarUrl.Contains("api.dicebear.com")) {
-            return BadRequest("Only secure image URLs (png, jpg, gif, webp, svg) or DiceBear avatars are allowed.");
+            return BadRequest("Only secure image URLs or DiceBear avatars are allowed.");
         }
 
         var user = _repository.GetUser(userId);
@@ -297,7 +283,6 @@ public class AuthController : ControllerBase {
     [AllowAnonymous]
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request) {
-         // Rate Limiting (5 per hour per IP)
          string ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
          if (await _redisCache.IncrementRateLimitAsync($"ratelimit:register:{ip}", TimeSpan.FromHours(1), 5)) {
              return StatusCode(429, "Too many registration attempts. Please try again in an hour.");
@@ -312,9 +297,10 @@ public class AuthController : ControllerBase {
              Username = request.Username,
              Email = request.Email,
              PasswordHash = _passwordHasher.HashPassword(request.Password), 
-                            Role = Role.User,
-                            Balance = 5000m,
-                            AvatarUrl = $"https://api.dicebear.com/7.x/bottts/svg?seed={request.Username}",             CreatedAt = DateTime.UtcNow,
+             Role = Role.User,
+             Balance = 5000m,
+             AvatarUrl = $"https://api.dicebear.com/7.x/bottts/svg?seed={request.Username}",
+             CreatedAt = DateTime.UtcNow,
              IsActive = true
          };
          
@@ -335,7 +321,6 @@ public class AuthController : ControllerBase {
         user.Role = Role.Admin;
         _repository.UpdateUser(user);
         
-        // Return new token
         return Ok(GenerateToken(user.Username, user.Id, Role.Admin));
     }
 
@@ -351,11 +336,11 @@ public class AuthController : ControllerBase {
         }
 
         user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
-        user.RefreshToken = null; // Force re-login on all devices
+        user.RefreshToken = null; 
         user.RefreshTokenExpiry = null;
         _repository.UpdateUser(user);
         
-        _repository.InactivateAllUserSessions(userId); // Invalidate session records
+        _repository.InactivateAllUserSessions(userId); 
         
         return Ok(new { Message = "Password updated successfully!" });
     }
@@ -430,43 +415,44 @@ public class AuthController : ControllerBase {
 
         user.IsTwoFactorEnabled = !user.IsTwoFactorEnabled;
         if (user.IsTwoFactorEnabled) {
-            user.TwoFactorSecret = Guid.NewGuid().ToString("N").Substring(0, 16).ToUpper(); // Mock secret
+            user.TwoFactorSecret = Guid.NewGuid().ToString("N").Substring(0, 16).ToUpper();
         }
         _repository.UpdateUser(user);
         return Ok(new { Enabled = user.IsTwoFactorEnabled, Secret = user.TwoFactorSecret });
     }
 
-    private LoginResponse GenerateToken(string username, Guid userId, Role role) {
+    private LoginResponse GenerateToken(string username, Guid userId, Role role, Guid? existingSessionId = null) {
         var secretKey = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key missing");
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(secretKey);
         
-        var sessionId = Guid.NewGuid();
+        var sessionId = existingSessionId ?? Guid.NewGuid();
         
-        // Generate Cryptographically Secure Refresh Token
         var randomNumber = new byte[32];
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(randomNumber);
         var refreshToken = Convert.ToBase64String(randomNumber);
 
-        // Record Session in DB
-        _repository.CreateUserSession(new UserSession {
-            Id = sessionId,
-            UserId = userId,
-            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
-            UserAgent = Request.Headers["User-Agent"].ToString(),
-            CreatedAt = DateTime.UtcNow,
-            LastActiveAt = DateTime.UtcNow,
-            IsActive = true,
-            RefreshToken = refreshToken
-        });
+        if (existingSessionId == null) {
+            _repository.CreateUserSession(new UserSession {
+                Id = sessionId,
+                UserId = userId,
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
+                UserAgent = Request.Headers["User-Agent"].ToString(),
+                CreatedAt = DateTime.UtcNow,
+                LastActiveAt = DateTime.UtcNow,
+                IsActive = true,
+                RefreshToken = refreshToken
+            });
+        }
 
         var tokenDescriptor = new SecurityTokenDescriptor {
             Subject = new ClaimsIdentity(new[] {
                 new Claim(ClaimTypes.Name, username),
                 new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                new Claim(JwtRegisteredClaimNames.Jti, sessionId.ToString()), // Use session ID as token identifier
-                new Claim(ClaimTypes.Role, role.ToString()), new Claim("role", role.ToString()), new Claim("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", role.ToString())
+                new Claim(JwtRegisteredClaimNames.Jti, sessionId.ToString()), 
+                new Claim(ClaimTypes.Role, role.ToString()), 
+                new Claim("role", role.ToString())
             }),
             Expires = DateTime.UtcNow.AddMinutes(30), 
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)

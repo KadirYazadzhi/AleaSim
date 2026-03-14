@@ -22,8 +22,6 @@ public class CustomAuthStateProvider : AuthenticationStateProvider {
             return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
         }
 
-        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
-
         return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(ParseClaimsFromJwt(token), "jwt", "unique_name", "role")));
     }
 

@@ -209,6 +209,7 @@ public class RouletteGameEngine : BaseGameEngine {
             };
 
             repo.SaveRound(round);
+            repo.UpdateSession(session); // CRITICAL: Persist the incremented nonce/state
             
             var user = repo.GetUser(session.UserId);
             if (user != null && !user.Username.StartsWith("Sim_")) {

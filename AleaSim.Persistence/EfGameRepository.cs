@@ -717,6 +717,11 @@ public class EfGameRepository : IGameRepository {
         return _context.UserSessions.FirstOrDefault(s => s.Id == sessionId);
     }
 
+    public void UpdateUserSession(UserSession session) {
+        _context.UserSessions.Update(session);
+        _context.SaveChanges();
+    }
+
     public List<UserSession> GetUserSessions(Guid userId) {
         return _context.UserSessions
             .Where(s => s.UserId == userId && s.IsActive)

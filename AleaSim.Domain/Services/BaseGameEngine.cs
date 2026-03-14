@@ -30,18 +30,21 @@ public abstract class BaseGameEngine : IGame {
 
     public virtual async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string? betData) {
         await ExecuteScopedAsync(async (repo, questService, levelService) => {
-            var stop = repo.GetGlobalSetting("EmergencyStop");
-            if (stop == "true") throw new InvalidOperationException("EMERGENCY STOP: Game rounds suspended by administrator.");
+            // 1. HARD BLOCK: Check emergency stop before touching money
+            var stopSetting = repo.GetGlobalSetting("EmergencyStop");
+            if (stopSetting == "true") {
+                throw new InvalidOperationException("SYSTEM_HALTED: The gaming platform is currently under maintenance. No bets are accepted.");
+            }
 
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
             
             // SECURITY CHECK: Session Hijacking Prevention
             if (session.UserId != userId) {
-                // Log potentially malicious activity if possible
                 throw new UnauthorizedAccessException("Session does not belong to the calling user.");
             }
             
+            // 2. MONEY TRANSACTION: Only proceed if system is active
             if (await VaultService.ProcessBetAsync(session.UserId, amount, repo)) {
                 var bet = new Bet {
                     Id = Guid.NewGuid(),

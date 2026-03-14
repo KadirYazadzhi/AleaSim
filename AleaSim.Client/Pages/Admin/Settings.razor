@@ -60,13 +60,13 @@
                             <!-- Emergency Stop -->
                             <MudItem xs="12" sm="6">
                                  <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">Emergency Override</MudText>
-                                 <div class='@($"pa-4 rounded-xl border-2 d-flex flex-column align-center justify-center transition-all {(_emergencyStop ? "border-error bg-error-subtle" : "border-success bg-success-subtle")}")' style="height: 140px;">
-                                     <MudSwitch @bind-Value="_emergencyStop" Color="Color.Error" UncheckedColor="Color.Success" Size="Size.Large" ThumbIcon="@(_emergencyStop ? Icons.Material.Filled.Stop : Icons.Material.Filled.PlayArrow)" T="bool" />
+                                 <div class='@($"pa-4 rounded-xl border-2 d-flex flex-column align-center justify-center transition-all {(_emergencyStop ? "border-error bg-error-subtle shadow-error" : "border-success bg-success-subtle shadow-success")}")' style="height: 140px;">
+                                     <MudSwitch @bind-Value="_emergencyStop" Color="Color.Error" UncheckedColor="Color.Success" Size="Size.Large" ThumbIcon="@(_emergencyStop ? Icons.Material.Filled.Lock : Icons.Material.Filled.LockOpen)" T="bool" />
                                      <MudText Typo="Typo.h6" Class="fw-black mt-2" Color="@(_emergencyStop ? Color.Error : Color.Success)">
                                          @(_emergencyStop ? "SYSTEM HALTED" : "SYSTEM ACTIVE")
                                      </MudText>
                                      @if(_changedEmergencyStop != _emergencyStop) {
-                                          <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="SaveEmergencyStop" Class="mt-2 pulse-red">CONFIRM CHANGE</MudButton>
+                                          <MudButton Variant="Variant.Filled" Color="@(_emergencyStop ? Color.Error : Color.Success)" Size="Size.Small" OnClick="SaveEmergencyStop" Class="mt-2 pulse-neon">CONFIRM CHANGE</MudButton>
                                      }
                                  </div>
                             </MudItem>

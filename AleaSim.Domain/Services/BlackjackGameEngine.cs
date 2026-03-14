@@ -84,6 +84,7 @@ public class BlackjackGameEngine : BaseGameEngine {
             if (state.IsRoundOver) round.TotalWinAmount = CalculateWin(state);
 
             repo.SaveRound(round);
+            repo.UpdateSession(session);
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Game = "Blackjack", State = state });
             return round;
         });

@@ -3,6 +3,7 @@
 @using AleaSim.Client.Models
 @using AleaSim.Client.Services
 @using AleaSim.Client.Components
+@attribute [Authorize]
 @implements IAsyncDisposable
 @inject IGameService GameService
 @inject AudioService Audio

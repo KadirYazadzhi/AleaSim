@@ -145,6 +145,7 @@ public class BaccaratGameEngine : BaseGameEngine {
             RotateServerSeed(session, roundCount);
 
             repo.SaveRound(round);
+            repo.UpdateSession(session);
             
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Game = "Baccarat", State = state });
             
