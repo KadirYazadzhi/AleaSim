@@ -29,11 +29,11 @@ public class SlotGameEngine : BaseGameEngine {
             new[] {2,2,1,2,2}, new[] {1,0,0,0,1}, new[] {2,3,3,3,2}, new[] {0,1,1,1,0}
         },
         Paytable = new Dictionary<int, decimal[]> {
-            { 1, new[] { 1.5m, 8.0m, 30.0m } }, { 2, new[] { 1.5m, 8.0m, 30.0m } },
-            { 3, new[] { 3.0m, 12.0m, 50.0m } }, { 4, new[] { 3.0m, 12.0m, 50.0m } },
-            { 5, new[] { 8.0m, 25.0m, 80.0m } }, { 6, new[] { 8.0m, 25.0m, 80.0m } },
-            { 7, new[] { 15.0m, 80.0m, 400.0m } }, { 8, new[] { 40.0m, 150.0m, 800.0m } },
-            { 9, new[] { 10.0m, 40.0m, 150.0m } }, { 12, new[] { 80.0m, 400.0m, 2000.0m } }
+            { 1, new[] { 2.5m, 10.0m, 40.0m } }, { 2, new[] { 2.5m, 10.0m, 40.0m } },
+            { 3, new[] { 5.0m, 15.0m, 60.0m } }, { 4, new[] { 5.0m, 15.0m, 60.0m } },
+            { 5, new[] { 10.0m, 35.0m, 100.0m } }, { 6, new[] { 10.0m, 35.0m, 100.0m } },
+            { 7, new[] { 25.0m, 100.0m, 500.0m } }, { 8, new[] { 50.0m, 200.0m, 1000.0m } },
+            { 9, new[] { 15.0m, 60.0m, 200.0m } }, { 12, new[] { 100.0m, 500.0m, 2500.0m } }
         }
     };
 
@@ -202,7 +202,7 @@ public class SlotGameEngine : BaseGameEngine {
             if (state.Grid[r][c] == 8 || state.Grid[r][c] == 12) {
                 state.StickyClovers.Add(new Point { R = r, C = c }); clovers++;
             }
-            if (state.Grid[r][c] == 11 && state.IsRespinActive) coins += state.LockedBet * 0.2m;
+            if (state.Grid[r][c] == 11 && state.IsRespinActive) coins += state.LockedBet * 0.5m; // Increased from 0.2m
         }
         if (clovers > 0 && (state.IsRespinActive || state.StickyClovers.Count >= 4)) {
             state.IsRespinActive = true; state.RespinLives = 1;
@@ -230,9 +230,9 @@ public class SlotGameEngine : BaseGameEngine {
         bool hit = false; int n = off;
         for (int r = 0; r < cfg.Rows; r++) for (int c = 0; c < cfg.Cols; c++) {
             if (state.Grid[r][c] == 9) continue;
-            if (RngService.GetNextDouble(ss, cs, n++) < 0.012) { // 1.2% chance per cell (was 2%)
+            if (RngService.GetNextDouble(ss, cs, n++) < 0.02) { // Restored to 2%
                 state.Grid[r][c] = 9; hit = true;
-                state.BonusBells.Add(new BellValue { Pos = new Point { R=r, C=c }, Value = state.LockedBet * RngService.GetNextInt(ss, cs, n++, 1, 20), Type = BellType.Cash });
+                state.BonusBells.Add(new BellValue { Pos = new Point { R=r, C=c }, Value = state.LockedBet * RngService.GetNextInt(ss, cs, n++, 1, 25), Type = BellType.Cash });
             }
         }
         if (hit) state.BonusLives = 3; else state.BonusLives--;

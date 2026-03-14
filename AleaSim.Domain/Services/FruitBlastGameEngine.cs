@@ -18,14 +18,14 @@ public class FruitBlastGameEngine : BaseGameEngine {
 
     // Symbols: 1:Lemon, 2:Cherry, 3:Orange, 4:Plum, 5:Watermelon, 6:Apple, 7:Star, 8:TNT, 9:Nuclear, 10:Supernova, 12:Golden Apple
     private static readonly Dictionary<int, decimal[]> Paytable = new() {
-        { 1, new[] { 0.4m, 1.0m, 2.5m, 6.0m, 20.0m } }, 
-        { 2, new[] { 0.4m, 1.0m, 2.5m, 6.0m, 20.0m } },
-        { 3, new[] { 0.6m, 1.5m, 4.0m, 10.0m, 35.0m } },
-        { 4, new[] { 0.8m, 2.0m, 6.0m, 15.0m, 50.0m } },
-        { 5, new[] { 1.5m, 4.0m, 12.0m, 30.0m, 100.0m } },
-        { 6, new[] { 2.5m, 7.5m, 25.0m, 60.0m, 250.0m } },
-        { 7, new[] { 10.0m, 40.0m, 150.0m, 500.0m, 2500.0m } },
-        { 12, new[] { 50.0m, 200.0m, 1000.0m, 5000.0m, 25000.0m } } // Golden Apple (High Value)
+        { 1, new[] { 0.5m, 1.2m, 3.5m, 9.0m, 22.0m } }, 
+        { 2, new[] { 0.5m, 1.2m, 3.5m, 9.0m, 22.0m } },
+        { 3, new[] { 0.7m, 1.8m, 4.5m, 11.0m, 28.0m } },
+        { 4, new[] { 0.9m, 2.2m, 6.5m, 16.0m, 45.0m } },
+        { 5, new[] { 1.2m, 3.5m, 11.0m, 35.0m, 75.0m } },
+        { 6, new[] { 3.0m, 8.0m, 28.0m, 75.0m, 160.0m } },
+        { 7, new[] { 7.0m, 22.0m, 75.0m, 280.0m, 1100.0m } },
+        { 12, new[] { 18.0m, 65.0m, 220.0m, 550.0m, 1100.0m } } 
     };
 
     public class FruitBlastState {
@@ -40,6 +40,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
         public bool IsMeltdownTriggered { get; set; }
         public bool IsMegaFruitTriggered { get; set; }
         public int LifetimeExplosions { get; set; }
+        public decimal MaxWinCap { get; set; }
 
         public FruitBlastState() {
             for (int r = 0; r < Rows; r++) Grid[r] = new int[Cols];
@@ -164,7 +165,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
                 }
 
                 // --- Level 1 & 2: Juice Pot & Fruit Meltdown Trigger ---
-                if (state.JuiceMeter >= 100 && !meltdownAwarded) {
+                if (state.JuiceMeter >= 200 && !meltdownAwarded) {
                     state.IsMeltdownTriggered = true;
                     step.MeltdownActive = true;
                     meltdownAwarded = true;
@@ -172,8 +173,8 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     // Add Juice Pot to win
                     state.CurrentRoundWin += juicePot.CurrentValue;
                     
-                    // Trigger Meltdown transformation: Turn everything into Golden Apples or Stars
-                    for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) state.Grid[r][c] = 12; // Everything becomes Golden Apple
+                    // Trigger Meltdown transformation
+                    for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) state.Grid[r][c] = 12; 
                     
                     // Reset Juice Pot to seed value
                     juicePot.CurrentValue = 50.0m;
@@ -200,26 +201,24 @@ public class FruitBlastGameEngine : BaseGameEngine {
             state.IsFinished = true;
             decimal totalWin = Math.Round(state.CurrentRoundWin * state.TotalMultiplier, 2);
 
-            // FIX: High stakes win protection
-            // If the system can't afford the massive win, don't just kill it.
-            // Try to find a win that is actually affordable.
-            if (totalWin > 0) {
+            // HARD CAP: Max win 10,000x bet
+            decimal maxWinAllowed = bet.Amount * 10000;
+            if (totalWin > maxWinAllowed) {
+                totalWin = maxWinAllowed;
+                state.MaxWinCap = maxWinAllowed;
+            }
+
+            // SMART VAULT PROTECTION: Bypassed for simulation users
+            var user = repo.GetUser(session.UserId);
+            bool isSimUser = user?.Username?.StartsWith("Sim_") ?? false;
+
+            if (totalWin > 0 && !isSimUser) {
                 bool isRandom = directive.DecisionType == "Random";
                 if (!await VaultService.CanAffordWinAsync(session.UserId, _gameId, totalWin, repo, strictShadowCheck: !isRandom)) {
-                    // Try a fallback: Max affordable win or at least the original bet
                     var game = repo.GetGame(_gameId);
-                    decimal maxAffordable = (game?.PoolBalance ?? 0) * 0.5m; // Use 50% of pool max
-                    decimal fallbackWin = Math.Min(totalWin, Math.Max(bet.Amount, maxAffordable));
-                    
-                    if (fallbackWin < totalWin) {
-                        totalWin = Math.Round(fallbackWin, 2);
-                        state.CurrentRoundWin = totalWin / state.TotalMultiplier; // Adjust state for consistency
-                    }
-                    
-                    // Final sanity check
-                    if (totalWin > 0 && !await VaultService.CanAffordWinAsync(session.UserId, _gameId, totalWin, repo)) {
-                        totalWin = 0; // If still too much, then unfortunately 0 (or admin needs to top up pool)
-                    }
+                    decimal poolAffordable = (game?.PoolBalance ?? 0) * 0.9m; 
+                    decimal fallback = Math.Max(bet.Amount, poolAffordable);
+                    if (totalWin > fallback) totalWin = Math.Round(fallback, 2);
                 }
             }
 
@@ -291,15 +290,15 @@ public class FruitBlastGameEngine : BaseGameEngine {
 
         if (val <= 970 - boost) {
             int fVal = RngService.GetNextInt(serverSeed, clientSeed, nonce + 10000, 1, 101);
-            if (fVal <= 35) return 1; // Lemon 35%
-            if (fVal <= 65) return 2; // Cherry 30%
-            if (fVal <= 85) return 3; // Orange 20%
-            if (fVal <= 95) return 4; // Plum 10%
-            return 5; // Watermelon 5%
+            if (fVal <= 25) return 1; // Lemon 25%
+            if (fVal <= 50) return 2; // Cherry 25%
+            if (fVal <= 70) return 3; // Orange 20%
+            if (fVal <= 85) return 4; // Plum 15%
+            return 5; // Watermelon 15%
         }
-        if (val <= 980) return 6; // Apple 1%
-        if (val <= 985) return 7; // Star 0.5%
-        if (val <= 994 + (boost/2)) return 8; // TNT
+        if (val <= 975) return 6; // Apple
+        if (val <= 982) return 7; // Star
+        if (val <= 992 + (boost/2)) return 8; // TNT
         if (val <= 998 + (boost/4)) return 9; // Nuclear
         return 10; // Supernova
     }
@@ -341,9 +340,10 @@ public class FruitBlastGameEngine : BaseGameEngine {
     private decimal CalculateClusterWin(int[][] grid, List<List<Point>> clusters, decimal bet, int juiceMeter) {
         decimal totalWin = 0;
         decimal juiceMultiplier = 1.0m;
-        if (juiceMeter >= 60) juiceMultiplier = 10.0m;
-        else if (juiceMeter >= 30) juiceMultiplier = 5.0m;
-        else if (juiceMeter >= 10) juiceMultiplier = 2.0m;
+        if (juiceMeter >= 200) juiceMultiplier = 15.0m; 
+        else if (juiceMeter >= 150) juiceMultiplier = 8.0m; 
+        else if (juiceMeter >= 100) juiceMultiplier = 5.0m;
+        else if (juiceMeter >= 50) juiceMultiplier = 2.5m;
 
         foreach (var cluster in clusters) {
             int symbol = grid[cluster[0].R][cluster[0].C]; 
