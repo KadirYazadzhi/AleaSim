@@ -18,14 +18,14 @@ public class FruitBlastGameEngine : BaseGameEngine {
 
     // Symbols: 1:Lemon, 2:Cherry, 3:Orange, 4:Plum, 5:Watermelon, 6:Apple, 7:Star, 8:TNT, 9:Nuclear, 10:Supernova, 12:Golden Apple
     private static readonly Dictionary<int, decimal[]> Paytable = new() {
-        { 1, new[] { 0.5m, 1.2m, 3.5m, 9.0m, 22.0m } }, 
-        { 2, new[] { 0.5m, 1.2m, 3.5m, 9.0m, 22.0m } },
-        { 3, new[] { 0.7m, 1.8m, 4.5m, 11.0m, 28.0m } },
-        { 4, new[] { 0.9m, 2.2m, 6.5m, 16.0m, 45.0m } },
-        { 5, new[] { 1.2m, 3.5m, 11.0m, 35.0m, 75.0m } },
-        { 6, new[] { 3.0m, 8.0m, 28.0m, 75.0m, 160.0m } },
-        { 7, new[] { 7.0m, 22.0m, 75.0m, 280.0m, 1100.0m } },
-        { 12, new[] { 18.0m, 65.0m, 220.0m, 550.0m, 1100.0m } } 
+        { 1, new[] { 0.5m, 1.2m, 4.0m, 10.0m, 25.0m } }, 
+        { 2, new[] { 0.5m, 1.2m, 4.0m, 10.0m, 25.0m } },
+        { 3, new[] { 0.8m, 2.0m, 6.0m, 15.0m, 40.0m } },
+        { 4, new[] { 1.0m, 3.0m, 10.0m, 25.0m, 60.0m } },
+        { 5, new[] { 1.5m, 5.0m, 15.0m, 40.0m, 100.0m } },
+        { 6, new[] { 4.0m, 10.0m, 30.0m, 100.0m, 250.0m } },
+        { 7, new[] { 10.0m, 30.0m, 100.0m, 400.0m, 1500.0m } },
+        { 12, new[] { 25.0m, 100.0m, 300.0m, 800.0m, 2000.0m } } 
     };
 
     public class FruitBlastState {
@@ -158,8 +158,8 @@ public class FruitBlastGameEngine : BaseGameEngine {
                         state.JuicePotValue = juicePot.CurrentValue;
 
                         if (exp.Type == 10) {
-                             state.TotalMultiplier *= 2; 
-                             if (state.TotalMultiplier > 100) state.TotalMultiplier = 100; 
+                             state.TotalMultiplier += 1.0m; 
+                             if (state.TotalMultiplier > 50) state.TotalMultiplier = 50; 
                         }
                     }
                 }
@@ -340,10 +340,10 @@ public class FruitBlastGameEngine : BaseGameEngine {
     private decimal CalculateClusterWin(int[][] grid, List<List<Point>> clusters, decimal bet, int juiceMeter) {
         decimal totalWin = 0;
         decimal juiceMultiplier = 1.0m;
-        if (juiceMeter >= 200) juiceMultiplier = 12.0m; 
-        else if (juiceMeter >= 150) juiceMultiplier = 8.0m; 
-        else if (juiceMeter >= 100) juiceMultiplier = 5.0m;
-        else if (juiceMeter >= 50) juiceMultiplier = 2.0m;
+        if (juiceMeter >= 200) juiceMultiplier = 20.0m; 
+        else if (juiceMeter >= 150) juiceMultiplier = 12.0m; 
+        else if (juiceMeter >= 100) juiceMultiplier = 6.0m;
+        else if (juiceMeter >= 50) juiceMultiplier = 2.5m;
 
         foreach (var cluster in clusters) {
             int symbol = grid[cluster[0].R][cluster[0].C]; 
