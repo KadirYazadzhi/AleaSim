@@ -29,11 +29,11 @@ public class SlotGameEngine : BaseGameEngine {
             new[] {2,2,1,2,2}, new[] {1,0,0,0,1}, new[] {2,3,3,3,2}, new[] {0,1,1,1,0}
         },
         Paytable = new Dictionary<int, decimal[]> {
-            { 1, new[] { 2.5m, 10.0m, 40.0m } }, { 2, new[] { 2.5m, 10.0m, 40.0m } },
-            { 3, new[] { 5.0m, 15.0m, 60.0m } }, { 4, new[] { 5.0m, 15.0m, 60.0m } },
-            { 5, new[] { 10.0m, 35.0m, 100.0m } }, { 6, new[] { 10.0m, 35.0m, 100.0m } },
-            { 7, new[] { 25.0m, 100.0m, 500.0m } }, { 8, new[] { 50.0m, 200.0m, 1000.0m } },
-            { 9, new[] { 15.0m, 60.0m, 200.0m } }, { 12, new[] { 100.0m, 500.0m, 2500.0m } }
+            { 1, new[] { 3.5m, 12.0m, 50.0m } }, { 2, new[] { 3.5m, 12.0m, 50.0m } },
+            { 3, new[] { 7.0m, 20.0m, 80.0m } }, { 4, new[] { 7.0m, 20.0m, 80.0m } },
+            { 5, new[] { 15.0m, 45.0m, 150.0m } }, { 6, new[] { 15.0m, 45.0m, 150.0m } },
+            { 7, new[] { 35.0m, 150.0m, 600.0m } }, { 8, new[] { 60.0m, 250.0m, 1200.0m } },
+            { 9, new[] { 20.0m, 80.0m, 300.0m } }, { 12, new[] { 150.0m, 600.0m, 3000.0m } }
         }
     };
 
@@ -230,9 +230,9 @@ public class SlotGameEngine : BaseGameEngine {
         bool hit = false; int n = off;
         for (int r = 0; r < cfg.Rows; r++) for (int c = 0; c < cfg.Cols; c++) {
             if (state.Grid[r][c] == 9) continue;
-            if (RngService.GetNextDouble(ss, cs, n++) < 0.02) { // Restored to 2%
+            if (RngService.GetNextDouble(ss, cs, n++) < 0.03) { // Increased to 3%
                 state.Grid[r][c] = 9; hit = true;
-                state.BonusBells.Add(new BellValue { Pos = new Point { R=r, C=c }, Value = state.LockedBet * RngService.GetNextInt(ss, cs, n++, 1, 25), Type = BellType.Cash });
+                state.BonusBells.Add(new BellValue { Pos = new Point { R=r, C=c }, Value = state.LockedBet * RngService.GetNextInt(ss, cs, n++, 2, 30), Type = BellType.Cash });
             }
         }
         if (hit) state.BonusLives = 3; else state.BonusLives--;
