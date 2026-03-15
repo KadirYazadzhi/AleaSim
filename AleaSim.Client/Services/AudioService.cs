@@ -37,4 +37,5 @@ public class AudioService {
     public async Task PlayBigWin() { if (!IsMuted) await _js.InvokeVoidAsync("aleaAudio.play", "bigwin", EffectsVolume * MasterVolume); }
     public async Task PlayBonus() { if (!IsMuted) await _js.InvokeVoidAsync("aleaAudio.play", "bigwin", EffectsVolume * MasterVolume); }
     public async Task PlayClick() { if (!IsMuted) await _js.InvokeVoidAsync("aleaAudio.play", "click", EffectsVolume * MasterVolume); }
+    public async Task PlayExplosion() { if (!IsMuted) await _js.InvokeVoidAsync("aleaAudio.play", "explosion", EffectsVolume * MasterVolume); }
 }
