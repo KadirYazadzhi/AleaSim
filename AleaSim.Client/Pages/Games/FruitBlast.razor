@@ -148,10 +148,28 @@
 
                 <MudNumericField @bind-Value="creditsBet" Label="Energy Input" Variant="Variant.Filled" Min="10" Max="1000" Step="10" Disabled="@isSpinning" />
                 
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSpin" Disabled="@(isSpinning || balance < (creditsBet * denomination))" 
-                           Style="height: 100px; font-size: 2.2rem; font-weight: 950; border-radius: 20px; box-shadow: 0 10px 30px rgba(var(--mud-palette-primary-rgb), 0.4);">
-                    @(isSpinning ? "CORE FUSION..." : "BLAST")
-                </MudButton>
+                <div class="d-flex flex-column gap-2 mt-2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSpin" Disabled="@(isSpinning || balance < (creditsBet * denomination))" 
+                               Style="height: 100px; font-size: 2.2rem; font-weight: 950; border-radius: 20px; box-shadow: 0 10px 30px rgba(var(--mud-palette-primary-rgb), 0.4);">
+                        @(isSpinning && !isAutoSpinning ? "CORE FUSION..." : "BLAST")
+                    </MudButton>
+
+                    <div class="d-flex gap-2">
+                        <MudButton Variant="@(isAutoSpinning ? Variant.Filled : Variant.Outlined)" 
+                                   Color="@(isAutoSpinning ? Color.Secondary : Color.Primary)" 
+                                   OnClick="ToggleAutoSpin" 
+                                   Disabled="@(isSpinning && !isAutoSpinning)"
+                                   Class="flex-grow-1 py-3 fw-black rounded-lg">
+                            @(isAutoSpinning ? "STOP AUTO" : "AUTO BLAST")
+                        </MudButton>
+                    </div>
+
+                    <div class="d-flex justify-space-between gap-2">
+                        <button class='@($"speed-btn-v4 {(animationSpeed == 1 ? "active" : "")}")' @onclick="() => SetSpeed(1)">1X</button>
+                        <button class='@($"speed-btn-v4 {(animationSpeed == 2 ? "active" : "")}")' @onclick="() => SetSpeed(2)">2X</button>
+                        <button class='@($"speed-btn-v4 {(animationSpeed == 3 ? "active" : "")}")' @onclick="() => SetSpeed(3)">TURBO</button>
+                    </div>
+                </div>
 
                 <div class="mt-4 d-flex flex-column gap-3">
                     <div class="pa-3 rounded-lg border-l-4" style="border-left: 4px solid #ab47bc; background: rgba(171,71,188,0.05);">
@@ -171,6 +189,11 @@
 <style>
     :root { --game-border: #4a148c; --game-glow: rgba(74, 20, 140, 0.4); --juice-color: #ab47bc; }
     .game-light { --game-border: #7b1fa2; --game-glow: rgba(123, 31, 162, 0.2); --juice-color: #7b1fa2; }
+
+    /* --- SPEED BUTTONS --- */
+    .speed-btn-v4 { flex: 1; height: 40px; background: rgba(255,255,255,0.05); border: 1px solid var(--mud-palette-divider); border-radius: 8px; color: var(--mud-palette-text-secondary); font-weight: 900; font-size: 0.8rem; transition: all 0.2s; cursor: pointer; }
+    .speed-btn-v4:hover { background: rgba(255,255,255,0.1); }
+    .speed-btn-v4.active { background: var(--mud-palette-primary); color: white; border-color: var(--mud-palette-primary); box-shadow: 0 0 15px rgba(var(--mud-palette-primary-rgb), 0.4); }
 
     /* --- HEADER V4 --- */
     .game-header-row { width: 100%; }
@@ -266,6 +289,8 @@
     private bool isShaking = false;
     private bool isMeltdownActive = false;
     private bool showWinDisplay = false;
+    private bool isAutoSpinning = false;
+    private int animationSpeed = 1; // 1 = Normal, 2 = 2X, 3 = Turbo
     private decimal balance = 0;
     private decimal denomination = 0.01m;
     private int creditsBet = 10;
@@ -342,9 +367,22 @@
 
     private bool isExploding(int r, int c) => explodingCells != null && explodingCells.Any(p => p.R == r && p.C == c);
 
+    private void SetSpeed(int speed) => animationSpeed = speed;
+
+    private async Task ToggleAutoSpin() {
+        if (isAutoSpinning) {
+            isAutoSpinning = false;
+        } else {
+            isAutoSpinning = true;
+            if (!isSpinning) await OnSpin();
+        }
+    }
+
     private async Task UpdateGridSequential(int[][] newGrid, List<int>? columns = null) {
         if (newGrid == null) return;
         var cols = (columns ?? Enumerable.Range(0, 6).ToList()).OrderBy(c => c).ToList();
+
+        int delay = animationSpeed switch { 1 => 100, 2 => 50, _ => 5 };
 
         foreach (int c in cols) {
             bool colChanged = false;
@@ -358,7 +396,7 @@
             if (colChanged) {
                 StateHasChanged();
                 await Audio.PlayClick();
-                await Task.Delay(100);
+                if (animationSpeed < 3) await Task.Delay(delay);
             }
         }
         for (int r = 0; r < 5; r++) for (int c = 0; c < 6; c++) fallingCells[r, c] = false;
@@ -372,122 +410,140 @@
 
     private async Task OnSpin() {
         if (isSpinning || sessionId == null) return;
-        isSpinning = true; showWinDisplay = false;
-        lastWin = 0; juiceMeter = 0; totalMultiplier = 1;
-        explodingCells.Clear(); megaFruit = null; isMeltdownActive = false;
+        
+        do {
+            isSpinning = true; showWinDisplay = false;
+            lastWin = 0; juiceMeter = 0; totalMultiplier = 1;
+            explodingCells.Clear(); megaFruit = null; isMeltdownActive = false;
 
-        var betAmount = creditsBet * denomination;
-        if (balance < betAmount) { Snackbar.Add("Insufficient Balance", Severity.Warning); isSpinning = false; return; }
+            var betAmount = creditsBet * denomination;
+            if (balance < betAmount) { 
+                Snackbar.Add("Insufficient Balance", Severity.Warning); 
+                isSpinning = false; isAutoSpinning = false; 
+                break; 
+            }
 
-        await Audio.Init();
-        balance -= betAmount;
-        LayoutService.DeductOptimisticBalance(betAmount);
-        LayoutService.SetBalanceUpdateSuppression(true); // LOCK BALANCE UPDATES DURING SPIN
-        StateHasChanged();
+            await Audio.Init();
+            balance -= betAmount;
+            LayoutService.DeductOptimisticBalance(betAmount);
+            LayoutService.SetBalanceUpdateSuppression(true); 
+            StateHasChanged();
 
-        try {
-            await Audio.PlaySpin();
-            var result = await GameService.PlaceBet("fruitblast", sessionId.Value, betAmount, new { Denomination = denomination });
-            var fullState = JsonSerializer.Deserialize<FruitBlastState>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            
-            if (fullState != null) {
-                floatingWins.Clear();
-                if (fullState.History?.Any() == true) {
-                    await UpdateGridSequential(fullState.History.First().GridBefore);
-                }
-                await Task.Delay(400);
-
-                if (fullState.History != null) {
-                    foreach (var step in fullState.History) {
-                        explodingCells = step.WinningClusters ?? new();
-                        if (step.Explosions != null) {
-                            explodingCells.AddRange(step.Explosions.SelectMany(e => e.Affected ?? new List<GridPoint>()));
-                            isShaking = true; // BOMB SHAKE
-                        }
-                        
-                        if (step.MegaFruit != null) megaFruit = step.MegaFruit;
-                        if (step.MeltdownActive) {
-                            isMeltdownActive = true;
-                            await Audio.PlayBonus(); 
-                            StateHasChanged();
-                            await Task.Delay(2000);
-                        }
-
-                        if (explodingCells.Any()) {
-                            if (!isShaking) await Audio.PlayBonus();
-                            if (step.WinAmount > 0) {
-                                // Position Win Text relative to the grid center
-                                floatingWins.Add(new FloatingWin { Amount = step.WinAmount, X = 450, Y = 350 });
-                                _ = Task.Delay(2000).ContinueWith(_ => { floatingWins.RemoveAll(x => true); InvokeAsync(StateHasChanged); });
-                            }
-                            StateHasChanged();
-                            await Task.Delay(800); isShaking = false;
-                        }
-                        
-                        foreach(var p in explodingCells) {
-                            if (currentGrid.Length > p.R && currentGrid[p.R] != null) currentGrid[p.R][p.C] = 0;
-                        }
-                        explodingCells.Clear();
-                        
-                        juicePotValue = fullState.JuicePotValue;
-                        lifetimeExplosions = fullState.LifetimeExplosions;
-
-                        int targetJuice = step.JuiceMeterValue;
-                        if (juiceMeter < targetJuice) {
-                            for (int i = juiceMeter; i <= targetJuice; i++) {
-                                juiceMeter = i; StateHasChanged();
-                                await Task.Delay(20);
-                            }
-                        }
-                        
-                        StateHasChanged();
-                        await Task.Delay(500);
-
-                        int nextIdx = fullState.History.IndexOf(step) + 1;
-                        int[][] nextGrid = (nextIdx < fullState.History.Count) ? fullState.History[nextIdx].GridBefore : fullState.Grid;
-                        await UpdateGridSequential(nextGrid, step.AffectedColumns);
-                        await Task.Delay(300);
-                    }
-                }
-
-                await UpdateGridSequential(fullState.Grid);
-
-                totalMultiplier = fullState.TotalMultiplier;
-                lastWin = result.TotalWin;
+            try {
+                await Audio.PlaySpin();
+                var result = await GameService.PlaceBet("fruitblast", sessionId.Value, betAmount, new { Denomination = denomination });
+                var fullState = JsonSerializer.Deserialize<FruitBlastState>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 
-                if (lastWin > 0) {
-                    balance += lastWin; 
-                    LayoutService.AddOptimisticBalance(lastWin); 
-                    showWinDisplay = true;
-                    Snackbar.Add($"NUCLEAR WIN: {lastWin:C2}!", Severity.Success);
-                    await Audio.PlayWin();
-                    StateHasChanged();
+                if (fullState != null) {
+                    floatingWins.Clear();
+                    if (fullState.History?.Any() == true) {
+                        await UpdateGridSequential(fullState.History.First().GridBefore);
+                    }
+                    if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 400 : 200);
+
+                    if (fullState.History != null) {
+                        foreach (var step in fullState.History) {
+                            explodingCells = step.WinningClusters ?? new();
+                            if (step.Explosions != null) {
+                                explodingCells.AddRange(step.Explosions.SelectMany(e => e.Affected ?? new List<GridPoint>()));
+                                isShaking = true;
+                            }
+                            
+                            if (step.MegaFruit != null) megaFruit = step.MegaFruit;
+                            if (step.MeltdownActive) {
+                                isMeltdownActive = true;
+                                await Audio.PlayBonus(); 
+                                StateHasChanged();
+                                if (animationSpeed < 3) await Task.Delay(2000);
+                                else {
+                                    // Jackpot hit during auto-spin: Stop
+                                    isAutoSpinning = false;
+                                }
+                            }
+
+                            if (explodingCells.Any()) {
+                                if (!isShaking) await Audio.PlayBonus();
+                                if (step.WinAmount > 0) {
+                                    floatingWins.Add(new FloatingWin { Amount = step.WinAmount, X = 450, Y = 350 });
+                                    _ = Task.Delay(2000).ContinueWith(_ => { floatingWins.RemoveAll(x => true); InvokeAsync(StateHasChanged); });
+                                }
+                                StateHasChanged();
+                                if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 800 : 400); 
+                                isShaking = false;
+                            }
+                            
+                            foreach(var p in explodingCells) {
+                                if (currentGrid.Length > p.R && currentGrid[p.R] != null) currentGrid[p.R][p.C] = 0;
+                            }
+                            explodingCells.Clear();
+                            
+                            juicePotValue = fullState.JuicePotValue;
+                            lifetimeExplosions = fullState.LifetimeExplosions;
+
+                            int targetJuice = step.JuiceMeterValue;
+                            if (juiceMeter < targetJuice) {
+                                for (int i = juiceMeter; i <= targetJuice; i++) {
+                                    juiceMeter = i; StateHasChanged();
+                                    if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 20 : 10);
+                                }
+                            }
+                            
+                            StateHasChanged();
+                            if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 500 : 200);
+
+                            int nextIdx = fullState.History.IndexOf(step) + 1;
+                            int[][] nextGrid = (nextIdx < fullState.History.Count) ? fullState.History[nextIdx].GridBefore : fullState.Grid;
+                            await UpdateGridSequential(nextGrid, step.AffectedColumns);
+                            if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 300 : 100);
+                        }
+                    }
+
+                    await UpdateGridSequential(fullState.Grid);
+
+                    totalMultiplier = fullState.TotalMultiplier;
+                    lastWin = result.TotalWin;
                     
-                    // Force actual server-side refresh of balance immediately
-                    var profile = await AuthService.GetMe();
-                    if (profile != null) {
-                        balance = profile.TotalBalance;
+                    if (lastWin > 0) {
+                        balance += lastWin; 
+                        LayoutService.AddOptimisticBalance(lastWin); 
+                        showWinDisplay = true;
+                        if (lastWin >= betAmount * 10) Snackbar.Add($"NUCLEAR WIN: {lastWin:C2}!", Severity.Success);
+                        await Audio.PlayWin();
+                        StateHasChanged();
+                        
+                        var profile = await AuthService.GetMe();
+                        if (profile != null) {
+                            balance = profile.TotalBalance;
+                            LayoutService.NotifyMajorUpdate();
+                        }
+
+                        if (animationSpeed < 3 || lastWin < betAmount * 20) {
+                            await Task.Delay(animationSpeed == 1 ? 3000 : 1000); 
+                        }
+                        showWinDisplay = false;
+                    }
+
+                    var profileAfter = await AuthService.GetMe();
+                    if (profileAfter != null) {
+                        balance = profileAfter.TotalBalance;
+                        lifetimeExplosions = profileAfter.FruitBlastLifetimeExplosions;
                         LayoutService.NotifyMajorUpdate();
                     }
-
-                    await Task.Delay(3000); 
-                    showWinDisplay = false;
                 }
-
-                var profileAfter = await AuthService.GetMe();
-                if (profileAfter != null) {
-                    balance = profileAfter.TotalBalance;
-                    lifetimeExplosions = profileAfter.FruitBlastLifetimeExplosions;
-                    LayoutService.NotifyMajorUpdate(); // FORCE UI REFRESH
-                }
+            } catch (Exception ex) { 
+                Snackbar.Add(ex.Message, Severity.Error); 
+                isAutoSpinning = false;
             }
-        } catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        finally { 
-            isSpinning = false; 
-            isMeltdownActive = false; 
-            LayoutService.SetBalanceUpdateSuppression(false); // UNLOCK BALANCE UPDATES
-            StateHasChanged(); 
-        }
+            finally { 
+                isSpinning = false; 
+                isMeltdownActive = false; 
+                LayoutService.SetBalanceUpdateSuppression(false);
+                StateHasChanged(); 
+            }
+
+            if (isAutoSpinning) await Task.Delay(animationSpeed == 1 ? 1000 : 500);
+
+        } while (isAutoSpinning);
     }
 
     public ValueTask DisposeAsync() { LayoutService.OnMajorUpdate -= StateHasChanged; return ValueTask.CompletedTask; }
