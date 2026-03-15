@@ -99,6 +99,9 @@ public class FruitBlastGameEngine : BaseGameEngine {
             int roundNum = repo.GetRoundCount(sessionId) + 1;
             int baseNonce = roundNum * 1000;
 
+            var user = repo.GetUser(session.UserId);
+            bool isSimUser = user?.Username?.StartsWith("Sim_") ?? false;
+
             FillGrid(state.Grid, session, baseNonce, directive);
 
             int avalancheCount = 0;
@@ -133,10 +136,12 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     state.LifetimeExplosions += explodedCount;
                     if (playerProfile != null) playerProfile.FruitBlastLifetimeExplosions += explodedCount;
 
-                    // Update Juice Pot Contribution (0.1% per exploded fruit)
-                    decimal contribution = bet.Amount * 0.001m * explodedCount;
-                    juicePot.CurrentValue += contribution;
-                    state.JuicePotValue = juicePot.CurrentValue;
+                    // Update Juice Pot Contribution (0.1% per exploded fruit) - EXCLUDE SIMS
+                    if (!isSimUser) {
+                        decimal contribution = bet.Amount * 0.001m * explodedCount;
+                        juicePot.CurrentValue += contribution;
+                        state.JuicePotValue = juicePot.CurrentValue;
+                    }
 
                     step.AffectedColumns.AddRange(step.WinningClusters.Select(p => p.C).Distinct());
                 }
@@ -153,9 +158,11 @@ public class FruitBlastGameEngine : BaseGameEngine {
                         state.LifetimeExplosions += affectedCount;
                         if (playerProfile != null) playerProfile.FruitBlastLifetimeExplosions += affectedCount;
 
-                        decimal contribution = bet.Amount * 0.001m * affectedCount;
-                        juicePot.CurrentValue += contribution;
-                        state.JuicePotValue = juicePot.CurrentValue;
+                        if (!isSimUser) {
+                            decimal contribution = bet.Amount * 0.001m * affectedCount;
+                            juicePot.CurrentValue += contribution;
+                            state.JuicePotValue = juicePot.CurrentValue;
+                        }
 
                         if (exp.Type == 10) {
                              state.TotalMultiplier += 1.0m; 
@@ -170,14 +177,16 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     step.MeltdownActive = true;
                     meltdownAwarded = true;
                     
-                    // Add Juice Pot to win
-                    state.CurrentRoundWin += juicePot.CurrentValue;
+                    // Add Juice Pot to win - EXCLUDE SIMS FROM DRAINING POT
+                    if (!isSimUser) {
+                        state.CurrentRoundWin += juicePot.CurrentValue;
+                        // Reset Juice Pot to seed value
+                        juicePot.CurrentValue = 50.0m;
+                    }
                     
                     // Trigger Meltdown transformation
                     for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) state.Grid[r][c] = 12; 
                     
-                    // Reset Juice Pot to seed value
-                    juicePot.CurrentValue = 50.0m;
                     state.JuicePotValue = juicePot.CurrentValue;
                 }
 

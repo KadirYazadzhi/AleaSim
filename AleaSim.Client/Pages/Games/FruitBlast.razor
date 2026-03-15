@@ -40,7 +40,7 @@
                         <div class="vitamin-percent-v4">@((lifetimeExplosions * 100.0 / 5000.0).ToString("F1"))%</div>
                     </div>
                     <div class="cyber-track-v4">
-                        <div class="cyber-fill-v4" style="width: @(Math.Min(100, (lifetimeExplosions / 50.0)))%"></div>
+                        <div class="cyber-fill-v4" style="width: @(Math.Min(100.0, (lifetimeExplosions * 100.0 / 5000.0)))%"></div>
                     </div>
                     <MudText Style="font-size: 0.75rem; font-weight: 900; opacity: 0.8;" Class="mt-2 text-center d-block">
                         @lifetimeExplosions.ToString("N0") / 5,000 FRUITS EXTRACTED
