@@ -122,6 +122,16 @@ public class GameHub : Hub {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, gameType);
     }
 
+    public async Task JoinAdminFeed() {
+        if (Context.User?.IsInRole("Admin") == true) {
+            await Groups.AddToGroupAsync(Context.ConnectionId, "Admins");
+        }
+    }
+
+    public async Task LeaveAdminFeed() {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Admins");
+    }
+
     public override async Task OnConnectedAsync() {
         var userId = Context.UserIdentifier;
         if (!string.IsNullOrEmpty(userId)) {

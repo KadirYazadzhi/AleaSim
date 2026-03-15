@@ -29,6 +29,17 @@ public class PlayerRankDto {
     public decimal Profit { get; set; }
 }
 
+public class AdminRoundEvent {
+    public DateTime Timestamp { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string Game { get; set; } = string.Empty;
+    public decimal Bet { get; set; }
+    public decimal Win { get; set; }
+    public int RoundNumber { get; set; }
+    public string Decision { get; set; } = string.Empty;
+    public double Multiplier { get; set; }
+}
+
 public class RtpTrendPoint {
     public string Label { get; set; } = string.Empty;
     public double Rtp { get; set; }

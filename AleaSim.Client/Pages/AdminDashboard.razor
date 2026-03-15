@@ -281,12 +281,52 @@
         await LoadStats();
         await LoadMessages();
         
+        await RealTime.JoinAdminFeed();
+
+        RealTime.OnAdminEventReceived += HandleAdminEvent;
+
         RealTime.OnBigWinReceived += (args) => {
             var logHtml = $"<span class='text-warning fw-bold'>BIG WIN:</span> <b>{args.Username}</b> won <span class='text-success'>{args.Amount:C}</span> on {args.GameName} ({args.Multiplier}x)";
             _liveLogs.Insert(0, logHtml);
             if (_liveLogs.Count > 50) _liveLogs.RemoveAt(_liveLogs.Count - 1);
             InvokeAsync(StateHasChanged);
         };
+    }
+
+    private void HandleAdminEvent(AdminRoundEvent ev) {
+        // 1. Update Live Logs
+        var logHtml = $"<b>{ev.Username}</b> bet <span class='opacity-70'>{ev.Bet:C}</span> on <b>{ev.Game}</b> and won <span class='{(ev.Win > 0 ? "text-success fw-bold" : "opacity-50")}'>{ev.Win:C}</span>";
+        _liveLogs.Insert(0, logHtml);
+        if (_liveLogs.Count > 50) _liveLogs.RemoveAt(_liveLogs.Count - 1);
+
+        // 2. Update Stats (only if viewing 'Day' period for better accuracy)
+        if (_selectedPeriod == "Day") {
+            stats.TotalBets += ev.Bet;
+            stats.TotalWins += ev.Win;
+            stats.Ggr = stats.TotalBets - stats.TotalWins;
+            if (stats.TotalBets > 0) stats.CurrentRtp = (double)(stats.TotalWins / stats.TotalBets) * 100;
+
+            // Update Game Stats
+            var gStat = stats.GameStats.FirstOrDefault(g => g.GameType.Equals(ev.Game, StringComparison.OrdinalIgnoreCase) || g.GameName.Equals(ev.Game, StringComparison.OrdinalIgnoreCase));
+            if (gStat != null) {
+                gStat.TotalWagered += ev.Bet;
+                gStat.TotalWon += ev.Win;
+                if (ev.Win > gStat.MaxWin) gStat.MaxWin = ev.Win;
+            }
+
+            // Update Top Players
+            var player = stats.TopPlayers.FirstOrDefault(p => p.Username == ev.Username);
+            if (player != null) {
+                player.TotalWagered += ev.Bet;
+                player.TotalWon += ev.Win;
+                player.Profit = player.TotalWon - player.TotalWagered;
+            } else if (ev.Win > 0 || ev.Bet > 10) {
+                stats.TopPlayers.Add(new PlayerRankDto { Username = ev.Username, TotalWagered = ev.Bet, TotalWon = ev.Win, Profit = ev.Win - ev.Bet });
+                stats.TopPlayers = stats.TopPlayers.OrderByDescending(p => p.TotalWon).Take(10).ToList();
+            }
+        }
+
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadMessages() {

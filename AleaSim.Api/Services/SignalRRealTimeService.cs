@@ -61,6 +61,10 @@ public class SignalRRealTimeService : IRealTimeService {
         await _hubContext.Clients.All.SendAsync("ReceiveLeaderboard", new { Name = leaderboardName, Data = topList });
     }
 
+    public async Task NotifyAdminFeed(object adminEvent) {
+        await _hubContext.Clients.Group("Admins").SendAsync("ReceiveAdminEvent", adminEvent);
+    }
+
     public async Task BroadcastMessage(string sender, string message) {
         await _hubContext.Clients.All.SendAsync("ReceiveChatMessage", sender, message, DateTime.UtcNow, "https://cdn-icons-png.flaticon.com/512/1041/1041916.png");
     }

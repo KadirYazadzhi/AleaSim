@@ -19,19 +19,22 @@ public class GameDirector : IGameDirector {
     private readonly IAuditService _auditService;
     private readonly IPromotionService _promotionService;
     private readonly ILeaderboardService _leaderboardService;
+    private readonly IRealTimeService _realTime;
 
     public GameDirector(
         Func<string, IGame> gameResolver, 
         IGameRepository repo, 
         IAuditService auditService, 
         IPromotionService promotionService,
-        ILeaderboardService leaderboardService) 
+        ILeaderboardService leaderboardService,
+        IRealTimeService realTime) 
     {
         _gameResolver = gameResolver;
         _repo = repo;
         _auditService = auditService;
         _promotionService = promotionService;
         _leaderboardService = leaderboardService;
+        _realTime = realTime;
     }
 
     public async Task<object?> GetCurrentState(string gameType, Guid sessionId) {
@@ -140,6 +143,18 @@ public class GameDirector : IGameDirector {
         _auditService.LogEvent("ROUND_PLAYED", $"{gameType} Round {round.RoundNumber} | Profile: {profile}", 
             session?.UserId.ToString() ?? "Unknown", 
             JsonSerializer.Serialize(new { Win = round.TotalWinAmount, Result = round.RandomResult }));
+
+        // BROADCAST TO ADMINS
+        _ = _realTime.NotifyAdminFeed(new {
+            Timestamp = DateTime.UtcNow,
+            Username = user?.Username ?? "Unknown",
+            Game = gameType,
+            Bet = amount,
+            Win = round.TotalWinAmount,
+            RoundNumber = round.RoundNumber,
+            Decision = round.DecisionType,
+            Multiplier = amount > 0 ? (double)(round.TotalWinAmount / amount) : 0
+        });
 
         return round;
     }

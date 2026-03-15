@@ -38,15 +38,14 @@
 @code {
     private List<StreamEvent> events = new();
 
-    protected override void OnInitialized() {
-        // We reuse the existing events, but in a real admin app we'd need a dedicated "AdminHub" channel
-        // For now, we listen to public broadcasts + simulate catching others if we were on a firehose
-        RealTime.OnGameUpdateReceived += OnGameUpdate;
+    protected override async Task OnInitializedAsync() {
+        RealTime.OnAdminEventReceived += OnAdminEvent;
         RealTime.OnBigWinReceived += OnBigWin;
+        await RealTime.JoinAdminFeed();
     }
 
-    private void OnGameUpdate(object data) {
-        AddEvent("GameAction", data.ToString() ?? "{}");
+    private void OnAdminEvent(AdminRoundEvent ev) {
+        AddEvent(ev.Game, $"{ev.Username}: Bet {ev.Bet:C} | Win {ev.Win:C} ({ev.Decision})");
     }
 
     private void OnBigWin(BigWinEventArgs args) {
@@ -61,12 +60,15 @@
 
     private Color GetColor(string type) => type switch {
         "BigWin" => Color.Warning,
-        "GameAction" => Color.Info,
-        _ => Color.Default
+        "Slot" => Color.Primary,
+        "FruitBlast" => Color.Tertiary,
+        "Blackjack" => Color.Secondary,
+        "Roulette" => Color.Warning,
+        _ => Color.Info
     };
 
     public void Dispose() {
-        RealTime.OnGameUpdateReceived -= OnGameUpdate;
+        RealTime.OnAdminEventReceived -= OnAdminEvent;
         RealTime.OnBigWinReceived -= OnBigWin;
     }
 

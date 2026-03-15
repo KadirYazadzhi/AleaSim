@@ -24,6 +24,7 @@ public class RealTimeClient : IAsyncDisposable {
     public event Action<string, string, DateTime, string>? OnChatMessageReceived;
     public event Action<string, string, DateTime, string, Guid>? OnPrivateMessageReceived;
     public event Action<UserProgressionDto>? OnProgressionUpdated;
+    public event Action<AdminRoundEvent>? OnAdminEventReceived;
 
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
@@ -75,7 +76,17 @@ public class RealTimeClient : IAsyncDisposable {
             OnLeaderboardUpdated?.Invoke(name, data);
         });
 
+        _hubConnection.On<AdminRoundEvent>("ReceiveAdminEvent", (data) => {
+            OnAdminEventReceived?.Invoke(data);
+        });
+
         await _hubConnection.StartAsync();
+    }
+
+    public async Task JoinAdminFeed() {
+        if (_hubConnection?.State == HubConnectionState.Connected) {
+            await _hubConnection.SendAsync("JoinAdminFeed");
+        }
     }
 
     public async Task StopAsync() {
