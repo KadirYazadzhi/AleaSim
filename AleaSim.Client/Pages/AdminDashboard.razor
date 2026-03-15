@@ -304,7 +304,7 @@
             stats.TotalBets += ev.Bet;
             stats.TotalWins += ev.Win;
             stats.Ggr = stats.TotalBets - stats.TotalWins;
-            if (stats.TotalBets > 0) stats.CurrentRtp = (double)(stats.TotalWins / stats.TotalBets) * 100;
+            if (stats.TotalBets > 0) stats.CurrentRtp = (stats.TotalWins / stats.TotalBets) * 100;
 
             // Update Game Stats
             var gStat = stats.GameStats.FirstOrDefault(g => g.GameType.Equals(ev.Game, StringComparison.OrdinalIgnoreCase) || g.GameName.Equals(ev.Game, StringComparison.OrdinalIgnoreCase));
@@ -367,11 +367,6 @@
         await AdminService.ToggleEmergencyStop(enabled);
         _emergencyStop = enabled;
         Snackbar.Add(_emergencyStop ? "Emergency Stop ACTIVATED" : "Emergency Stop DEACTIVATED", _emergencyStop ? Severity.Error : Severity.Success);
-    }
-
-    private async Task ToggleStop()
-    {
-        // This method is now handled by ToggleStopValue due to MudSwitch binding changes
     }
 
     private async Task OnClearCache() {
