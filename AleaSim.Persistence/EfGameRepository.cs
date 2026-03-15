@@ -544,13 +544,15 @@ public class EfGameRepository : IGameRepository {
     }
 
     public AdminDashboardStats GetStatsForPeriod(DateTime start, DateTime end) {
-        var query = _context.GameRounds
-            .Where(r => r.ExecutedAt >= start && r.ExecutedAt < end)
+        var roundsQuery = _context.GameRounds
+            .Where(r => r.ExecutedAt >= start && r.ExecutedAt < end);
+
+        var joinedQuery = roundsQuery
             .Join(_context.GameSessions, r => r.GameSessionId, s => s.Id, (r, s) => new { r, s })
             .Join(_context.Users, x => x.s.UserId, u => u.Id, (x, u) => new { x.r, x.s, u })
             .Where(x => !x.u.Username.StartsWith("Sim_") && x.u.Role != Role.Admin);
 
-        var totals = query
+        var totals = joinedQuery
             .GroupBy(_ => 1)
             .Select(g => new {
                 TotalBets = g.Sum(x => x.r.TotalBetAmount),
@@ -558,9 +560,9 @@ public class EfGameRepository : IGameRepository {
             })
             .FirstOrDefault();
 
-        var activeCount = query.Select(x => x.u.Id).Distinct().Count();
+        var activeCount = joinedQuery.Select(x => x.u.Id).Distinct().Count();
 
-        var gameStats = query
+        var gameStats = joinedQuery
             .Join(_context.Games, x => x.s.GameId, g => g.Id, (x, g) => new { x.r, g })
             .GroupBy(x => new { x.g.Name, x.g.Type })
             .Select(g => new GameStatDto {
@@ -572,7 +574,7 @@ public class EfGameRepository : IGameRepository {
             })
             .ToList();
 
-        var topPlayers = query
+        var topPlayers = joinedQuery
             .GroupBy(x => x.u.Username)
             .Select(g => new PlayerRankDto {
                 Username = g.Key,

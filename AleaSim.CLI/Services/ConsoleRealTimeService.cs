@@ -57,6 +57,13 @@ public class ConsoleRealTimeService : IRealTimeService {
         return Task.CompletedTask;
     }
 
+    public Task NotifyAdminFeed(object adminEvent) {
+        // Log to console for debugging simulations/CLI bets
+        // string json = JsonSerializer.Serialize(adminEvent);
+        // Console.WriteLine($"[ADMIN FEED] {json}");
+        return Task.CompletedTask;
+    }
+
     public Task BroadcastMessage(string sender, string message) {
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine($"\n[SYSTEM BROADCAST from {sender}]: {message}");
