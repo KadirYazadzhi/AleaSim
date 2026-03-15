@@ -23,14 +23,14 @@
             </div>
 
             <!-- PixiJS Slot Machine View -->
-            <MudPaper Class="pa-2" Style="background: #000; border: 10px solid #3d2b1f; border-radius: 20px; box-shadow: 0 0 30px rgba(0,0,0,0.8); position: relative; overflow: hidden;">
-                <div id="pixi-slot-container" style="width: 100%; height: 480px; background: #000; display: flex; justify-content: center; align-items: center;">
+            <div class='@($"game-viewport-v4 {(LayoutService.IsDarkMode ? "dark" : "light")}")'>
+                <div id="pixi-slot-container" style="width: 100%; height: 480px; display: flex; justify-content: center; align-items: center;">
                     <!-- Canvas will be injected here by PixiJS -->
                 </div>
                 
                 <!-- Info Button -->
-                <div style="position: absolute; top: 10px; right: 10px; z-index: 101;">
-                    <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Inherit" Class="glass-panel rounded-circle p-2" OnClick="OpenPaytable" title="View Paytable & Lines" />
+                <div style="position: absolute; top: 15px; right: 15px; z-index: 101;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Inherit" Class="glass-panel rounded-circle" OnClick="OpenPaytable" />
                 </div>
 
                 <div class="win-light @(lastWin > 0 ? "active" : "")"></div>
@@ -49,13 +49,13 @@
                         <div class="win-sum">@lastWin.ToString("C2")</div>
                     </div>
                 </div>
-            </MudPaper>
+            </div>
 
             <!-- Status Bar -->
-            <MudPaper Class="mt-4 pa-4 d-flex justify-space-between align-center" Style="background: linear-gradient(#1a1a1a, #000); color: white; border-bottom: 4px solid #d4af37;">
+            <div class='@($"status-bar-v4 {(LayoutService.IsDarkMode ? "dark" : "light")}")'>
                 <div class="d-flex flex-column">
-                    <MudText Typo="Typo.caption" Style="color: #888;">LAST WIN</MudText>
-                    <MudText Typo="Typo.h4" Style="color: #ffD700; font-weight: 900; text-shadow: 0 0 10px rgba(255,215,0,0.5);">@lastWin.ToString("C2")</MudText>
+                    <MudText Typo="Typo.caption" Class="label">LAST WIN</MudText>
+                    <MudText Typo="Typo.h4" Class="value win">@lastWin.ToString("C2")</MudText>
                 </div>
                 
                 <div class="d-flex gap-4">
@@ -63,24 +63,24 @@
                         <div class="feature-badge bonus">BELL BONUS: @gameState.BonusLives LIVES</div>
                     }
                     @if (gameState.IsGambleActive) {
-                        <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="OpenGamble">GAMBLE @gameState.PendingGambleWin.ToString("C2")</MudButton>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Success" OnClick="CollectWin">COLLECT</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="OpenGamble" Class="fw-black">GAMBLE @gameState.PendingGambleWin.ToString("C2")</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Success" OnClick="CollectWin" Class="fw-black ml-2">COLLECT</MudButton>
                     }
                 </div>
 
                 <div class="text-right d-flex flex-column">
-                    <MudText Typo="Typo.caption" Style="color: #888;">BALANCE</MudText>
-                    <MudText Typo="Typo.h4" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
+                    <MudText Typo="Typo.caption" Class="label">BALANCE</MudText>
+                    <MudText Typo="Typo.h4" Class="value bal">@balance.ToString("C2")</MudText>
                 </div>
-            </MudPaper>
+            </div>
         </MudItem>
 
         <!-- Controls -->
         <MudItem xs="12" lg="3">
-            <MudPaper Class="pa-6" Style="background: #222; color: white; height: 100%; border-left: 4px solid #444;">
+            <MudPaper Class='@($"control-panel-v4 pa-6 h-100 {(LayoutService.IsDarkMode ? "dark" : "light")}")' Elevation="0">
                 <div class="credits-display mb-2">
-                    <MudText Typo="Typo.h5" Align="Align.Center" Style="color: #ffeb3b; font-weight: 900; font-family: monospace;">
-                        CREDITS: @((balance / (denomination > 0 ? denomination : 0.01m)).ToString("N0"))
+                    <MudText Typo="Typo.h5" Align="Align.Center" Class="credits-val">
+                        CREDITS: @((balance / (denomination > 0 ? denomination : 0.10m)).ToString("N0"))
                     </MudText>
                 </div>
                 <MudText Typo="Typo.caption" Class="d-block text-center opacity-50 mb-4" Style="letter-spacing: 1px;">20 FIXED PAYLINES</MudText>
@@ -98,7 +98,7 @@
                                  Disabled="@(isSpinning || gameState.IsBonusActive || gameState.IsRespinActive)" />
                 
                 <div class="mt-2 text-center">
-                    <MudText Typo="Typo.subtitle1" Style="color: #aaa;">Total Stake: <b>@((creditsBet * denomination).ToString("C2"))</b></MudText>
+                    <MudText Typo="Typo.subtitle1" Class="opacity-70">Total Stake: <b>@((creditsBet * denomination).ToString("C2"))</b></MudText>
                 </div>
 
                 <div class="d-flex flex-column gap-2 mt-8">
@@ -107,8 +107,8 @@
                                OnClick="OnSpin" 
                                Disabled="@(isSpinning || (balance < (creditsBet * denomination) && !gameState.IsRespinActive && !gameState.IsBonusActive))" 
                                FullWidth="true" 
-                               Class="spin-button"
-                               Style="height: 100px; font-size: 2rem; font-weight: 900;">
+                               Class="spin-button-v4"
+                               Style="height: 100px; font-size: 2.2rem; font-weight: 950;">
                         @if (gameState.IsBonusActive) { <text>BONUS</text> }
                         else if (gameState.IsRespinActive) { <text>RESPIN</text> }
                         else if (isSpinning && !isAutoSpinning) { <text>WAIT</text> }
@@ -124,9 +124,9 @@
                     </MudButton>
 
                     <div class="d-flex justify-space-between gap-2 mt-2">
-                        <button class='@($"speed-btn {(animationSpeed == 1 ? "active" : "")}")' @onclick="() => SetSpeed(1)">1X</button>
-                        <button class='@($"speed-btn {(animationSpeed == 2 ? "active" : "")}")' @onclick="() => SetSpeed(2)">2X</button>
-                        <button class='@($"speed-btn {(animationSpeed == 3 ? "active" : "")}")' @onclick="() => SetSpeed(3)">TURBO</button>
+                        <button class='@($"speed-btn-v4 {(animationSpeed == 1 ? "active" : "")}")' @onclick="() => SetSpeed(1)">1X</button>
+                        <button class='@($"speed-btn-v4 {(animationSpeed == 2 ? "active" : "")}")' @onclick="() => SetSpeed(2)">2X</button>
+                        <button class='@($"speed-btn-v4 {(animationSpeed == 3 ? "active" : "")}")' @onclick="() => SetSpeed(3)">TURBO</button>
                     </div>
                 </div>
             </MudPaper>
@@ -135,20 +135,42 @@
 </MudContainer>
 
 <style>
-    .spin-button { box-shadow: 0 8px 0 #1565c0, 0 15px 20px rgba(0,0,0,.35); transition: all .1s; }
-    .spin-button:active { transform: translateY(4px); box-shadow: 0 4px 0 #1565c0, 0 8px 10px rgba(0,0,0,.3); }
-    
-    .speed-btn { flex: 1; height: 40px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: #888; font-weight: 900; font-size: 0.8rem; transition: all 0.2s; cursor: pointer; }
-    .speed-btn:hover { background: rgba(255,255,255,0.1); }
-    .speed-btn.active { background: var(--mud-palette-primary); color: white; border-color: var(--mud-palette-primary); box-shadow: 0 0 15px rgba(var(--mud-palette-primary-rgb), 0.4); }
+    /* --- VIEWPORT --- */
+    .game-viewport-v4 { position: relative; border-radius: 24px; overflow: hidden; border: 8px solid; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+    .game-viewport-v4.dark { background: #000; border-color: #3d2b1f; }
+    .game-viewport-v4.light { background: #f8fafc; border-color: #e2e8f0; }
 
-    .feature-badge { padding: 8px 20px; border-radius: 4px; font-weight: 900; border: 2px solid white; box-shadow: 0 0 15px rgba(255,255,255,0.5); }
-    .bonus { background: #d32f2f; color: white; animation: pulse 1s infinite; }
-    .overlay-text { position: absolute; left: 50%; transform: translateX(-50%); font-size: 3rem; color: #ffeb3b; font-weight: 900; text-shadow: 0 0 20px black; z-index: 100; pointer-events: none; }
-    .nudged { color: #e91e63; animation: bounce 0.5s; }
+    /* --- STATUS BAR --- */
+    .status-bar-v4 { margin-top: 16px; padding: 16px 24px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #d4af37; }
+    .status-bar-v4.dark { background: linear-gradient(#1a1a1a, #000); color: white; }
+    .status-bar-v4.light { background: #fff; color: #1e293b; border: 1px solid #e2e8f0; border-bottom: 4px solid #d4af37; }
+    .status-bar-v4 .label { opacity: 0.6; font-weight: 700; }
+    .status-bar-v4 .value { font-weight: 950; font-family: 'JetBrains Mono', monospace; }
+    .status-bar-v4 .value.win { color: #ffD700; text-shadow: 0 0 10px rgba(255,215,0,0.3); }
+    .status-bar-v4 .value.bal { color: #22c55e; }
+
+    /* --- CONTROL PANEL --- */
+    .control-panel-v4 { border-radius: 24px !important; border: 2px solid transparent; }
+    .control-panel-v4.dark { background: #111; color: white; border-color: #333; }
+    .control-panel-v4.light { background: #fff; color: #1e293b; border-color: #e2e8f0; }
+    .credits-val { font-weight: 950; font-family: 'JetBrains Mono', monospace; color: #fbbf24; }
+    .light .credits-val { color: #b45309; }
+
+    /* --- BUTTONS --- */
+    .spin-button-v4 { box-shadow: 0 8px 0 rgba(0,0,0,0.3); transition: transform 0.1s; }
+    .spin-button-v4:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
     
-    /* Giant Win Overlay Integration */
-    .giant-win-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; z-index: 2000; pointer-events: none; opacity: 0; transition: opacity 0.4s; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); }
+    .speed-btn-v4 { flex: 1; height: 40px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #888; font-weight: 900; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+    .light .speed-btn-v4 { background: #f1f5f9; border-color: #cbd5e1; color: #64748b; }
+    .speed-btn-v4.active { background: var(--mud-palette-primary); color: white; border-color: var(--mud-palette-primary); box-shadow: 0 0 15px rgba(var(--mud-palette-primary-rgb), 0.4); }
+
+    .feature-badge { padding: 8px 20px; border-radius: 8px; font-weight: 950; border: 2px solid white; }
+    .bonus { background: #ef4444; color: white; animation: pulse 1s infinite; }
+    .overlay-text { position: absolute; left: 50%; transform: translateX(-50%); font-size: 3rem; color: #ffeb3b; font-weight: 950; text-shadow: 0 0 20px black; z-index: 100; pointer-events: none; }
+    .nudged { color: #ec4899; animation: bounce 0.5s; }
+    
+    /* --- WIN OVERLAY --- */
+    .giant-win-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2000; pointer-events: none; opacity: 0; transition: opacity 0.4s; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); }
     .giant-win-overlay.visible { opacity: 1; pointer-events: auto; }
     .giant-win-overlay.compact-win { background: transparent; backdrop-filter: none; top: auto; bottom: 40px; height: 120px; }
     .compact-win .win-content { transform: scale(0.5) !important; background: rgba(0,0,0,0.7); padding: 15px 40px; border-radius: 20px; border: 2px solid #ffeb3b; }
@@ -160,34 +182,43 @@
     @@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     @@keyframes bounce { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-20px); } }
     .fw-black { font-weight: 900; }
+    .glass-panel { background: rgba(255,255,255,0.1) !important; backdrop-filter: blur(4px); }
 </style>
 
 @code {
     private bool isSpinning = false;
     private bool isAutoSpinning = false;
-    private int animationSpeed = 1; // 1, 2, 3 (Turbo)
+    private int animationSpeed = 1; 
     private bool showWinDisplay = false;
     private decimal balance = 0;
     private decimal lastWin = 0;
-    private decimal denomination = 0.01m;
+    private decimal denomination = 0.10m; // Default changed to 0.10
     private int creditsBet = 10;
     private Guid? sessionId;
     private SlotState gameState = new();
     private bool wasNudged = false;
     private bool lowGraphics = false;
+    private DotNetObjectReference<CloverChase>? _objRef;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             try {
-                await Task.Delay(500); 
+                _objRef = DotNetObjectReference.Create(this);
                 await LoadData();
-                await JSRuntime.InvokeVoidAsync("slotEngine.init", "pixi-slot-container", animationSpeed, lowGraphics);
+                await JSRuntime.InvokeVoidAsync("slotEngine.init", "pixi-slot-container", animationSpeed, lowGraphics, _objRef);
             } catch (Exception ex) {
                 Console.WriteLine($"JS Init Error: {ex.Message}");
             }
         }
+    }
+
+    [JSInvokable]
+    public void OnAnimationFinished() {
+        // This is called by JS when the reels stop
+        isSpinning = false;
+        StateHasChanged();
     }
 
     private void SetSpeed(int speed) {
@@ -211,7 +242,7 @@
     private async Task LoadData()
     {
         try {
-            var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+            var profile = await AuthService.GetMe();
             if (profile != null) {
                 balance = profile.TotalBalance;
                 var prefs = JsonSerializer.Deserialize<Dictionary<string, object>>(profile.PreferencesJson) ?? new();
@@ -232,6 +263,7 @@
                 var newSession = await GameService.StartSession("slot");
                 sessionId = newSession.SessionId;
             }
+            StateHasChanged();
         } catch { }
     }
 
@@ -262,9 +294,12 @@
                 var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount, new { Denomination = denomination });
                 await JSRuntime.InvokeVoidAsync("slotEngine.spin", result.RandomResultJson);
                 
-                // Wait for animation based on speed
-                var waitTime = animationSpeed switch { 3 => 600, 2 => 1500, _ => 3500 };
-                await Task.Delay(waitTime); 
+                // wait for JS callback or timeout
+                int timeout = animationSpeed switch { 3 => 1000, 2 => 2500, _ => 5000 };
+                var start = DateTime.Now;
+                while (isSpinning && (DateTime.Now - start).TotalMilliseconds < timeout) {
+                    await Task.Delay(50);
+                }
 
                 var profile = await AuthService.GetMe();
                 if (profile != null) balance = profile.TotalBalance;
@@ -283,7 +318,7 @@
                     wasNudged = gridData.WasNudged;
                     
                     if (wasNudged) await Audio.PlayBonus(); 
-                    if (bonusJustStarted) isAutoSpinning = false; // Stop auto on bonus trigger
+                    if (bonusJustStarted) isAutoSpinning = false; 
                 }
 
                 if (lastWin > 0) {
@@ -301,7 +336,7 @@
                 if (gameState.IsGambleActive && !isAutoSpinning) {
                     await OpenGamble();
                 } else if (gameState.IsGambleActive && isAutoSpinning) {
-                    await CollectWin(); // Auto-collect in auto-spin mode
+                    await CollectWin(); 
                 }
 
             } catch (Exception ex) { 
@@ -341,7 +376,10 @@
         StateHasChanged();
     }
 
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    public async ValueTask DisposeAsync() {
+        if (_objRef != null) _objRef.Dispose();
+        await Task.CompletedTask;
+    }
 
     public class SlotState {
         public bool IsBonusActive { get; set; }
@@ -349,7 +387,7 @@
         public bool IsRespinActive { get; set; }
         public bool IsGambleActive { get; set; }
         public decimal PendingGambleWin { get; set; }
-        public decimal Denomination { get; set; } = 0.01m;
+        public decimal Denomination { get; set; } = 0.10m;
     }
     
     public class SlotStateResponse {
