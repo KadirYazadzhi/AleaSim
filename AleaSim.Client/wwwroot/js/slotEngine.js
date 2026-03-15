@@ -1,4 +1,3 @@
-
 window.slotEngine = {
     app: null,
     reels: [],
@@ -8,11 +7,10 @@ window.slotEngine = {
     reelLayer: null,
     mask: null,
     
-    // EXPANDED COORDINATE SYSTEM
     internalWidth: 1000,
     internalHeight: 540,
-    symbolSize: 115, // Larger symbols
-    reelWidth: 180,  // 180 * 5 = 900px total grid width (90% of internalWidth)
+    symbolSize: 115,
+    reelWidth: 180,
     rows: 4,
     cols: 5,
     
@@ -42,7 +40,6 @@ window.slotEngine = {
         window.slotEngine.app = new PIXI.Application({
             width: window.slotEngine.internalWidth,
             height: window.slotEngine.internalHeight,
-            backgroundColor: 0x000000,
             backgroundAlpha: 0,
             antialias: !lowGraphics,
             resolution: window.devicePixelRatio || 1,
@@ -155,11 +152,15 @@ window.slotEngine = {
         const data = JSON.parse(resultJson);
         const grid = data.Grid;
         window.slotEngine.lastWinningLines = data.WinningLines || [];
+        
+        // PRESERVE STICKY BELLS IF BONUS IS ENDING
+        const wasInBonus = window.slotEngine.isBonusActive;
         window.slotEngine.isBonusActive = data.IsBonusActive;
         
         if (data.IsBonusActive || data.IsRespinActive) {
             window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyClovers || []);
-        } else {
+        } else if (!wasInBonus) {
+            // Only clear if we weren't just in a bonus (normal game)
             window.slotEngine.stickyBells = [];
             window.slotEngine.stickyLayer.removeChildren();
         }
@@ -208,27 +209,34 @@ window.slotEngine = {
             sprite.y = sb.r * symbolSize;
 
             if (sb.type !== undefined) {
-                if (sb.type === 1) { sprite.tint = 0x00ff00; window.slotEngine.addLabel(sprite, "MINI"); }
-                else if (sb.type === 2) { sprite.tint = 0x00ffff; window.slotEngine.addLabel(sprite, "MINOR"); }
-                else if (sb.type === 3) { sprite.tint = 0xff00ff; window.slotEngine.addLabel(sprite, "MAJOR"); }
+                // Initial hide value text, reveal later in animation
+                if (sb.type === 1) { sprite.tint = 0x00ff00; window.slotEngine.addLabel(sprite, "MINI", false); }
+                else if (sb.type === 2) { sprite.tint = 0x00ffff; window.slotEngine.addLabel(sprite, "MINOR", false); }
+                else if (sb.type === 3) { sprite.tint = 0xff00ff; window.slotEngine.addLabel(sprite, "MAJOR", false); }
                 else if (sb.type === 4) { 
                     sprite.tint = 0xffd700; 
-                    window.slotEngine.addLabel(sprite, "MEGA"); 
-                    if (window.gsap) gsap.to(sprite, { alpha: 0.5, duration: 0.5, repeat: -1, yoyo: true });
+                    window.slotEngine.addLabel(sprite, "MEGA", false); 
+                    if (window.gsap) gsap.to(sprite, { alpha: 0.7, duration: 0.5, repeat: -1, yoyo: true });
+                } else {
+                    // Regular cash bell
+                    window.slotEngine.addLabel(sprite, `$${sb.value.toFixed(2)}`, false);
                 }
             }
             stickyLayer.addChild(sprite);
         });
     },
 
-    addLabel: (parent, text) => {
+    addLabel: (parent, text, visible = true) => {
         const style = new PIXI.TextStyle({
-            fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: '#ffffff', stroke: '#000000', strokeThickness: 4, align: 'center'
+            fontFamily: 'Rajdhani, Arial', fontSize: 22, fontWeight: 'bold', fill: '#ffffff',
+            stroke: '#000000', strokeThickness: 5, align: 'center'
         });
         const richText = new PIXI.Text(text, style);
         richText.anchor.set(0.5);
         richText.x = parent.width / 2;
-        richText.y = parent.height / 2;
+        richText.y = parent.height / 2 + 10;
+        richText.visible = visible;
+        richText.name = "valueLabel";
         parent.addChild(richText);
     },
 
@@ -260,10 +268,17 @@ window.slotEngine = {
                 reel.isStopped = true;
                 reel.symbols.forEach((s, idx) => {
                     s.sprite.y = idx * symbolSize;
-                    let tid = (idx < 4 && reel.targetSymbols) ? reel.targetSymbols[idx] : Math.floor(Math.random() * 12) + 1;
-                    s.sprite.texture = textures[`sym${tid}`];
-                    const isSticky = window.slotEngine.stickyBells.find(sb => sb.c === i && sb.r === idx);
-                    s.sprite.alpha = isSticky ? 0 : 1;
+                    let tid = (idx < 4 && reel.targetSymbols) ? reel.targetSymbols[idx] : 0;
+                    
+                    if (tid === 0) {
+                        // Empty slot in bonus: show a dimmed ghost symbol or just a placeholder
+                        s.sprite.texture = textures[`sym${Math.floor(Math.random()*7)+1}`];
+                        s.sprite.alpha = 0.15; // Ghostly look
+                    } else {
+                        s.sprite.texture = textures[`sym${tid}`];
+                        const isSticky = window.slotEngine.stickyBells.find(sb => sb.c === i && sb.r === idx);
+                        s.sprite.alpha = isSticky ? 0 : 1;
+                    }
                 });
 
                 if (window.aleaAudio?.play) window.aleaAudio.play('click');
@@ -275,6 +290,7 @@ window.slotEngine = {
             window.slotEngine.running = false;
             if (window.slotEngine.lastWinningLines?.length > 0) window.slotEngine.drawWinLines(window.slotEngine.lastWinningLines);
             
+            // Check if we just finished a bonus round
             if (window.slotEngine.isBonusActive === false && window.slotEngine.stickyBells.length > 0) {
                 window.slotEngine.revealBonusValues();
             } else {
@@ -287,22 +303,38 @@ window.slotEngine = {
 
     revealBonusValues: async () => {
         const { stickyLayer } = window.slotEngine;
+        
+        // Sequence reveal animation
         for (let i = 0; i < stickyLayer.children.length; i++) {
-            const child = stickyLayer.children[i];
+            const bell = stickyLayer.children[i];
+            const label = bell.getChildByName("valueLabel");
+            
             if (window.gsap) {
-                gsap.to(child.scale, { x: 1.2, y: 1.2, duration: 0.15, yoyo: true, repeat: 1 });
-                await new Promise(r => setTimeout(r, 150));
+                // Play sound for each reveal if available
+                if (window.aleaAudio?.play) window.aleaAudio.play('click');
+                
+                label.visible = true;
+                gsap.fromTo(label.scale, { x: 0, y: 0 }, { x: 1, y: 1, duration: 0.3, ease: "back.out" });
+                gsap.to(bell.scale, { x: 1.2, y: 1.2, duration: 0.15, yoyo: true, repeat: 1 });
+                
+                await new Promise(r => setTimeout(r, 200));
             }
         }
-        if (window.slotEngine.dotNetRef) {
-            window.slotEngine.dotNetRef.invokeMethodAsync('OnAnimationFinished');
-        }
+        
+        // Final delay before notifying Blazor
         setTimeout(() => {
-            if (!window.slotEngine.running) {
-                window.slotEngine.stickyBells = [];
-                stickyLayer.removeChildren();
+            if (window.slotEngine.dotNetRef) {
+                window.slotEngine.dotNetRef.invokeMethodAsync('OnAnimationFinished');
             }
-        }, 1500);
+            // Fade out sticky layer
+            if (window.gsap) {
+                gsap.to(stickyLayer, { alpha: 0, duration: 0.5, onComplete: () => {
+                    window.slotEngine.stickyBells = [];
+                    stickyLayer.removeChildren();
+                    stickyLayer.alpha = 1;
+                }});
+            }
+        }, 1000);
     },
 
     clearWinLines: () => window.slotEngine.winGraphics?.clear(),
@@ -330,13 +362,23 @@ window.slotEngine = {
                 reel.symbols.forEach((s, r) => {
                     if (r < 4) {
                         const sid = data.Grid[r][c];
-                        s.sprite.texture = window.slotEngine.textures[`sym${sid}`];
+                        if (sid > 0) {
+                            s.sprite.texture = window.slotEngine.textures[`sym${sid}`];
+                            s.sprite.alpha = 1;
+                        } else {
+                            s.sprite.alpha = 0.15;
+                        }
                     }
                 });
             });
         }
         if (data.BonusBells || data.StickyClovers) {
             window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyClovers || []);
+            // Make labels visible on restore
+            window.slotEngine.stickyLayer.children.forEach(c => {
+                const l = c.getChildByName("valueLabel");
+                if (l) l.visible = true;
+            });
         }
     }
 };
