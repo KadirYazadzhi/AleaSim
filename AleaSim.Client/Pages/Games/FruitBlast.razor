@@ -119,7 +119,7 @@
                 }
 
                 <!-- Giant Win Display -->
-                <div class="giant-win-overlay @(showWinDisplay ? "visible" : "")">
+                <div class="giant-win-overlay @(showWinDisplay ? "visible" : "") @(animationSpeed >= 2 ? "compact-win" : "")">
                     <div class="win-content">
                         <div class="win-header">TOTAL WIN</div>
                         <div class="win-sum">@lastWin.ToString("C2")</div>
@@ -271,6 +271,12 @@
     /* --- GIANT WIN OVERLAY --- */
     .giant-win-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; z-index: 2000; pointer-events: none; opacity: 0; transition: opacity 0.4s; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); }
     .giant-win-overlay.visible { opacity: 1; pointer-events: auto; }
+    
+    .giant-win-overlay.compact-win { background: transparent; backdrop-filter: none; top: auto; bottom: 80px; height: 160px; }
+    .compact-win .win-content { transform: scale(0.6) !important; background: rgba(0,0,0,0.6); padding: 20px 60px; border-radius: 30px; border: 2px solid #ffeb3b; }
+    .compact-win .win-header { font-size: 1.5rem; letter-spacing: 4px; margin-bottom: 5px; }
+    .compact-win .win-sum { font-size: 5rem; }
+
     .win-content { text-align: center; transform: scale(0.5); transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; align-items: center; justify-content: center; }
     .visible .win-content { transform: scale(1.5); }
     .win-header { font-size: 3rem; font-weight: 950; color: white; text-shadow: 0 0 20px #ab47bc; letter-spacing: 12px; margin-bottom: 20px; }
@@ -517,9 +523,16 @@
                             LayoutService.NotifyMajorUpdate();
                         }
 
-                        if (animationSpeed < 3 || lastWin < betAmount * 20) {
-                            await Task.Delay(animationSpeed == 1 ? 3000 : 1000); 
-                        }
+                        int winDelay = animationSpeed switch {
+                            3 => 600,
+                            2 => 1200,
+                            _ => 3000
+                        };
+                        
+                        // Small extra boost for truly massive wins
+                        if (lastWin > betAmount * 50 && animationSpeed < 3) winDelay += 1000;
+
+                        await Task.Delay(winDelay); 
                         showWinDisplay = false;
                     }
 
