@@ -1,3 +1,4 @@
+
 window.slotEngine = {
     app: null,
     reels: [],
@@ -130,11 +131,12 @@ window.slotEngine = {
         if (window.slotEngine.running) return;
         
         const data = JSON.parse(resultJson);
-        const wasInBonus = window.slotEngine.isBonusActive;
+        const grid = data.Grid;
         const currentlyInBonus = data.IsBonusActive || data.IsRespinActive;
 
-        // CRITICAL: Clear only if this is a NORMAL spin following a bonus end state
-        if (!currentlyInBonus && !window.slotEngine.isRevealing && window.slotEngine.stickyBells.length > 0) {
+        // NEW: Clear logic. 
+        // If we are starting a spin and NOT in a feature continuation, clear old sticky.
+        if (!currentlyInBonus && !window.slotEngine.isRevealing) {
             window.slotEngine.stickyBells = [];
             window.slotEngine.stickyLayer.removeChildren();
         }
@@ -142,12 +144,12 @@ window.slotEngine = {
         window.slotEngine.running = true;
         window.slotEngine.isRevealing = false; 
         window.slotEngine.clearWinLines();
+        
+        // Save the NEW bonus state from the server
         window.slotEngine.isBonusActive = data.IsBonusActive;
         window.slotEngine.lastWinningLines = data.WinningLines || [];
         
-        const grid = data.Grid;
-
-        // Only update sticky bells if we are in a feature
+        // Sync sticky symbols (Clovers or Bells)
         if (currentlyInBonus) {
             window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyClovers || []);
         }
@@ -179,7 +181,7 @@ window.slotEngine = {
             }
         });
         window.slotEngine.stickyBells = newSticky;
-        window.slotEngine.updateStickyBellsVisuals(false); // DO NOT SHOW LABELS DURING SPINS
+        window.slotEngine.updateStickyBellsVisuals(false); // ALWAYS hide labels during active spins
     },
 
     updateStickyBellsVisuals: (showLabels = false) => {
@@ -191,6 +193,7 @@ window.slotEngine = {
             sprite.width = sprite.height = symbolSize;
             sprite.x = sb.c * reelWidth + (reelWidth - symbolSize) / 2;
             sprite.y = sb.r * symbolSize;
+            
             if (sb.type !== undefined) {
                 let txt = sb.type === 1 ? "MINI" : sb.type === 2 ? "MINOR" : sb.type === 3 ? "MAJOR" : sb.type === 4 ? "MEGA" : `$${sb.value.toFixed(2)}`;
                 if (sb.type === 1) sprite.tint = 0x00ff00;
@@ -198,7 +201,6 @@ window.slotEngine = {
                 else if (sb.type === 3) sprite.tint = 0xff00ff;
                 else if (sb.type === 4) { sprite.tint = 0xffd700; if (window.gsap) gsap.to(sprite, { alpha: 0.7, duration: 0.5, repeat: -1, yoyo: true }); }
                 
-                // Labels are only visible if requested (usually in reveal phase)
                 window.slotEngine.addLabel(sprite, txt, showLabels);
             }
             stickyLayer.addChild(sprite);
@@ -255,7 +257,7 @@ window.slotEngine = {
             window.slotEngine.running = false;
             if (window.slotEngine.lastWinningLines?.length > 0) window.slotEngine.drawWinLines(window.slotEngine.lastWinningLines);
             
-            // Start reveal sequence if bonus ended
+            // Start reveal sequence ONLY if bonus ended and we have bells (ID 9)
             if (window.slotEngine.isBonusActive === false && window.slotEngine.stickyBells.some(b => b.id === 9) && !window.slotEngine.isRevealing) {
                 window.slotEngine.revealBonusValues();
             } else {
@@ -270,7 +272,6 @@ window.slotEngine = {
         window.slotEngine.isRevealing = true;
         const { stickyLayer } = window.slotEngine;
         
-        // Only reveal items that are actual bells (id 9)
         for (let i = 0; i < stickyLayer.children.length; i++) {
             const bell = stickyLayer.children[i];
             const label = bell.getChildByName("valueLabel");
@@ -287,7 +288,7 @@ window.slotEngine = {
             if (window.slotEngine.dotNetRef) {
                 window.slotEngine.dotNetRef.invokeMethodAsync('OnAnimationFinished');
             }
-        }, 1000);
+        }, 500);
     },
 
     clearWinLines: () => window.slotEngine.winGraphics?.clear(),
@@ -322,7 +323,7 @@ window.slotEngine = {
         }
         if (data.BonusBells || data.StickyClovers) {
             window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyClovers || []);
-            // For restored state, we want labels visible
+            // Restore visibility for revealed state
             window.slotEngine.stickyLayer.children.forEach(c => {
                 const l = c.getChildByName("valueLabel"); if (l) l.visible = true;
             });
