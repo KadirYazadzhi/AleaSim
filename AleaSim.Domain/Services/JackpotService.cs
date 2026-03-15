@@ -19,11 +19,17 @@ public class JackpotService : IJackpotService {
     public async Task Contribute(Guid gameId, decimal betAmount, IGameRepository repo) {
         var db = _redis.GetDatabase();
         var jackpots = repo.GetJackpots().ToList();
+        var cloverChaseId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         
         foreach (var j in jackpots) {
             bool shouldContribute = j.IsGlobal || (j.GameId == gameId);
             
-            // Only Spades (MEGA) and Hearts (MAJOR) are progressive
+            // EXCLUSIVE RULE: Mega (Spades) and Major (Hearts) are only for Clover Chase
+            if (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts) {
+                if (gameId != cloverChaseId) continue; // Skip contribution from other games
+            }
+
+            // Only Spades (MEGA) and Hearts (MAJOR) are progressive in this implementation
             if (shouldContribute && (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts)) {
                 decimal increase = betAmount * j.ContributionRate;
                 string redisKey = $"jackpot:{j.Id}"; // Use ID for absolute uniqueness
@@ -53,6 +59,7 @@ public class JackpotService : IJackpotService {
     public async Task<(bool Triggered, decimal WinAmount)> CheckJackpotTrigger(Guid gameId, int seed, int sequence, IGameRepository repo) {
         double roll = _rngService.GetNextDouble(seed, HashCode.Combine(sequence, "jackpot_trigger"));
         var db = _redis.GetDatabase();
+        var cloverChaseId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         
         var jackpots = repo.GetJackpots()
             .Where(j => j.IsGlobal || j.GameId == gameId)
@@ -60,6 +67,11 @@ public class JackpotService : IJackpotService {
             .ToList();
 
         foreach (var j in jackpots) {
+            // EXCLUSIVE RULE: Mega (Spades) and Major (Hearts) are only for Clover Chase
+            if (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts) {
+                if (gameId != cloverChaseId) continue; 
+            }
+
             // ALWAYS get live value from Redis
             string redisKey = $"jackpot:{j.Id}";
             var redisVal = await db.StringGetAsync(redisKey);
