@@ -1,3 +1,4 @@
+
 window.slotEngine = {
     app: null,
     reels: [],
@@ -16,6 +17,7 @@ window.slotEngine = {
     
     running: false,
     isBonusActive: false,
+    isRevealing: false, // NEW: Prevent early cleanup
     stickyBells: [],
     dotNetRef: null,
     performance: { speed: 1, lowGraphics: false },
@@ -53,16 +55,13 @@ window.slotEngine = {
         const gridY = (window.slotEngine.internalHeight - gridH) / 2;
 
         window.slotEngine.reelLayer = new PIXI.Container();
-        window.slotEngine.reelLayer.x = gridX;
-        window.slotEngine.reelLayer.y = gridY;
+        window.slotEngine.reelLayer.x = gridX; window.slotEngine.reelLayer.y = gridY;
 
         window.slotEngine.stickyLayer = new PIXI.Container();
-        window.slotEngine.stickyLayer.x = gridX;
-        window.slotEngine.stickyLayer.y = gridY;
+        window.slotEngine.stickyLayer.x = gridX; window.slotEngine.stickyLayer.y = gridY;
 
         window.slotEngine.winGraphics = new PIXI.Graphics();
-        window.slotEngine.winGraphics.x = gridX;
-        window.slotEngine.winGraphics.y = gridY;
+        window.slotEngine.winGraphics.x = gridX; window.slotEngine.winGraphics.y = gridY;
         
         window.slotEngine.app.stage.addChild(window.slotEngine.reelLayer);
         window.slotEngine.app.stage.addChild(window.slotEngine.stickyLayer);
@@ -98,21 +97,11 @@ window.slotEngine = {
         const canvas = window.slotEngine.app.view;
         const parent = canvas.parentElement;
         if (!parent) return;
-
-        const pW = parent.clientWidth;
-        const pH = parent.clientHeight;
+        const pW = parent.clientWidth; const pH = parent.clientHeight;
         const ratio = window.slotEngine.internalWidth / window.slotEngine.internalHeight;
-
-        let newW = pW;
-        let newH = pW / ratio;
-
-        if (newH > pH) {
-            newH = pH;
-            newW = pH * ratio;
-        }
-
-        canvas.style.width = `${newW}px`;
-        canvas.style.height = `${newH}px`;
+        let newW = pW; let newH = pW / ratio;
+        if (newH > pH) { newH = pH; newW = pH * ratio; }
+        canvas.style.width = `${newW}px`; canvas.style.height = `${newH}px`;
     },
 
     setPerformanceMode: (speed, lowGraphics) => {
@@ -123,46 +112,43 @@ window.slotEngine = {
     buildGrid: () => {
         const { reelLayer, cols, rows, reelWidth, symbolSize } = window.slotEngine;
         window.slotEngine.reels = [];
-        
         for (let c = 0; c < cols; c++) {
-            const rc = new PIXI.Container();
-            rc.x = c * reelWidth;
+            const rc = new PIXI.Container(); rc.x = c * reelWidth;
             const reel = { container: rc, symbols: [], speed: 0, isStopped: true };
-
             for (let r = 0; r < rows + 1; r++) { 
                 const id = Math.floor(Math.random() * 12) + 1;
                 const sprite = new PIXI.Sprite(window.slotEngine.textures[`sym${id}`]);
                 sprite.width = sprite.height = symbolSize;
-                sprite.x = (reelWidth - symbolSize) / 2;
-                sprite.y = r * symbolSize;
-                rc.addChild(sprite);
-                reel.symbols.push({ sprite, id });
+                sprite.x = (reelWidth - symbolSize) / 2; sprite.y = r * symbolSize;
+                rc.addChild(sprite); reel.symbols.push({ sprite, id });
             }
-            reelLayer.addChild(rc);
-            window.slotEngine.reels.push(reel);
+            reelLayer.addChild(rc); window.slotEngine.reels.push(reel);
         }
         window.slotEngine.app.ticker.add((delta) => window.slotEngine.update(delta));
     },
 
     spin: (resultJson) => {
         if (window.slotEngine.running) return;
-        window.slotEngine.running = true;
-        window.slotEngine.clearWinLines();
         
         const data = JSON.parse(resultJson);
-        const grid = data.Grid;
-        window.slotEngine.lastWinningLines = data.WinningLines || [];
-        
-        // PRESERVE STICKY BELLS IF BONUS IS ENDING
         const wasInBonus = window.slotEngine.isBonusActive;
-        window.slotEngine.isBonusActive = data.IsBonusActive;
-        
-        if (data.IsBonusActive || data.IsRespinActive) {
-            window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyClovers || []);
-        } else if (!wasInBonus) {
-            // Only clear if we weren't just in a bonus (normal game)
+        const currentlyInBonus = data.IsBonusActive || data.IsRespinActive;
+
+        // CRITICAL: Clear only if this is a NORMAL spin following a bonus end state
+        if (!currentlyInBonus && !window.slotEngine.isRevealing && window.slotEngine.stickyBells.length > 0) {
             window.slotEngine.stickyBells = [];
             window.slotEngine.stickyLayer.removeChildren();
+        }
+
+        window.slotEngine.running = true;
+        window.slotEngine.isRevealing = false; 
+        window.slotEngine.clearWinLines();
+        window.slotEngine.isBonusActive = data.IsBonusActive;
+        window.slotEngine.lastWinningLines = data.WinningLines || [];
+        
+        // Only update sticky bells if we are in a feature
+        if (currentlyInBonus) {
+            window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyClovers || []);
         }
 
         const finalSymbols = [];
@@ -173,12 +159,10 @@ window.slotEngine = {
         }
 
         const baseSpeed = 25 * window.slotEngine.performance.speed;
-
         window.slotEngine.reels.forEach((reel, i) => {
             reel.speed = baseSpeed + (i * 2);
             reel.targetSymbols = finalSymbols[i];
-            reel.stopping = false;
-            reel.isStopped = false;
+            reel.stopping = false; reel.isStopped = false;
             const stopDelay = window.slotEngine.performance.speed === 3 ? (100 + i * 50) : 
                              window.slotEngine.performance.speed === 2 ? (400 + i * 150) : (1000 + i * 300);
             setTimeout(() => reel.stopping = true, stopDelay);
@@ -200,27 +184,19 @@ window.slotEngine = {
     updateStickyBellsVisuals: () => {
         const { stickyLayer, stickyBells, symbolSize, reelWidth, textures } = window.slotEngine;
         stickyLayer.removeChildren();
-
         stickyBells.forEach(sb => {
             const tex = textures[`sym${sb.id}`];
             const sprite = new PIXI.Sprite(tex);
             sprite.width = sprite.height = symbolSize;
             sprite.x = sb.c * reelWidth + (reelWidth - symbolSize) / 2;
             sprite.y = sb.r * symbolSize;
-
             if (sb.type !== undefined) {
-                // Initial hide value text, reveal later in animation
-                if (sb.type === 1) { sprite.tint = 0x00ff00; window.slotEngine.addLabel(sprite, "MINI", false); }
-                else if (sb.type === 2) { sprite.tint = 0x00ffff; window.slotEngine.addLabel(sprite, "MINOR", false); }
-                else if (sb.type === 3) { sprite.tint = 0xff00ff; window.slotEngine.addLabel(sprite, "MAJOR", false); }
-                else if (sb.type === 4) { 
-                    sprite.tint = 0xffd700; 
-                    window.slotEngine.addLabel(sprite, "MEGA", false); 
-                    if (window.gsap) gsap.to(sprite, { alpha: 0.7, duration: 0.5, repeat: -1, yoyo: true });
-                } else {
-                    // Regular cash bell
-                    window.slotEngine.addLabel(sprite, `$${sb.value.toFixed(2)}`, false);
-                }
+                let txt = sb.type === 1 ? "MINI" : sb.type === 2 ? "MINOR" : sb.type === 3 ? "MAJOR" : sb.type === 4 ? "MEGA" : `$${sb.value.toFixed(2)}`;
+                if (sb.type === 1) sprite.tint = 0x00ff00;
+                else if (sb.type === 2) sprite.tint = 0x00ffff;
+                else if (sb.type === 3) sprite.tint = 0xff00ff;
+                else if (sb.type === 4) { sprite.tint = 0xffd700; if (window.gsap) gsap.to(sprite, { alpha: 0.7, duration: 0.5, repeat: -1, yoyo: true }); }
+                window.slotEngine.addLabel(sprite, txt, false);
             }
             stickyLayer.addChild(sprite);
         });
@@ -232,11 +208,8 @@ window.slotEngine = {
             stroke: '#000000', strokeThickness: 5, align: 'center'
         });
         const richText = new PIXI.Text(text, style);
-        richText.anchor.set(0.5);
-        richText.x = parent.width / 2;
-        richText.y = parent.height / 2 + 10;
-        richText.visible = visible;
-        richText.name = "valueLabel";
+        richText.anchor.set(0.5); richText.x = parent.width / 2; richText.y = parent.height / 2 + 10;
+        richText.visible = visible; richText.name = "valueLabel";
         parent.addChild(richText);
     },
 
@@ -244,43 +217,32 @@ window.slotEngine = {
         if (!window.slotEngine.running) return;
         let activeReels = 0;
         const { reels, symbolSize, textures } = window.slotEngine;
-
         reels.forEach((reel, i) => {
             if (reel.isStopped) return;
             activeReels++;
-
             reel.symbols.forEach(s => { s.sprite.y += reel.speed * delta; });
-
-            const limit = 4 * symbolSize;
-            const bufferY = -symbolSize;
-
+            const limit = 4 * symbolSize; const bufferY = -symbolSize;
             reel.symbols.forEach(s => {
                 if (s.sprite.y >= limit) {
                     s.sprite.y = bufferY + (s.sprite.y - limit);
                     let nextId = Math.floor(Math.random() * 12) + 1;
-                    const tex = textures[`sym${nextId}`];
-                    if (tex) s.sprite.texture = tex;
+                    if (textures[`sym${nextId}`]) s.sprite.texture = textures[`sym${nextId}`];
                 }
             });
-
             if (reel.stopping) {
-                reel.speed = 0;
-                reel.isStopped = true;
+                reel.speed = 0; reel.isStopped = true;
                 reel.symbols.forEach((s, idx) => {
                     s.sprite.y = idx * symbolSize;
                     let tid = (idx < 4 && reel.targetSymbols) ? reel.targetSymbols[idx] : 0;
-                    
                     if (tid === 0) {
-                        // Empty slot in bonus: show a dimmed ghost symbol or just a placeholder
                         s.sprite.texture = textures[`sym${Math.floor(Math.random()*7)+1}`];
-                        s.sprite.alpha = 0.15; // Ghostly look
+                        s.sprite.alpha = 0.15;
                     } else {
                         s.sprite.texture = textures[`sym${tid}`];
                         const isSticky = window.slotEngine.stickyBells.find(sb => sb.c === i && sb.r === idx);
                         s.sprite.alpha = isSticky ? 0 : 1;
                     }
                 });
-
                 if (window.aleaAudio?.play) window.aleaAudio.play('click');
                 if (window.gsap) gsap.to(reel.container, { y: 10, duration: 0.05, yoyo: true, repeat: 1 });
             }
@@ -290,8 +252,8 @@ window.slotEngine = {
             window.slotEngine.running = false;
             if (window.slotEngine.lastWinningLines?.length > 0) window.slotEngine.drawWinLines(window.slotEngine.lastWinningLines);
             
-            // Check if we just finished a bonus round
-            if (window.slotEngine.isBonusActive === false && window.slotEngine.stickyBells.length > 0) {
+            // Check if bonus ended: was in bonus, but result says NO MORE BONUS
+            if (window.slotEngine.isBonusActive === false && window.slotEngine.stickyBells.length > 0 && !window.slotEngine.isRevealing) {
                 window.slotEngine.revealBonusValues();
             } else {
                 if (window.slotEngine.dotNetRef) {
@@ -302,38 +264,25 @@ window.slotEngine = {
     },
 
     revealBonusValues: async () => {
+        window.slotEngine.isRevealing = true;
         const { stickyLayer } = window.slotEngine;
-        
-        // Sequence reveal animation
         for (let i = 0; i < stickyLayer.children.length; i++) {
             const bell = stickyLayer.children[i];
             const label = bell.getChildByName("valueLabel");
-            
-            if (window.gsap) {
-                // Play sound for each reveal if available
+            if (label && window.gsap) {
                 if (window.aleaAudio?.play) window.aleaAudio.play('click');
-                
                 label.visible = true;
                 gsap.fromTo(label.scale, { x: 0, y: 0 }, { x: 1, y: 1, duration: 0.3, ease: "back.out" });
                 gsap.to(bell.scale, { x: 1.2, y: 1.2, duration: 0.15, yoyo: true, repeat: 1 });
-                
-                await new Promise(r => setTimeout(r, 200));
+                await new Promise(r => setTimeout(r, 250));
             }
         }
-        
-        // Final delay before notifying Blazor
+        // Notify Blazor that ALL reveals are done
         setTimeout(() => {
             if (window.slotEngine.dotNetRef) {
                 window.slotEngine.dotNetRef.invokeMethodAsync('OnAnimationFinished');
             }
-            // Fade out sticky layer
-            if (window.gsap) {
-                gsap.to(stickyLayer, { alpha: 0, duration: 0.5, onComplete: () => {
-                    window.slotEngine.stickyBells = [];
-                    stickyLayer.removeChildren();
-                    stickyLayer.alpha = 1;
-                }});
-            }
+            // PERSISTENCE: Don't clear children here! They stay until next spin.
         }, 1000);
     },
 
@@ -343,8 +292,7 @@ window.slotEngine = {
         const { winGraphics, paylines, reelWidth, symbolSize } = window.slotEngine;
         winGraphics.clear();
         winningLines.forEach(win => {
-            const lineData = paylines[win.LineIndex];
-            if (!lineData) return;
+            const lineData = paylines[win.LineIndex]; if (!lineData) return;
             winGraphics.lineStyle(4, 0xffeb3b, 0.8);
             const startX = (reelWidth / 2);
             const startY = (lineData[0] * symbolSize) + (symbolSize / 2);
@@ -362,22 +310,16 @@ window.slotEngine = {
                 reel.symbols.forEach((s, r) => {
                     if (r < 4) {
                         const sid = data.Grid[r][c];
-                        if (sid > 0) {
-                            s.sprite.texture = window.slotEngine.textures[`sym${sid}`];
-                            s.sprite.alpha = 1;
-                        } else {
-                            s.sprite.alpha = 0.15;
-                        }
+                        if (sid > 0) { s.sprite.texture = window.slotEngine.textures[`sym${sid}`]; s.sprite.alpha = 1; }
+                        else s.sprite.alpha = 0.15;
                     }
                 });
             });
         }
         if (data.BonusBells || data.StickyClovers) {
             window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyClovers || []);
-            // Make labels visible on restore
             window.slotEngine.stickyLayer.children.forEach(c => {
-                const l = c.getChildByName("valueLabel");
-                if (l) l.visible = true;
+                const l = c.getChildByName("valueLabel"); if (l) l.visible = true;
             });
         }
     }
