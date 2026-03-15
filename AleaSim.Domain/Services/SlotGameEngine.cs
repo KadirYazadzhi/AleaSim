@@ -134,7 +134,6 @@ public class SlotGameEngine : BaseGameEngine {
             
             decimal totalWin = 0;
             int attempts = 0;
-            bool success = false;
 
             do {
                 attempts++;

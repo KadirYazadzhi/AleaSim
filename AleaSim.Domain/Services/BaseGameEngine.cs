@@ -51,7 +51,7 @@ public abstract class BaseGameEngine : IGame {
                     GameSessionId = sessionId,
                     UserId = session.UserId,
                     Amount = amount,
-                    BetData = betData,
+                    BetData = betData ?? "{}",
                     CreatedAt = DateTime.UtcNow
                 };
                 repo.SaveBet(bet);

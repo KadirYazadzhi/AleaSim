@@ -218,9 +218,6 @@ public class FruitBlastGameEngine : BaseGameEngine {
             }
 
             // SMART VAULT PROTECTION: Bypassed for simulation users
-            var user = repo.GetUser(session.UserId);
-            bool isSimUser = user?.Username?.StartsWith("Sim_") ?? false;
-
             if (totalWin > 0 && !isSimUser) {
                 bool isRandom = directive.DecisionType == "Random";
                 if (!await VaultService.CanAffordWinAsync(session.UserId, _gameId, totalWin, repo, strictShadowCheck: !isRandom)) {
