@@ -150,7 +150,7 @@
         <MudItem xs="12">
             <div class="stats-card pa-6 rounded-xl">
                 <MudText Typo="Typo.h6" Class="fw-bold mb-4">Simulation History</MudText>
-                <MudTable Items="@_historyItems" Dense="true" Hover="true" Elevation="0" Class="glass-table">
+                <MudTable Items="@_historyItems" Dense="true" Hover="true" Elevation="0" Class="glass-table" RowsPerPage="10">
                     <HeaderContent>
                         <MudTh>Timestamp</MudTh>
                         <MudTh>Game</MudTh>
@@ -186,6 +186,9 @@
                     <NoRecordsContent>
                         <MudText Typo="Typo.body2" Class="pa-4 mud-text-secondary">No simulation records found.</MudText>
                     </NoRecordsContent>
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
                 </MudTable>
             </div>
         </MudItem>
