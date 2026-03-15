@@ -329,6 +329,7 @@
             if (profile != null) {
                 balance = profile.TotalBalance;
                 lifetimeExplosions = profile.FruitBlastLifetimeExplosions;
+                StateHasChanged(); // Immediate update for Vitamin Overload
             }
 
             // Fetch live jackpots directly to ensure they are visible on load
@@ -336,6 +337,7 @@
             if (jackpots != null) {
                 var juicePot = jackpots.FirstOrDefault(j => j.Name.Contains("Juice", StringComparison.OrdinalIgnoreCase));
                 if (juicePot != null) juicePotValue = juicePot.CurrentValue;
+                StateHasChanged();
             }
 
             var session = await GameService.ResumeSession("fruitblast");
@@ -354,7 +356,10 @@
                          juiceMeter = state.JuiceMeter;
                          totalMultiplier = state.TotalMultiplier;
                          if (state.JuicePotValue > 50) juicePotValue = state.JuicePotValue;
-                         lifetimeExplosions = state.LifetimeExplosions;
+                         
+                         // Only overwrite if it's a valid progressive value
+                         if (state.LifetimeExplosions > 0) lifetimeExplosions = state.LifetimeExplosions;
+                         
                          if (state.Grid != null && state.Grid.Length == 5) {
                              for (int i = 0; i < 5; i++) {
                                  if (state.Grid[i] != null) currentGrid[i] = state.Grid[i];

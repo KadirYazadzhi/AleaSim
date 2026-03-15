@@ -17,6 +17,10 @@
         {
             <MudProgressLinear Color="Color.Primary" Indeterminate="true" Size="Size.Small" Class="rounded-pill" />
         }
+        else if (!quests.Any())
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary opacity-50 px-1 py-2">No active missions available.</MudText>
+        }
         else
         {
             <div class="d-flex flex-column gap-2">
