@@ -23,7 +23,7 @@
             </div>
 
             <!-- PixiJS Slot Machine View -->
-            <MudPaper Class="pa-2" Style="background: #000; border: 10px solid #3d2b1f; border-radius: 20px; box-shadow: 0 0 30px rgba(0,0,0,0.8); position: relative;">
+            <MudPaper Class="pa-2" Style="background: #000; border: 10px solid #3d2b1f; border-radius: 20px; box-shadow: 0 0 30px rgba(0,0,0,0.8); position: relative; overflow: hidden;">
                 <div id="pixi-slot-container" style="width: 100%; height: 480px; background: #000; display: flex; justify-content: center; align-items: center;">
                     <!-- Canvas will be injected here by PixiJS -->
                 </div>
@@ -41,6 +41,14 @@
                 @if (wasNudged) {
                     <div class="overlay-text nudged" style="bottom: 20px;">MYSTERY NUDGE!</div>
                 }
+
+                <!-- Giant Win Display -->
+                <div class="giant-win-overlay @(showWinDisplay ? "visible" : "") @(animationSpeed >= 2 ? "compact-win" : "")">
+                    <div class="win-content">
+                        <div class="win-header">TOTAL WIN</div>
+                        <div class="win-sum">@lastWin.ToString("C2")</div>
+                    </div>
+                </div>
             </MudPaper>
 
             <!-- Status Bar -->
@@ -93,18 +101,34 @@
                     <MudText Typo="Typo.subtitle1" Style="color: #aaa;">Total Stake: <b>@((creditsBet * denomination).ToString("C2"))</b></MudText>
                 </div>
 
-                <MudButton Variant="Variant.Filled" 
-                           Color="@(gameState.IsBonusActive ? Color.Error : (gameState.IsRespinActive ? Color.Warning : Color.Primary))" 
-                           OnClick="OnSpin" 
-                           Disabled="@(isSpinning || (balance < (creditsBet * denomination) && !gameState.IsRespinActive && !gameState.IsBonusActive))" 
-                           FullWidth="true" 
-                           Class="mt-8 spin-button"
-                           Style="height: 100px; font-size: 2rem; font-weight: 900;">
-                    @if (gameState.IsBonusActive) { <text>BONUS</text> }
-                    else if (gameState.IsRespinActive) { <text>RESPIN</text> }
-                    else if (isSpinning) { <text>WAIT</text> }
-                    else { <text>SPIN</text> }
-                </MudButton>
+                <div class="d-flex flex-column gap-2 mt-8">
+                    <MudButton Variant="Variant.Filled" 
+                               Color="@(gameState.IsBonusActive ? Color.Error : (gameState.IsRespinActive ? Color.Warning : Color.Primary))" 
+                               OnClick="OnSpin" 
+                               Disabled="@(isSpinning || (balance < (creditsBet * denomination) && !gameState.IsRespinActive && !gameState.IsBonusActive))" 
+                               FullWidth="true" 
+                               Class="spin-button"
+                               Style="height: 100px; font-size: 2rem; font-weight: 900;">
+                        @if (gameState.IsBonusActive) { <text>BONUS</text> }
+                        else if (gameState.IsRespinActive) { <text>RESPIN</text> }
+                        else if (isSpinning && !isAutoSpinning) { <text>WAIT</text> }
+                        else { <text>SPIN</text> }
+                    </MudButton>
+
+                    <MudButton Variant="@(isAutoSpinning ? Variant.Filled : Variant.Outlined)" 
+                               Color="@(isAutoSpinning ? Color.Secondary : Color.Primary)" 
+                               OnClick="ToggleAutoSpin" 
+                               Disabled="@(isSpinning && !isAutoSpinning)"
+                               Class="py-3 fw-black rounded-lg">
+                        @(isAutoSpinning ? "STOP AUTO" : "AUTO SPIN")
+                    </MudButton>
+
+                    <div class="d-flex justify-space-between gap-2 mt-2">
+                        <button class='@($"speed-btn {(animationSpeed == 1 ? "active" : "")}")' @onclick="() => SetSpeed(1)">1X</button>
+                        <button class='@($"speed-btn {(animationSpeed == 2 ? "active" : "")}")' @onclick="() => SetSpeed(2)">2X</button>
+                        <button class='@($"speed-btn {(animationSpeed == 3 ? "active" : "")}")' @onclick="() => SetSpeed(3)">TURBO</button>
+                    </div>
+                </div>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -113,16 +137,36 @@
 <style>
     .spin-button { box-shadow: 0 8px 0 #1565c0, 0 15px 20px rgba(0,0,0,.35); transition: all .1s; }
     .spin-button:active { transform: translateY(4px); box-shadow: 0 4px 0 #1565c0, 0 8px 10px rgba(0,0,0,.3); }
+    
+    .speed-btn { flex: 1; height: 40px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 8px; color: #888; font-weight: 900; font-size: 0.8rem; transition: all 0.2s; cursor: pointer; }
+    .speed-btn:hover { background: rgba(255,255,255,0.1); }
+    .speed-btn.active { background: var(--mud-palette-primary); color: white; border-color: var(--mud-palette-primary); box-shadow: 0 0 15px rgba(var(--mud-palette-primary-rgb), 0.4); }
+
     .feature-badge { padding: 8px 20px; border-radius: 4px; font-weight: 900; border: 2px solid white; box-shadow: 0 0 15px rgba(255,255,255,0.5); }
     .bonus { background: #d32f2f; color: white; animation: pulse 1s infinite; }
     .overlay-text { position: absolute; left: 50%; transform: translateX(-50%); font-size: 3rem; color: #ffeb3b; font-weight: 900; text-shadow: 0 0 20px black; z-index: 100; pointer-events: none; }
     .nudged { color: #e91e63; animation: bounce 0.5s; }
+    
+    /* Giant Win Overlay Integration */
+    .giant-win-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; z-index: 2000; pointer-events: none; opacity: 0; transition: opacity 0.4s; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); }
+    .giant-win-overlay.visible { opacity: 1; pointer-events: auto; }
+    .giant-win-overlay.compact-win { background: transparent; backdrop-filter: none; top: auto; bottom: 40px; height: 120px; }
+    .compact-win .win-content { transform: scale(0.5) !important; background: rgba(0,0,0,0.7); padding: 15px 40px; border-radius: 20px; border: 2px solid #ffeb3b; }
+    .win-content { text-align: center; transform: scale(0.5); transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .visible .win-content { transform: scale(1.2); }
+    .win-header { font-size: 2rem; font-weight: 950; color: white; text-shadow: 0 0 15px #d4af37; }
+    .win-sum { font-size: 5rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 30px black; line-height: 1; }
+
     @@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     @@keyframes bounce { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-20px); } }
+    .fw-black { font-weight: 900; }
 </style>
 
 @code {
     private bool isSpinning = false;
+    private bool isAutoSpinning = false;
+    private int animationSpeed = 1; // 1, 2, 3 (Turbo)
+    private bool showWinDisplay = false;
     private decimal balance = 0;
     private decimal lastWin = 0;
     private decimal denomination = 0.01m;
@@ -130,9 +174,6 @@
     private Guid? sessionId;
     private SlotState gameState = new();
     private bool wasNudged = false;
-    
-    // Performance Flags
-    private bool turboMode = false;
     private bool lowGraphics = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -140,24 +181,25 @@
         if (firstRender)
         {
             try {
-                // Small delay to ensure PIXI container is fully ready in DOM
                 await Task.Delay(500); 
                 await LoadData();
-                await JSRuntime.InvokeVoidAsync("slotEngine.init", "pixi-slot-container", turboMode, lowGraphics);
-                
-                // Keep this for subsequent runtime changes
-                await SetEnginePerformance();
+                await JSRuntime.InvokeVoidAsync("slotEngine.init", "pixi-slot-container", animationSpeed, lowGraphics);
             } catch (Exception ex) {
                 Console.WriteLine($"JS Init Error: {ex.Message}");
             }
         }
     }
 
-    private async Task SetEnginePerformance() {
-        try {
-            await JSRuntime.InvokeVoidAsync("slotEngine.setPerformanceMode", turboMode, lowGraphics);
-        } catch {
-            // Fallback if script hasn't updated in browser cache yet
+    private void SetSpeed(int speed) {
+        animationSpeed = speed;
+        _ = JSRuntime.InvokeVoidAsync("slotEngine.setPerformanceMode", animationSpeed, lowGraphics);
+    }
+
+    private async Task ToggleAutoSpin() {
+        if (isAutoSpinning) isAutoSpinning = false;
+        else {
+            isAutoSpinning = true;
+            if (!isSpinning) await OnSpin();
         }
     }
 
@@ -172,10 +214,7 @@
             var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
             if (profile != null) {
                 balance = profile.TotalBalance;
-                
-                // Parse preferences for performance
                 var prefs = JsonSerializer.Deserialize<Dictionary<string, object>>(profile.PreferencesJson) ?? new();
-                if (prefs.TryGetValue("TurboMode", out var turbo)) turboMode = turbo.ToString()?.ToLower() == "true";
                 if (prefs.TryGetValue("LowGraphics", out var low)) lowGraphics = low.ToString()?.ToLower() == "true";
             }
 
@@ -185,99 +224,99 @@
                 if (session.GameState != null) {
                     string json = session.GameState.ToString() ?? "{}";
                     gameState = JsonSerializer.Deserialize<SlotState>(json) ?? new();
-                    
                     if (gameState.Denomination > 0) denomination = gameState.Denomination;
-                    
                     if (gameState.IsGambleActive) lastWin = gameState.PendingGambleWin;
-
-                    // RESTORE VISUALS
                     await JSRuntime.InvokeVoidAsync("slotEngine.restoreState", json);
                 }
-                Snackbar.Add("Session Resumed!", Severity.Info);
             } else {
                 var newSession = await GameService.StartSession("slot");
                 sessionId = newSession.SessionId;
             }
-        } catch (Exception ex) {
-            Snackbar.Add("Error loading game: " + ex.Message, Severity.Error);
-        }
+        } catch { }
     }
 
     private async Task OnSpin()
     {
         if (isSpinning || sessionId == null) return;
-        isSpinning = true;
-        wasNudged = false;
         
-        // Sync performance mode just in case it was changed in settings dialog
-        await SetEnginePerformance();
+        do {
+            isSpinning = true; wasNudged = false; showWinDisplay = false;
+            
+            var betAmount = gameState.IsBonusActive ? 0 : (creditsBet * denomination);
 
-        // Logic: Bonus features are FREE, but Respins are PAID (as per Design Specs)
-        var betAmount = gameState.IsBonusActive ? 0 : (creditsBet * denomination);
-
-        // Optimistic local update area
-        if (betAmount > 0) {
-            if (balance < betAmount) {
-                Snackbar.Add("Insufficient Balance for Respin!", Severity.Warning);
-                isSpinning = false;
-                return;
+            if (betAmount > 0) {
+                if (balance < betAmount) {
+                    Snackbar.Add("Insufficient Balance", Severity.Warning);
+                    isAutoSpinning = false; isSpinning = false;
+                    break;
+                }
+                balance -= betAmount;
+                LayoutService.DeductOptimisticBalance(betAmount);
+                StateHasChanged();
             }
-            balance -= betAmount;
-            LayoutService.DeductOptimisticBalance(betAmount); // Update Navbar immediately
-            StateHasChanged();
-        }
 
-        // Suppress Navbar updates to prevent spoilers
-        LayoutService.SetBalanceUpdateSuppression(true);
-        
-        try {
-            await Audio.PlaySpin();
+            LayoutService.SetBalanceUpdateSuppression(true);
             
-            var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount, new { Denomination = denomination });
-            
-            await JSRuntime.InvokeVoidAsync("slotEngine.spin", result.RandomResultJson);
-            
-            // Wait for animation to finish (much shorter in turbo mode)
-            var waitTime = turboMode ? 1000 : 3500;
-            await Task.Delay(waitTime); 
-
-            // Fetch official balance from server to ensure perfect sync
-            var profile = await AuthService.GetMe();
-            if (profile != null) balance = profile.TotalBalance;
-
-            lastWin = result.TotalWin;
-            
-            var gridData = JsonSerializer.Deserialize<SlotStateResponse>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (gridData != null) {
-                gameState.IsBonusActive = gridData.IsBonusActive;
-                gameState.IsRespinActive = gridData.IsRespinActive;
-                gameState.BonusLives = gridData.BonusLives;
-                gameState.IsGambleActive = lastWin > 0 && !gameState.IsBonusActive && !gameState.IsRespinActive; 
-                gameState.PendingGambleWin = lastWin;
-                wasNudged = gridData.WasNudged;
+            try {
+                await Audio.PlaySpin();
+                var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount, new { Denomination = denomination });
+                await JSRuntime.InvokeVoidAsync("slotEngine.spin", result.RandomResultJson);
                 
-                if (wasNudged) await Audio.PlayBonus(); 
-            }
+                // Wait for animation based on speed
+                var waitTime = animationSpeed switch { 3 => 600, 2 => 1500, _ => 3500 };
+                await Task.Delay(waitTime); 
 
-            StateHasChanged();
+                var profile = await AuthService.GetMe();
+                if (profile != null) balance = profile.TotalBalance;
 
-            if (gameState.IsGambleActive) {
-                await OpenGamble();
-            }
+                lastWin = result.TotalWin;
+                
+                var gridData = JsonSerializer.Deserialize<SlotStateResponse>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (gridData != null) {
+                    bool bonusJustStarted = !gameState.IsBonusActive && gridData.IsBonusActive;
+                    
+                    gameState.IsBonusActive = gridData.IsBonusActive;
+                    gameState.IsRespinActive = gridData.IsRespinActive;
+                    gameState.BonusLives = gridData.BonusLives;
+                    gameState.IsGambleActive = lastWin > 0 && !gameState.IsBonusActive && !gameState.IsRespinActive && !isAutoSpinning; 
+                    gameState.PendingGambleWin = lastWin;
+                    wasNudged = gridData.WasNudged;
+                    
+                    if (wasNudged) await Audio.PlayBonus(); 
+                    if (bonusJustStarted) isAutoSpinning = false; // Stop auto on bonus trigger
+                }
 
-        } catch (Exception ex) { 
-            if (ex.Message.Contains("402") || ex.Message.Contains("Insufficient")) {
-                Snackbar.Add("Insufficient Funds! Please Deposit.", Severity.Warning);
-            } else {
+                if (lastWin > 0) {
+                    showWinDisplay = true;
+                    await Audio.PlayWin();
+                    StateHasChanged();
+                    
+                    var winDelay = animationSpeed switch { 3 => 600, 2 => 1200, _ => 3000 };
+                    await Task.Delay(winDelay);
+                    showWinDisplay = false;
+                }
+
+                StateHasChanged();
+
+                if (gameState.IsGambleActive && !isAutoSpinning) {
+                    await OpenGamble();
+                } else if (gameState.IsGambleActive && isAutoSpinning) {
+                    await CollectWin(); // Auto-collect in auto-spin mode
+                }
+
+            } catch (Exception ex) { 
                 Snackbar.Add(ex.Message, Severity.Error); 
+                isAutoSpinning = false;
             }
-        }
-        finally { 
-            isSpinning = false; 
-            // Release Navbar updates
-            LayoutService.SetBalanceUpdateSuppression(false);
-            StateHasChanged(); 
-        }
+            finally { 
+                isSpinning = false; 
+                LayoutService.SetBalanceUpdateSuppression(false);
+                StateHasChanged(); 
+            }
+
+            if (isAutoSpinning) await Task.Delay(animationSpeed == 1 ? 1000 : 200);
+
+        } while (isAutoSpinning);
     }
 
     private async Task OpenGamble() {
@@ -285,15 +324,10 @@
         var parameters = new DialogParameters { ["Amount"] = gameState.PendingGambleWin, ["SessionId"] = sessionId };
         var dialog = await DialogService.ShowAsync<GambleDialog>("Double or Nothing", parameters);
         var result = await dialog.Result;
-
-        if (result != null && !result.Canceled) {
-            var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+        if (result != null) {
+            var profile = await AuthService.GetMe();
             if (profile != null) balance = profile.TotalBalance;
             gameState.IsGambleActive = false; 
-        } else if (gameState != null) {
-            gameState.IsGambleActive = false;
-            var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
-            if (profile != null) balance = profile.TotalBalance;
         }
         StateHasChanged();
     }
@@ -302,7 +336,7 @@
         if (sessionId == null || gameState == null) return;
         await GameService.PerformAction("slot", sessionId.Value, "collect", "{}");
         gameState.IsGambleActive = false;
-        var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+        var profile = await AuthService.GetMe();
         if (profile != null) balance = profile.TotalBalance;
         StateHasChanged();
     }
