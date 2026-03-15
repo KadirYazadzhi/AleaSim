@@ -3,39 +3,91 @@
 @inject IGameService GameService
 @inject AudioService Audio
 @inject ISnackbar Snackbar
+@inject LayoutService LayoutService
 
-<MudDialog>
+<MudDialog Class="gamble-dialog-v4">
     <DialogContent>
-        <div class="d-flex flex-column align-center justify-center pa-4">
-            <MudText Typo="Typo.h4" Class="mb-4">DOUBLE OR NOTHING</MudText>
-            <MudText Typo="Typo.h5" Color="Color.Success" Class="mb-6">RISK: @Amount.ToString("C2") -> WIN: @((Amount * 2).ToString("C2"))</MudText>
+        <div class="gamble-container">
+            <div class="gamble-header">
+                <MudText Typo="Typo.h4" Class="fw-black glow-text">DOUBLE YOUR WIN</MudText>
+                <div class="win-preview mt-2">
+                    <div class="preview-item">
+                        <span class="label">CURRENT</span>
+                        <span class="val">@Amount.ToString("C2")</span>
+                    </div>
+                    <div class="preview-arrow">➜</div>
+                    <div class="preview-item">
+                        <span class="label">POTENTIAL</span>
+                        <span class="val success">@((Amount * 2).ToString("C2"))</span>
+                    </div>
+                </div>
+            </div>
 
-            <div class="d-flex gap-4">
-                <MudPaper Class="card-choice red" @onclick='() => Play("red")' Elevation="4">
-                    <MudIcon Icon="@Icons.Material.Filled.Favorite" Size="Size.Large" />
-                    <MudText>RED</MudText>
-                </MudPaper>
-                <MudPaper Class="card-choice black" @onclick='() => Play("black")' Elevation="4">
-                    <MudIcon Icon="@Icons.Material.Filled.Spoke" Size="Size.Large" />
-                    <MudText>BLACK</MudText>
-                </MudPaper>
+            <div class="cards-wrapper mt-8">
+                <div class="gamble-card red @(isProcessing ? "disabled" : "")" @onclick='() => Play("red")'>
+                    <div class="card-inner">
+                        <MudIcon Icon="@Icons.Material.Filled.Favorite" Size="Size.Large" />
+                        <span class="card-label">RED</span>
+                    </div>
+                    <div class="card-glow"></div>
+                </div>
+
+                <div class="gamble-card black @(isProcessing ? "disabled" : "")" @onclick='() => Play("black")'>
+                    <div class="card-inner">
+                        <MudIcon Icon="@Icons.Material.Filled.Square" Size="Size.Large" />
+                        <span class="card-label">BLACK</span>
+                    </div>
+                    <div class="card-glow"></div>
+                </div>
             </div>
             
             @if (isProcessing) {
-                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                <div class="suspense-loader mt-6">
+                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="rounded-pill" />
+                    <MudText Typo="Typo.caption" Class="mt-2 d-block opacity-70">SHUFFLING DECK...</MudText>
+                </div>
             }
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Collect" Color="Color.Secondary">COLLECT (@Amount.ToString("C2"))</MudButton>
+        <MudButton OnClick="Collect" Variant="Variant.Text" Color="Color.Inherit" Class="collect-btn py-3 px-8 fw-bold" Disabled="@isProcessing">
+            COLLECT @Amount.ToString("C2")
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
 <style>
-    .card-choice { width: 120px; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s; }
-    .card-choice:hover { transform: scale(1.1); }
-    .red { background: #b71c1c; color: white; }
-    .black { background: #212121; color: white; }
+    .gamble-dialog-v4 { background: #0f172a !important; border: 2px solid #334155; border-radius: 24px !important; }
+    .gamble-container { padding: 20px; text-align: center; }
+    .fw-black { font-weight: 900; }
+    .glow-text { color: white; text-shadow: 0 0 15px rgba(255,255,255,0.3); }
+    
+    .win-preview { display: flex; align-items: center; justify-content: center; gap: 20px; background: rgba(0,0,0,0.3); padding: 15px 30px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
+    .preview-item { display: flex; flex-direction: column; }
+    .preview-item .label { font-size: 0.65rem; font-weight: 900; opacity: 0.5; letter-spacing: 1px; }
+    .preview-item .val { font-size: 1.4rem; font-weight: 950; font-family: 'JetBrains Mono', monospace; }
+    .preview-item .val.success { color: #22c55e; }
+    .preview-arrow { font-size: 1.5rem; opacity: 0.3; }
+
+    .cards-wrapper { display: flex; justify-content: center; gap: 30px; }
+    
+    .gamble-card { position: relative; width: 140px; height: 200px; cursor: pointer; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); border-radius: 16px; overflow: hidden; }
+    .gamble-card:hover { transform: translateY(-10px) scale(1.05); }
+    .gamble-card.disabled { opacity: 0.5; pointer-events: none; }
+    
+    .card-inner { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.1); border-radius: 16px; }
+    .card-label { margin-top: 10px; font-weight: 950; letter-spacing: 2px; }
+    
+    .gamble-card.red .card-inner { background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); color: white; }
+    .gamble-card.black .card-inner { background: linear-gradient(135deg, #334155 0%, #0f172a 100%); color: white; }
+    
+    .card-glow { position: absolute; inset: 0; opacity: 0; transition: opacity 0.3s; z-index: 1; }
+    .gamble-card.red:hover .card-glow { opacity: 1; background: radial-gradient(circle, rgba(239,68,68,0.4) 0%, transparent 70%); }
+    .gamble-card.black:hover .card-glow { opacity: 1; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); }
+
+    .suspense-loader { width: 100%; max-width: 300px; margin: 0 auto; }
+    .collect-btn { border-radius: 12px; opacity: 0.7; transition: opacity 0.2s; }
+    .collect-btn:hover { opacity: 1; color: white !important; }
 </style>
 
 @code {
@@ -51,10 +103,9 @@
         await Audio.PlayClick();
 
         // Simulate suspense
-        await Task.Delay(1000);
+        await Task.Delay(1500);
 
         try {
-            // Note: Backend logic is 50/50 RNG, choice is visual only for now
             var response = await GameService.PerformAction("slot", SessionId, "gamble", choice);
             
             if (response.Success) {
@@ -62,13 +113,15 @@
                 decimal pendingWin = (decimal?)state?["PendingGambleWin"] ?? 0;
 
                 if (pendingWin > Amount) {
+                    await Audio.PlayWin();
+                    Snackbar.Add("WINNER!", Severity.Success);
                     MudDialog.Close(DialogResult.Ok(true));
                 } else {
-                    Snackbar.Add("Better luck next time.", Severity.Info);
+                    await Audio.PlayExplosion();
+                    Snackbar.Add("BUST!", Severity.Error);
                     MudDialog.Close(DialogResult.Cancel());
                 }
             } else {
-                Snackbar.Add("Gamble failed.", Severity.Error);
                 MudDialog.Close(DialogResult.Cancel());
             }
         } catch {

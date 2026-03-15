@@ -1,4 +1,3 @@
-
 window.slotEngine = {
     app: null,
     reels: [],
@@ -7,18 +6,20 @@ window.slotEngine = {
     stickyLayer: null,
     reelLayer: null,
     mask: null,
+    
+    // FIXED COORDINATE SYSTEM (16:9 internal resolution)
+    internalWidth: 800,
+    internalHeight: 480,
     symbolSize: 100,
-    reelWidth: 160,
+    reelWidth: 150, // 150 * 5 = 750px total grid width
     rows: 4,
     cols: 5,
+    
     running: false,
     isBonusActive: false,
     stickyBells: [],
-    onFinished: null, // Callback for Blazor
-    performance: {
-        speed: 1,
-        lowGraphics: false
-    },
+    dotNetRef: null,
+    performance: { speed: 1, lowGraphics: false },
 
     paylines: [
         [0,0,0,0,0], [1,1,1,1,1], [2,2,2,2,2], [3,3,3,3,3],
@@ -38,7 +39,8 @@ window.slotEngine = {
         el.innerHTML = '';
 
         window.slotEngine.app = new PIXI.Application({
-            resizeTo: el,
+            width: window.slotEngine.internalWidth,
+            height: window.slotEngine.internalHeight,
             backgroundColor: 0x000000,
             backgroundAlpha: 0,
             antialias: !lowGraphics,
@@ -47,17 +49,34 @@ window.slotEngine = {
         });
         el.appendChild(window.slotEngine.app.view);
 
+        // Center the grid in the 800x480 canvas
+        const gridW = window.slotEngine.reelWidth * window.slotEngine.cols;
+        const gridH = window.slotEngine.symbolSize * window.slotEngine.rows;
+        const gridX = (window.slotEngine.internalWidth - gridW) / 2;
+        const gridY = (window.slotEngine.internalHeight - gridH) / 2;
+
         window.slotEngine.reelLayer = new PIXI.Container();
+        window.slotEngine.reelLayer.x = gridX;
+        window.slotEngine.reelLayer.y = gridY;
+
         window.slotEngine.stickyLayer = new PIXI.Container();
+        window.slotEngine.stickyLayer.x = gridX;
+        window.slotEngine.stickyLayer.y = gridY;
+
         window.slotEngine.winGraphics = new PIXI.Graphics();
+        window.slotEngine.winGraphics.x = gridX;
+        window.slotEngine.winGraphics.y = gridY;
         
         window.slotEngine.app.stage.addChild(window.slotEngine.reelLayer);
         window.slotEngine.app.stage.addChild(window.slotEngine.stickyLayer);
         window.slotEngine.app.stage.addChild(window.slotEngine.winGraphics);
 
         window.slotEngine.mask = new PIXI.Graphics();
+        window.slotEngine.mask.beginFill(0xffffff);
+        window.slotEngine.mask.drawRect(0, 0, gridW, gridH);
+        window.slotEngine.mask.endFill();
         window.slotEngine.reelLayer.mask = window.slotEngine.mask;
-        window.slotEngine.app.stage.addChild(window.slotEngine.mask);
+        window.slotEngine.reelLayer.addChild(window.slotEngine.mask); // Add mask to layer for coordinate sync
 
         const symbolFiles = {
             1: 'cherries.png', 2: 'lemon.png', 3: 'orange.png', 4: 'plum.png',
@@ -72,50 +91,32 @@ window.slotEngine = {
         try {
             window.slotEngine.textures = await PIXI.Assets.load(Object.keys(symbolFiles).map(id => `sym${id}`));
             window.slotEngine.buildGrid();
+            window.slotEngine.resize(); // Initial fit
             window.addEventListener('resize', () => window.slotEngine.resize());
-            window.slotEngine.resize();
         } catch (e) { console.error("Asset Load Fail", e); }
     },
 
     resize: () => {
         if (!window.slotEngine.app) return;
-        const { app, reelLayer, stickyLayer, mask, cols, rows } = window.slotEngine;
-        
-        // Proper grid centering logic
-        const availableWidth = app.screen.width;
-        const availableHeight = app.screen.height;
-        
-        window.slotEngine.reelWidth = availableWidth / cols;
-        window.slotEngine.symbolSize = Math.min(window.slotEngine.reelWidth, availableHeight / rows);
-        
-        const totalW = window.slotEngine.reelWidth * cols;
-        const totalH = window.slotEngine.symbolSize * rows;
-        
-        const centerX = (availableWidth - totalW) / 2;
-        const centerY = (availableHeight - totalH) / 2;
+        const canvas = window.slotEngine.app.view;
+        const parent = canvas.parentElement;
+        if (!parent) return;
 
-        reelLayer.x = centerX;
-        reelLayer.y = centerY;
-        stickyLayer.x = centerX;
-        stickyLayer.y = centerY;
+        // Dynamic CSS scaling to keep 16:9 ratio and fit container
+        const pW = parent.clientWidth;
+        const pH = parent.clientHeight;
+        const ratio = window.slotEngine.internalWidth / window.slotEngine.internalHeight;
 
-        mask.clear();
-        mask.beginFill(0xffffff);
-        mask.drawRect(centerX, centerY, totalW, totalH);
-        mask.endFill();
+        let newW = pW;
+        let newH = pW / ratio;
 
-        window.slotEngine.reels.forEach((reel, i) => {
-            reel.container.x = i * window.slotEngine.reelWidth;
-            reel.symbols.forEach((s, rIdx) => {
-                s.sprite.width = s.sprite.height = window.slotEngine.symbolSize;
-                s.sprite.x = (window.slotEngine.reelWidth - window.slotEngine.symbolSize) / 2;
-                if (!window.slotEngine.running) {
-                    s.sprite.y = rIdx * window.slotEngine.symbolSize;
-                }
-            });
-        });
+        if (newH > pH) {
+            newH = pH;
+            newW = pH * ratio;
+        }
 
-        window.slotEngine.updateStickyBellsVisuals();
+        canvas.style.width = `${newW}px`;
+        canvas.style.height = `${newH}px`;
     },
 
     setPerformanceMode: (speed, lowGraphics) => {
@@ -124,18 +125,20 @@ window.slotEngine = {
     },
 
     buildGrid: () => {
-        const { reelLayer, cols, rows } = window.slotEngine;
+        const { reelLayer, cols, rows, reelWidth, symbolSize } = window.slotEngine;
         window.slotEngine.reels = [];
-        reelLayer.removeChildren();
-
+        
         for (let c = 0; c < cols; c++) {
             const rc = new PIXI.Container();
+            rc.x = c * reelWidth;
             const reel = { container: rc, symbols: [], speed: 0, isStopped: true };
 
             for (let r = 0; r < rows + 1; r++) { 
                 const id = Math.floor(Math.random() * 12) + 1;
                 const sprite = new PIXI.Sprite(window.slotEngine.textures[`sym${id}`]);
-                sprite.width = sprite.height = window.slotEngine.symbolSize;
+                sprite.width = sprite.height = symbolSize;
+                sprite.x = (reelWidth - symbolSize) / 2;
+                sprite.y = r * symbolSize;
                 rc.addChild(sprite);
                 reel.symbols.push({ sprite, id });
             }
@@ -169,7 +172,6 @@ window.slotEngine = {
             finalSymbols.push(colSyms);
         }
 
-        // Tighter speed control
         const baseSpeed = 25 * window.slotEngine.performance.speed;
 
         window.slotEngine.reels.forEach((reel, i) => {
@@ -177,8 +179,6 @@ window.slotEngine = {
             reel.targetSymbols = finalSymbols[i];
             reel.stopping = false;
             reel.isStopped = false;
-            
-            // Much faster stops for high speeds
             const stopDelay = window.slotEngine.performance.speed === 3 ? (100 + i * 50) : 
                              window.slotEngine.performance.speed === 2 ? (400 + i * 150) : (1000 + i * 300);
             setTimeout(() => reel.stopping = true, stopDelay);
@@ -224,8 +224,7 @@ window.slotEngine = {
 
     addLabel: (parent, text) => {
         const style = new PIXI.TextStyle({
-            fontFamily: 'Arial', fontSize: Math.max(12, window.slotEngine.symbolSize * 0.18), 
-            fontWeight: 'bold', fill: '#ffffff', stroke: '#000000', strokeThickness: 4, align: 'center'
+            fontFamily: 'Arial', fontSize: 18, fontWeight: 'bold', fill: '#ffffff', stroke: '#000000', strokeThickness: 4, align: 'center'
         });
         const richText = new PIXI.Text(text, style);
         richText.anchor.set(0.5);
@@ -258,7 +257,6 @@ window.slotEngine = {
             });
 
             if (reel.stopping) {
-                // Hard snap logic for better speed control
                 reel.speed = 0;
                 reel.isStopped = true;
                 reel.symbols.forEach((s, idx) => {
@@ -281,7 +279,6 @@ window.slotEngine = {
             if (window.slotEngine.isBonusActive === false && window.slotEngine.stickyBells.length > 0) {
                 window.slotEngine.revealBonusValues();
             } else {
-                // Notify Blazor immediately that we're done
                 if (window.slotEngine.dotNetRef) {
                     window.slotEngine.dotNetRef.invokeMethodAsync('OnAnimationFinished');
                 }
@@ -298,12 +295,9 @@ window.slotEngine = {
                 await new Promise(r => setTimeout(r, 150));
             }
         }
-        
-        // Notify Blazor after reveal
         if (window.slotEngine.dotNetRef) {
             window.slotEngine.dotNetRef.invokeMethodAsync('OnAnimationFinished');
         }
-
         setTimeout(() => {
             if (!window.slotEngine.running) {
                 window.slotEngine.stickyBells = [];

@@ -80,7 +80,7 @@
             <MudPaper Class='@($"control-panel-v4 pa-6 h-100 {(LayoutService.IsDarkMode ? "dark" : "light")}")' Elevation="0">
                 <div class="credits-display mb-2">
                     <MudText Typo="Typo.h5" Align="Align.Center" Class="credits-val">
-                        CREDITS: @((balance / (denomination > 0 ? denomination : 0.10m)).ToString("N0"))
+                        CREDITS: @((balance / (denomination > 0 ? denomination : 0.01m)).ToString("N0"))
                     </MudText>
                 </div>
                 <MudText Typo="Typo.caption" Class="d-block text-center opacity-50 mb-4" Style="letter-spacing: 1px;">20 FIXED PAYLINES</MudText>
@@ -137,22 +137,22 @@
 <style>
     /* --- VIEWPORT --- */
     .game-viewport-v4 { position: relative; border-radius: 24px; overflow: hidden; border: 8px solid; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
-    .game-viewport-v4.dark { background: #000; border-color: #3d2b1f; }
-    .game-viewport-v4.light { background: #f8fafc; border-color: #e2e8f0; }
+    .game-viewport-v4.dark { background: #000; border-color: #334155; }
+    .game-viewport-v4.light { background: #fff; border-color: #cbd5e1; }
 
     /* --- STATUS BAR --- */
-    .status-bar-v4 { margin-top: 16px; padding: 16px 24px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #d4af37; }
-    .status-bar-v4.dark { background: linear-gradient(#1a1a1a, #000); color: white; }
-    .status-bar-v4.light { background: #fff; color: #1e293b; border: 1px solid #e2e8f0; border-bottom: 4px solid #d4af37; }
+    .status-bar-v4 { margin-top: 16px; padding: 16px 24px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .status-bar-v4.dark { background: #1e293b; color: white; }
+    .status-bar-v4.light { background: #f8fafc; color: #1e293b; border: 1px solid #e2e8f0; }
     .status-bar-v4 .label { opacity: 0.6; font-weight: 700; }
     .status-bar-v4 .value { font-weight: 950; font-family: 'JetBrains Mono', monospace; }
-    .status-bar-v4 .value.win { color: #ffD700; text-shadow: 0 0 10px rgba(255,215,0,0.3); }
+    .status-bar-v4 .value.win { color: #eab308; }
     .status-bar-v4 .value.bal { color: #22c55e; }
 
     /* --- CONTROL PANEL --- */
     .control-panel-v4 { border-radius: 24px !important; border: 2px solid transparent; }
-    .control-panel-v4.dark { background: #111; color: white; border-color: #333; }
-    .control-panel-v4.light { background: #fff; color: #1e293b; border-color: #e2e8f0; }
+    .control-panel-v4.dark { background: #0f172a; color: white; border-color: #334155; }
+    .control-panel-v4.light { background: #f8fafc; color: #1e293b; border-color: #e2e8f0; }
     .credits-val { font-weight: 950; font-family: 'JetBrains Mono', monospace; color: #fbbf24; }
     .light .credits-val { color: #b45309; }
 
@@ -161,7 +161,7 @@
     .spin-button-v4:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
     
     .speed-btn-v4 { flex: 1; height: 40px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #888; font-weight: 900; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
-    .light .speed-btn-v4 { background: #f1f5f9; border-color: #cbd5e1; color: #64748b; }
+    .light .speed-btn-v4 { background: #fff; border-color: #cbd5e1; color: #64748b; }
     .speed-btn-v4.active { background: var(--mud-palette-primary); color: white; border-color: var(--mud-palette-primary); box-shadow: 0 0 15px rgba(var(--mud-palette-primary-rgb), 0.4); }
 
     .feature-badge { padding: 8px 20px; border-radius: 8px; font-weight: 950; border: 2px solid white; }
@@ -192,9 +192,9 @@
     private bool showWinDisplay = false;
     private decimal balance = 0;
     private decimal lastWin = 0;
-    private decimal denomination = 0.10m; // Default changed to 0.10
-    private int creditsBet = 10;
-    private Guid? sessionId;
+    private decimal denomination = 0.01m; // Default $0.01
+    private int creditsBet = 10; // Default 10 credits -> $0.10 stake
+    private Guid sessionId = Guid.NewGuid(); // Seed immediately
     private SlotState gameState = new();
     private bool wasNudged = false;
     private bool lowGraphics = false;
@@ -216,7 +216,6 @@
 
     [JSInvokable]
     public void OnAnimationFinished() {
-        // This is called by JS when the reels stop
         isSpinning = false;
         StateHasChanged();
     }
@@ -269,7 +268,7 @@
 
     private async Task OnSpin()
     {
-        if (isSpinning || sessionId == null) return;
+        if (isSpinning) return;
         
         do {
             isSpinning = true; wasNudged = false; showWinDisplay = false;
@@ -291,11 +290,11 @@
             
             try {
                 await Audio.PlaySpin();
-                var result = await GameService.PlaceBet("slot", sessionId.Value, betAmount, new { Denomination = denomination });
+                var result = await GameService.PlaceBet("slot", sessionId, betAmount, new { Denomination = denomination });
                 await JSRuntime.InvokeVoidAsync("slotEngine.spin", result.RandomResultJson);
                 
                 // wait for JS callback or timeout
-                int timeout = animationSpeed switch { 3 => 1000, 2 => 2500, _ => 5000 };
+                int timeout = animationSpeed switch { 3 => 1500, 2 => 3000, _ => 6000 };
                 var start = DateTime.Now;
                 while (isSpinning && (DateTime.Now - start).TotalMilliseconds < timeout) {
                     await Task.Delay(50);
@@ -313,7 +312,7 @@
                     gameState.IsBonusActive = gridData.IsBonusActive;
                     gameState.IsRespinActive = gridData.IsRespinActive;
                     gameState.BonusLives = gridData.BonusLives;
-                    gameState.IsGambleActive = lastWin > 0 && !gameState.IsBonusActive && !gameState.IsRespinActive && !isAutoSpinning; 
+                    gameState.IsGambleActive = lastWin > 0 && !gameState.IsBonusActive && !gameState.IsRespinActive; 
                     gameState.PendingGambleWin = lastWin;
                     wasNudged = gridData.WasNudged;
                     
@@ -333,9 +332,8 @@
 
                 StateHasChanged();
 
-                if (gameState.IsGambleActive && !isAutoSpinning) {
-                    await OpenGamble();
-                } else if (gameState.IsGambleActive && isAutoSpinning) {
+                // NEVER auto-open gamble. If auto-spinning, auto-collect.
+                if (gameState.IsGambleActive && isAutoSpinning) {
                     await CollectWin(); 
                 }
 
@@ -368,8 +366,8 @@
     }
 
     private async Task CollectWin() {
-        if (sessionId == null || gameState == null) return;
-        await GameService.PerformAction("slot", sessionId.Value, "collect", "{}");
+        if (gameState == null) return;
+        await GameService.PerformAction("slot", sessionId, "collect", "{}");
         gameState.IsGambleActive = false;
         var profile = await AuthService.GetMe();
         if (profile != null) balance = profile.TotalBalance;
@@ -387,7 +385,7 @@
         public bool IsRespinActive { get; set; }
         public bool IsGambleActive { get; set; }
         public decimal PendingGambleWin { get; set; }
-        public decimal Denomination { get; set; } = 0.10m;
+        public decimal Denomination { get; set; } = 0.01m;
     }
     
     public class SlotStateResponse {
