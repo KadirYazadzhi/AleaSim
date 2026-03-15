@@ -163,7 +163,7 @@ public class SlotGameEngine : BaseGameEngine {
                 }
 
                 if (state.IsRespinActive || state.IsBonusActive || CheckBrainCompliance(directive, totalWin, currentBet)) {
-                    success = true; break;
+                    break;
                 }
             } while (attempts < 50);
 
