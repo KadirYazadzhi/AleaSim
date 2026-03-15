@@ -8,6 +8,25 @@ public class AdminDashboardStats {
     public int ActivePlayerCount { get; set; }
     public bool IsEmergencyStopActive { get; set; }
     public List<string> TopWinners { get; set; } = new();
+    public List<GameStatDto> GameStats { get; set; } = new();
+    public List<PlayerRankDto> TopPlayers { get; set; } = new();
+    public decimal NetProfit => TotalBets - TotalWins;
+}
+
+public class GameStatDto {
+    public string GameName { get; set; } = string.Empty;
+    public string GameType { get; set; } = string.Empty;
+    public decimal TotalWagered { get; set; }
+    public decimal TotalWon { get; set; }
+    public decimal MaxWin { get; set; }
+    public double Rtp => TotalWagered > 0 ? (double)(TotalWon / TotalWagered) * 100 : 0;
+}
+
+public class PlayerRankDto {
+    public string Username { get; set; } = string.Empty;
+    public decimal TotalWagered { get; set; }
+    public decimal TotalWon { get; set; }
+    public decimal Profit { get; set; }
 }
 
 public class RtpTrendPoint {

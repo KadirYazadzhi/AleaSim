@@ -92,6 +92,7 @@ public interface IGameRepository {
     string? GetLastAuditHash();
 
     // Admin Reporting
+    AdminDashboardStats GetStatsForPeriod(DateTime start, DateTime end);
     (decimal TotalBets, decimal TotalWins) GetDailyFinancials(DateTime date);
     decimal GetMonthlyWagering(DateTime month);
     decimal GetGlobalTotalRewardsPaid();

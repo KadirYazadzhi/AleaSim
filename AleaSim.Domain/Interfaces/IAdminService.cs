@@ -6,6 +6,7 @@ namespace AleaSim.Domain.Interfaces;
 public interface IAdminService {
     // Dashboard
     Task<AdminDashboardStats> GetLiveStats();
+    Task<AdminDashboardStats> GetStatsForPeriod(string period);
     
     // Player Inspection & Intervention
     Task<PlayerDossier?> GetPlayerDossier(Guid userId);

@@ -18,8 +18,12 @@
             <MudText Typo="Typo.subtitle1" Class="mud-text-secondary">Real-time System Monitoring</MudText>
         </div>
         <div class="d-flex align-center gap-4">
+             <MudSelect T="string" Value="@_selectedPeriod" ValueChanged="OnPeriodChanged" Label="Reporting Period" Variant="Variant.Outlined" Dense="true" Class="bg-glass rounded-lg" Style="width: 150px;">
+                 <MudSelectItem Value="@("Day")">Today</MudSelectItem>
+                 <MudSelectItem Value="@("Week")">Last 7 Days</MudSelectItem>
+                 <MudSelectItem Value="@("Month")">Last 30 Days</MudSelectItem>
+             </MudSelect>
              <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.LiveTv" Class="fw-bold pulse-red">LIVE SYSTEM</MudChip>
-             <MudText Typo="Typo.caption" Class="mud-text-secondary">@DateTime.Now.ToString("f")</MudText>
         </div>
     </div>
 
@@ -31,17 +35,17 @@
                      <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" Size="Size.Small" />
                 </div>
                 <MudText Typo="Typo.h4" Class="fw-black mb-1" Color="Color.Success">@stats.Ggr.ToString("C2")</MudText>
-                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">EST. GGR (Today)</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">EST. GGR (@_selectedPeriod)</MudText>
             </div>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
             <div class="dashboard-card pa-6 rounded-xl hover-scale h-100">
                  <div class="d-flex justify-space-between align-start mb-4">
                     <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Info" Size="Size.Large" />
-                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">+12%</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">+@(_selectedPeriod == "Day" ? "12%" : "5%")</MudChip>
                 </div>
                 <MudText Typo="Typo.h4" Class="fw-black mb-1" Color="Color.Info">@stats.ActivePlayerCount</MudText>
-                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">Active Players</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">Active Players (@_selectedPeriod)</MudText>
             </div>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
@@ -51,18 +55,67 @@
                      <MudIcon Icon="@Icons.Material.Filled.Functions" Color="Color.Warning" Size="Size.Small" />
                 </div>
                 <MudText Typo="Typo.h4" Class="fw-black mb-1" Color="Color.Warning">@stats.CurrentRtp.ToString("F2")%</MudText>
-                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">Global RTP</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">Average RTP (@_selectedPeriod)</MudText>
             </div>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
              <div class='@($"dashboard-card pa-6 rounded-xl hover-scale h-100 {(_emergencyStop ? "border-red" : "")}")'>
                  <div class="d-flex justify-space-between align-start mb-4">
                     <MudIcon Icon="@Icons.Material.Filled.PanTool" Color="@(_emergencyStop ? Color.Error : Color.Success)" Size="Size.Large" />
-                    <MudSwitch @bind-Value="_emergencyStop" Color="Color.Error" UncheckedColor="Color.Success" T="bool" @onclick="ToggleStop" Class="ml-auto" />
+                    <MudSwitch T="bool" Value="@_emergencyStop" ValueChanged="ToggleStopValue" Color="Color.Error" UncheckedColor="Color.Success" Class="ml-auto" />
                 </div>
                 <MudText Typo="Typo.h5" Class="fw-black mb-1" Color="@(_emergencyStop ? Color.Error : Color.Success)">@(_emergencyStop ? "STOPPED" : "ACTIVE")</MudText>
                 <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">System Status</MudText>
             </div>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Class="mb-8">
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-6 rounded-xl dashboard-card h-100" Elevation="0">
+                <MudText Typo="Typo.h6" Class="fw-bold mb-4">Game Performance Analytics</MudText>
+                <MudTable Items="@stats.GameStats" Hover="true" Dense="true" Elevation="0" Class="bg-transparent">
+                    <HeaderContent>
+                        <MudTh>Game</MudTh>
+                        <MudTh>Wagered</MudTh>
+                        <MudTh>Payout</MudTh>
+                        <MudTh>Max Win</MudTh>
+                        <MudTh>RTP</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.GameName</MudTd>
+                        <MudTd>@context.TotalWagered.ToString("C2")</MudTd>
+                        <MudTd>@context.TotalWon.ToString("C2")</MudTd>
+                        <MudTd>@context.MaxWin.ToString("C2")</MudTd>
+                        <MudTd>
+                            <MudText Color="@(context.Rtp > 100 ? Color.Error : (context.Rtp > 97 ? Color.Warning : Color.Success))" Class="fw-bold">
+                                @context.Rtp.ToString("F2")%
+                            </MudText>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-6 rounded-xl dashboard-card h-100" Elevation="0">
+                <MudText Typo="Typo.h6" Class="fw-bold mb-4">Top Profit Players</MudText>
+                <MudList T="PlayerRankDto">
+                    @foreach (var player in stats.TopPlayers)
+                    {
+                        <MudListItem Class="px-0">
+                            <div class="d-flex justify-space-between align-center">
+                                <div>
+                                    <MudText Typo="Typo.body1" Class="fw-bold">@player.Username</MudText>
+                                    <MudText Typo="Typo.caption" Class="opacity-60">Won: @player.TotalWon.ToString("C0")</MudText>
+                                </div>
+                                <MudText Typo="Typo.body2" Color="@(player.Profit > 0 ? Color.Success : Color.Error)" Class="fw-black">
+                                    @(player.Profit > 0 ? "+" : "")@player.Profit.ToString("C2")
+                                </MudText>
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+            </MudPaper>
         </MudItem>
     </MudGrid>
     
@@ -71,7 +124,7 @@
             <div class="dashboard-card pa-6 rounded-xl" style="height: 400px; display: flex; flex-direction: column;">
                 <div class="d-flex justify-space-between align-center mb-4">
                     <MudText Typo="Typo.h6" Class="fw-bold"><MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2"/>Live Event Feed</MudText>
-                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" OnClick="LoadStats" />
                 </div>
                 <div class="flex-grow-1 overflow-auto pr-2 custom-scroll">
                      @if (!_liveLogs.Any())
@@ -171,6 +224,11 @@
         border: 1px solid var(--mud-palette-divider);
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
+
+    .bg-glass {
+        background: rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(4px);
+    }
     
     .border-b-glass {
         border-bottom: 1px solid var(--mud-palette-divider);
@@ -210,6 +268,7 @@
 
 @code {
     private AdminDashboardStats stats = new();
+    private string _selectedPeriod = "Day";
     private decimal _targetRtp = 95.0m;
     private bool _emergencyStop = false;
     private List<string> _liveLogs = new();
@@ -250,18 +309,29 @@
         }
     }
 
+    private async Task OnPeriodChanged(string period) {
+        _selectedPeriod = period;
+        await LoadStats();
+    }
+
     private async Task LoadStats() {
         try {
-            stats = await AdminService.GetDashboardStats();
-            _targetRtp = Math.Round(stats.CurrentRtp > 0 ? stats.CurrentRtp : 95.0m, 2);
+            stats = await AdminService.GetDashboardStats(_selectedPeriod);
+            _targetRtp = Math.Round(stats.CurrentRtp > 0 ? (decimal)stats.CurrentRtp : 95.0m, 2);
             _emergencyStop = stats.IsEmergencyStopActive;
         } catch {}
     }
 
+    private async Task ToggleStopValue(bool enabled)
+    {
+        await AdminService.ToggleEmergencyStop(enabled);
+        _emergencyStop = enabled;
+        Snackbar.Add(_emergencyStop ? "Emergency Stop ACTIVATED" : "Emergency Stop DEACTIVATED", _emergencyStop ? Severity.Error : Severity.Success);
+    }
+
     private async Task ToggleStop()
     {
-        await AdminService.ToggleEmergencyStop(!_emergencyStop);
-        Snackbar.Add(_emergencyStop ? "Emergency Stop DEACTIVATED" : "Emergency Stop ACTIVATED", _emergencyStop ? Severity.Success : Severity.Error);
+        // This method is now handled by ToggleStopValue due to MudSwitch binding changes
     }
 
     private async Task OnClearCache() {

@@ -5,7 +5,7 @@ namespace AleaSim.Client.Services;
 
 public interface IAdminService
 {
-    Task<AdminDashboardStats> GetDashboardStats();
+    Task<AdminDashboardStats> GetDashboardStats(string period = "Day");
     Task<List<RtpTrendPoint>> GetRtpTrend();
     Task<ShadowCompareDto> GetShadowStats();
     Task<List<ActiveSessionDto>> GetActiveSessions();
@@ -40,9 +40,9 @@ public class AdminService : IAdminService
         await _http.PostAsync($"api/Support/messages/{messageId}/read", null);
     }
 
-    public async Task<AdminDashboardStats> GetDashboardStats()
+    public async Task<AdminDashboardStats> GetDashboardStats(string period = "Day")
     {
-        return await _http.GetFromJsonAsync<AdminDashboardStats>("api/Admin/dashboard") ?? new();
+        return await _http.GetFromJsonAsync<AdminDashboardStats>($"api/Admin/dashboard?period={period}") ?? new();
     }
 
     public async Task<List<RtpTrendPoint>> GetRtpTrend()

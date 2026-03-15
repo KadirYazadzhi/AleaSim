@@ -39,19 +39,19 @@ public class AdminService : IAdminService {
     }
 
     public Task<AdminDashboardStats> GetLiveStats() {
-        var financials = _repository.GetDailyFinancials(DateTime.UtcNow.Date);
-        var activeCount = _repository.GetActivePlayerCount(10); // Active in last 10 mins
-        
-        var stats = new AdminDashboardStats {
-            TotalBets = financials.TotalBets,
-            TotalWins = financials.TotalWins,
-            Ggr = financials.TotalBets - financials.TotalWins,
-            CurrentRtp = financials.TotalBets > 0 ? (financials.TotalWins / financials.TotalBets) * 100 : 0,
-            ActivePlayerCount = activeCount,
-            IsEmergencyStopActive = bool.Parse(_repository.GetGlobalSetting("EmergencyStop") == "true" ? "true" : "false"),
-            TopWinners = _repository.GetTopWinners(DateTime.UtcNow.Date, 5).Select(u => $"{u.Username} (${u.TotalWin})").ToList()
+        return GetStatsForPeriod("Day");
+    }
+
+    public Task<AdminDashboardStats> GetStatsForPeriod(string period) {
+        var end = DateTime.UtcNow;
+        var start = period.ToLower() switch {
+            "day" => end.Date,
+            "week" => end.AddDays(-7),
+            "month" => end.AddDays(-30),
+            _ => end.Date
         };
 
+        var stats = _repository.GetStatsForPeriod(start, end);
         return Task.FromResult(stats);
     }
 

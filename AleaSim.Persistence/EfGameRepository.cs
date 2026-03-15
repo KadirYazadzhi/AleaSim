@@ -542,6 +542,59 @@ public class EfGameRepository : IGameRepository {
         return _context.AuditLogs.OrderByDescending(x => x.Timestamp).Select(x => x.Hash).FirstOrDefault();
     }
 
+    public AdminDashboardStats GetStatsForPeriod(DateTime start, DateTime end) {
+        var query = _context.GameRounds
+            .Where(r => r.ExecutedAt >= start && r.ExecutedAt < end)
+            .Join(_context.GameSessions, r => r.GameSessionId, s => s.Id, (r, s) => new { r, s })
+            .Join(_context.Users, x => x.s.UserId, u => u.Id, (x, u) => new { x.r, x.s, u })
+            .Where(x => !x.u.Username.StartsWith("Sim_") && x.u.Role != Role.Admin);
+
+        var totals = query
+            .GroupBy(_ => 1)
+            .Select(g => new {
+                TotalBets = g.Sum(x => x.r.TotalBetAmount),
+                TotalWins = g.Sum(x => x.r.TotalWinAmount)
+            })
+            .FirstOrDefault();
+
+        var activeCount = query.Select(x => x.u.Id).Distinct().Count();
+
+        var gameStats = query
+            .Join(_context.Games, x => x.s.GameId, g => g.Id, (x, g) => new { x.r, g })
+            .GroupBy(x => new { x.g.Name, x.g.Type })
+            .Select(g => new GameStatDto {
+                GameName = g.Key.Name,
+                GameType = g.Key.Type,
+                TotalWagered = g.Sum(x => x.r.TotalBetAmount),
+                TotalWon = g.Sum(x => x.r.TotalWinAmount),
+                MaxWin = g.Max(x => x.r.TotalWinAmount)
+            })
+            .ToList();
+
+        var topPlayers = query
+            .GroupBy(x => x.u.Username)
+            .Select(g => new PlayerRankDto {
+                Username = g.Key,
+                TotalWagered = g.Sum(x => x.r.TotalBetAmount),
+                TotalWon = g.Sum(x => x.r.TotalWinAmount),
+                Profit = g.Sum(x => x.r.TotalWinAmount - x.r.TotalBetAmount)
+            })
+            .OrderByDescending(x => x.TotalWon)
+            .Take(10)
+            .ToList();
+
+        return new AdminDashboardStats {
+            TotalBets = totals?.TotalBets ?? 0,
+            TotalWins = totals?.TotalWins ?? 0,
+            Ggr = (totals?.TotalBets ?? 0) - (totals?.TotalWins ?? 0),
+            CurrentRtp = totals?.TotalBets > 0 ? (totals.TotalWins / totals.TotalBets) * 100 : 0,
+            ActivePlayerCount = activeCount,
+            GameStats = gameStats,
+            TopPlayers = topPlayers,
+            IsEmergencyStopActive = GetGlobalSetting("EmergencyStop") == "true"
+        };
+    }
+
     public (decimal TotalBets, decimal TotalWins) GetDailyFinancials(DateTime date) {
         var start = date.Date;
         var end = start.AddDays(1);

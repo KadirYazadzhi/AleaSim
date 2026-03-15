@@ -26,8 +26,8 @@ public class AdminController : ControllerBase {
     // --- Dashboard ---
 
     [HttpGet("dashboard")]
-    public async Task<ActionResult<AdminDashboardStats>> GetDashboard() {
-        return Ok(await _adminService.GetLiveStats());
+    public async Task<ActionResult<AdminDashboardStats>> GetDashboard([FromQuery] string period = "Day") {
+        return Ok(await _adminService.GetStatsForPeriod(period));
     }
 
     [HttpGet("analytics/rtp-trend")]
