@@ -19,6 +19,7 @@ public interface IAdminService
     Task<List<PlayerSearchResultDto>> SearchPlayers(string query);
     Task TriggerAction(string actionType);
     Task<List<AuditLogDto>> GetAuditLogs();
+    Task<List<AuditLogDto>> GetSimulationHistory();
     Task<List<SupportMessageDto>> GetSupportMessages(int count = 50);
     Task MarkSupportMessageRead(Guid messageId);
 }
@@ -94,6 +95,10 @@ public class AdminService : IAdminService
 
     public async Task<List<AuditLogDto>> GetAuditLogs() {
         return await _http.GetFromJsonAsync<List<AuditLogDto>>("api/Admin/audit-logs") ?? new();
+    }
+
+    public async Task<List<AuditLogDto>> GetSimulationHistory() {
+        return await _http.GetFromJsonAsync<List<AuditLogDto>>("api/Admin/simulation/history") ?? new();
     }
 
     public async Task<SimulationReport?> RunSimulation(SimulationRequest request)

@@ -108,6 +108,25 @@ public class AdminController : ControllerBase {
         }).ToList());
     }
 
+    [HttpGet("simulation/history")]
+    public ActionResult<List<AuditLogDto>> GetSimulationHistory() {
+        // Specifically look for SIMULATION_REPORT events
+        var logs = _repo.GetAllAuditLogs()
+            .Where(l => l.EventType == "SIMULATION_REPORT")
+            .OrderByDescending(l => l.Timestamp)
+            .Take(50)
+            .Select(l => new AuditLogDto {
+                Id = l.Id,
+                Timestamp = l.Timestamp,
+                EventType = l.EventType,
+                Description = l.Description,
+                UserId = l.UserId,
+                MetadataJson = l.MetadataJson
+            })
+            .ToList();
+        return Ok(logs);
+    }
+
     [HttpGet("audit/verify")]
     public IActionResult VerifyAuditIntegrity() {
         bool isValid = _auditService.VerifyIntegrity();

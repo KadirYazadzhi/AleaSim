@@ -258,12 +258,8 @@
     private async Task RefreshHistory()
     {
         try {
-            var logs = await AdminService.GetAuditLogs();
-            var simLogs = logs.Where(l => l.EventType == "SIMULATION_REPORT")
-                           .OrderByDescending(l => l.Timestamp)
-                           .ToList();
-
-            _historyItems = simLogs.Select(l => new SimHistoryItem {
+            var logs = await AdminService.GetSimulationHistory();
+            _historyItems = logs.Select(l => new SimHistoryItem {
                 Log = l,
                 Report = TryDeserialize(l.MetadataJson)
             }).ToList();
