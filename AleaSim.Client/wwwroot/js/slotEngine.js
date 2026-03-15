@@ -145,6 +145,7 @@ window.slotEngine = {
         window.slotEngine.clearWinLines();
         window.slotEngine.isBonusActive = data.IsBonusActive;
         window.slotEngine.lastWinningLines = data.WinningLines || [];
+        const grid = data.Grid;
         
         // Only update sticky bells if we are in a feature
         if (currentlyInBonus) {
