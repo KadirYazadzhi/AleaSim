@@ -1,3 +1,4 @@
+
 window.slotEngine = {
     app: null,
     reels: [],
@@ -7,11 +8,11 @@ window.slotEngine = {
     reelLayer: null,
     mask: null,
     
-    // FIXED COORDINATE SYSTEM (16:9 internal resolution)
-    internalWidth: 800,
-    internalHeight: 480,
-    symbolSize: 100,
-    reelWidth: 150, // 150 * 5 = 750px total grid width
+    // EXPANDED COORDINATE SYSTEM
+    internalWidth: 1000,
+    internalHeight: 540,
+    symbolSize: 115, // Larger symbols
+    reelWidth: 180,  // 180 * 5 = 900px total grid width (90% of internalWidth)
     rows: 4,
     cols: 5,
     
@@ -49,7 +50,6 @@ window.slotEngine = {
         });
         el.appendChild(window.slotEngine.app.view);
 
-        // Center the grid in the 800x480 canvas
         const gridW = window.slotEngine.reelWidth * window.slotEngine.cols;
         const gridH = window.slotEngine.symbolSize * window.slotEngine.rows;
         const gridX = (window.slotEngine.internalWidth - gridW) / 2;
@@ -76,7 +76,7 @@ window.slotEngine = {
         window.slotEngine.mask.drawRect(0, 0, gridW, gridH);
         window.slotEngine.mask.endFill();
         window.slotEngine.reelLayer.mask = window.slotEngine.mask;
-        window.slotEngine.reelLayer.addChild(window.slotEngine.mask); // Add mask to layer for coordinate sync
+        window.slotEngine.reelLayer.addChild(window.slotEngine.mask);
 
         const symbolFiles = {
             1: 'cherries.png', 2: 'lemon.png', 3: 'orange.png', 4: 'plum.png',
@@ -91,7 +91,7 @@ window.slotEngine = {
         try {
             window.slotEngine.textures = await PIXI.Assets.load(Object.keys(symbolFiles).map(id => `sym${id}`));
             window.slotEngine.buildGrid();
-            window.slotEngine.resize(); // Initial fit
+            window.slotEngine.resize();
             window.addEventListener('resize', () => window.slotEngine.resize());
         } catch (e) { console.error("Asset Load Fail", e); }
     },
@@ -102,7 +102,6 @@ window.slotEngine = {
         const parent = canvas.parentElement;
         if (!parent) return;
 
-        // Dynamic CSS scaling to keep 16:9 ratio and fit container
         const pW = parent.clientWidth;
         const pH = parent.clientHeight;
         const ratio = window.slotEngine.internalWidth / window.slotEngine.internalHeight;

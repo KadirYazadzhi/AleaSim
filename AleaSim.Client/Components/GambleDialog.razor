@@ -5,7 +5,7 @@
 @inject ISnackbar Snackbar
 @inject LayoutService LayoutService
 
-<MudDialog Class="gamble-dialog-v4">
+<MudDialog Class='@($"gamble-dialog-v4 {(LayoutService.IsDarkMode ? "dark" : "light")}")'>
     <DialogContent>
         <div class="gamble-container">
             <div class="gamble-header">
@@ -57,15 +57,23 @@
 </MudDialog>
 
 <style>
-    .gamble-dialog-v4 { background: #0f172a !important; border: 2px solid #334155; border-radius: 24px !important; }
+    .gamble-dialog-v4.dark { background: #0f172a !important; border: 2px solid #334155; border-radius: 24px !important; }
+    .gamble-dialog-v4.light { background: #f8fafc !important; border: 2px solid #e2e8f0; border-radius: 24px !important; }
+    
     .gamble-container { padding: 20px; text-align: center; }
     .fw-black { font-weight: 900; }
-    .glow-text { color: white; text-shadow: 0 0 15px rgba(255,255,255,0.3); }
     
-    .win-preview { display: flex; align-items: center; justify-content: center; gap: 20px; background: rgba(0,0,0,0.3); padding: 15px 30px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
+    .dark .glow-text { color: white; text-shadow: 0 0 15px rgba(255,255,255,0.3); }
+    .light .glow-text { color: #1e293b; text-shadow: none; }
+    
+    .win-preview { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 15px 30px; border-radius: 16px; border: 1px solid; }
+    .dark .win-preview { background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.05); }
+    .light .win-preview { background: #f1f5f9; border-color: #cbd5e1; }
+
     .preview-item { display: flex; flex-direction: column; }
     .preview-item .label { font-size: 0.65rem; font-weight: 900; opacity: 0.5; letter-spacing: 1px; }
     .preview-item .val { font-size: 1.4rem; font-weight: 950; font-family: 'JetBrains Mono', monospace; }
+    .light .preview-item .val { color: #1e293b; }
     .preview-item .val.success { color: #22c55e; }
     .preview-arrow { font-size: 1.5rem; opacity: 0.3; }
 
@@ -87,7 +95,9 @@
 
     .suspense-loader { width: 100%; max-width: 300px; margin: 0 auto; }
     .collect-btn { border-radius: 12px; opacity: 0.7; transition: opacity 0.2s; }
-    .collect-btn:hover { opacity: 1; color: white !important; }
+    .collect-btn:hover { opacity: 1; }
+    .dark .collect-btn:hover { color: white !important; }
+    .light .collect-btn:hover { color: #1e293b !important; }
 </style>
 
 @code {
@@ -102,7 +112,6 @@
         isProcessing = true;
         await Audio.PlayClick();
 
-        // Simulate suspense
         await Task.Delay(1500);
 
         try {
