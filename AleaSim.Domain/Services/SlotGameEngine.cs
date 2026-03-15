@@ -178,9 +178,20 @@ public class SlotGameEngine : BaseGameEngine {
             await _cache.SetAsync(cacheKey, state, TimeSpan.FromMinutes(10));
             session.GameState = JsonSerializer.Serialize(state);
             repo.SaveRound(new GameRound {
-                Id = Guid.NewGuid(), GameSessionId = sessionId, TotalBetAmount = currentBet, TotalWinAmount = totalWin,
+                Id = Guid.NewGuid(), GameSessionId = sessionId, TotalBetAmount = currentBet, TotalWinAmount = Math.Round(totalWin, 2),
                 RoundNumber = roundNum, DecisionType = directive.DecisionType, ExecutedAt = DateTime.UtcNow,
-                RandomResult = JsonSerializer.Serialize(new { Grid = state.Grid, state.IsRespinActive, state.IsBonusActive, state.WasNudged, state.BonusLives, BonusTotal = state.BonusBells.Sum(x=>x.Value), state.Denomination, BonusBells = state.BonusBells, WinningLines = GetWinningLines(state.Grid, state.LockedBet, config) }),
+                RandomResult = JsonSerializer.Serialize(new { 
+                    Grid = state.Grid, 
+                    state.IsRespinActive, 
+                    state.IsBonusActive, 
+                    state.WasNudged, 
+                    state.BonusLives, 
+                    state.RespinLives,
+                    BonusTotal = state.BonusBells.Sum(x=>x.Value), 
+                    state.Denomination, 
+                    BonusBells = state.BonusBells, 
+                    WinningLines = GetWinningLines(state.Grid, state.LockedBet, config) 
+                }),
                 ServerSeed = session.ServerSeed, ClientSeed = session.ClientSeed, Nonce = roundNum
             });
             repo.UpdateSession(session);

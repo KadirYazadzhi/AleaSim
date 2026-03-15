@@ -30,13 +30,13 @@
                 
                 <!-- Info Button -->
                 <div style="position: absolute; top: 15px; right: 15px; z-index: 101;">
-                    <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Inherit" Class="glass-panel rounded-circle" OnClick="OpenPaytable" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Inherit" OnClick="OpenPaytable" />
                 </div>
 
                 <div class="win-light @(lastWin > 0 ? "active" : "")"></div>
                 
                 @if (gameState.IsRespinActive) {
-                    <div class="overlay-text" style="top: 20px;">RESPIN ACTIVE!</div>
+                    <div class="overlay-text" style="top: 20px;">RESPIN: @gameState.RespinLives LIVES</div>
                 }
                 @if (wasNudged) {
                     <div class="overlay-text nudged" style="bottom: 20px;">MYSTERY NUDGE!</div>
@@ -166,7 +166,7 @@
 
     .feature-badge { padding: 8px 20px; border-radius: 8px; font-weight: 950; border: 2px solid white; }
     .bonus { background: #ef4444; color: white; animation: pulse 1s infinite; }
-    .overlay-text { position: absolute; left: 50%; transform: translateX(-50%); font-size: 3rem; color: #ffeb3b; font-weight: 950; text-shadow: 0 0 20px black; z-index: 100; pointer-events: none; }
+    .overlay-text { position: absolute; left: 50%; transform: translateX(-50%); font-size: 3rem; color: #ffeb3b; font-weight: 950; text-shadow: 0 0 20px black; z-index: 100; pointer-events: none; text-transform: uppercase; }
     .nudged { color: #ec4899; animation: bounce 0.5s; }
     
     /* --- WIN OVERLAY --- */
@@ -192,9 +192,9 @@
     private bool showWinDisplay = false;
     private decimal balance = 0;
     private decimal lastWin = 0;
-    private decimal denomination = 0.01m; // Default $0.01
-    private int creditsBet = 10; // Default 10 credits -> $0.10 stake
-    private Guid sessionId = Guid.NewGuid(); // Seed immediately
+    private decimal denomination = 0.01m; 
+    private int creditsBet = 10; 
+    private Guid sessionId = Guid.NewGuid(); 
     private SlotState gameState = new();
     private bool wasNudged = false;
     private bool lowGraphics = false;
@@ -218,12 +218,11 @@
     public void OnAnimationFinished() {
         isSpinning = false;
         
-        // Show giant win display if there was a win in this completed sequence
-        if (lastWin > 0) {
+        // Show giant win display IF there was a win > 0
+        if (lastWin > 0.01m) {
             showWinDisplay = true;
             StateHasChanged();
             
-            // Auto-hide after some time
             var winDelay = animationSpeed switch { 3 => 800, 2 => 1500, _ => 3500 };
             _ = Task.Delay(winDelay).ContinueWith(_ => {
                 showWinDisplay = false;
@@ -307,7 +306,6 @@
                 var result = await GameService.PlaceBet("slot", sessionId, betAmount, new { Denomination = denomination });
                 await JSRuntime.InvokeVoidAsync("slotEngine.spin", result.RandomResultJson);
                 
-                // wait for JS callback (OnAnimationFinished) or timeout
                 int timeout = animationSpeed switch { 3 => 3000, 2 => 6000, _ => 12000 };
                 var start = DateTime.Now;
                 while (isSpinning && (DateTime.Now - start).TotalMilliseconds < timeout) {
@@ -326,6 +324,7 @@
                     gameState.IsBonusActive = gridData.IsBonusActive;
                     gameState.IsRespinActive = gridData.IsRespinActive;
                     gameState.BonusLives = gridData.BonusLives;
+                    gameState.RespinLives = gridData.RespinLives;
                     gameState.IsGambleActive = lastWin > 0 && !gameState.IsBonusActive && !gameState.IsRespinActive; 
                     gameState.PendingGambleWin = lastWin;
                     wasNudged = gridData.WasNudged;
@@ -334,7 +333,7 @@
                     if (bonusJustStarted) isAutoSpinning = false; 
                 }
 
-                if (lastWin > 0) {
+                if (lastWin > 0.01m) {
                     await Audio.PlayWin();
                 }
 
@@ -349,7 +348,6 @@
                 isAutoSpinning = false;
             }
             finally { 
-                // isSpinning is now managed by OnAnimationFinished callback
                 LayoutService.SetBalanceUpdateSuppression(false);
                 StateHasChanged(); 
             }
@@ -390,6 +388,7 @@
         public bool IsBonusActive { get; set; }
         public int BonusLives { get; set; }
         public bool IsRespinActive { get; set; }
+        public int RespinLives { get; set; }
         public bool IsGambleActive { get; set; }
         public decimal PendingGambleWin { get; set; }
         public decimal Denomination { get; set; } = 0.01m;
@@ -399,6 +398,7 @@
         public bool IsBonusActive { get; set; }
         public bool IsRespinActive { get; set; }
         public int BonusLives { get; set; }
+        public int RespinLives { get; set; }
         public bool WasNudged { get; set; }
     }
 }

@@ -1,4 +1,3 @@
-
 window.slotEngine = {
     app: null,
     reels: [],
@@ -17,7 +16,7 @@ window.slotEngine = {
     
     running: false,
     isBonusActive: false,
-    isRevealing: false, // NEW: Prevent early cleanup
+    isRevealing: false, 
     stickyBells: [],
     dotNetRef: null,
     performance: { speed: 1, lowGraphics: false },
@@ -145,8 +144,9 @@ window.slotEngine = {
         window.slotEngine.clearWinLines();
         window.slotEngine.isBonusActive = data.IsBonusActive;
         window.slotEngine.lastWinningLines = data.WinningLines || [];
-        const grid = data.Grid;
         
+        const grid = data.Grid;
+
         // Only update sticky bells if we are in a feature
         if (currentlyInBonus) {
             window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyClovers || []);
@@ -179,10 +179,10 @@ window.slotEngine = {
             }
         });
         window.slotEngine.stickyBells = newSticky;
-        window.slotEngine.updateStickyBellsVisuals();
+        window.slotEngine.updateStickyBellsVisuals(false); // DO NOT SHOW LABELS DURING SPINS
     },
 
-    updateStickyBellsVisuals: () => {
+    updateStickyBellsVisuals: (showLabels = false) => {
         const { stickyLayer, stickyBells, symbolSize, reelWidth, textures } = window.slotEngine;
         stickyLayer.removeChildren();
         stickyBells.forEach(sb => {
@@ -197,7 +197,9 @@ window.slotEngine = {
                 else if (sb.type === 2) sprite.tint = 0x00ffff;
                 else if (sb.type === 3) sprite.tint = 0xff00ff;
                 else if (sb.type === 4) { sprite.tint = 0xffd700; if (window.gsap) gsap.to(sprite, { alpha: 0.7, duration: 0.5, repeat: -1, yoyo: true }); }
-                window.slotEngine.addLabel(sprite, txt, false);
+                
+                // Labels are only visible if requested (usually in reveal phase)
+                window.slotEngine.addLabel(sprite, txt, showLabels);
             }
             stickyLayer.addChild(sprite);
         });
@@ -253,8 +255,8 @@ window.slotEngine = {
             window.slotEngine.running = false;
             if (window.slotEngine.lastWinningLines?.length > 0) window.slotEngine.drawWinLines(window.slotEngine.lastWinningLines);
             
-            // Check if bonus ended: was in bonus, but result says NO MORE BONUS
-            if (window.slotEngine.isBonusActive === false && window.slotEngine.stickyBells.length > 0 && !window.slotEngine.isRevealing) {
+            // Start reveal sequence if bonus ended
+            if (window.slotEngine.isBonusActive === false && window.slotEngine.stickyBells.some(b => b.id === 9) && !window.slotEngine.isRevealing) {
                 window.slotEngine.revealBonusValues();
             } else {
                 if (window.slotEngine.dotNetRef) {
@@ -267,6 +269,8 @@ window.slotEngine = {
     revealBonusValues: async () => {
         window.slotEngine.isRevealing = true;
         const { stickyLayer } = window.slotEngine;
+        
+        // Only reveal items that are actual bells (id 9)
         for (let i = 0; i < stickyLayer.children.length; i++) {
             const bell = stickyLayer.children[i];
             const label = bell.getChildByName("valueLabel");
@@ -278,12 +282,11 @@ window.slotEngine = {
                 await new Promise(r => setTimeout(r, 250));
             }
         }
-        // Notify Blazor that ALL reveals are done
+        
         setTimeout(() => {
             if (window.slotEngine.dotNetRef) {
                 window.slotEngine.dotNetRef.invokeMethodAsync('OnAnimationFinished');
             }
-            // PERSISTENCE: Don't clear children here! They stay until next spin.
         }, 1000);
     },
 
@@ -319,6 +322,7 @@ window.slotEngine = {
         }
         if (data.BonusBells || data.StickyClovers) {
             window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyClovers || []);
+            // For restored state, we want labels visible
             window.slotEngine.stickyLayer.children.forEach(c => {
                 const l = c.getChildByName("valueLabel"); if (l) l.visible = true;
             });
