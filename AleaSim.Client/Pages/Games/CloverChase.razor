@@ -37,7 +37,11 @@
                 
                 @if (gameState.IsRespinActive || (isSpinning && wasInRespin)) {
                     <div class="overlay-text" style="top: 20px;">
-                        RESPINS LEFT: @(isSpinning ? Math.Max(0, gameState.RespinLives - 1) : gameState.RespinLives)
+                        @{
+                            var displayRespins = isSpinning ? Math.Max(0, (nextRespinLivesBuffer >= gameState.RespinLives && nextRespinLivesBuffer > 0 ? nextRespinLivesBuffer : (nextRespinLivesBuffer > 0 ? nextRespinLivesBuffer : gameState.RespinLives - 1))) : gameState.RespinLives;
+                            if (displayRespins > 3) displayRespins = 3;
+                        }
+                        RESPINS LEFT: @displayRespins
                     </div>
                 }
                 @if (wasNudged) {
@@ -61,8 +65,14 @@
                 </div>
                 
                 <div class="d-flex gap-4">
-                    @if (gameState.IsBonusActive) {
-                        <div class="feature-badge bonus">BELL BONUS: @gameState.BonusLives LIVES</div>
+                    @if (gameState.IsBonusActive || (isSpinning && wasInBonus)) {
+                        <div class="feature-badge bonus">
+                            @{
+                                var displayBonus = isSpinning ? Math.Max(0, (nextBonusLivesBuffer >= gameState.BonusLives && nextBonusLivesBuffer > 0 ? nextBonusLivesBuffer : (nextBonusLivesBuffer > 0 ? nextBonusLivesBuffer : gameState.BonusLives - 1))) : gameState.BonusLives;
+                                if (displayBonus > 3) displayBonus = 3;
+                            }
+                            BELL BONUS: @displayBonus LIVES
+                        </div>
                     }
                     @if (gameState.IsGambleActive) {
                         <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="OpenGamble" Class="fw-black">GAMBLE @gameState.PendingGambleWin.ToString("C2")</MudButton>
@@ -200,8 +210,10 @@
     private Guid sessionId = Guid.NewGuid(); 
     private SlotState gameState = new();
     private int nextRespinLivesBuffer = 0;
+    private int nextBonusLivesBuffer = 0;
     private bool wasNudged = false;
     private bool wasInRespin = false;
+    private bool wasInBonus = false;
     private bool lowGraphics = false;
     private DotNetObjectReference<CloverChase>? _objRef;
 
@@ -222,24 +234,31 @@
     [JSInvokable]
     public void OnAnimationFinished() {
         isSpinning = false;
-        wasInRespin = false; // Reset overlay state
+        wasInRespin = false; 
+        wasInBonus = false;
         
-        // APPLY WIN AND RESPINS FROM BUFFER ONLY AFTER ANIMATION
+        // Final sync after all animations
         lastWin = nextWinBuffer;
         gameState.RespinLives = nextRespinLivesBuffer;
+        gameState.BonusLives = nextBonusLivesBuffer;
+        
+        StateHasChanged();
 
         if (lastWin > 0.01m) {
             showWinDisplay = true;
-            StateHasChanged();
             
             var winDelay = animationSpeed switch { 3 => 800, 2 => 1500, _ => 3500 };
             _ = Task.Delay(winDelay).ContinueWith(_ => {
                 showWinDisplay = false;
                 InvokeAsync(StateHasChanged);
             });
-        } else {
-            StateHasChanged();
         }
+    }
+
+    [JSInvokable]
+    public void OnBellRevealed(decimal amount) {
+        lastWin += amount;
+        StateHasChanged();
     }
 
     private void SetSpeed(int speed) {
@@ -295,7 +314,10 @@
         do {
             isSpinning = true; wasNudged = false; showWinDisplay = false;
             wasInRespin = gameState.IsRespinActive;
-            nextWinBuffer = 0; // Reset buffer
+            wasInBonus = gameState.IsBonusActive;
+            nextWinBuffer = 0; 
+            nextRespinLivesBuffer = 0;
+            nextBonusLivesBuffer = 0;
             
             var betAmount = gameState.IsBonusActive ? 0 : (creditsBet * denomination);
 
@@ -330,10 +352,15 @@
                 var gridData = JsonSerializer.Deserialize<SlotStateResponse>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (gridData != null) {
                     bool bonusJustStarted = !gameState.IsBonusActive && gridData.IsBonusActive;
+                    bool respinJustStarted = !gameState.IsRespinActive && gridData.IsRespinActive;
                     
                     gameState.IsBonusActive = gridData.IsBonusActive;
                     gameState.IsRespinActive = gridData.IsRespinActive;
-                    gameState.BonusLives = gridData.BonusLives;
+                    
+                    if (bonusJustStarted) gameState.BonusLives = gridData.BonusLives;
+                    if (respinJustStarted) gameState.RespinLives = gridData.RespinLives;
+
+                    nextBonusLivesBuffer = gridData.BonusLives;
                     nextRespinLivesBuffer = gridData.RespinLives;
                     
                     gameState.IsGambleActive = lastWin > 0 && !gameState.IsBonusActive && !gameState.IsRespinActive; 

@@ -17,6 +17,7 @@ window.slotEngine = {
     
     running: false,
     isBonusActive: false,
+    isRespinActive: false,
     wasInBonus: false, 
     isRevealing: false, 
     stickyBells: [],
@@ -134,10 +135,14 @@ window.slotEngine = {
         const data = JSON.parse(resultJson);
         const grid = data.Grid;
         const currentlyInFeature = data.IsBonusActive || data.IsRespinActive;
+        const wasInFeature = window.slotEngine.isBonusActive || window.slotEngine.isRespinActive;
 
         window.slotEngine.wasInBonus = window.slotEngine.isBonusActive;
 
-        if (!currentlyInFeature && !window.slotEngine.isRevealing) {
+        // PRO FIX: Clear only if we are starting a spin from a non-feature state 
+        // AND we are not starting a new feature now. 
+        // If wasInFeature was true, this spin is the final respin/bonus spin.
+        if (!currentlyInFeature && !wasInFeature && !window.slotEngine.isRevealing) {
             window.slotEngine.stickyBells = [];
             window.slotEngine.stickyLayer.removeChildren();
         }
@@ -147,6 +152,7 @@ window.slotEngine = {
         window.slotEngine.clearWinLines();
         
         window.slotEngine.isBonusActive = data.IsBonusActive;
+        window.slotEngine.isRespinActive = data.IsRespinActive; 
         window.slotEngine.lastWinningLines = data.WinningLines || [];
         
         if (currentlyInFeature) {
@@ -263,7 +269,7 @@ window.slotEngine = {
                     let tid = (idx < 4 && reel.targetSymbols) ? reel.targetSymbols[idx] : 0;
                     if (tid === 0) {
                         s.sprite.texture = textures[`sym${Math.floor(Math.random()*7)+1}`];
-                        s.sprite.alpha = 0.15;
+                        s.sprite.alpha = 0.5;
                     } else {
                         s.sprite.texture = textures[`sym${tid}`];
                         const isSticky = window.slotEngine.stickyBells.find(sb => sb.c === i && sb.r === idx);
@@ -291,19 +297,44 @@ window.slotEngine = {
 
     revealBonusValues: async () => {
         window.slotEngine.isRevealing = true;
-        const { stickyLayer } = window.slotEngine;
+        const { stickyLayer, dotNetRef } = window.slotEngine;
         
-        for (let i = 0; i < stickyLayer.children.length; i++) {
-            const child = stickyLayer.children[i];
-            if (child instanceof PIXI.Sprite) { // Only animate sprites (not backgrounds)
-                const label = child.getChildByName("valueLabel");
-                if (label && window.gsap) {
-                    if (window.aleaAudio?.play) window.aleaAudio.play('click');
-                    label.visible = true;
-                    gsap.fromTo(label.scale, { x: 0, y: 0 }, { x: 1, y: 1, duration: 0.3, ease: "back.out" });
-                    gsap.to(child.scale, { x: 1.2, y: 1.2, duration: 0.15, yoyo: true, repeat: 1 });
-                    await new Promise(r => setTimeout(r, 250));
+        // Filter sprites once to avoid index issues
+        const sprites = stickyLayer.children.filter(c => c instanceof PIXI.Sprite);
+        
+        for (let i = 0; i < sprites.length; i++) {
+            const child = sprites[i];
+            const label = child.getChildByName("valueLabel");
+            
+            // Extract value for real-time accumulation
+            const textValue = label ? label.text : "";
+            let amount = 0;
+            if (textValue.startsWith("$")) {
+                amount = parseFloat(textValue.substring(1).replace(/,/g, ''));
+            }
+
+            if (label && window.gsap) {
+                if (window.aleaAudio?.play) window.aleaAudio.play('click');
+                label.visible = true;
+                
+                // POP ANIMATION
+                gsap.fromTo(label.scale, { x: 0, y: 0 }, { x: 1, y: 1, duration: 0.4, ease: "back.out(1.7)" });
+                gsap.to(child.scale, { x: 1.2, y: 1.2, duration: 0.15, yoyo: true, repeat: 1 });
+                
+                // Add a glow effect on reveal
+                const glow = new PIXI.Graphics();
+                glow.beginFill(0xffffff, 0.4);
+                glow.drawCircle(child.x + child.width/2, child.y + child.height/2, child.width/2);
+                glow.endFill();
+                window.slotEngine.stickyLayer.addChildAt(glow, 0);
+                gsap.to(glow, { alpha: 0, width: child.width*1.5, height: child.height*1.5, duration: 0.5, onComplete: () => glow.destroy() });
+
+                // REAL-TIME WIN ACCUMULATION
+                if (amount > 0 && dotNetRef) {
+                    dotNetRef.invokeMethodAsync('OnBellRevealed', amount);
                 }
+
+                await new Promise(r => setTimeout(r, 400));
             }
         }
         
@@ -334,6 +365,8 @@ window.slotEngine = {
     restoreState: (json) => {
         const data = JSON.parse(json);
         if (data.Grid) {
+            window.slotEngine.isBonusActive = data.IsBonusActive || false;
+            window.slotEngine.isRespinActive = data.IsRespinActive || false;
             window.slotEngine.reels.forEach((reel, c) => {
                 reel.symbols.forEach((s, r) => {
                     if (r < 4) {
