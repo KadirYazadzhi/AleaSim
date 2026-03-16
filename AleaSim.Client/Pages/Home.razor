@@ -41,9 +41,9 @@
                             <div style="max-width: 650px;">
                                 <div class="d-flex align-center gap-2 mb-2">
                                     <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="fw-bold pulse-red">LIVE</MudChip>
-                                    <MudText Typo="Typo.subtitle2" Class="text-warning fw-bold tracking-wide ma-0" Style="line-height: 1 !important;">SEASON @PlatformStats.Stats.CurrentSeason</MudText>
+                                    <MudText Typo="Typo.subtitle2" Class="text-warning fw-bold tracking-wide ma-0" Style="line-height: 0.875rem !important; display: inline-block; vertical-align: middle;">SEASON @PlatformStats.Stats.CurrentSeason</MudText>
                                     <MudTooltip Text="Compete with other players to climb the leaderboard! Top ranks share the massive seasonal prize pool.">
-                                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" Style="font-size: 0.9rem !important;" />
+                                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
                                     </MudTooltip>
                                 </div>
                                 <MudText Typo="Typo.h3" Class='@($"{(LayoutService.IsDarkMode ? "text-white text-shadow-lg" : "mud-text-primary")} fw-black mb-2")'>GRAND TOURNAMENT</MudText>
@@ -287,7 +287,7 @@
                         <MudPaper Class="pa-6 rounded-xl gradient-bg-blue position-relative overflow-hidden elevation-10" Elevation="0">
                             <div style="position: relative; z-index: 2;">
                                 <div class="d-flex align-center gap-1 mb-1">
-                                    <MudText Typo="Typo.subtitle2" Class="text-white opacity-80 ma-0" Style="line-height: 1 !important;">Weekly Benefit</MudText>
+                                    <MudText Typo="Typo.subtitle2" Class="text-white opacity-80 ma-0" Style="line-height: 0.875rem !important; display: inline-block; vertical-align: middle;">Weekly Benefit</MudText>
                                     <MudTooltip Text="Get back 10% of your net losses every single week! No strings attached, claim it instantly.">
                                         <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
                                     </MudTooltip>
@@ -579,11 +579,13 @@
     .text-success { color: var(--mud-palette-success); }
     
     .info-icon-tweak {
-        font-size: 0.8rem !important;
+        font-size: 0.875rem !important; /* subtitle2 is 0.875rem */
         opacity: 0.6;
         cursor: help;
-        display: block;
+        display: inline-block !important;
+        vertical-align: middle;
         color: white;
+        margin-left: 2px;
     }
     
     .text-shadow-lg { text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
