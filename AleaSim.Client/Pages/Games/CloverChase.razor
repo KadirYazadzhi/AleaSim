@@ -37,7 +37,7 @@
                 
                 @if (gameState.IsRespinActive || (isSpinning && wasInRespin)) {
                     <div class="overlay-text" style="top: 20px;">
-                        RESPIN: @(gameState.RespinLives) @(gameState.RespinLives == 1 ? "LIFE" : "LIVES")
+                        RESPINS LEFT: @(gameState.RespinLives)
                     </div>
                 }
                 @if (wasNudged) {
@@ -221,6 +221,7 @@
     [JSInvokable]
     public void OnAnimationFinished() {
         isSpinning = false;
+        wasInRespin = false; // Reset overlay state
         
         // APPLY WIN FROM BUFFER ONLY AFTER ANIMATION
         lastWin = nextWinBuffer;
@@ -295,6 +296,12 @@
             nextWinBuffer = 0; // Reset buffer
             
             var betAmount = gameState.IsBonusActive ? 0 : (creditsBet * denomination);
+
+            if (gameState.IsRespinActive) {
+                wasInRespin = true;
+                if (gameState.RespinLives > 0) gameState.RespinLives--; 
+                StateHasChanged(); // Immediate update to 2, 1 or 0
+            }
 
             if (betAmount > 0) {
                 if (balance < betAmount) {
