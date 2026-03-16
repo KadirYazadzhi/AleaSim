@@ -15,7 +15,12 @@
                 <span class="suit-bg">♠</span>
             </div>
             <div class="info-section">
-                <MudText Typo="Typo.caption" Class="jackpot-label">MEGA JACKPOT</MudText>
+                <div class="d-flex align-center gap-1">
+                    <MudText Typo="Typo.caption" Class="jackpot-label">MEGA JACKPOT</MudText>
+                    <MudTooltip Text="The ultimate prize! Accumulates from every spin across the platform. Can be won in any original game.">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="font-size: 0.8rem; opacity: 0.5; cursor: help;" />
+                    </MudTooltip>
+                </div>
                 <MudText Typo="Typo.h4" Class='@($"jackpot-value mega-text {(FullGridMode ? "text-compact" : "")}")'>@spades.ToString("C2")</MudText>
             </div>
         </div>
@@ -35,7 +40,12 @@
                 <span class="suit-bg">♥</span>
             </div>
             <div class="info-section">
-                <MudText Typo="Typo.caption" Class="jackpot-label">MAJOR WEEKLY</MudText>
+                <div class="d-flex align-center gap-1">
+                    <MudText Typo="Typo.caption" Class="jackpot-label">MAJOR WEEKLY</MudText>
+                    <MudTooltip Text="A massive weekly reward! Grows every second and is guaranteed to drop to one lucky player every Sunday.">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="font-size: 0.8rem; opacity: 0.5; cursor: help;" />
+                    </MudTooltip>
+                </div>
                 <MudText Typo="Typo.h4" Class='@($"jackpot-value major-text {(FullGridMode ? "text-compact" : "")}")'>@hearts.ToString("C2")</MudText>
             </div>
         </div>
@@ -57,8 +67,14 @@
                     <span class="suit-bg">♦</span>
                 </div>
                 <div class="info-section">
-                                    <MudText Typo="Typo.caption" Class="jackpot-label">MINOR DAILY</MudText>
-                                    <MudText Typo="Typo.h4" Class="jackpot-value minor-text text-compact">@GetMinorValue().ToString("C2")</MudText>                </div>
+                    <div class="d-flex align-center gap-1">
+                        <MudText Typo="Typo.caption" Class="jackpot-label">MINOR DAILY</MudText>
+                        <MudTooltip Text="Daily prize pool. Drops every 24 hours to a random active player. Higher bets increase your chances!">
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="font-size: 0.8rem; opacity: 0.5; cursor: help;" />
+                        </MudTooltip>
+                    </div>
+                    <MudText Typo="Typo.h4" Class="jackpot-value minor-text text-compact">@GetMinorValue().ToString("C2")</MudText>
+                </div>
             </div>
             <div class="card-footer">
                 <div class="progress-bar-container">
@@ -76,8 +92,14 @@
                     <span class="suit-bg">♣</span>
                 </div>
                 <div class="info-section">
-                                    <MudText Typo="Typo.caption" Class="jackpot-label">MINI HOURLY</MudText>
-                                    <MudText Typo="Typo.h4" Class="jackpot-value mini-text text-compact">@GetMiniValue().ToString("C2")</MudText>                </div>
+                    <div class="d-flex align-center gap-1">
+                        <MudText Typo="Typo.caption" Class="jackpot-label">MINI HOURLY</MudText>
+                        <MudTooltip Text="Fast-paced hourly jackpot! Drops 24 times a day. Perfect for consistent players.">
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="font-size: 0.8rem; opacity: 0.5; cursor: help;" />
+                        </MudTooltip>
+                    </div>
+                    <MudText Typo="Typo.h4" Class="jackpot-value mini-text text-compact">@GetMiniValue().ToString("C2")</MudText>
+                </div>
             </div>
             <div class="card-footer">
                 <div class="progress-bar-container">

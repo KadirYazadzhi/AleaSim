@@ -27,7 +27,12 @@
                     <div class="d-flex align-center gap-4 relative z-10">
                         <div class="pot-icon-v4">🍹</div>
                         <div>
-                            <MudText Typo="Typo.caption" Class="pot-label-v4">JUICE RESERVOIR</MudText>
+                            <div class="d-flex align-center gap-1">
+                                <MudText Typo="Typo.caption" Class="pot-label-v4">JUICE RESERVOIR</MudText>
+                                <MudTooltip Text="The core reactor's energy reserve. Fill the juice meter to 100 to trigger a meltdown and claim this pot!">
+                                    <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="font-size: 0.8rem; opacity: 0.5; cursor: help;" />
+                                </MudTooltip>
+                            </div>
                             <MudText Typo="Typo.h3" Class="pot-value-v4">@juicePotValue.ToString("C2")</MudText>
                         </div>
                     </div>
@@ -36,7 +41,12 @@
                 <!-- Vitamin Overload -->
                 <div class="vitamin-card-v4 @(LayoutService.IsDarkMode ? "dark" : "light")">
                     <div class="d-flex justify-space-between align-center mb-3">
-                        <MudText Typo="Typo.caption" Class="vitamin-label-v4">VITAMIN OVERLOAD</MudText>
+                        <div class="d-flex align-center gap-1">
+                            <MudText Typo="Typo.caption" Class="vitamin-label-v4">VITAMIN OVERLOAD</MudText>
+                            <MudTooltip Text="Progress bar for the platform-wide event. Once 5,000 fruits are extracted, a Mega 3x3 Fruit is guaranteed to drop in the next spin!">
+                                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="font-size: 0.8rem; opacity: 0.5; cursor: help;" />
+                            </MudTooltip>
+                        </div>
                         <div class="vitamin-percent-v4">@((lifetimeExplosions * 100.0 / 5000.0).ToString("F1"))%</div>
                     </div>
                     <div class="cyber-track-v4">

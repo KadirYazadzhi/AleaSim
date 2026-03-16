@@ -42,6 +42,9 @@
                                 <div class="d-flex align-center gap-2 mb-2">
                                     <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="fw-bold pulse-red">LIVE</MudChip>
                                     <MudText Typo="Typo.subtitle2" Class="text-warning fw-bold tracking-wide">SEASON @PlatformStats.Stats.CurrentSeason</MudText>
+                                    <MudTooltip Text="Compete with other players to climb the leaderboard! Top ranks share the massive seasonal prize pool.">
+                                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="font-size: 0.9rem; opacity: 0.6; cursor: help; color: white;" />
+                                    </MudTooltip>
                                 </div>
                                 <MudText Typo="Typo.h3" Class='@($"{(LayoutService.IsDarkMode ? "text-white text-shadow-lg" : "mud-text-primary")} fw-black mb-2")'>GRAND TOURNAMENT</MudText>
                                 <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black mb-4">@PlatformStats.Stats.TournamentPrizePool.ToString("C2") <span class='@($"{(LayoutService.IsDarkMode ? "text-white opacity-70" : "mud-text-secondary")} text-sm fw-normal")'>Prize Pool</span></MudText>
@@ -283,7 +286,12 @@
                         <!-- Cashback Promo -->
                         <MudPaper Class="pa-6 rounded-xl gradient-bg-blue position-relative overflow-hidden elevation-10" Elevation="0">
                             <div style="position: relative; z-index: 2;">
-                                <MudText Typo="Typo.subtitle2" Class="text-white opacity-80 mb-1">Weekly Benefit</MudText>
+                                <div class="d-flex align-center gap-1 mb-1">
+                                    <MudText Typo="Typo.subtitle2" Class="text-white opacity-80">Weekly Benefit</MudText>
+                                    <MudTooltip Text="Get back 10% of your net losses every single week! No strings attached, claim it instantly.">
+                                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="font-size: 0.8rem; opacity: 0.6; cursor: help; color: white;" />
+                                    </MudTooltip>
+                                </div>
                                 <MudText Typo="Typo.h5" Class="text-white fw-black mb-3">
                                     @(pendingCashback > 0 ? pendingCashback.ToString("C2") : "10%") CASHBACK
                                 </MudText>
