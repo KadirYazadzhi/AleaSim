@@ -69,9 +69,11 @@ window.slotEngine = {
         window.slotEngine.app.stage.addChild(window.slotEngine.winGraphics);
 
         window.slotEngine.mask = new PIXI.Graphics();
+        window.slotEngine.mask.beginFill(0xffffff);
+        window.slotEngine.mask.drawRect(0, 0, gridW, gridH);
+        window.slotEngine.mask.endFill();
         window.slotEngine.reelLayer.mask = window.slotEngine.mask;
         window.slotEngine.reelLayer.addChild(window.slotEngine.mask);
-        window.slotEngine.updateMask();
 
         const symbolFiles = {
             1: 'cherries.png', 2: 'lemon.png', 3: 'orange.png', 4: 'plum.png',
@@ -108,28 +110,6 @@ window.slotEngine = {
         window.slotEngine.performance.lowGraphics = lowGraphics;
     },
 
-    updateMask: () => {
-        const { mask, stickyBells, symbolSize, reelWidth, cols, rows } = window.slotEngine;
-        if (!mask) return;
-        const gridW = reelWidth * cols;
-        const gridH = symbolSize * rows;
-        
-        mask.clear();
-        mask.beginFill(0xffffff);
-        mask.drawRect(0, 0, gridW, gridH);
-        
-        // Use holes to hide content behind sticky symbols
-        stickyBells.forEach(sb => {
-            const x = sb.c * reelWidth + (reelWidth - symbolSize) / 2;
-            const y = sb.r * symbolSize;
-            mask.beginHole();
-            mask.drawRect(x, y, symbolSize, symbolSize);
-            mask.endHole();
-        });
-        
-        mask.endFill();
-    },
-
     buildGrid: () => {
         const { reelLayer, cols, rows, reelWidth, symbolSize } = window.slotEngine;
         window.slotEngine.reels = [];
@@ -160,7 +140,6 @@ window.slotEngine = {
         if (!currentlyInFeature && !window.slotEngine.isRevealing) {
             window.slotEngine.stickyBells = [];
             window.slotEngine.stickyLayer.removeChildren();
-            window.slotEngine.updateMask();
         }
 
         window.slotEngine.running = true;
@@ -207,7 +186,6 @@ window.slotEngine = {
     updateStickyBellsVisuals: (showLabels = false) => {
         const { stickyLayer, stickyBells, symbolSize, reelWidth, textures } = window.slotEngine;
         stickyLayer.removeChildren();
-        window.slotEngine.updateMask();
 
         stickyBells.forEach(sb => {
             const bgX = sb.c * reelWidth + (reelWidth - symbolSize) / 2;
@@ -245,12 +223,31 @@ window.slotEngine = {
     update: (delta) => {
         if (!window.slotEngine.running) return;
         let activeReels = 0;
-        const { reels, symbolSize, textures } = window.slotEngine;
+        const { reels, symbolSize, textures, stickyBells } = window.slotEngine;
 
         reels.forEach((reel, i) => {
             if (reel.isStopped) return;
             activeReels++;
-            reel.symbols.forEach(s => { s.sprite.y += reel.speed * delta; });
+            reel.symbols.forEach(s => { 
+                s.sprite.y += reel.speed * delta; 
+                
+                // --- PRO FIX: HIDE SYMBOLS BEHIND STICKY BELLS ---
+                // Calculate which row the current moving symbol is overlapping
+                const row = Math.round(s.sprite.y / symbolSize);
+                const isSticky = stickyBells.some(sb => sb.c === i && sb.r === row);
+                
+                if (isSticky) {
+                    s.sprite.alpha = 0; // Symbol becomes invisible as it goes "under" the bell
+                } else {
+                    // Restore alpha only if within grid bounds
+                    if (s.sprite.y < -symbolSize/2 || s.sprite.y > (4 * symbolSize - symbolSize/2)) {
+                        s.sprite.alpha = 0;
+                    } else {
+                        s.sprite.alpha = 1;
+                    }
+                }
+            });
+
             const limit = 4 * symbolSize; const bufferY = -symbolSize;
             reel.symbols.forEach(s => {
                 if (s.sprite.y >= limit) {

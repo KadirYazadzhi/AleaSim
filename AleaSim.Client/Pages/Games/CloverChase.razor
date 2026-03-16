@@ -35,8 +35,10 @@
 
                 <div class="win-light @(lastWin > 0 ? "active" : "")"></div>
                 
-                @if (gameState.IsRespinActive) {
-                    <div class="overlay-text" style="top: 20px;">RESPIN: @gameState.RespinLives LIVES</div>
+                @if (gameState.IsRespinActive || (isSpinning && wasInRespin)) {
+                    <div class="overlay-text" style="top: 20px;">
+                        RESPIN: @(gameState.RespinLives) @(gameState.RespinLives == 1 ? "LIFE" : "LIVES")
+                    </div>
                 }
                 @if (wasNudged) {
                     <div class="overlay-text nudged" style="bottom: 20px;">MYSTERY NUDGE!</div>
@@ -198,6 +200,7 @@
     private Guid sessionId = Guid.NewGuid(); 
     private SlotState gameState = new();
     private bool wasNudged = false;
+    private bool wasInRespin = false;
     private bool lowGraphics = false;
     private DotNetObjectReference<CloverChase>? _objRef;
 
@@ -288,6 +291,7 @@
         
         do {
             isSpinning = true; wasNudged = false; showWinDisplay = false;
+            wasInRespin = gameState.IsRespinActive;
             nextWinBuffer = 0; // Reset buffer
             
             var betAmount = gameState.IsBonusActive ? 0 : (creditsBet * denomination);
