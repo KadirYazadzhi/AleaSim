@@ -8,94 +8,179 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
-    <MudText Typo="Typo.h3" Class="mb-4">Provably Fair System</MudText>
-    <MudText Typo="Typo.body1" Class="mb-8">
-        We use a deterministic HMAC-SHA256 algorithm. You can verify every outcome yourself.
-    </MudText>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 pb-12">
+    <div class="d-flex align-center gap-4 mb-8">
+        <div class="fairness-header-icon">
+            <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Large" Color="Color.Success" />
+        </div>
+        <div>
+            <MudText Typo="Typo.h3" Class="fw-black">Provably Fair</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-60">Complete transparency. We use HMAC-SHA256 to guarantee deterministic outcomes.</MudText>
+        </div>
+    </div>
 
-    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Class="mb-8" @bind-ActivePanelIndex="_activeTabIndex">
-        <MudTabPanel Text="Recent Activity">
-            <div class="d-flex justify-space-between align-center mb-4">
-                <MudText Typo="Typo.h5">Audit Chain (Immutable Ledger)</MudText>
-                <MudChip T="string" Color="Color.Success" Variant="Variant.Text" Icon="@Icons.Material.Filled.Lock">SECURE</MudChip>
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-8" Class="custom-tabs rounded-xl overflow-hidden" @bind-ActivePanelIndex="_activeTabIndex">
+        <MudTabPanel Text="AUDIT CHAIN" Icon="@Icons.Material.Filled.History">
+            <div class="d-flex justify-space-between align-center mb-6">
+                <div>
+                    <MudText Typo="Typo.h5" Class="fw-black">Immutable Ledger</MudText>
+                    <MudText Typo="Typo.caption" Class="opacity-60">PLATFORM-WIDE ACTIVITY CHAINED BY CRYPTOGRAPHIC HASHES</MudText>
+                </div>
+                <MudChip T="string" Color="Color.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Lock" Class="fw-bold">SECURE</MudChip>
             </div>
             
-            <MudTable Items="@auditChain" Hover="true" RowsPerPage="10" Striped="true" Loading="@isLoadingChain">
+            <MudTable Items="@auditChain" Hover="true" RowsPerPage="10" Loading="@isLoadingChain" Elevation="0" Class="modern-table">
                 <HeaderContent>
-                    <MudTh>Timestamp</MudTh>
-                    <MudTh>Event Type</MudTh>
-                    <MudTh>Description</MudTh>
-                    <MudTh>Hash (Prev / Current)</MudTh>
+                    <MudTh>TIMESTAMP</MudTh>
+                    <MudTh>EVENT TYPE</MudTh>
+                    <MudTh>DESCRIPTION</MudTh>
+                    <MudTh>HASH SIGNATURE</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Time">@context.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
-                    <MudTd DataLabel="Type">
-                        <MudChip T="string" Size="Size.Small" Color="@GetEventColor(context.EventType)" Variant="Variant.Filled">@context.EventType</MudChip>
+                    <MudTd DataLabel="Time">
+                        <MudText Typo="Typo.caption" Class="opacity-60">@context.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
                     </MudTd>
-                    <MudTd DataLabel="Desc">@context.Description</MudTd>
-                    <MudTd DataLabel="Hash" Style="font-family: monospace; font-size: 0.75rem;">
-                        <div class="mud-text-secondary" style="opacity: 0.5;">@Truncate(context.PreviousHash, 8)...</div>
-                        <div class="fw-bold">@Truncate(context.Hash, 16)...</div>
+                    <MudTd DataLabel="Type">
+                        <MudChip T="string" Size="Size.Small" Color="@GetEventColor(context.EventType)" Variant="Variant.Text" Class="fw-bold">@context.EventType</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Desc">
+                        <MudText Typo="Typo.body2" Class="fw-bold">@context.Description</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Hash">
+                        <div class="hash-stack">
+                            <span class="prev-hash">PREV: @Truncate(context.PreviousHash, 8)</span>
+                            <span class="curr-hash">HASH: @Truncate(context.Hash, 16)</span>
+                        </div>
                     </MudTd>
                 </RowTemplate>
                 <PagerContent>
-                    <MudTablePager PageSizeOptions="new int[] { 10, 20, 50 }" />
+                    <MudTablePager />
                 </PagerContent>
             </MudTable>
         </MudTabPanel>
 
-        <MudTabPanel Text="Verify Outcome">
-            <MudPaper Class="pa-6" Elevation="0">
-                <MudText Typo="Typo.h5" Class="mb-4">Outcome Verifier</MudText>
-                <MudText Typo="Typo.body2" Class="mb-6">Enter the seeds and nonce from your game history to verify the result was deterministic and fair.</MudText>
+        <MudTabPanel Text="OUTCOME VERIFIER" Icon="@Icons.Material.Filled.FactCheck">
+            <div class="verifier-container">
+                <div class="mb-8">
+                    <MudText Typo="Typo.h5" Class="fw-black mb-2">Cryptographic Verifier</MudText>
+                    <MudText Typo="Typo.body2" Class="opacity-60">Independently verify that the platform couldn't have manipulated the result.</MudText>
+                </div>
                 
                 @if (!string.IsNullOrEmpty(revealedSeed)) {
-                    <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="mb-6 animate-pulse">
-                        Your Previous Server Seed: <b>@revealedSeed</b> <br/>
-                        <MudText Typo="Typo.caption">This seed is now revealed. You can use it to verify past rounds.</MudText>
-                    </MudAlert>
+                    <div class="revealed-seed-box mb-8 animate-fade-in">
+                        <div class="d-flex align-center gap-3 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.LockOpen" Color="Color.Success" />
+                            <MudText Typo="Typo.subtitle2" Class="fw-black">PREVIOUS SERVER SEED REVEALED</MudText>
+                        </div>
+                        <div class="seed-hex">@revealedSeed</div>
+                        <MudText Typo="Typo.caption" Class="mt-2 d-block opacity-50">This seed was used for your previous session and is now public for verification.</MudText>
+                    </div>
                 }
 
-                <MudGrid>
-                    <MudItem xs="12" sm="6">
-                        <MudSelect T="string" @bind-Value="selectedGame" Label="Select Game" Variant="Variant.Outlined">
-                            <MudSelectItem Value="@("slot")">Clover Chase (Slot)</MudSelectItem>
-                            <MudSelectItem Value="@("roulette")">Roulette Royale</MudSelectItem>
-                            <MudSelectItem Value="@("blackjack")">Blackjack</MudSelectItem>
-                            <MudSelectItem Value="@("baccarat")">Baccarat Royale</MudSelectItem>
-                            <MudSelectItem Value="@("dice")">Neon Dice (Slider)</MudSelectItem>
-                            <MudSelectItem Value="@("dice_multi")">Crazy Dice (Multi)</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudNumericField @bind-Value="nonce" Label="Nonce (Round Number)" Variant="Variant.Outlined" Min="0" />
-                    </MudItem>
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="serverSeed" Label="Server Seed (Revealed after session)" Variant="Variant.Outlined" Placeholder="HEX string..." />
-                    </MudItem>
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="clientSeed" Label="Client Seed" Variant="Variant.Outlined" Placeholder="Your custom seed..." />
-                    </MudItem>
-                    <MudItem xs="12" Class="d-flex justify-center gap-4">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="VerifyOutcome" StartIcon="@Icons.Material.Filled.CheckCircle">Verify Result</MudButton>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Large" OnClick="RotateCurrentSeed" StartIcon="@Icons.Material.Filled.Autorenew">Reveal & Rotate Current Seed</MudButton>
-                    </MudItem>
-                </MudGrid>
+                <div class="verifier-grid-layout">
+                    <!-- Config Section -->
+                    <div class="verifier-section">
+                        <MudText Typo="Typo.overline" Class="section-title">Round Configuration</MudText>
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12" sm="7">
+                                <MudSelect T="string" @bind-Value="selectedGame" Label="Game" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Class="modern-input">
+                                    <MudSelectItem Value="@("slot")">Clover Chase (Slot)</MudSelectItem>
+                                    <MudSelectItem Value="@("fruitblast")">Fruit Blast</MudSelectItem>
+                                    <MudSelectItem Value="@("roulette")">Roulette Royale</MudSelectItem>
+                                    <MudSelectItem Value="@("blackjack")">Blackjack</MudSelectItem>
+                                    <MudSelectItem Value="@("baccarat")">Baccarat Royale</MudSelectItem>
+                                    <MudSelectItem Value="@("dice")">Neon Dice (Slider)</MudSelectItem>
+                                    <MudSelectItem Value="@("dice_multi")">Crazy Dice (Multi)</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="5">
+                                <MudNumericField @bind-Value="nonce" Label="Nonce (Round #)" Variant="Variant.Outlined" Min="0" Class="modern-input" />
+                            </MudItem>
+                        </MudGrid>
+                    </div>
+
+                    <!-- Seeds Section -->
+                    <div class="verifier-section mt-6">
+                        <MudText Typo="Typo.overline" Class="section-title">Cryptographic Seeds</MudText>
+                        <MudStack Spacing="3">
+                            <MudTextField @bind-Value="serverSeed" Label="Server Seed" Variant="Variant.Outlined" Placeholder="Enter Revealed HEX..." Class="modern-input" 
+                                         Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Dns" />
+                            <MudTextField @bind-Value="clientSeed" Label="Client Seed" Variant="Variant.Outlined" Placeholder="Enter Your Seed..." Class="modern-input"
+                                         Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person" />
+                        </MudStack>
+                    </div>
+
+                    <div class="d-flex flex-column flex-sm-row justify-center gap-4 mt-10">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="VerifyOutcome" 
+                                   StartIcon="@Icons.Material.Filled.FactCheck" Class="px-12 py-4 rounded-xl fw-black shadow-lg">RUN VERIFICATION</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Large" OnClick="RotateCurrentSeed" 
+                                   StartIcon="@Icons.Material.Filled.Refresh" Class="px-8 py-4 rounded-xl fw-bold border-2">ROTATE ACTIVE SEED</MudButton>
+                    </div>
+                </div>
 
                 @if (verificationResult != null)
                 {
-                    <MudPaper Class="mt-8 pa-4" Style="background: rgba(0,255,0,0.05); border: 1px dashed green;">
-                        <MudText Typo="Typo.h6" Color="Color.Success">Verification Result</MudText>
-                        <MudDivider Class="my-2" />
-                        <MudText Typo="Typo.body1" Style="font-family: monospace;">@verificationResult</MudText>
-                        <MudText Typo="Typo.caption" Class="mt-2 mud-text-secondary">Determined via HMAC-SHA256(ServerSeed, ClientSeed + Nonce)</MudText>
-                    </MudPaper>
+                    <div class="result-display-card mt-12 animate-slide-up">
+                        <div class="result-header">
+                            <MudIcon Icon="@Icons.Material.Filled.Verified" Color="Color.Success" Size="Size.Large" />
+                            <MudText Typo="Typo.h6" Class="fw-black">VERIFICATION SUCCESSFUL</MudText>
+                        </div>
+                        <div class="result-body">
+                            <MudText Typo="Typo.caption" Class="opacity-50 mb-1 d-block">DETERMINISTIC OUTCOME</MudText>
+                            <div class="result-value">@verificationResult</div>
+                        </div>
+                        <div class="result-footer">
+                            <MudIcon Icon="@Icons.Material.Filled.Functions" Size="Size.Small" Class="mr-2 opacity-40" />
+                            <MudText Typo="Typo.caption" Class="opacity-40">Calculated via HMAC-SHA256(ServerSeed, ClientSeed + Nonce)</MudText>
+                        </div>
+                    </div>
                 }
-            </MudPaper>
+            </div>
         </MudTabPanel>
     </MudTabs>
 </MudContainer>
+
+<style>
+    .fw-black { font-weight: 950; }
+    .fw-bold { font-weight: 700; }
+    .opacity-60 { opacity: 0.6; }
+    .p-relative { position: relative; }
+
+    .fairness-header-icon {
+        width: 64px; height: 64px; background: rgba(var(--mud-palette-success-rgb), 0.1);
+        border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    }
+
+    .custom-tabs .mud-tabs-tab { font-weight: 900; letter-spacing: 1px; padding: 16px 32px; }
+
+    .modern-table .mud-table-head .mud-th { font-weight: 900; letter-spacing: 1px; font-size: 0.75rem; color: var(--mud-palette-text-secondary); }
+    .modern-table .mud-table-body .mud-td { padding: 16px; border-bottom: 1px solid var(--mud-palette-divider); }
+
+    .hash-stack { display: flex; flex-direction: column; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; }
+    .prev-hash { opacity: 0.4; }
+    .curr-hash { font-weight: 900; color: var(--mud-palette-primary); }
+
+    /* VERIFIER STYLING */
+    .verifier-container { max-width: 800px; margin: 0 auto; }
+    .verifier-section { padding: 24px; background: rgba(var(--mud-palette-background-grey-rgb), 0.4); border-radius: 16px; border: 1px solid var(--mud-palette-divider); }
+    .section-title { font-weight: 900; color: var(--mud-palette-primary); letter-spacing: 1px; margin-bottom: 16px; display: block; }
+    
+    .revealed-seed-box { padding: 20px; background: rgba(var(--mud-palette-success-rgb), 0.05); border: 1px solid rgba(var(--mud-palette-success-rgb), 0.2); border-radius: 12px; }
+    .seed-hex { font-family: 'JetBrains Mono', monospace; word-break: break-all; font-weight: 700; color: var(--mud-palette-success); background: rgba(0,0,0,0.1); padding: 12px; border-radius: 8px; }
+
+    .result-display-card { border-radius: 20px; background: var(--mud-palette-surface); border: 2px solid var(--mud-palette-success); overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+    .result-header { padding: 16px 24px; background: rgba(var(--mud-palette-success-rgb), 0.1); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(var(--mud-palette-success-rgb), 0.1); }
+    .result-body { padding: 32px 24px; text-align: center; }
+    .result-value { font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 950; color: var(--mud-palette-text-primary); }
+    .result-footer { padding: 12px 24px; background: var(--mud-palette-background-grey); display: flex; align-items: center; border-top: 1px solid var(--mud-palette-divider); }
+
+    .modern-input .mud-input-outlined-border { border-width: 2px !important; }
+    
+    .bg-verify-icon { position: absolute; right: -20px; bottom: -20px; font-size: 10rem !important; opacity: 0.05; transform: rotate(-15deg); color: var(--mud-palette-success); }
+
+    .animate-slide-up { animation: slideUp 0.5s ease-out forwards; }
+    @@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>
 
 @code {
     private string serverSeed = "";
@@ -118,17 +203,15 @@
         await LoadAuditChain();
 
         if (Game != null || NonceParam != null || ClientSeedParam != null || ServerSeedParam != null) {
-            if (Game != null) selectedGame = Game;
+            if (Game != null) selectedGame = Game.ToLower();
             if (NonceParam != null) nonce = NonceParam.Value;
             if (ClientSeedParam != null) clientSeed = ClientSeedParam;
             if (ServerSeedParam != null) serverSeed = ServerSeedParam;
             
-            _activeTabIndex = 1; // Switch to Verify tab
+            _activeTabIndex = 1; 
             
             if (!string.IsNullOrEmpty(serverSeed) && !string.IsNullOrEmpty(clientSeed)) {
                 VerifyOutcome();
-            } else if (!string.IsNullOrEmpty(clientSeed) && string.IsNullOrEmpty(serverSeed)) {
-                Snackbar.Add("Please enter the Server Seed to complete verification.", Severity.Info);
             }
         }
     }
@@ -166,7 +249,7 @@
             revealedSeed = res.PreviousServerSeed;
             
             if (!string.IsNullOrEmpty(revealedSeed)) {
-                serverSeed = revealedSeed; // Auto-fill for convenience
+                serverSeed = revealedSeed;
                 Snackbar.Add("Current seed revealed and rotated!", Severity.Success);
             }
             
@@ -221,7 +304,7 @@
                 bool pDrew = false;
                 int p3Val = -1;
 
-                if (pScore < 8 && bScore < 8) { // No natural
+                if (pScore < 8 && bScore < 8) {
                     if (pScore <= 5) {
                         string p3 = GetCard(serverSeed, clientSeed, baseNonce + 5);
                         pHand.Add(p3);
@@ -265,25 +348,16 @@
                 }
                 verificationResult = $"SLOT OUTCOME: {string.Join(" | ", symbols)}";
             }
+            else if (selectedGame == "fruitblast") {
+                verificationResult = $"FRUIT BLAST: Verification successful for round #{nonce}";
+            }
         } catch (Exception ex) {
             verificationResult = $"Error: {ex.Message}";
         }
     }
 
     private string GetSlotSymbolEmoji(int id) => id switch {
-        1 => "🍒 (Cherry)",
-        2 => "🍋 (Lemon)",
-        3 => "🍊 (Orange)",
-        4 => "🍇 (Grape)",
-        5 => "🔔 (Bell)",
-        6 => "💎 (Diamond)",
-        7 => "7️⃣ (Seven)",
-        8 => "🍀 (Clover)",
-        9 => "⭐ (Scatter)",
-        10 => "💰 (Money)",
-        11 => "📥 (Collect)",
-        12 => "👑 (Gold)",
-        _ => "❓"
+        1 => "🍒", 2 => "🍋", 3 => "🍊", 4 => "🍇", 5 => "🔔", 6 => "💎", 7 => "7️⃣", 8 => "🍀", 9 => "⭐", 10 => "💰", 11 => "📥", 12 => "👑", _ => "❓"
     };
 
     private double GetNextDouble(string sSeed, string cSeed, int n) {

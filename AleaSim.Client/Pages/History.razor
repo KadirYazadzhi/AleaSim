@@ -6,50 +6,84 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
-    <MudText Typo="Typo.h3" Class="mb-6">Betting History</MudText>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 pb-12">
+    <div class="d-flex align-center gap-4 mb-8">
+        <div class="history-header-icon">
+            <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Large" Color="Color.Primary" />
+        </div>
+        <div>
+            <MudText Typo="Typo.h3" Class="fw-black">Game History</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-60">Review your past rounds and verify cryptographic outcomes.</MudText>
+        </div>
+    </div>
 
-    <MudTable Items="@rounds" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" Elevation="2" Class="rounded-lg">
-        <HeaderContent>
-            <MudTh>Date</MudTh>
-            <MudTh>Game</MudTh>
-            <MudTh Style="text-align: right;">Bet</MudTh>
-            <MudTh Style="text-align: right;">Win</MudTh>
-            <MudTh>Provably Fair (Hash / Nonce)</MudTh>
-            <MudTh>Status</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Date">@context.PlayedAt.ToString("g")</MudTd>
-            <MudTd DataLabel="Game">@context.GameName</MudTd>
-            <MudTd DataLabel="Bet" Style="text-align: right;">@context.BetAmount.ToString("C2")</MudTd>
-            <MudTd DataLabel="Win" Style="text-align: right;">
-                <MudText Color="@(context.WinAmount > 0 ? Color.Success : Color.Default)" Style="font-weight: bold;">
-                    @context.WinAmount.ToString("C2")
-                </MudText>
-            </MudTd>
-            <MudTd DataLabel="PF">
-                <MudTooltip Text="@context.ServerSeedHash">
-                    <MudText Typo="Typo.caption" Style="font-family: monospace;">
-                        @(string.IsNullOrEmpty(context.ServerSeedHash) ? "N/A" : context.ServerSeedHash.Length > 8 ? context.ServerSeedHash.Substring(0, 8) : context.ServerSeedHash)... | Nonce: @context.Nonce
+    <MudPaper Class="pa-8 rounded-xl" Elevation="2">
+        <div class="d-flex justify-space-between align-center mb-6">
+            <MudText Typo="Typo.h5" Class="fw-black">Recent Rounds</MudText>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadHistory" Size="Size.Small">Refresh</MudButton>
+        </div>
+
+        <MudTable Items="@rounds" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" Elevation="0" Class="modern-table">
+            <HeaderContent>
+                <MudTh>DATE</MudTh>
+                <MudTh>GAME</MudTh>
+                <MudTh Style="text-align: right;">BET</MudTh>
+                <MudTh Style="text-align: right;">WIN</MudTh>
+                <MudTh>FAIRNESS (NONCE)</MudTh>
+                <MudTh Style="text-align: center;">ACTIONS</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Date">
+                    <MudText Typo="Typo.caption" Class="opacity-60">@context.PlayedAt.ToString("MMM dd, HH:mm:ss")</MudText>
+                </MudTd>
+                <MudTd DataLabel="Game">
+                    <MudText Typo="Typo.body2" Class="fw-bold">@FormatGameName(context.GameName)</MudText>
+                </MudTd>
+                <MudTd DataLabel="Bet" Style="text-align: right;">
+                    <MudText Typo="Typo.body2" Class="fw-bold">@context.BetAmount.ToString("C2")</MudText>
+                </MudTd>
+                <MudTd DataLabel="Win" Style="text-align: right;">
+                    <MudText Typo="Typo.body1" Color="@(context.WinAmount > 0 ? Color.Success : Color.Default)" Class="fw-black">
+                        @context.WinAmount.ToString("C2")
                     </MudText>
-                </MudTooltip>
-            </MudTd>
-            <MudTd DataLabel="Status">
-                <div class="d-flex align-center gap-2">
-                    @if (context.IsWin) {
-                        <MudIcon Icon="@Icons.Material.Filled.ArrowUpward" Color="Color.Success" Size="Size.Small" />
-                    } else {
-                        <MudIcon Icon="@Icons.Material.Filled.ArrowDownward" Color="Color.Error" Size="Size.Small" />
-                    }
-                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" OnClick="() => ViewDetails(context)" title="Replay Round" />
-                </div>
-            </MudTd>
-        </RowTemplate>
-        <PagerContent>
-            <MudTablePager />
-        </PagerContent>
-    </MudTable>
+                </MudTd>
+                <MudTd DataLabel="PF">
+                    <div class="d-flex align-center gap-2">
+                        <MudTooltip Text="@context.ServerSeedHash">
+                            <div class="hash-tag">
+                                @(string.IsNullOrEmpty(context.ServerSeedHash) ? "N/A" : context.ServerSeedHash.Substring(0, 8))
+                            </div>
+                        </MudTooltip>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="opacity-60">#@context.Nonce</MudChip>
+                    </div>
+                </MudTd>
+                <MudTd DataLabel="Actions" Style="text-align: center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Search" Size="Size.Small" Color="Color.Primary" OnClick="() => ViewDetails(context)" title="Inspect Data" />
+                    <MudIconButton Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Small" Color="Color.Info" Href='@($"/fairness?game={context.GameName}&nonce={context.Nonce}&clientSeed={context.ClientSeed}")' title="Verify Outcome" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
 </MudContainer>
+
+<style>
+    .fw-black { font-weight: 950; }
+    .fw-bold { font-weight: 700; }
+    .opacity-60 { opacity: 0.6; }
+
+    .history-header-icon {
+        width: 64px; height: 64px; background: rgba(var(--mud-palette-primary-rgb), 0.1);
+        border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    }
+
+    .modern-table .mud-table-head .mud-th { font-weight: 900; letter-spacing: 1px; font-size: 0.75rem; color: var(--mud-palette-text-secondary); }
+    .modern-table .mud-table-body .mud-td { padding: 12px 16px; border-bottom: 1px solid var(--mud-palette-divider); }
+
+    .hash-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; background: var(--mud-palette-background-grey); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--mud-palette-divider); }
+</style>
 
 @code {
     private List<GameRoundDto> rounds = new();
@@ -70,9 +104,19 @@
         }
     }
 
+    private string FormatGameName(string raw) => raw.ToLower() switch {
+        "slot" => "Clover Chase",
+        "fruitblast" => "Fruit Blast",
+        "roulette" => "Roulette Royale",
+        "blackjack" => "Blackjack",
+        "baccarat" => "Baccarat",
+        "dice" => "Neon Dice",
+        _ => raw
+    };
+
     private async Task ViewDetails(GameRoundDto round) {
         var parameters = new DialogParameters { ["Round"] = round };
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
-        await DialogService.ShowAsync<AleaSim.Client.Components.RoundDetailsDialog>("Round Replay", parameters, options);
+        await DialogService.ShowAsync<AleaSim.Client.Components.RoundDetailsDialog>("Round JSON Details", parameters, options);
     }
 }

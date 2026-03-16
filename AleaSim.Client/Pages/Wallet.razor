@@ -4,81 +4,138 @@
 @attribute [Authorize]
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject LayoutService layoutService
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
-    <MudText Typo="Typo.h3" Class="mb-6">My Wallet</MudText>
-
-    @if (profile != null) {
-        <MudPaper Class="pa-6 mb-6 rounded-xl glass-panel" Elevation="0">
-            <MudGrid align-center>
-                <MudItem xs="12" md="4">
-                    <MudText Typo="Typo.h6" Class="mud-text-secondary">Real Balance</MudText>
-                    <MudText Typo="Typo.h4" Color="Color.Inherit" Style="font-weight: 900;">@profile.Balance.ToString("C2")</MudText>
-                </MudItem>
-                <MudItem xs="12" md="4">
-                    <MudText Typo="Typo.h6" Class="mud-text-secondary">Bonus Balance</MudText>
-                    <MudText Typo="Typo.h4" Color="Color.Secondary" Style="font-weight: 900;">@profile.BonusBalance.ToString("C2")</MudText>
-                </MudItem>
-                <MudItem xs="12" md="4" Style="border-left: 2px border-solid var(--mud-palette-divider);">
-                    <MudText Typo="Typo.h6" Class="mud-text-secondary">Total Available</MudText>
-                    <MudText Typo="Typo.h3" Class="text-gradient fw-black">@profile.TotalBalance.ToString("C2")</MudText>
-                </MudItem>
-            </MudGrid>
-        </MudPaper>
-    }
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 pb-12">
+    <div class="d-flex align-center gap-4 mb-8">
+        <div class="wallet-header-icon">
+            <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Size="Size.Large" Color="Color.Primary" />
+        </div>
+        <div>
+            <MudText Typo="Typo.h3" Class="fw-black">My Vault</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-60">Manage your credits and view transaction history.</MudText>
+        </div>
+    </div>
 
     <MudGrid>
-        <!-- Deposit / Faucet Section -->
-        <MudItem xs="12" md="4">
-            <AuthorizeView Roles="Admin">
-                <Authorized>
-                    <MudPaper Class="pa-6 mb-4" Elevation="2">
-                        <MudText Typo="Typo.h6" Class="mb-4">Admin Deposit (God Mode)</MudText>
-                        <MudText Typo="Typo.body2" Class="mb-4">Select an amount to instantly top up your balance.</MudText>
-                        
-                        <div class="d-flex flex-wrap gap-2">
-                            @foreach (var amt in depositAmounts)
-                            {
-                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick='() => PerformDeposit(amt)'>$@amt</MudButton>
-                            }
+        <!-- Top Section: Total Balance Summary -->
+        <MudItem xs="12">
+            <MudPaper Class="pa-8 premium-wallet-card overflow-hidden" Elevation="4">
+                <MudGrid align-center>
+                    <MudItem xs="12" md="4">
+                        <div class="balance-item">
+                            <MudText Typo="Typo.subtitle2" Class="fw-bold opacity-60 mb-1">REAL BALANCE</MudText>
+                            <MudText Typo="Typo.h3" Class="fw-black text-success">@profile?.Balance.ToString("C2")</MudText>
                         </div>
-
-                        <MudNumericField @bind-Value="customAmount" Label="Custom Amount" Variant="Variant.Outlined" Class="mt-4" />
-                        <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" Class="mt-4" OnClick='() => PerformDeposit(customAmount)'>Deposit Now</MudButton>
-                    </MudPaper>
-                </Authorized>
-            </AuthorizeView>
-
-            <MudPaper Class="pa-6" Elevation="2">
-                <MudText Typo="Typo.h6" Class="mb-4">Bankruptcy Relief</MudText>
-                <MudText Typo="Typo.body2" Class="mb-4">Ran out of funds? Claim $100.00 free credits once every hour if your balance is below $10.00.</MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" OnClick="ClaimFaucet">Claim Free Credits</MudButton>
+                    </MudItem>
+                    <MudItem xs="12" md="4" Class="border-l-md">
+                        <div class="balance-item">
+                            <MudText Typo="Typo.subtitle2" Class="fw-bold opacity-60 mb-1">BONUS CREDITS</MudText>
+                            <MudText Typo="Typo.h3" Class="fw-black text-info">@profile?.BonusBalance.ToString("C2")</MudText>
+                        </div>
+                    </MudItem>
+                    <MudItem xs="12" md="4" Class="border-l-md">
+                        <div class="balance-item">
+                            <MudText Typo="Typo.subtitle2" Class="fw-bold opacity-60 mb-1">TOTAL LIQUIDITY</MudText>
+                            <MudText Typo="Typo.h2" Class="fw-black text-gradient-gold">@profile?.TotalBalance.ToString("C2")</MudText>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+                <!-- Decorative element -->
+                <MudIcon Icon="@Icons.Material.Filled.Payments" Class="bg-wallet-icon" />
             </MudPaper>
         </MudItem>
 
-        <!-- Transaction History -->
-        <MudItem xs="12" md="8">
-            <MudPaper Class="pa-4" Elevation="2">
-                <MudText Typo="Typo.h6" Class="mb-4 ml-2">Transaction History</MudText>
+        <!-- Sidebar: Actions -->
+        <MudItem xs="12" lg="4">
+            <MudStack Spacing="6">
+                <!-- Faucet / Relief Card -->
+                <MudPaper Class="pa-6 rounded-xl border-2 border-solid border-warning-light" Elevation="2" Style="background: rgba(var(--mud-palette-warning-rgb), 0.03);">
+                    <div class="d-flex align-center gap-3 mb-4">
+                        <div class="action-icon-box warning">
+                            <MudIcon Icon="@Icons.Material.Filled.Emergency" Size="Size.Small" />
+                        </div>
+                        <MudText Typo="Typo.h6" Class="fw-black">Bankruptcy Relief</MudText>
+                    </div>
+                    <MudText Typo="Typo.body2" Class="opacity-70 mb-6">
+                        Out of credits? You can claim <span class="fw-bold text-warning">$100.00</span> free credits once every hour if your balance is below $10.00.
+                    </MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" Class="py-3 rounded-lg fw-black" 
+                               OnClick="ClaimFaucet" StartIcon="@Icons.Material.Filled.VolunteerActivism">CLAIM RELIEF</MudButton>
+                </MudPaper>
+
+                <!-- Admin God Mode -->
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <MudPaper Class="pa-6 rounded-xl border-2 border-solid border-primary-light" Elevation="2">
+                            <div class="d-flex align-center gap-3 mb-4">
+                                <div class="action-icon-box primary">
+                                    <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small" />
+                                </div>
+                                <MudText Typo="Typo.h6" Class="fw-black">Admin Deposit</MudText>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 mb-4">
+                                @foreach (var amt in depositAmounts)
+                                {
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick='() => PerformDeposit(amt)' Class="flex-grow-1">$@amt</MudButton>
+                                }
+                            </div>
+                            <MudNumericField @bind-Value="customAmount" Label="Custom Amount" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-4" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="py-3 rounded-lg fw-black" 
+                                       OnClick='() => PerformDeposit(customAmount)'>INSTANT DEPOSIT</MudButton>
+                        </MudPaper>
+                    </Authorized>
+                </AuthorizeView>
+
+                <!-- Support Box -->
+                <MudPaper Class="pa-6 rounded-xl glass-panel" Elevation="1">
+                    <MudText Typo="Typo.subtitle2" Class="fw-bold mb-2">Need help with payments?</MudText>
+                    <MudText Typo="Typo.caption" Class="opacity-60 d-block mb-4">Our support team is available 24/7 for any vault-related issues.</MudText>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" FullWidth="true" Href="/help" StartIcon="@Icons.Material.Filled.HelpCenter">Open Help Center</MudButton>
+                </MudPaper>
+            </MudStack>
+        </MudItem>
+
+        <!-- Main Content: Transaction History -->
+        <MudItem xs="12" lg="8">
+            <MudPaper Class="pa-8 rounded-xl" Elevation="2">
+                <div class="d-flex justify-space-between align-center mb-6">
+                    <MudText Typo="Typo.h5" Class="fw-black">Transaction History</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadTransactions" Size="Size.Small">Refresh</MudButton>
+                </div>
+
                 @if (transactions == null) {
-                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                    <div class="d-flex flex-column align-center py-12 opacity-30">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mb-4" />
+                        <MudText>Fetching transactions...</MudText>
+                    </div>
+                } else if (!transactions.Any()) {
+                    <div class="d-flex flex-column align-center py-12 opacity-30">
+                        <MudIcon Icon="@Icons.Material.Filled.History" Style="font-size: 4rem;" Class="mb-2" />
+                        <MudText>No transactions found.</MudText>
+                    </div>
                 } else {
-                    <MudTable Items="@transactions" Hover="true" Dense="true" RowsPerPage="10" Elevation="0" Class="glass-panel">
+                    <MudTable Items="@transactions" Hover="true" Elevation="0" Class="modern-table">
                         <HeaderContent>
-                            <MudTh>Type</MudTh>
-                            <MudTh>Date</MudTh>
-                            <MudTh>Amount</MudTh>
+                            <MudTh>TYPE</MudTh>
+                            <MudTh>TIMESTAMP</MudTh>
+                            <MudTh Style="text-align: right;">AMOUNT</MudTh>
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd DataLabel="Type">
-                                <MudText Typo="Typo.body2" Style="font-weight: bold;">@context.Type</MudText>
+                                <div class="d-flex align-center gap-3">
+                                    <div class='@($"tx-type-icon {context.Type.ToLower()}")'>
+                                        <MudIcon Icon="@GetTxIcon(context.Type)" Size="Size.Small" />
+                                    </div>
+                                    <MudText Typo="Typo.body2" Class="fw-bold">@context.Type</MudText>
+                                </div>
                             </MudTd>
-                            <MudTd DataLabel="Date">
-                                <MudText Typo="Typo.caption">@context.Timestamp.ToString("g")</MudText>
+                            <MudTd DataLabel="Timestamp">
+                                <MudText Typo="Typo.caption" Class="opacity-60">@context.Timestamp.ToString("MMM dd, yyyy HH:mm")</MudText>
                             </MudTd>
-                            <MudTd DataLabel="Amount">
-                                <MudText Typo="Typo.body2" Color="@(context.Amount > 0 ? Color.Success : (context.Amount < 0 ? Color.Error : Color.Default))" Style="font-weight: bold;">
-                                    @(context.Amount > 0 ? "+" : (context.Amount < 0 ? "-" : ""))@Math.Abs(context.Amount).ToString("C2")
+                            <MudTd DataLabel="Amount" Style="text-align: right;">
+                                <MudText Typo="Typo.body1" Color="@(context.Amount > 0 ? Color.Success : (context.Amount < 0 ? Color.Error : Color.Default))" Class="fw-black">
+                                    @(context.Amount > 0 ? "+" : "")@context.Amount.ToString("C2")
                                 </MudText>
                             </MudTd>
                         </RowTemplate>
@@ -91,6 +148,49 @@
         </MudItem>
     </MudGrid>
 </MudContainer>
+
+<style>
+    .fw-black { font-weight: 950; }
+    .fw-bold { font-weight: 700; }
+    .opacity-60 { opacity: 0.6; }
+    .opacity-20 { opacity: 0.2; }
+    .p-relative { position: relative; }
+
+    .wallet-header-icon {
+        width: 64px; height: 64px; background: rgba(var(--mud-palette-primary-rgb), 0.1);
+        border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    }
+
+    .premium-wallet-card {
+        border-radius: 24px;
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-divider);
+        position: relative;
+    }
+
+    .border-l-md { border-left: 1px solid var(--mud-palette-divider); }
+    @@media (max-width: 960px) { .border-l-md { border-left: none; border-top: 1px solid var(--mud-palette-divider); padding-top: 20px; } }
+
+    .text-gradient-gold {
+        background: linear-gradient(to right, #fbbf24, #d97706);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .bg-wallet-icon { position: absolute; right: -20px; top: -20px; font-size: 15rem !important; opacity: 0.03; transform: rotate(15deg); }
+
+    .action-icon-box { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .action-icon-box.warning { background: rgba(var(--mud-palette-warning-rgb), 0.1); color: var(--mud-palette-warning); }
+    .action-icon-box.primary { background: rgba(var(--mud-palette-primary-rgb), 0.1); color: var(--mud-palette-primary); }
+
+    .tx-type-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .tx-type-icon.deposit { background: rgba(var(--mud-palette-success-rgb), 0.1); color: var(--mud-palette-success); }
+    .tx-type-icon.bet { background: rgba(var(--mud-palette-info-rgb), 0.1); color: var(--mud-palette-info); }
+    .tx-type-icon.win { background: rgba(var(--mud-palette-warning-rgb), 0.1); color: var(--mud-palette-warning); }
+    .tx-type-icon.faucet { background: rgba(var(--mud-palette-secondary-rgb), 0.1); color: var(--mud-palette-secondary); }
+
+    .modern-table .mud-table-head .mud-th { font-weight: 900; letter-spacing: 1px; font-size: 0.75rem; color: var(--mud-palette-text-secondary); }
+    .modern-table .mud-table-body .mud-td { padding: 16px; border-bottom: 1px solid var(--mud-palette-divider); }
+</style>
 
 @code {
     private List<TransactionDto>? transactions;
@@ -113,6 +213,7 @@
 
     private async Task LoadTransactions() {
         transactions = await Http.GetFromJsonAsync<List<TransactionDto>>("api/Vault/transactions");
+        StateHasChanged();
     }
 
     private async Task PerformDeposit(decimal amount) {
@@ -120,6 +221,7 @@
         if (response.IsSuccessStatusCode) {
             Snackbar.Add("Deposit successful!", Severity.Success);
             await LoadData();
+            layoutService.NotifyMajorUpdate();
         } else {
             Snackbar.Add("Deposit failed. Only Admins can deposit manually.", Severity.Error);
         }
@@ -130,9 +232,18 @@
         if (response.IsSuccessStatusCode) {
             Snackbar.Add("Relief claimed! Added $100.00.", Severity.Success);
             await LoadData();
+            layoutService.NotifyMajorUpdate();
         } else {
             var error = await response.Content.ReadAsStringAsync();
             Snackbar.Add($"Failed: {error}", Severity.Warning);
         }
     }
+
+    private string GetTxIcon(string type) => type.ToLower() switch {
+        "deposit" => Icons.Material.Filled.AddCircle,
+        "bet" => Icons.Material.Filled.PlayArrow,
+        "win" => Icons.Material.Filled.EmojiEvents,
+        "faucet" => Icons.Material.Filled.VolunteerActivism,
+        _ => Icons.Material.Filled.Receipt
+    };
 }
