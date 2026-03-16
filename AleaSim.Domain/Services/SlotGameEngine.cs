@@ -18,15 +18,15 @@ public class SlotGameEngine : BaseGameEngine {
         WildSymbol = 8, ScatterSymbol = 9, CollectSymbol = 11, GoldenSymbol = 12,
         BaseStrip = new[] { 
             1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 11, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, // 40
-            1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 8,  1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, // 80 (Clover)
+            1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 8,  1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, // 80 (Wild Clover)
             1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 11, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, // 120
-            1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 9,  1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, // 160 (Scatter)
+            1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 9,  1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, // 160 (Bell Trigger)
             1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 11, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, // 200
-            1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 8,  1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, // 240 (Clover)
+            1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 9,  1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, // 240 (Bell Trigger)
             1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 11, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, // 280
-            1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 12, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, // 320 (Golden)
+            1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 12, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, // 320 (Golden Seven)
             1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 11, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, // 360
-            1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 8,  1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6  // 400 (Clover)
+            1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 9,  1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6  // 400 (Bell Trigger)
         },
         Paylines = new[] {
             new[] {0,0,0,0,0}, new[] {1,1,1,1,1}, new[] {2,2,2,2,2}, new[] {3,3,3,3,3},
@@ -57,7 +57,7 @@ public class SlotGameEngine : BaseGameEngine {
         public int[][] Grid { get; set; }
         public bool IsRespinActive { get; set; }
         public int RespinLives { get; set; }
-        public List<Point> StickyClovers { get; set; } = new();
+        public List<Point> StickyBells { get; set; } = new(); // RENAME: Now tracking Bells
         public bool HasGoldenClover { get; set; } 
         public bool IsBonusActive { get; set; } 
         public int BonusLives { get; set; }
@@ -126,11 +126,11 @@ public class SlotGameEngine : BaseGameEngine {
             } else {
                 state.LockedBet = currentBet;
                 state.HasGoldenClover = false; 
-                state.StickyClovers.Clear(); 
+                state.StickyBells.Clear(); // Reset sticky triggers
+                state.BonusBells.Clear();  // Clear payout data
             }
 
             var directive = BrainService.GetNextDirective(session.UserId, session.GameId, currentBet, repo);
-            var shadowDirective = BrainService.DecideOutcome(session.UserId, session.GameId, currentBet, repo, isShadowMode: true);
             
             decimal totalWin = 0;
             int attempts = 0;
@@ -155,7 +155,8 @@ public class SlotGameEngine : BaseGameEngine {
                     if (state.BonusLives == 0 || state.BonusBells.Count == config.Rows * config.Cols) {
                         totalWin = state.BonusBells.Sum(b => b.Value);
                         if (state.BonusBells.Count == config.Rows * config.Cols) totalWin *= 1.5m;
-                        state.IsBonusActive = false; state.IsRespinActive = false; state.StickyClovers.Clear();
+                        state.IsBonusActive = false; state.IsRespinActive = false; 
+                        // Note: Bells stay sticky for reveal animation, cleared on next spin
                     }
                 } else {
                     decimal lineWin = EvaluateGrid(state.Grid, currentBet, config);
@@ -177,6 +178,10 @@ public class SlotGameEngine : BaseGameEngine {
 
             await _cache.SetAsync(cacheKey, state, TimeSpan.FromMinutes(10));
             session.GameState = JsonSerializer.Serialize(state);
+            
+            // SECURITY: Only send labels when bonus is over and reveal starts
+            var clientBells = (state.IsBonusActive || state.IsRespinActive) ? new List<BellValue>() : state.BonusBells;
+
             repo.SaveRound(new GameRound {
                 Id = Guid.NewGuid(), GameSessionId = sessionId, TotalBetAmount = currentBet, TotalWinAmount = Math.Round(totalWin, 2),
                 RoundNumber = roundNum, DecisionType = directive.DecisionType, ExecutedAt = DateTime.UtcNow,
@@ -189,7 +194,8 @@ public class SlotGameEngine : BaseGameEngine {
                     state.RespinLives,
                     BonusTotal = state.BonusBells.Sum(x=>x.Value), 
                     state.Denomination, 
-                    BonusBells = state.BonusBells, 
+                    BonusBells = clientBells, 
+                    StickyBells = state.StickyBells,
                     WinningLines = GetWinningLines(state.Grid, state.LockedBet, config) 
                 }),
                 ServerSeed = session.ServerSeed, ClientSeed = session.ClientSeed, Nonce = roundNum
@@ -202,62 +208,56 @@ public class SlotGameEngine : BaseGameEngine {
 
     private void ForceWinGrid(SlotState state, SlotGameConfig config, decimal targetWin, decimal currentBet) {
         for(int r=0; r<config.Rows; r++) for(int c=0; c<config.Cols; c++) state.Grid[r][c] = (r+c)%2==0?1:2;
-        decimal lineBet = currentBet / config.PaylinesCount;
         int sym = targetWin > currentBet * 5 ? 7 : 3;
         int count = targetWin > currentBet * 10 ? 5 : 3;
-        for(int r=0; r<2; r++) for(int c=0; c<count; c++) state.Grid[r][c] = sym; // Hit multiple lines
+        for(int r=0; r<2; r++) for(int c=0; c<count; c++) state.Grid[r][c] = sym; 
     }
 
     private decimal PlayStandardRound(SlotState state, string ss, string cs, int off, int[] strip, SlotGameConfig cfg) {
         decimal coins = 0; int n = off;
-        // 1. Generate random symbols for all cells
         for (int c = 0; c < cfg.Cols; c++) {
             int stop = RngService.GetNextInt(ss, cs, n++, 0, strip.Length);
             for (int r = 0; r < cfg.Rows; r++) state.Grid[r][c] = strip[(stop + r) % strip.Length];
         }
 
-        // 2. Force Sticky Clovers back onto the grid (so they act as Wilds for Paylines)
-        foreach (var p in state.StickyClovers) {
+        // 2. Force Sticky BELLS (ID 9) onto the grid
+        foreach (var p in state.StickyBells) {
             if (p.R < cfg.Rows && p.C < cfg.Cols) {
-                state.Grid[p.R][p.C] = 8; // Sticky Wild
+                state.Grid[p.R][p.C] = 9; // Bell
             }
         }
 
-        int newClovers = 0;
-        // 3. Scan for NEW clovers that landed in this spin
+        int newBells = 0;
         for (int r = 0; r < cfg.Rows; r++) {
             for (int c = 0; c < cfg.Cols; c++) {
                 int sym = state.Grid[r][c];
-                if (sym == 8 || sym == 12) {
-                    // Only add if NOT already in the sticky list
-                    if (!state.StickyClovers.Any(p => p.R == r && p.C == c)) {
-                        state.StickyClovers.Add(new Point { R = r, C = c });
-                        newClovers++;
+                // Bells (9) are the ONLY sticky feature trigger now
+                if (sym == 9) {
+                    if (!state.StickyBells.Any(p => p.R == r && p.C == c)) {
+                        state.StickyBells.Add(new Point { R = r, C = c });
+                        newBells++;
                     }
                 }
-                // Symbol 11 (Collect) gives instant win during respins
                 if (state.Grid[r][c] == 11 && state.IsRespinActive) coins += state.LockedBet * 0.2m; 
             }
         }
 
-        // 4. Update Respin State logic
-        if (newClovers > 0) {
+        if (newBells > 0) {
             state.IsRespinActive = true; 
-            state.RespinLives = 3; // Reset to 3 lives per design doc
+            state.RespinLives = 3; 
         } else if (state.IsRespinActive) {
             state.RespinLives--;
         }
 
-        // 5. Check transition to Bonus Game (Hold & Win)
         if (state.IsRespinActive && state.RespinLives <= 0) {
-            if (state.StickyClovers.Count >= 5) { // Design requires 5+ Clovers for Bonus
+            if (state.StickyBells.Count >= 5) { 
                 state.IsBonusActive = true; 
                 state.BonusLives = 3; 
                 state.IsRespinActive = false;
                 InitializeBonusGrid(state, ss, cs, off, cfg);
             } else { 
                 state.IsRespinActive = false; 
-                state.StickyClovers.Clear(); 
+                state.StickyBells.Clear(); 
             }
         }
         return coins;
@@ -266,17 +266,13 @@ public class SlotGameEngine : BaseGameEngine {
     private void InitializeBonusGrid(SlotState state, string ss, string cs, int off, SlotGameConfig cfg) {
         state.BonusBells.Clear(); 
         int n = off + 5000;
-        
-        // Clear grid for bonus mode
         for(int r=0; r<cfg.Rows; r++) for(int c=0; c<cfg.Cols; c++) state.Grid[r][c] = 0;
         
-        // Natural scaling: High bets get better bonus floor
         int minMult = state.LockedBet >= 50m ? 4 : 2;
         int maxMult = state.LockedBet >= 50m ? 12 : 8;
 
-        // Convert unique sticky clovers to bells
-        foreach(var p in state.StickyClovers) {
-            state.Grid[p.R][p.C] = 9; // Bell symbol
+        foreach(var p in state.StickyBells) {
+            state.Grid[p.R][p.C] = 9; 
             state.BonusBells.Add(new BellValue { 
                 Pos = p, 
                 Value = state.LockedBet * RngService.GetNextInt(ss, cs, n++, minMult, maxMult), 
@@ -287,8 +283,6 @@ public class SlotGameEngine : BaseGameEngine {
 
     private void PlayBonusRound(SlotState state, string ss, string cs, int off, IGameRepository repo, SlotGameConfig cfg) {
         bool hit = false; int n = off;
-        
-        // Natural scaling for bonus hits
         int minMult = state.LockedBet >= 50m ? 5 : 2;
         int maxMult = state.LockedBet >= 50m ? 40 : 30;
 
