@@ -18,7 +18,7 @@
                 <div class="d-flex align-center gap-1">
                     <MudText Typo="Typo.caption" Class="jackpot-label ma-0">MEGA JACKPOT</MudText>
                     <MudTooltip Text="The ultimate prize! Accumulates from every spin across the platform. Can be won in any original game.">
-                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="font-size: 0.8rem; opacity: 0.5; cursor: help;" />
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
                     </MudTooltip>
                 </div>
                 <MudText Typo="Typo.h4" Class='@($"jackpot-value mega-text {(FullGridMode ? "text-compact" : "")}")'>@spades.ToString("C2")</MudText>
@@ -43,7 +43,7 @@
                 <div class="d-flex align-center gap-1">
                     <MudText Typo="Typo.caption" Class="jackpot-label ma-0">MAJOR WEEKLY</MudText>
                     <MudTooltip Text="A massive weekly reward! Grows every second and is guaranteed to drop to one lucky player every Sunday.">
-                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="font-size: 0.8rem; opacity: 0.5; cursor: help;" />
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
                     </MudTooltip>
                 </div>
                 <MudText Typo="Typo.h4" Class='@($"jackpot-value major-text {(FullGridMode ? "text-compact" : "")}")'>@hearts.ToString("C2")</MudText>
@@ -70,7 +70,7 @@
                     <div class="d-flex align-center gap-1">
                         <MudText Typo="Typo.caption" Class="jackpot-label ma-0">MINOR DAILY</MudText>
                         <MudTooltip Text="Daily prize pool. Drops every 24 hours to a random active player. Higher bets increase your chances!">
-                            <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="font-size: 0.8rem; opacity: 0.5; cursor: help;" />
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
                         </MudTooltip>
                     </div>
                     <MudText Typo="Typo.h4" Class="jackpot-value minor-text text-compact">@GetMinorValue().ToString("C2")</MudText>
@@ -95,7 +95,7 @@
                     <div class="d-flex align-center gap-1">
                         <MudText Typo="Typo.caption" Class="jackpot-label ma-0">MINI HOURLY</MudText>
                         <MudTooltip Text="Fast-paced hourly jackpot! Drops 24 times a day. Perfect for consistent players.">
-                            <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="font-size: 0.8rem; opacity: 0.5; cursor: help;" />
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
                         </MudTooltip>
                     </div>
                     <MudText Typo="Typo.h4" Class="jackpot-value mini-text text-compact">@GetMiniValue().ToString("C2")</MudText>
@@ -229,6 +229,14 @@
         opacity: 0.7;
         color: #fff;
         font-size: 0.65rem !important;
+        line-height: 1 !important;
+    }
+
+    .info-icon-tweak {
+        font-size: 0.8rem !important;
+        opacity: 0.5;
+        cursor: help;
+        display: block;
     }
 
     .jackpot-value {

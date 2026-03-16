@@ -30,7 +30,7 @@
                             <div class="d-flex align-center gap-1">
                                 <MudText Typo="Typo.caption" Class="pot-label-v4 ma-0">JUICE RESERVOIR</MudText>
                                 <MudTooltip Text="The core reactor's energy reserve. Fill the juice meter to 100 to trigger a meltdown and claim this pot!">
-                                    <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="font-size: 0.8rem; opacity: 0.5; cursor: help;" />
+                                    <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
                                 </MudTooltip>
                             </div>
                             <MudText Typo="Typo.h3" Class="pot-value-v4">@juicePotValue.ToString("C2")</MudText>
@@ -44,7 +44,7 @@
                         <div class="d-flex align-center gap-1">
                             <MudText Typo="Typo.caption" Class="vitamin-label-v4 ma-0">VITAMIN OVERLOAD</MudText>
                             <MudTooltip Text="Progress bar for the platform-wide event. Once 5,000 fruits are extracted, a Mega 3x3 Fruit is guaranteed to drop in the next spin!">
-                                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="font-size: 0.8rem; opacity: 0.5; cursor: help;" />
+                                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
                             </MudTooltip>
                         </div>
                         <div class="vitamin-percent-v4">@((lifetimeExplosions * 100.0 / 5000.0).ToString("F1"))%</div>
@@ -218,7 +218,15 @@
     .pot-liquid-v4 { position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; background: linear-gradient(transparent, rgba(224, 64, 251, 0.2)); z-index: 1; }
 
     .pot-icon-v4 { font-size: 4rem; filter: drop-shadow(0 0 15px #ffeb3b); z-index: 2; }
-    .pot-label-v4 { font-weight: 950; letter-spacing: 2px; }
+    .pot-label-v4 { font-weight: 950; letter-spacing: 2px; line-height: 1 !important; }
+    .vitamin-label-v4 { line-height: 1 !important; }
+    
+    .info-icon-tweak {
+        font-size: 0.8rem !important;
+        opacity: 0.5;
+        cursor: help;
+        display: block;
+    }
     .dark .pot-label-v4 { color: #e040fb; } .light .pot-label-v4 { color: #7b1fa2; }
     
     .pot-value-v4 { font-weight: 950; font-family: 'JetBrains Mono', monospace; font-size: 3rem !important; }
