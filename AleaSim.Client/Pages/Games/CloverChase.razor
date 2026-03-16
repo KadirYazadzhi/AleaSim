@@ -30,7 +30,7 @@
                 
                 <!-- Info Button -->
                 <div style="position: absolute; top: 15px; right: 15px; z-index: 101;">
-                    <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Inherit" OnClick="OpenPaytable" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Inherit" Class="glass-panel rounded-circle" OnClick="OpenPaytable" />
                 </div>
 
                 <div class="win-light @(lastWin > 0 ? "active" : "")"></div>
@@ -192,6 +192,7 @@
     private bool showWinDisplay = false;
     private decimal balance = 0;
     private decimal lastWin = 0;
+    private decimal nextWinBuffer = 0;
     private decimal denomination = 0.01m; 
     private int creditsBet = 10; 
     private Guid sessionId = Guid.NewGuid(); 
@@ -217,7 +218,22 @@
     [JSInvokable]
     public void OnAnimationFinished() {
         isSpinning = false;
-        StateHasChanged();
+        
+        // APPLY WIN FROM BUFFER ONLY AFTER ANIMATION
+        lastWin = nextWinBuffer;
+
+        if (lastWin > 0.01m) {
+            showWinDisplay = true;
+            StateHasChanged();
+            
+            var winDelay = animationSpeed switch { 3 => 800, 2 => 1500, _ => 3500 };
+            _ = Task.Delay(winDelay).ContinueWith(_ => {
+                showWinDisplay = false;
+                InvokeAsync(StateHasChanged);
+            });
+        } else {
+            StateHasChanged();
+        }
     }
 
     private void SetSpeed(int speed) {
@@ -272,6 +288,7 @@
         
         do {
             isSpinning = true; wasNudged = false; showWinDisplay = false;
+            nextWinBuffer = 0; // Reset buffer
             
             var betAmount = gameState.IsBonusActive ? 0 : (creditsBet * denomination);
 
@@ -292,30 +309,21 @@
                 await Audio.PlaySpin();
                 var result = await GameService.PlaceBet("slot", sessionId, betAmount, new { Denomination = denomination });
                 
-                // Set lastWin IMMEDIATELY so it's ready for any logic
-                lastWin = result.TotalWin;
+                // BUFFER THE WIN (Don't update UI until animation ends)
+                nextWinBuffer = result.TotalWin;
 
                 await JSRuntime.InvokeVoidAsync("slotEngine.spin", result.RandomResultJson);
                 
-                int timeout = animationSpeed switch { 3 => 3000, 2 => 6000, _ => 12000 };
+                // wait for JS callback (OnAnimationFinished) or timeout
+                int timeout = animationSpeed switch { 3 => 4000, 2 => 8000, _ => 15000 };
                 var start = DateTime.Now;
                 while (isSpinning && (DateTime.Now - start).TotalMilliseconds < timeout) {
                     await Task.Delay(50);
                 }
 
-                // Show giant win display IF there was a real win
-                if (lastWin > 0.01m) {
-                    showWinDisplay = true;
-                    await Audio.PlayWin();
-                    StateHasChanged();
-                    var winDelay = animationSpeed switch { 3 => 800, 2 => 1500, _ => 3500 };
-                    await Task.Delay(winDelay);
-                    showWinDisplay = false;
-                }
-
                 var profile = await AuthService.GetMe();
                 if (profile != null) balance = profile.TotalBalance;
-                
+
                 var gridData = JsonSerializer.Deserialize<SlotStateResponse>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (gridData != null) {
                     bool bonusJustStarted = !gameState.IsBonusActive && gridData.IsBonusActive;
