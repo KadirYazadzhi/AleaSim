@@ -1,3 +1,4 @@
+
 window.slotEngine = {
     app: null,
     reels: [],
@@ -136,7 +137,6 @@ window.slotEngine = {
 
         window.slotEngine.wasInBonus = window.slotEngine.isBonusActive;
 
-        // HARD CLEANUP for normal rounds
         if (!currentlyInFeature && !window.slotEngine.isRevealing) {
             window.slotEngine.stickyBells = [];
             window.slotEngine.stickyLayer.removeChildren();
@@ -149,19 +149,9 @@ window.slotEngine = {
         window.slotEngine.isBonusActive = data.IsBonusActive;
         window.slotEngine.lastWinningLines = data.WinningLines || [];
         
-        // SYNC STICKY DATA
         if (currentlyInFeature) {
-            window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyBells || []); // Note: backend uses StickyBells now
+            window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyBells || []);
         }
-
-        // IMPORTANT: Hide all reel symbols that are currently under a sticky bell
-        window.slotEngine.reels.forEach((reel, i) => {
-            reel.symbols.forEach((s, r) => {
-                const isSticky = window.slotEngine.stickyBells.find(sb => sb.c === i && sb.r === r);
-                if (isSticky && r < 4) s.sprite.alpha = 0; 
-                else s.sprite.alpha = 1;
-            });
-        });
 
         const finalSymbols = [];
         for(let c=0; c < 5; c++) {
@@ -183,9 +173,7 @@ window.slotEngine = {
 
     syncStickyBells: (bells, stickyCoords) => {
         const newSticky = [];
-        // Bells with values
         bells.forEach(b => { newSticky.push({ r: b.Pos.R, c: b.Pos.C, id: 9, value: b.Value, type: b.Type }); });
-        // Sticky trigger bells (without values yet)
         stickyCoords.forEach(p => {
             if (!newSticky.find(s => s.r === p.R && s.c === p.C)) {
                 newSticky.push({ r: p.R, c: p.C, id: 9 });
@@ -199,11 +187,21 @@ window.slotEngine = {
         const { stickyLayer, stickyBells, symbolSize, reelWidth, textures } = window.slotEngine;
         stickyLayer.removeChildren();
         stickyBells.forEach(sb => {
+            const bgX = sb.c * reelWidth + (reelWidth - symbolSize) / 2;
+            const bgY = sb.r * symbolSize;
+
+            // NEW: Add opaque background to each sticky bell
+            const bg = new PIXI.Graphics();
+            bg.beginFill(0x000000, 1.0); // Completely opaque black
+            bg.drawRect(bgX, bgY, symbolSize, symbolSize);
+            bg.endFill();
+            stickyLayer.addChild(bg);
+
             const tex = textures[`sym${sb.id}`];
             const sprite = new PIXI.Sprite(tex);
             sprite.width = sprite.height = symbolSize;
-            sprite.x = sb.c * reelWidth + (reelWidth - symbolSize) / 2;
-            sprite.y = sb.r * symbolSize;
+            sprite.x = bgX;
+            sprite.y = bgY;
             
             if (sb.type !== undefined || sb.value !== undefined) {
                 let txt = sb.type === 1 ? "MINI" : sb.type === 2 ? "MINOR" : sb.type === 3 ? "MAJOR" : sb.type === 4 ? "MEGA" : `$${sb.value.toFixed(2)}`;
@@ -283,14 +281,16 @@ window.slotEngine = {
         const { stickyLayer } = window.slotEngine;
         
         for (let i = 0; i < stickyLayer.children.length; i++) {
-            const bell = stickyLayer.children[i];
-            const label = bell.getChildByName("valueLabel");
-            if (label && window.gsap) {
-                if (window.aleaAudio?.play) window.aleaAudio.play('click');
-                label.visible = true;
-                gsap.fromTo(label.scale, { x: 0, y: 0 }, { x: 1, y: 1, duration: 0.3, ease: "back.out" });
-                gsap.to(bell.scale, { x: 1.2, y: 1.2, duration: 0.15, yoyo: true, repeat: 1 });
-                await new Promise(r => setTimeout(r, 250));
+            const child = stickyLayer.children[i];
+            if (child instanceof PIXI.Sprite) { // Only animate sprites (not backgrounds)
+                const label = child.getChildByName("valueLabel");
+                if (label && window.gsap) {
+                    if (window.aleaAudio?.play) window.aleaAudio.play('click');
+                    label.visible = true;
+                    gsap.fromTo(label.scale, { x: 0, y: 0 }, { x: 1, y: 1, duration: 0.3, ease: "back.out" });
+                    gsap.to(child.scale, { x: 1.2, y: 1.2, duration: 0.15, yoyo: true, repeat: 1 });
+                    await new Promise(r => setTimeout(r, 250));
+                }
             }
         }
         
@@ -333,11 +333,11 @@ window.slotEngine = {
         }
         if (data.BonusBells || data.StickyBells) {
             window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyBells || []);
-            if (!data.IsBonusActive && data.BonusBells?.length > 0) {
-                window.slotEngine.stickyLayer.children.forEach(c => {
+            window.slotEngine.stickyLayer.children.forEach(c => {
+                if (c instanceof PIXI.Sprite) {
                     const l = c.getChildByName("valueLabel"); if (l) l.visible = true;
-                });
-            }
+                }
+            });
         }
     }
 };

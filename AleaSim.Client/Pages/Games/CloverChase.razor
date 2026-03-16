@@ -331,7 +331,8 @@
                     gameState.IsBonusActive = gridData.IsBonusActive;
                     gameState.IsRespinActive = gridData.IsRespinActive;
                     gameState.BonusLives = gridData.BonusLives;
-                    gameState.RespinLives = gridData.RespinLives;
+                    gameState.RespinLives = gridData.RespinLives; // SYNC COUNTER IMMEDIATELY
+                    
                     gameState.IsGambleActive = lastWin > 0 && !gameState.IsBonusActive && !gameState.IsRespinActive; 
                     gameState.PendingGambleWin = lastWin;
                     wasNudged = gridData.WasNudged;
@@ -344,7 +345,7 @@
                     await Audio.PlayWin();
                 }
 
-                StateHasChanged();
+                StateHasChanged(); // Force UI update for counters before animation ends if needed
 
                 if (gameState.IsGambleActive && isAutoSpinning) {
                     await CollectWin(); 
