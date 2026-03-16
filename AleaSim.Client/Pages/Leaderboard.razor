@@ -2,55 +2,130 @@
 @using AleaSim.Shared.Models
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject LayoutService LayoutService
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
-    <MudText Typo="Typo.h3" Class="mb-6">Hall of Fame</MudText>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 pb-12">
+    <div class="d-flex align-center gap-4 mb-8">
+        <div class="leaderboard-header-icon">
+            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Large" Color="Color.Warning" />
+        </div>
+        <div>
+            <MudText Typo="Typo.h3" Class="fw-black">Tournament Arena</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-60">Season @(currentSeason) - The battle for the ultimate prize pool.</MudText>
+        </div>
+    </div>
 
-    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
-        <MudTabPanel Text="Current Tournament" Icon="@Icons.Material.Filled.EmojiEvents">
-            <MudTable Items="@topPlayers" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" Elevation="0">
-                <HeaderContent>
-                    <MudTh>Rank</MudTh>
-                    <MudTh>Player</MudTh>
-                    <MudTh Style="text-align: right;">Potential Prize</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Rank">
-                        <MudText Style="font-weight: bold; color: #ffD700;">#@context.Rank</MudText>
-                    </MudTd>
-                    <MudTd DataLabel="Player">
-                        <div class="d-flex align-center gap-3">
-                            <MudAvatar Size="Size.Small">
-                                <MudImage Src="@context.AvatarUrl" />
+    <MudTabs Elevation="4" Rounded="true" Color="Color.Primary" ApplyEffectsToContainer="true" PanelClass="pa-8 custom-tabs-panel" Class="leaderboard-tabs rounded-xl overflow-hidden">
+        
+        <!-- 1. LIVE RANKINGS -->
+        <MudTabPanel Text="LIVE RANKINGS" Icon="@Icons.Material.Filled.Leaderboard">
+            @if (isLoading)
+            {
+                <div class="d-flex flex-column align-center py-12">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                    <MudText Class="mt-4 opacity-40">Calculating rankings...</MudText>
+                </div>
+            }
+            else if (!topPlayers.Any())
+            {
+                <div class="pa-12 d-flex flex-column align-center justify-center text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Groups" Style="font-size: 5rem;" Class="opacity-10 mb-4" />
+                    <MudText Typo="Typo.h5" Class="fw-black opacity-40">NO CONTENDERS YET</MudText>
+                    <MudText Typo="Typo.body1" Class="opacity-40">The season just started. Be the first to claim the #1 spot!</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-8 px-12 py-4 rounded-xl fw-black" Href="/">PLAY NOW</MudButton>
+                </div>
+            }
+            else
+            {
+                <!-- Podium Section -->
+                <div class="podium-grid mb-12">
+                    <!-- #2 -->
+                    @if (topPlayers.Count > 1) {
+                        var p2 = topPlayers[1];
+                        <div class="podium-card silver">
+                            <div class="rank-badge">#2</div>
+                            <MudAvatar Style="height:80px; width:80px;" Class="mb-3 podium-avatar">
+                                <MudImage Src="@p2.AvatarUrl" />
                             </MudAvatar>
-                            @context.Username
+                            <MudText Typo="Typo.h6" Class="fw-black truncate">@p2.Username</MudText>
+                            <MudText Typo="Typo.caption" Class="fw-bold opacity-60">SILVER CONTENDER</MudText>
+                            <div class="prize-tag mt-4">@GetEstimatedPrize(2).ToString("C0")</div>
                         </div>
-                    </MudTd>
-                    <MudTd DataLabel="Prize" Style="text-align: right;">
-                        <MudText Color="Color.Success" Style="font-weight: bold;">
-                            @GetEstimatedPrize(context.Rank).ToString("C2")
-                        </MudText>
-                    </MudTd>
-                </RowTemplate>
-                <NoRecordsContent>
-                    <div class="pa-8 d-flex flex-column align-center justify-center">
-                        <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Color="Color.Surface" Style="font-size: 3rem; opacity: 0.3;" Class="mb-4" />
-                        <MudText Typo="Typo.h6" Align="Align.Center" Style="opacity: 0.5;">No tournament contenders yet!</MudText>
-                        <MudText Typo="Typo.body2" Align="Align.Center" Style="opacity: 0.5;">Be the first to climb the leaderboard.</MudText>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-6" Href="/">PLAY NOW</MudButton>
-                    </div>
-                </NoRecordsContent>
-            </MudTable>
+                    }
+
+                    <!-- #1 -->
+                    @if (topPlayers.Count > 0) {
+                        var p1 = topPlayers[0];
+                        <div class="podium-card gold">
+                            <div class="crown-icon">👑</div>
+                            <div class="rank-badge">#1</div>
+                            <MudAvatar Style="height:110px; width:110px;" Class="mb-3 podium-avatar">
+                                <MudImage Src="@p1.AvatarUrl" />
+                            </MudAvatar>
+                            <MudText Typo="Typo.h5" Class="fw-black truncate">@p1.Username</MudText>
+                            <MudText Typo="Typo.caption" Class="fw-bold text-warning">CURRENT CHAMPION</MudText>
+                            <div class="prize-tag gold-prize mt-4">@GetEstimatedPrize(1).ToString("C0")</div>
+                        </div>
+                    }
+
+                    <!-- #3 -->
+                    @if (topPlayers.Count > 2) {
+                        var p3 = topPlayers[2];
+                        <div class="podium-card bronze">
+                            <div class="rank-badge">#3</div>
+                            <MudAvatar Style="height:80px; width:80px;" Class="mb-3 podium-avatar">
+                                <MudImage Src="@p3.AvatarUrl" />
+                            </MudAvatar>
+                            <MudText Typo="Typo.h6" Class="fw-black truncate">@p3.Username</MudText>
+                            <MudText Typo="Typo.caption" Class="fw-bold opacity-60">BRONZE CONTENDER</MudText>
+                            <div class="prize-tag mt-4">@GetEstimatedPrize(3).ToString("C0")</div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Rest of Rankings -->
+                <MudTable Items="@topPlayers.Skip(3)" Hover="true" Elevation="0" Class="modern-rank-table">
+                    <HeaderContent>
+                        <MudTh>RANK</MudTh>
+                        <MudTh>PLAYER</MudTh>
+                        <MudTh Style="text-align: right;">ESTIMATED PRIZE</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Rank">
+                            <div class="rank-num">#@context.Rank</div>
+                        </MudTd>
+                        <MudTd DataLabel="Player">
+                            <div class="d-flex align-center gap-3">
+                                <MudAvatar Size="Size.Small">
+                                    <MudImage Src="@context.AvatarUrl" />
+                                </MudAvatar>
+                                <MudText Typo="Typo.body2" Class="fw-bold">@context.Username</MudText>
+                            </div>
+                        </MudTd>
+                        <MudTd DataLabel="Prize" Style="text-align: right;">
+                            <MudText Typo="Typo.body1" Color="Color.Success" Class="fw-black">
+                                @GetEstimatedPrize(context.Rank).ToString("C2")
+                            </MudText>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
         </MudTabPanel>
 
-        <MudTabPanel Text="Past Champions" Icon="@Icons.Material.Filled.History">
+        <!-- 2. HALL OF FAME -->
+        <MudTabPanel Text="HALL OF FAME" Icon="@Icons.Material.Filled.AutoAwesome">
             @if (pastWinners == null)
             {
-                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                <div class="d-flex justify-center py-12">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                </div>
             }
             else if (!pastWinners.Any())
             {
-                <MudAlert Severity="Severity.Info">No tournament history available yet.</MudAlert>
+                <div class="pa-12 text-center opacity-30">
+                    <MudIcon Icon="@Icons.Material.Filled.History" Style="font-size: 4rem;" />
+                    <MudText>No history available yet.</MudText>
+                </div>
             }
             else
             {
@@ -58,16 +133,20 @@
                     @foreach (var winner in pastWinners)
                     {
                         <MudItem xs="12" md="6" lg="4">
-                            <MudPaper Class="pa-4 d-flex align-center gap-4" Style="background: #1a1a1a; border-left: 4px solid #ffD700;">
-                                <MudAvatar Size="Size.Large">
-                                    <MudImage Src="@winner.AvatarUrl" />
-                                </MudAvatar>
-                                <div>
-                                    <MudText Typo="Typo.subtitle2" Style="color: #aaa;">@winner.MonthName</MudText>
-                                    <MudText Typo="Typo.h6">@winner.WinnerName</MudText>
-                                    <MudText Typo="Typo.body2" Color="Color.Success">Won @winner.Prize.ToString("C0") (@winner.Multiplier.ToString("F0")x)</MudText>
+                            <div class="champion-card">
+                                <div class="champ-glow"></div>
+                                <div class="d-flex align-center gap-4 p-relative z-10">
+                                    <MudAvatar Style="height:64px; width:64px; border: 2px solid var(--mud-palette-warning);">
+                                        <MudImage Src="@winner.AvatarUrl" />
+                                    </MudAvatar>
+                                    <div class="flex-grow-1">
+                                        <MudText Typo="Typo.caption" Class="fw-bold text-warning uppercase">CHAMPION @winner.MonthName</MudText>
+                                        <MudText Typo="Typo.h6" Class="fw-black">@winner.WinnerName</MudText>
+                                        <MudText Typo="Typo.body2" Color="Color.Success" Class="fw-bold">Won @winner.Prize.ToString("C0")</MudText>
+                                    </div>
+                                    <MudIcon Icon="@Icons.Material.Filled.Stars" Color="Color.Warning" />
                                 </div>
-                            </MudPaper>
+                            </div>
                         </MudItem>
                     }
                 </MudGrid>
@@ -76,10 +155,68 @@
     </MudTabs>
 </MudContainer>
 
+<style>
+    .fw-black { font-weight: 950; }
+    .fw-bold { font-weight: 700; }
+    .opacity-60 { opacity: 0.6; }
+    .p-relative { position: relative; }
+    .z-10 { z-index: 10; }
+    .truncate { max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .leaderboard-header-icon {
+        width: 64px; height: 64px; background: rgba(var(--mud-palette-warning-rgb), 0.1);
+        border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    }
+
+    .leaderboard-tabs { border: 1px solid var(--mud-palette-divider); background: var(--mud-palette-surface); }
+    .custom-tabs-panel { background: rgba(var(--mud-palette-background-grey-rgb), 0.2); }
+
+    /* PODIUM */
+    .podium-grid { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 24px; align-items: flex-end; }
+    @@media (max-width: 768px) { .podium-grid { grid-template-columns: 1fr; } }
+
+    .podium-card {
+        padding: 32px 24px; border-radius: 24px; text-align: center; position: relative;
+        background: var(--mud-palette-surface); border: 1px solid var(--mud-palette-divider);
+        transition: transform 0.3s ease;
+    }
+    .podium-card:hover { transform: translateY(-10px); }
+    
+    .podium-card.gold { border: 3px solid #ffd700; box-shadow: 0 20px 40px rgba(255, 215, 0, 0.15); z-index: 5; margin-bottom: 20px; }
+    .podium-card.silver { border: 2px solid #bdc3c7; }
+    .podium-card.bronze { border: 2px solid #cd7f32; }
+
+    .rank-badge {
+        position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+        padding: 4px 16px; border-radius: 12px; font-weight: 900; background: var(--mud-palette-surface);
+        border: inherit;
+    }
+
+    .crown-icon { position: absolute; top: -45px; left: 50%; transform: translateX(-50%); font-size: 2.5rem; filter: drop-shadow(0 5px 15px rgba(255,215,0,0.5)); }
+
+    .podium-avatar { border: 4px solid var(--mud-palette-divider); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+    .gold .podium-avatar { border-color: #ffd700; }
+
+    .prize-tag { display: inline-block; padding: 8px 24px; border-radius: 12px; background: rgba(var(--mud-palette-success-rgb), 0.1); color: var(--mud-palette-success); font-weight: 900; font-size: 1.25rem; }
+    .gold-prize { background: #ffd700; color: #000; box-shadow: 0 5px 15px rgba(255,215,0,0.3); }
+
+    /* TABLE */
+    .modern-rank-table { background: transparent !important; }
+    .modern-rank-table .mud-table-head .mud-th { font-weight: 900; letter-spacing: 1px; color: var(--mud-palette-text-secondary); padding: 16px; }
+    .modern-rank-table .mud-table-body .mud-td { padding: 20px 16px; border-bottom: 1px solid var(--mud-palette-divider); }
+    .rank-num { width: 40px; height: 40px; border-radius: 10px; background: var(--mud-palette-background-grey); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.9rem; }
+
+    /* CHAMPION CARD */
+    .champion-card { padding: 24px; border-radius: 20px; background: var(--mud-palette-surface); border: 1px solid var(--mud-palette-divider); position: relative; overflow: hidden; }
+    .champ-glow { position: absolute; inset: 0; background: radial-gradient(circle at top right, rgba(255,215,0,0.05), transparent 70%); }
+    .uppercase { text-transform: uppercase; }
+</style>
+
 @code {
     private List<TournamentRankDto> topPlayers = new();
     private List<TournamentHistoryDto>? pastWinners;
     private bool isLoading = true;
+    private int currentSeason = 1;
 
     protected override async Task OnInitializedAsync()
     {

@@ -133,6 +133,25 @@ public class AdminController : ControllerBase {
         return Ok(new { IsValid = isValid, Message = isValid ? "Integrity check passed. All records are secure." : "INTEGRITY BREACH DETECTED! Database tampering suspected." });
     }
 
+    [HttpGet("players/active")]
+    public ActionResult<List<PlayerSearchResultDto>> GetActivePlayers() {
+        // For now, let's return all users or a subset. 
+        // In a real app, this would be based on last activity timestamp.
+        var users = _repo.SearchUsers(""); 
+        var result = users.Select(u => new PlayerSearchResultDto {
+            Id = u.Id,
+            Username = u.Username,
+            Email = u.Email,
+            Balance = u.Balance,
+            Role = u.Role.ToString(),
+            AvatarUrl = u.AvatarUrl,
+            TotalWagered = u.Profile?.TotalWagered ?? 0,
+            TotalWon = u.Profile?.TotalPaid ?? 0
+        }).Take(50).ToList();
+
+        return Ok(result);
+    }
+
     [HttpGet("players/search/{query}")]
     public ActionResult<List<PlayerSearchResultDto>> SearchPlayers(string query) {
         var users = _repo.SearchUsers(query);
@@ -141,7 +160,10 @@ public class AdminController : ControllerBase {
             Username = u.Username,
             Email = u.Email,
             Balance = u.Balance,
-            Role = u.Role.ToString()
+            Role = u.Role.ToString(),
+            AvatarUrl = u.AvatarUrl,
+            TotalWagered = u.Profile?.TotalWagered ?? 0,
+            TotalWon = u.Profile?.TotalPaid ?? 0
         }).ToList();
 
         return Ok(result);

@@ -1,6 +1,7 @@
 @page "/admin/players"
 @using AleaSim.Shared.Models
 @using AleaSim.Client.Components
+@using AleaSim.Shared
 @using Microsoft.AspNetCore.Authorization
 @layout AleaSim.Client.Layout.AdminLayout
 @attribute [Authorize(Roles = "Admin")]
@@ -8,80 +9,220 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
-    <MudText Typo="Typo.h3" Class="mb-6">Player Inspector</MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 pb-16">
+    <div class="d-flex align-center gap-4 mb-8">
+        <div class="players-header-icon">
+            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Primary" />
+        </div>
+        <div>
+            <MudText Typo="Typo.h3" Class="fw-black">Player Intel</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-60">Search, inspect and manage user accounts and behavior.</MudText>
+        </div>
+    </div>
 
     <MudGrid>
-        <MudItem xs="12" md="4">
-            <MudPaper Class="pa-4">
-                <MudTextField @bind-Value="searchQuery" Label="Search Player (Username/Email)" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" OnAdornmentClick="Search" />
-                <MudList T="PlayerSearchResultDto" Class="mt-4">
-                    @foreach (var p in searchResults)
-                    {
-                        <MudListItem OnClick="() => SelectPlayer(p)">
-                            <div class="d-flex justify-space-between">
-                                <MudText>@p.Username</MudText>
-                                <MudText Typo="Typo.caption">@p.Balance.ToString("C")</MudText>
-                            </div>
-                        </MudListItem>
+        <!-- LEFT: Search & Directory -->
+        <MudItem xs="12" lg="4">
+            <MudStack Spacing="6">
+                <!-- Search Card -->
+                <MudPaper Class="pa-6 rounded-xl" Elevation="2">
+                    <MudTextField @bind-Value="searchQuery" Label="Search Directory" Variant="Variant.Outlined" 
+                                 Placeholder="Username or Email..." Adornment="Adornment.Start" 
+                                 AdornmentIcon="@Icons.Material.Filled.Search" OnKeyDown="HandleSearchKey" 
+                                 Margin="Margin.Dense" Class="modern-search" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-4 py-3 rounded-lg fw-black" OnClick="Search">QUERY SYSTEM</MudButton>
+                </MudPaper>
+
+                <!-- Search Results / Directory -->
+                <MudPaper Class="pa-4 rounded-xl overflow-hidden" Elevation="2" Style="min-height: 400px;">
+                    <div class="pa-2 border-b border-solid var(--mud-palette-divider) mb-2">
+                        <MudText Typo="Typo.caption" Class="fw-black opacity-40">RESULTS / RECENTLY ACTIVE</MudText>
+                    </div>
+                    
+                    @if (isSearching) {
+                        <div class="d-flex justify-center py-12"><MudProgressCircular Indeterminate="true" Color="Color.Primary" /></div>
+                    } else if (!searchResults.Any()) {
+                        <div class="d-flex flex-column align-center py-12 opacity-20 text-center">
+                            <MudIcon Icon="@Icons.Material.Filled.PersonSearch" Style="font-size: 4rem;" />
+                            <MudText>No players matching query.</MudText>
+                        </div>
+                    } else {
+                        <MudList T="PlayerSearchResultDto" Clickable="true" Class="player-list-scroll">
+                            @foreach (var p in searchResults)
+                            {
+                                <MudListItem OnClick="() => SelectPlayer(p)" Class='@($"player-list-item {(selectedPlayer?.Id == p.Id ? "selected" : "")}")'>
+                                    <div class="d-flex align-center gap-3">
+                                        <MudAvatar Size="Size.Small"><MudImage Src="@p.AvatarUrl" /></MudAvatar>
+                                        <div class="flex-grow-1">
+                                            <MudText Typo="Typo.body2" Class="fw-bold">@p.Username</MudText>
+                                            <MudText Typo="Typo.caption" Class="opacity-60">@p.Email</MudText>
+                                        </div>
+                                        <MudText Typo="Typo.caption" Class="fw-black text-success">@p.Balance.ToString("C0")</MudText>
+                                    </div>
+                                </MudListItem>
+                            }
+                        </MudList>
                     }
-                </MudList>
-            </MudPaper>
+                </MudPaper>
+            </MudStack>
         </MudItem>
 
-        <MudItem xs="12" md="8">
+        <!-- RIGHT: Detailed Inspection -->
+        <MudItem xs="12" lg="8">
             @if (selectedPlayer != null)
             {
-                <MudPaper Class="pa-6" Elevation="3">
-                    <div class="d-flex justify-space-between align-center mb-4">
-                        <div>
-                            <MudText Typo="Typo.h4">@selectedPlayer.Username</MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">ID: @selectedPlayer.Id</MudText>
-                        </div>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Chat" OnClick="OpenChat">Chat with Player</MudButton>
-                    </div>
-
-                    <MudExpansionPanels>
-                        <MudExpansionPanel Text="God Mode Controls" Icon="@Icons.Material.Filled.Bolt" Style="background: #fff9c4;">
-                            <MudText Typo="Typo.body2" Class="mb-4">Manipulate the next spin for @selectedPlayer.Username:</MudText>
-                            <div class="d-flex gap-2">
-                                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick='() => ForceSpin(50, "Admin Gift")'>Force 50x Win</MudButton>
-                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick='() => ForceSpin(0, "Force Bonus", true)'>Force Bonus</MudButton>
-                                <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick='() => ForceSpin(0, "Admin Cooldown", false, true)'>Force Near Miss</MudButton>
+                <MudStack Spacing="6">
+                    <!-- Player Header Card -->
+                    <MudPaper Class="pa-8 rounded-xl profile-hero overflow-hidden" Elevation="4">
+                        <div class="d-flex align-center gap-6 p-relative z-10">
+                            <MudAvatar Style="height:100px; width:100px; border: 4px solid white;">
+                                <MudImage Src="@selectedPlayer.AvatarUrl" />
+                            </MudAvatar>
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-center gap-2 mb-1">
+                                    <MudText Typo="Typo.h4" Class="fw-black text-white">@selectedPlayer.Username</MudText>
+                                    <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Filled" Class="fw-black">@selectedPlayer.Role</MudChip>
+                                </div>
+                                <MudText Typo="Typo.body2" Class="text-white opacity-60">DATABASE ID: @selectedPlayer.Id</MudText>
                             </div>
-                        </MudExpansionPanel>
+                            <MudButton Variant="Variant.Filled" Color="Color.Surface" StartIcon="@Icons.Material.Filled.Chat" OnClick="OpenChat" Class="rounded-lg py-3 px-6 fw-bold">OPEN COMMS</MudButton>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.ContactPage" Class="hero-bg-icon" />
+                    </MudPaper>
 
-                        <MudExpansionPanel Text="Inject Bonus Cash">
-                            <MudNumericField @bind-Value="bonusAmount" Label="Amount" Variant="Variant.Outlined" />
-                            <MudTextField @bind-Value="bonusReason" Label="Reason" Variant="Variant.Outlined" Class="mt-2" />
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="InjectBonus">Add Bonus</MudButton>
-                        </MudExpansionPanel>
+                    <!-- Stats Quick View -->
+                    <MudGrid>
+                        <MudItem xs="6" sm="3">
+                            <MudPaper Class="pa-4 text-center rounded-xl" Elevation="1">
+                                <MudText Typo="Typo.caption" Class="fw-bold opacity-40">TOTAL WAGERED</MudText>
+                                <MudText Typo="Typo.h6" Class="fw-black">@selectedPlayer.TotalWagered.ToString("C0")</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="6" sm="3">
+                            <MudPaper Class="pa-4 text-center rounded-xl" Elevation="1">
+                                <MudText Typo="Typo.caption" Class="fw-bold opacity-40">TOTAL WON</MudText>
+                                <MudText Typo="Typo.h6" Class="fw-black text-success">@selectedPlayer.TotalWon.ToString("C0")</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="6" sm="3">
+                            <MudPaper Class="pa-4 text-center rounded-xl" Elevation="1">
+                                <MudText Typo="Typo.caption" Class="fw-bold opacity-40">PERSONAL RTP</MudText>
+                                <MudText Typo="Typo.h6" Class="fw-black text-info">@((selectedPlayer.TotalWagered > 0 ? (selectedPlayer.TotalWon / selectedPlayer.TotalWagered * 100) : 0).ToString("F1"))%</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="6" sm="3">
+                            <MudPaper Class="pa-4 text-center rounded-xl" Elevation="1">
+                                <MudText Typo="Typo.caption" Class="fw-bold opacity-40">LUCK FACTOR</MudText>
+                                <MudText Typo="Typo.h6" Class="fw-black">1.04</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
 
-                        <MudExpansionPanel Text="Activity Logs">
-                            <MudAlert Severity="Severity.Info">Recent bets and logins will appear here.</MudAlert>
-                        </MudExpansionPanel>
-                    </MudExpansionPanels>
-                </MudPaper>
+                    <!-- Control Panels -->
+                    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Class="rounded-xl overflow-hidden">
+                        <MudTabPanel Text="SYSTEM OVERRIDES" Icon="@Icons.Material.Filled.Bolt">
+                            <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Class="mb-6">
+                                Overrides will affect the <b>next valid spin</b> performed by this player.
+                            </MudAlert>
+                            <MudGrid>
+                                <MudItem xs="12" md="6">
+                                    <MudText Typo="Typo.subtitle2" Class="fw-bold mb-4">Positive Reinforcement</MudText>
+                                    <MudStack Spacing="2">
+                                        <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" OnClick='() => ForceSpin(25, "VIP Bonus")' Class="py-3">FORCE 25X BIG WIN</MudButton>
+                                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" OnClick='() => ForceSpin(0, "Feature Force", true)' Class="py-3">FORCE BONUS GAME</MudButton>
+                                    </MudStack>
+                                </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudText Typo="Typo.subtitle2" Class="fw-bold mb-4">Risk Management</MudText>
+                                    <MudStack Spacing="2">
+                                        <MudButton Variant="Variant.Outlined" Color="Color.Error" FullWidth="true" OnClick='() => ForceSpin(0, "Cool-down", false, true)' Class="py-3">FORCE NEAR MISS</MudButton>
+                                        <MudButton Variant="Variant.Outlined" Color="Color.Default" FullWidth="true" Disabled="true" Class="py-3">RESET RNG SEED</MudButton>
+                                    </MudStack>
+                                </MudItem>
+                            </MudGrid>
+                        </MudTabPanel>
+
+                        <MudTabPanel Text="CURRENCY INJECTION" Icon="@Icons.Material.Filled.Payments">
+                            <div class="pa-2">
+                                <MudNumericField @bind-Value="bonusAmount" Label="Bonus Credit Amount" Variant="Variant.Outlined" Prefix="$" />
+                                <MudTextField @bind-Value="bonusReason" Label="Official Reason" Variant="Variant.Outlined" Class="mt-4" />
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-6 py-3 px-12 rounded-lg fw-black" OnClick="InjectBonus">INJECT CREDITS</MudButton>
+                            </div>
+                        </MudTabPanel>
+
+                        <MudTabPanel Text="BEHAVIOR LOGS" Icon="@Icons.Material.Filled.MenuBook">
+                            <div class="pa-4 text-center opacity-30 py-12">
+                                <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Large" Class="mb-2" />
+                                <MudText>Deep behavior analysis logs coming soon.</MudText>
+                            </div>
+                        </MudTabPanel>
+                    </MudTabs>
+                </MudStack>
             }
             else
             {
-                <MudAlert Severity="Severity.Info">Search and select a player to inspect details.</MudAlert>
+                <div class="empty-inspector-state">
+                    <MudIcon Icon="@Icons.Material.Filled.Radar" Style="font-size: 8rem;" Class="opacity-10 mb-4" />
+                    <MudText Typo="Typo.h5" Class="fw-black opacity-20 uppercase">Waiting for target...</MudText>
+                    <MudText Class="opacity-20">Select a player from the directory to begin deep inspection.</MudText>
+                </div>
             }
         </MudItem>
     </MudGrid>
 </MudContainer>
 
+<style>
+    .fw-black { font-weight: 950; }
+    .fw-bold { font-weight: 700; }
+    .opacity-60 { opacity: 0.6; }
+    .opacity-40 { opacity: 0.4; }
+    .opacity-20 { opacity: 0.2; }
+    .p-relative { position: relative; }
+    .z-10 { z-index: 10; }
+    .uppercase { text-transform: uppercase; }
+
+    .players-header-icon {
+        width: 64px; height: 64px; background: rgba(var(--mud-palette-primary-rgb), 0.1);
+        border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    }
+
+    .modern-search .mud-input-outlined-border { border-width: 2px !important; }
+    .player-list-scroll { max-height: 600px; overflow-y: auto; }
+    .player-list-item { border-radius: 12px; margin-bottom: 4px; transition: all 0.2s; }
+    .player-list-item:hover { background: rgba(var(--mud-palette-primary-rgb), 0.05); }
+    .player-list-item.selected { background: rgba(var(--mud-palette-primary-rgb), 0.1); border: 1px solid var(--mud-palette-primary); }
+
+    .profile-hero { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); position: relative; border-radius: 24px; }
+    .hero-bg-icon { position: absolute; right: -20px; bottom: -20px; font-size: 15rem !important; opacity: 0.05; transform: rotate(15deg); color: white; }
+    .text-white { color: #fff !important; }
+
+    .empty-inspector-state { height: 100%; min-height: 600px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 3px dashed var(--mud-palette-divider); border-radius: 32px; }
+</style>
+
 @code {
     private string searchQuery = "";
+    private bool isSearching = false;
     private List<PlayerSearchResultDto> searchResults = new();
     private PlayerSearchResultDto? selectedPlayer;
     private decimal bonusAmount = 100;
-    private string bonusReason = "VIP Reward";
+    private string bonusReason = "VIP Loyalty Bonus";
+
+    protected override async Task OnInitializedAsync() {
+        // Initial load of recently active players
+        searchResults = await Http.GetFromJsonAsync<List<PlayerSearchResultDto>>("api/Admin/players/active") ?? new();
+    }
+
+    private async Task HandleSearchKey(KeyboardEventArgs e) {
+        if (e.Key == "Enter") await Search();
+    }
 
     private async Task Search()
     {
         if (string.IsNullOrWhiteSpace(searchQuery)) return;
-        searchResults = await Http.GetFromJsonAsync<List<PlayerSearchResultDto>>($"api/Admin/players/search/{searchQuery}") ?? new();
+        isSearching = true;
+        try {
+            searchResults = await Http.GetFromJsonAsync<List<PlayerSearchResultDto>>($"api/Admin/players/search/{searchQuery}") ?? new();
+        } finally { isSearching = false; }
     }
 
     private void SelectPlayer(PlayerSearchResultDto player)
@@ -95,9 +236,9 @@
         var parameters = new DialogParameters { 
             ["OtherUserId"] = selectedPlayer.Id,
             ["OtherUserName"] = selectedPlayer.Username,
-            ["OtherUserAvatar"] = $"https://api.dicebear.com/7.x/bottts/svg?seed={selectedPlayer.Username}"
+            ["OtherUserAvatar"] = selectedPlayer.AvatarUrl
         };
-        await DialogService.ShowAsync<PrivateChatDialog>("Private Chat", parameters, options);
+        await DialogService.ShowAsync<PrivateChatDialog>("Private Support Comms", parameters, options);
     }
 
     private async Task InjectBonus()
@@ -106,7 +247,8 @@
         var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/bonus", new { Amount = bonusAmount, Reason = bonusReason });
         if (response.IsSuccessStatusCode)
         {
-            Snackbar.Add("Bonus injected successfully!", Severity.Success);
+            Snackbar.Add("Currency injected successfully!", Severity.Success);
+            selectedPlayer.Balance += bonusAmount;
         }
     }
 
@@ -122,16 +264,7 @@
 
         var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/force-outcome", directive);
         if (response.IsSuccessStatusCode) {
-            Snackbar.Add("Directive sent! Next spin will be forced.", Severity.Success);
+            Snackbar.Add($"Next spin for {selectedPlayer.Username} is now LOCKED.", Severity.Success);
         }
-    }
-
-    public class PlayerSearchResultDto
-    {
-        public Guid Id { get; set; }
-        public string Username { get; set; } = "";
-        public string Email { get; set; } = "";
-        public decimal Balance { get; set; }
-        public string Role { get; set; } = "";
     }
 }

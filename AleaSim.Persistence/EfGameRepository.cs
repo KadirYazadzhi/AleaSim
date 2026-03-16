@@ -146,8 +146,9 @@ public class EfGameRepository : IGameRepository {
 
     public IEnumerable<User> SearchUsers(string query) {
         return _context.Users
+            .Include(u => u.Profile)
             .Where(u => u.Username.Contains(query) || u.Email.Contains(query))
-            .Take(20)
+            .Take(50)
             .ToList();
     }
 

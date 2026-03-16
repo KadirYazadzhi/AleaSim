@@ -28,6 +28,9 @@ public class PlayerSearchResultDto {
     public string Email { get; set; } = string.Empty;
     public decimal Balance { get; set; }
     public string Role { get; set; } = string.Empty;
+    public string AvatarUrl { get; set; } = string.Empty;
+    public decimal TotalWagered { get; set; }
+    public decimal TotalWon { get; set; }
 
 public class UpdateBalanceDto {
     public decimal NewBalance { get; set; }
