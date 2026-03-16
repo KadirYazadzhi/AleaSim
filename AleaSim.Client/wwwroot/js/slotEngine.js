@@ -1,4 +1,3 @@
-
 window.slotEngine = {
     app: null,
     reels: [],
@@ -135,10 +134,9 @@ window.slotEngine = {
         const grid = data.Grid;
         const currentlyInFeature = data.IsBonusActive || data.IsRespinActive;
 
-        // TRACK STATE TRANSITION
         window.slotEngine.wasInBonus = window.slotEngine.isBonusActive;
 
-        // HARD CLEANUP: If we are starting a spin and NOT in a feature continuation, clear old sticky.
+        // HARD CLEANUP for normal rounds
         if (!currentlyInFeature && !window.slotEngine.isRevealing) {
             window.slotEngine.stickyBells = [];
             window.slotEngine.stickyLayer.removeChildren();
@@ -151,9 +149,19 @@ window.slotEngine = {
         window.slotEngine.isBonusActive = data.IsBonusActive;
         window.slotEngine.lastWinningLines = data.WinningLines || [];
         
+        // SYNC STICKY DATA
         if (currentlyInFeature) {
-            window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyClovers || []);
+            window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyBells || []); // Note: backend uses StickyBells now
         }
+
+        // IMPORTANT: Hide all reel symbols that are currently under a sticky bell
+        window.slotEngine.reels.forEach((reel, i) => {
+            reel.symbols.forEach((s, r) => {
+                const isSticky = window.slotEngine.stickyBells.find(sb => sb.c === i && sb.r === r);
+                if (isSticky && r < 4) s.sprite.alpha = 0; 
+                else s.sprite.alpha = 1;
+            });
+        });
 
         const finalSymbols = [];
         for(let c=0; c < 5; c++) {
@@ -173,16 +181,18 @@ window.slotEngine = {
         });
     },
 
-    syncStickyBells: (bells, clovers) => {
+    syncStickyBells: (bells, stickyCoords) => {
         const newSticky = [];
+        // Bells with values
         bells.forEach(b => { newSticky.push({ r: b.Pos.R, c: b.Pos.C, id: 9, value: b.Value, type: b.Type }); });
-        clovers.forEach(p => {
+        // Sticky trigger bells (without values yet)
+        stickyCoords.forEach(p => {
             if (!newSticky.find(s => s.r === p.R && s.c === p.C)) {
-                newSticky.push({ r: p.R, c: p.C, id: 8 });
+                newSticky.push({ r: p.R, c: p.C, id: 9 });
             }
         });
         window.slotEngine.stickyBells = newSticky;
-        window.slotEngine.updateStickyBellsVisuals(false); // FORCED FALSE: Never show labels during spins
+        window.slotEngine.updateStickyBellsVisuals(false); 
     },
 
     updateStickyBellsVisuals: (showLabels = false) => {
@@ -195,14 +205,12 @@ window.slotEngine = {
             sprite.x = sb.c * reelWidth + (reelWidth - symbolSize) / 2;
             sprite.y = sb.r * symbolSize;
             
-            if (sb.type !== undefined) {
+            if (sb.type !== undefined || sb.value !== undefined) {
                 let txt = sb.type === 1 ? "MINI" : sb.type === 2 ? "MINOR" : sb.type === 3 ? "MAJOR" : sb.type === 4 ? "MEGA" : `$${sb.value.toFixed(2)}`;
                 if (sb.type === 1) sprite.tint = 0x00ff00;
                 else if (sb.type === 2) sprite.tint = 0x00ffff;
                 else if (sb.type === 3) sprite.tint = 0xff00ff;
                 else if (sb.type === 4) { sprite.tint = 0xffd700; if (window.gsap) gsap.to(sprite, { alpha: 0.7, duration: 0.5, repeat: -1, yoyo: true }); }
-                
-                // Add the label but control visibility
                 window.slotEngine.addLabel(sprite, txt, showLabels);
             }
             stickyLayer.addChild(sprite);
@@ -260,8 +268,7 @@ window.slotEngine = {
             window.slotEngine.running = false;
             if (window.slotEngine.lastWinningLines?.length > 0) window.slotEngine.drawWinLines(window.slotEngine.lastWinningLines);
             
-            // CRITICAL: Start reveal ONLY if true bonus just ended
-            if (window.slotEngine.wasInBonus === true && window.slotEngine.isBonusActive === false && window.slotEngine.stickyBells.some(b => b.id === 9) && !window.slotEngine.isRevealing) {
+            if (window.slotEngine.wasInBonus === true && window.slotEngine.isBonusActive === false && window.slotEngine.stickyBells.some(b => b.value !== undefined) && !window.slotEngine.isRevealing) {
                 window.slotEngine.revealBonusValues();
             } else {
                 if (window.slotEngine.dotNetRef) {
@@ -324,8 +331,8 @@ window.slotEngine = {
                 });
             });
         }
-        if (data.BonusBells || data.StickyClovers) {
-            window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyClovers || []);
+        if (data.BonusBells || data.StickyBells) {
+            window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyBells || []);
             if (!data.IsBonusActive && data.BonusBells?.length > 0) {
                 window.slotEngine.stickyLayer.children.forEach(c => {
                     const l = c.getChildByName("valueLabel"); if (l) l.visible = true;
