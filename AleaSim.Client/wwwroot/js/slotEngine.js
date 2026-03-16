@@ -69,11 +69,9 @@ window.slotEngine = {
         window.slotEngine.app.stage.addChild(window.slotEngine.winGraphics);
 
         window.slotEngine.mask = new PIXI.Graphics();
-        window.slotEngine.mask.beginFill(0xffffff);
-        window.slotEngine.mask.drawRect(0, 0, gridW, gridH);
-        window.slotEngine.mask.endFill();
         window.slotEngine.reelLayer.mask = window.slotEngine.mask;
         window.slotEngine.reelLayer.addChild(window.slotEngine.mask);
+        window.slotEngine.updateMask();
 
         const symbolFiles = {
             1: 'cherries.png', 2: 'lemon.png', 3: 'orange.png', 4: 'plum.png',
@@ -110,6 +108,28 @@ window.slotEngine = {
         window.slotEngine.performance.lowGraphics = lowGraphics;
     },
 
+    updateMask: () => {
+        const { mask, stickyBells, symbolSize, reelWidth, cols, rows } = window.slotEngine;
+        if (!mask) return;
+        const gridW = reelWidth * cols;
+        const gridH = symbolSize * rows;
+        
+        mask.clear();
+        mask.beginFill(0xffffff);
+        mask.drawRect(0, 0, gridW, gridH);
+        
+        // Use holes to hide content behind sticky symbols
+        stickyBells.forEach(sb => {
+            const x = sb.c * reelWidth + (reelWidth - symbolSize) / 2;
+            const y = sb.r * symbolSize;
+            mask.beginHole();
+            mask.drawRect(x, y, symbolSize, symbolSize);
+            mask.endHole();
+        });
+        
+        mask.endFill();
+    },
+
     buildGrid: () => {
         const { reelLayer, cols, rows, reelWidth, symbolSize } = window.slotEngine;
         window.slotEngine.reels = [];
@@ -140,6 +160,7 @@ window.slotEngine = {
         if (!currentlyInFeature && !window.slotEngine.isRevealing) {
             window.slotEngine.stickyBells = [];
             window.slotEngine.stickyLayer.removeChildren();
+            window.slotEngine.updateMask();
         }
 
         window.slotEngine.running = true;
@@ -186,16 +207,11 @@ window.slotEngine = {
     updateStickyBellsVisuals: (showLabels = false) => {
         const { stickyLayer, stickyBells, symbolSize, reelWidth, textures } = window.slotEngine;
         stickyLayer.removeChildren();
+        window.slotEngine.updateMask();
+
         stickyBells.forEach(sb => {
             const bgX = sb.c * reelWidth + (reelWidth - symbolSize) / 2;
             const bgY = sb.r * symbolSize;
-
-            // NEW: Add opaque background to each sticky bell
-            const bg = new PIXI.Graphics();
-            bg.beginFill(0x000000, 1.0); // Completely opaque black
-            bg.drawRect(bgX, bgY, symbolSize, symbolSize);
-            bg.endFill();
-            stickyLayer.addChild(bg);
 
             const tex = textures[`sym${sb.id}`];
             const sprite = new PIXI.Sprite(tex);

@@ -312,18 +312,7 @@
                 // BUFFER THE WIN (Don't update UI until animation ends)
                 nextWinBuffer = result.TotalWin;
 
-                await JSRuntime.InvokeVoidAsync("slotEngine.spin", result.RandomResultJson);
-                
-                // wait for JS callback (OnAnimationFinished) or timeout
-                int timeout = animationSpeed switch { 3 => 4000, 2 => 8000, _ => 15000 };
-                var start = DateTime.Now;
-                while (isSpinning && (DateTime.Now - start).TotalMilliseconds < timeout) {
-                    await Task.Delay(50);
-                }
-
-                var profile = await AuthService.GetMe();
-                if (profile != null) balance = profile.TotalBalance;
-
+                // UPDATE STATE IMMEDIATELY (especially for RespinLives)
                 var gridData = JsonSerializer.Deserialize<SlotStateResponse>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (gridData != null) {
                     bool bonusJustStarted = !gameState.IsBonusActive && gridData.IsBonusActive;
@@ -339,7 +328,20 @@
                     
                     if (wasNudged) await Audio.PlayBonus(); 
                     if (bonusJustStarted) isAutoSpinning = false; 
+                    StateHasChanged(); // Force UI update for counters
                 }
+
+                await JSRuntime.InvokeVoidAsync("slotEngine.spin", result.RandomResultJson);
+                
+                // wait for JS callback (OnAnimationFinished) or timeout
+                int timeout = animationSpeed switch { 3 => 4000, 2 => 8000, _ => 15000 };
+                var start = DateTime.Now;
+                while (isSpinning && (DateTime.Now - start).TotalMilliseconds < timeout) {
+                    await Task.Delay(50);
+                }
+
+                var profile = await AuthService.GetMe();
+                if (profile != null) balance = profile.TotalBalance;
 
                 if (lastWin > 0.01m) {
                     await Audio.PlayWin();
