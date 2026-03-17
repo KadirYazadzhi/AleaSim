@@ -1,5 +1,6 @@
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AleaSim.Domain.Services;
 
