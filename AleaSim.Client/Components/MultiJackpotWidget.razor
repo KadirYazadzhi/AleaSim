@@ -356,10 +356,14 @@
     }
 
     private void UpdateLocalValue(JackpotDto dto) {
-        if (dto.Tier == "Spades") spades = dto.CurrentValue;
-        else if (dto.Tier == "Hearts") hearts = dto.CurrentValue;
-        else if (dto.Name.Contains("Spades")) spades = dto.CurrentValue;
-        else if (dto.Name.Contains("Hearts")) hearts = dto.CurrentValue;
+        var tier = dto.Tier?.ToLower() ?? "";
+        var name = dto.Name?.ToLower() ?? "";
+
+        if (tier == "spades" || name.Contains("spades") || name.Contains("mega")) {
+            spades = dto.CurrentValue;
+        } else if (tier == "hearts" || name.Contains("hearts") || name.Contains("major")) {
+            hearts = dto.CurrentValue;
+        }
     }
 
     private decimal GetMinorValue() => Denomination * 5000;

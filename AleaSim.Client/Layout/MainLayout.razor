@@ -534,7 +534,7 @@
         NotifService.OnNotificationsChanged += StateHasChanged;
         GameService.OnFlowStateChanged += HandleFlowStateChange; 
         LayoutService.OnMajorUpdate += StateHasChanged;
-        LayoutService.OnAvatarChanged += HandleAvatarChanged; // Added
+        LayoutService.OnAvatarChanged += HandleAvatarChanged; 
         LayoutService.OnBalanceUpdateSuppressionChanged += HandleSuppressionChanged;
         LayoutService.OnOptimisticDeduction += HandleOptimisticDeduction;
         LayoutService.OnOptimisticAdd += HandleOptimisticAdd;
@@ -545,43 +545,45 @@
         PlatformStats.OnStatsUpdated += StateHasChanged;
 
         await CheckAuthenticationState();
+        await EnsureSignalRConnected();
     }
 
     private async void OnAuthenticationStateChanged(Task<AuthenticationState> task) {
         await InvokeAsync(async () => {
             await CheckAuthenticationState();
+            await EnsureSignalRConnected();
             StateHasChanged();
         });
+    }
+
+    private async Task EnsureSignalRConnected() {
+        try {
+            if (!RealTime.IsConnected) {
+                var token = await LocalStorage.GetItemAsync<string>("authToken");
+                // Token can be null for public users, StartAsync should handle it
+                await RealTime.StartAsync(token ?? "");
+                
+                // Always subscribe to these
+                RealTime.OnBigWinReceived -= HandleBigWin;
+                RealTime.OnBigWinReceived += HandleBigWin;
+                RealTime.OnGameUpdateReceived -= HandleGameUpdate;
+                RealTime.OnGameUpdateReceived += HandleGameUpdate;
+                RealTime.OnBalanceUpdated -= HandleBalanceUpdate;
+                RealTime.OnBalanceUpdated += HandleBalanceUpdate;
+                RealTime.OnProgressionUpdated -= HandleProgressionUpdate;
+                RealTime.OnProgressionUpdated += HandleProgressionUpdate;
+            }
+        } catch (Exception ex) {
+            Console.WriteLine($"SignalR Connection failed: {ex.Message}");
+        }
     }
 
     private async Task CheckAuthenticationState() {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true) {
             await LoadProfile();
-            
-            try {
-                if (!RealTime.IsConnected) {
-                    var token = await LocalStorage.GetItemAsync<string>("authToken");
-                    if (!string.IsNullOrEmpty(token)) {
-                        await RealTime.StartAsync(token);
-                        RealTime.OnBigWinReceived += HandleBigWin;
-                        RealTime.OnGameUpdateReceived += HandleGameUpdate;
-                        RealTime.OnBalanceUpdated += HandleBalanceUpdate;
-                        RealTime.OnProgressionUpdated += HandleProgressionUpdate;
-                    }
-                }
-            } catch (Exception ex) {
-                Console.WriteLine($"SignalR Connection failed: {ex.Message}");
-            }
         } else {
             userProfile = null;
-            if (RealTime.IsConnected) {
-                RealTime.OnBigWinReceived -= HandleBigWin;
-                RealTime.OnGameUpdateReceived -= HandleGameUpdate;
-                RealTime.OnBalanceUpdated -= HandleBalanceUpdate;
-                RealTime.OnProgressionUpdated -= HandleProgressionUpdate;
-                await RealTime.StopAsync();
-            }
         }
     }
 

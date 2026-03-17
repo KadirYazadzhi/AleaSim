@@ -19,18 +19,25 @@ public class JackpotService : IJackpotService {
     public async Task Contribute(Guid gameId, decimal betAmount, IGameRepository repo) {
         var db = _redis.GetDatabase();
         var jackpots = repo.GetJackpots().ToList();
-        var cloverChaseId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         
+        // Dynamically get Clover Chase game ID to ensure consistency
+        var cloverChaseGame = repo.GetGameByType("slot");
+        var cloverChaseId = cloverChaseGame?.Id;
+
         foreach (var j in jackpots) {
-            bool shouldContribute = j.IsGlobal || (j.GameId == gameId);
+            bool isCloverChaseJackpot = (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts);
             
+            // Determine if this jackpot should receive contribution from the current game
+            bool shouldContribute = j.IsGlobal || (j.GameId == gameId);
+
             // EXCLUSIVE RULE: Mega (Spades) and Major (Hearts) are only for Clover Chase
-            if (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts) {
-                if (gameId != cloverChaseId) continue; // Skip contribution from other games
+            if (isCloverChaseJackpot) {
+                if (gameId != cloverChaseId) continue; // Skip contribution from other games if not Clover Chase
+                shouldContribute = true; // If it's a Clover Chase Jackpot AND is Clover Chase game, it should contribute
             }
 
             // Only Spades (MEGA) and Hearts (MAJOR) are progressive in this implementation
-            if (shouldContribute && (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts)) {
+            if (shouldContribute && isCloverChaseJackpot) { // Check both conditions
                 decimal increase = betAmount * j.ContributionRate;
                 string redisKey = $"jackpot:{j.Id}"; // Use ID for absolute uniqueness
 
@@ -51,7 +58,7 @@ public class JackpotService : IJackpotService {
                     repo.UpdateJackpot(j);
                 }
 
-                _ = _realTimeService.NotifyJackpotUpdate(j); 
+                await _realTimeService.NotifyJackpotUpdate(j); 
             }
         }
     }
@@ -59,8 +66,10 @@ public class JackpotService : IJackpotService {
     public async Task<(bool Triggered, decimal WinAmount)> CheckJackpotTrigger(Guid gameId, int seed, int sequence, IGameRepository repo) {
         double roll = _rngService.GetNextDouble(seed, HashCode.Combine(sequence, "jackpot_trigger"));
         var db = _redis.GetDatabase();
-        var cloverChaseId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         
+        var cloverChaseGame = repo.GetGameByType("slot");
+        var cloverChaseId = cloverChaseGame?.Id;
+
         var jackpots = repo.GetJackpots()
             .Where(j => j.IsGlobal || j.GameId == gameId)
             .OrderBy(j => j.Tier)
@@ -105,7 +114,7 @@ public class JackpotService : IJackpotService {
                     j.CurrentValue = resetValue;
                     j.LastUpdated = DateTime.UtcNow;
                     repo.UpdateJackpot(j);
-                    _ = _realTimeService.NotifyJackpotUpdate(j);
+                    await _realTimeService.NotifyJackpotUpdate(j);
                     return (true, win);
                 }
             }
@@ -145,7 +154,7 @@ public class JackpotService : IJackpotService {
             jackpot.LastUpdated = DateTime.UtcNow;
                 
             repo.UpdateJackpot(jackpot);
-            _ = _realTimeService.NotifyJackpotUpdate(jackpot);
+            await _realTimeService.NotifyJackpotUpdate(jackpot);
                 
             return win;
         }

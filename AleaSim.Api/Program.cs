@@ -181,11 +181,11 @@ using (var scope = app.Services.CreateScope()) {
         Console.WriteLine("Could not read Games table. Schema might be out of sync.");
     }
 
-    void UpdateGame(string type, string name, decimal minBet, decimal maxBet, decimal rtp) {
+    void UpdateGame(string type, string name, decimal minBet, decimal maxBet, decimal rtp, Guid? fixedId = null) {
         var g = existingGames.FirstOrDefault(x => x.Type.Equals(type, StringComparison.OrdinalIgnoreCase));
         if (g == null) {
             db.Games.Add(new AleaSim.Domain.Entities.Game { 
-                Id = Guid.NewGuid(), Name = name, Type = type, Provider = "AleaSim Originals", 
+                Id = fixedId ?? Guid.NewGuid(), Name = name, Type = type, Provider = "AleaSim Originals", 
                 MinBet = minBet, MaxBet = maxBet, TargetRTP = rtp, IsActive = true, PoolBalance = 1000000m 
             });
         } else {
@@ -196,7 +196,7 @@ using (var scope = app.Services.CreateScope()) {
         }
     }
 
-    UpdateGame("Slot", "Clover Chase", 0.01m, 1000m, 0.95m);
+    UpdateGame("Slot", "Clover Chase", 0.01m, 1000m, 0.95m, Guid.Parse("11111111-1111-1111-1111-111111111111"));
     UpdateGame("Roulette", "Roulette Royale", 0.01m, 100000m, 0.973m);
     UpdateGame("Blackjack", "Blackjack High", 0.01m, 1000m, 0.992m);
     UpdateGame("Baccarat", "Baccarat Royale", 0.01m, 5000m, 0.989m);

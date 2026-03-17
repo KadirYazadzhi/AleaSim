@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace AleaSim.Api.Hubs;
 
-[Authorize]
 public class GameHub : Hub {
     private readonly IAuditService _auditService;
     private readonly IGameRepository _repo;
@@ -20,6 +19,7 @@ public class GameHub : Hub {
         _redisCache = redisCache;
     }
 
+    [Authorize]
     public async Task SendMessage(string message) {
         var username = Context.User?.Identity?.Name ?? "Anonymous";
         var userIdString = Context.UserIdentifier ?? Guid.Empty.ToString();
@@ -57,6 +57,7 @@ public class GameHub : Hub {
         _auditService.LogEvent("CHAT_MESSAGE", cleanMessage, userIdString, cleanMessage);
     }
 
+    [Authorize]
     public async Task SendPrivateMessage(Guid receiverId, string message) {
         var senderIdString = Context.UserIdentifier ?? Guid.Empty.ToString();
         var senderId = Guid.Parse(senderIdString);
@@ -122,12 +123,14 @@ public class GameHub : Hub {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, gameType);
     }
 
+    [Authorize]
     public async Task JoinAdminFeed() {
         if (Context.User?.IsInRole("Admin") == true) {
             await Groups.AddToGroupAsync(Context.ConnectionId, "Admins");
         }
     }
 
+    [Authorize]
     public async Task LeaveAdminFeed() {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Admins");
     }
