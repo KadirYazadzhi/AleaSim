@@ -8,36 +8,39 @@ public class JackpotService : IJackpotService {
     private readonly IRealTimeService _realTimeService;
     private readonly ILockService _lockService;
     private readonly IRedisService _redis;
-    
-    public JackpotService(IRngService rngService, IRealTimeService realTimeService, ILockService lockService, IRedisService redis) {
-        _rngService = rngService;
-        _realTimeService = realTimeService;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly Guid? _cloverChaseGameId;
+
+    public JackpotService(IRngService rng, IRealTimeService realTime, ILockService lockService, IRedisService redis, IServiceScopeFactory scopeFactory) {
+        _rngService = rng;
+        _realTimeService = realTime;
         _lockService = lockService;
         _redis = redis;
+        _scopeFactory = scopeFactory;
+        
+        using var scope = _scopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        _cloverChaseGameId = repo.GetGameByType("slot")?.Id;
     }
 
     public async Task Contribute(Guid gameId, decimal betAmount, IGameRepository repo) {
         var db = _redis.GetDatabase();
         var jackpots = repo.GetJackpots().ToList();
         
-        // Dynamically get Clover Chase game ID to ensure consistency
-        var cloverChaseGame = repo.GetGameByType("slot");
-        var cloverChaseId = cloverChaseGame?.Id;
-
         foreach (var j in jackpots) {
-            bool isCloverChaseJackpot = (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts);
-            
             // Determine if this jackpot should receive contribution from the current game
-            bool shouldContribute = j.IsGlobal || (j.GameId == gameId);
-
+            bool shouldContribute = j.IsGlobal; // Global jackpots contribute from all games
+            if (!j.IsGlobal && j.GameId == gameId) shouldContribute = true; // Game-specific jackpots
+            
             // EXCLUSIVE RULE: Mega (Spades) and Major (Hearts) are only for Clover Chase
+            bool isCloverChaseJackpot = (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts);
             if (isCloverChaseJackpot) {
-                if (gameId != cloverChaseId) continue; // Skip contribution from other games if not Clover Chase
+                if (gameId != _cloverChaseGameId) continue; // Skip contribution from other games if not Clover Chase
                 shouldContribute = true; // If it's a Clover Chase Jackpot AND is Clover Chase game, it should contribute
             }
 
             // Only Spades (MEGA) and Hearts (MAJOR) are progressive in this implementation
-            if (shouldContribute && isCloverChaseJackpot) { // Check both conditions
+            if (shouldContribute && isCloverChaseJackpot) { 
                 decimal increase = betAmount * j.ContributionRate;
                 string redisKey = $"jackpot:{j.Id}"; // Use ID for absolute uniqueness
 
@@ -67,9 +70,6 @@ public class JackpotService : IJackpotService {
         double roll = _rngService.GetNextDouble(seed, HashCode.Combine(sequence, "jackpot_trigger"));
         var db = _redis.GetDatabase();
         
-        var cloverChaseGame = repo.GetGameByType("slot");
-        var cloverChaseId = cloverChaseGame?.Id;
-
         var jackpots = repo.GetJackpots()
             .Where(j => j.IsGlobal || j.GameId == gameId)
             .OrderBy(j => j.Tier)
@@ -78,7 +78,7 @@ public class JackpotService : IJackpotService {
         foreach (var j in jackpots) {
             // EXCLUSIVE RULE: Mega (Spades) and Major (Hearts) are only for Clover Chase
             if (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts) {
-                if (gameId != cloverChaseId) continue; 
+                if (gameId != _cloverChaseGameId) continue; 
             }
 
             // ALWAYS get live value from Redis
