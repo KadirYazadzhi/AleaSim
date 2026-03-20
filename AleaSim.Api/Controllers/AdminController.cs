@@ -172,7 +172,7 @@ public class AdminController : ControllerBase {
     // --- Player Inspector ---
 
     [HttpGet("players/{id}")]
-    public async Task<ActionResult<PlayerDossier>> GetPlayer(Guid id) {
+    public async Task<ActionResult<PlayerDossierDto>> GetPlayer(Guid id) {
         var dossier = await _adminService.GetPlayerDossier(id);
         if (dossier == null) return NotFound("Player not found.");
         return Ok(dossier);

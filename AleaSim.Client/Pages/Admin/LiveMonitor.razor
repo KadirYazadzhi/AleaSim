@@ -4,6 +4,7 @@
 @layout AleaSim.Client.Layout.AdminLayout
 @implements IDisposable
 @inject RealTimeClient RealTime
+@inject IAdminService AdminService
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 pb-16">
     <div class="d-flex justify-space-between align-center mb-8">
@@ -17,7 +18,11 @@
         <div class="d-flex gap-4">
             <div class="status-box">
                 <MudText Typo="Typo.caption" Class="fw-black opacity-40">SIGNALR</MudText>
-                <MudText Typo="Typo.body2" Class="fw-black text-success">CONNECTED</MudText>
+                @if (RealTime.IsConnected) {
+                    <MudText Typo="Typo.body2" Class="fw-black text-success">CONNECTED</MudText>
+                } else {
+                    <MudText Typo="Typo.body2" Class="fw-black text-error">@RealTime.State.ToString().ToUpper()</MudText>
+                }
             </div>
             <div class="status-box">
                 <MudText Typo="Typo.caption" Class="fw-black opacity-40">EVENTS/MIN</MudText>
@@ -142,7 +147,25 @@
     protected override async Task OnInitializedAsync() {
         RealTime.OnAdminEventReceived += OnAdminEvent;
         RealTime.OnBigWinReceived += OnBigWin;
-        await RealTime.JoinAdminFeed();
+
+        // Load Initial Stats for Day
+        try {
+            var stats = await AdminService.GetDashboardStats("Day");
+            totalBets = stats.TotalBets;
+            totalWins = stats.TotalWins;
+            activeUserCount = stats.ActivePlayerCount;
+        } catch { }
+        
+        // Wait for connection if needed
+        _ = Task.Run(async () => {
+            int retries = 0;
+            while (!RealTime.IsConnected && retries < 15) {
+                await Task.Delay(1000);
+                retries++;
+            }
+            await RealTime.JoinAdminFeed();
+            await InvokeAsync(StateHasChanged);
+        });
     }
 
     private void OnAdminEvent(AdminRoundEvent ev) {

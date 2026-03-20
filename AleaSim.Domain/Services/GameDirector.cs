@@ -1,6 +1,7 @@
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Enums;
 using AleaSim.Domain.Interfaces;
+using AleaSim.Shared.Models;
 using System.Text.Json;
 
 namespace AleaSim.Domain.Services;
@@ -144,8 +145,8 @@ public class GameDirector : IGameDirector {
             session?.UserId.ToString() ?? "Unknown", 
             JsonSerializer.Serialize(new { Win = round.TotalWinAmount, Result = round.RandomResult }));
 
-        // BROADCAST TO ADMINS
-        _ = _realTime.NotifyAdminFeed(new {
+        // BROADCAST TO ADMINS (SignalR Group: Admins)
+        _ = _realTime.NotifyAdminFeed(new AdminRoundEvent {
             Timestamp = DateTime.UtcNow,
             Username = user?.Username ?? "Unknown",
             Game = gameType,
@@ -153,7 +154,7 @@ public class GameDirector : IGameDirector {
             Win = round.TotalWinAmount,
             RoundNumber = round.RoundNumber,
             Decision = round.DecisionType,
-            Multiplier = amount > 0 ? (double)(round.TotalWinAmount / amount) : 0
+            Multiplier = amount > 0 ? (double)(round.TotalWinAmount / (amount > 0 ? amount : 1)) : 0
         });
 
         return round;

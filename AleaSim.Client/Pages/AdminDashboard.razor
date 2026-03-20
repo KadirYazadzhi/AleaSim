@@ -23,7 +23,11 @@
                  <MudSelectItem Value="@("Week")">Last 7 Days</MudSelectItem>
                  <MudSelectItem Value="@("Month")">Last 30 Days</MudSelectItem>
              </MudSelect>
-             <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.LiveTv" Class="fw-bold pulse-red">LIVE SYSTEM</MudChip>
+             @if (RealTime.IsConnected) {
+                <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.LiveTv" Class="fw-bold pulse-red">LIVE: CONNECTED</MudChip>
+             } else {
+                <MudChip T="string" Color="Color.Default" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Pause" Class="fw-bold">@RealTime.State.ToString().ToUpper()</MudChip>
+             }
         </div>
     </div>
 
@@ -281,8 +285,6 @@
         await LoadStats();
         await LoadMessages();
         
-        await RealTime.JoinAdminFeed();
-
         RealTime.OnAdminEventReceived += HandleAdminEvent;
 
         RealTime.OnBigWinReceived += (args) => {
@@ -291,27 +293,51 @@
             if (_liveLogs.Count > 50) _liveLogs.RemoveAt(_liveLogs.Count - 1);
             InvokeAsync(StateHasChanged);
         };
+
+        // Async join with retry
+        _ = Task.Run(async () => {
+            int retries = 0;
+            while (!RealTime.IsConnected && retries < 15) {
+                await Task.Delay(1000);
+                retries++;
+            }
+            await RealTime.JoinAdminFeed();
+            await InvokeAsync(StateHasChanged);
+        });
     }
 
     private void HandleAdminEvent(AdminRoundEvent ev) {
+        if (ev == null) return;
+
         // 1. Update Live Logs
         var logHtml = $"<b>{ev.Username}</b> bet <span class='opacity-70'>{ev.Bet:C}</span> on <b>{ev.Game}</b> and won <span class='{(ev.Win > 0 ? "text-success fw-bold" : "opacity-50")}'>{ev.Win:C}</span>";
         _liveLogs.Insert(0, logHtml);
         if (_liveLogs.Count > 50) _liveLogs.RemoveAt(_liveLogs.Count - 1);
 
         // 2. Update Stats (only if viewing 'Day' period for better accuracy)
-        if (_selectedPeriod == "Day") {
+        if (_selectedPeriod == "Day" && stats != null) {
             stats.TotalBets += ev.Bet;
             stats.TotalWins += ev.Win;
             stats.Ggr = stats.TotalBets - stats.TotalWins;
             if (stats.TotalBets > 0) stats.CurrentRtp = (stats.TotalWins / stats.TotalBets) * 100;
 
             // Update Game Stats
-            var gStat = stats.GameStats.FirstOrDefault(g => g.GameType.Equals(ev.Game, StringComparison.OrdinalIgnoreCase) || g.GameName.Equals(ev.Game, StringComparison.OrdinalIgnoreCase));
+            var gStat = stats.GameStats.FirstOrDefault(g => 
+                (g.GameType != null && g.GameType.Equals(ev.Game, StringComparison.OrdinalIgnoreCase)) || 
+                (g.GameName != null && g.GameName.Equals(ev.Game, StringComparison.OrdinalIgnoreCase)));
+            
             if (gStat != null) {
                 gStat.TotalWagered += ev.Bet;
                 gStat.TotalWon += ev.Win;
                 if (ev.Win > gStat.MaxWin) gStat.MaxWin = ev.Win;
+            } else {
+                stats.GameStats.Add(new GameStatDto {
+                    GameName = ev.Game,
+                    GameType = ev.Game,
+                    TotalWagered = ev.Bet,
+                    TotalWon = ev.Win,
+                    MaxWin = ev.Win
+                });
             }
 
             // Update Top Players
@@ -322,8 +348,10 @@
                 player.Profit = player.TotalWon - player.TotalWagered;
             } else if (ev.Win > 0 || ev.Bet > 10) {
                 stats.TopPlayers.Add(new PlayerRankDto { Username = ev.Username, TotalWagered = ev.Bet, TotalWon = ev.Win, Profit = ev.Win - ev.Bet });
-                stats.TopPlayers = stats.TopPlayers.OrderByDescending(p => p.TotalWon).Take(10).ToList();
             }
+            
+            // Re-sort players
+            stats.TopPlayers = stats.TopPlayers.OrderByDescending(p => p.TotalWon).Take(10).ToList();
         }
 
         InvokeAsync(StateHasChanged);

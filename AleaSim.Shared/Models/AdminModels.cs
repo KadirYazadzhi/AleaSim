@@ -90,3 +90,37 @@ public class SimulationDetail {
     public decimal WinAmount { get; set; }
     public string DecisionType { get; set; } = "Random";
 }
+
+public class PlayerDossierDto {
+    public Guid Id { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public string AvatarUrl { get; set; } = string.Empty;
+    public decimal Balance { get; set; }
+    public decimal BonusBalance { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? LastLoginAt { get; set; }
+    public string AdminNotes { get; set; } = string.Empty;
+    public decimal TotalWagered { get; set; }
+    public decimal TotalWon { get; set; }
+    public decimal NetProfit => TotalWon - TotalWagered;
+    public double ActualRtp => TotalWagered > 0 ? (double)(TotalWon / TotalWagered) * 100 : 0;
+    
+    public List<string> KnownIps { get; set; } = new();
+    public List<AuditLogDto> BehaviorLogs { get; set; } = new();
+    public List<GameRoundSummaryDto> RecentBets { get; set; } = new();
+}
+
+public class GameRoundSummaryDto {
+    public Guid Id { get; set; }
+    public DateTime Timestamp { get; set; }
+    public string GameName { get; set; } = string.Empty;
+    public decimal BetAmount { get; set; }
+    public decimal WinAmount { get; set; }
+    public double Multiplier => BetAmount > 0 ? (double)(WinAmount / BetAmount) : 0;
+    public string DecisionType { get; set; } = string.Empty;
+    public string ClientSeed { get; set; } = string.Empty;
+    public string ServerSeed { get; set; } = string.Empty;
+}

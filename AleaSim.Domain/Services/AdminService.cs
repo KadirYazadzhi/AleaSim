@@ -55,26 +55,59 @@ public class AdminService : IAdminService {
         return Task.FromResult(stats);
     }
 
-    public Task<PlayerDossier?> GetPlayerDossier(Guid userId) {
+    public Task<PlayerDossierDto?> GetPlayerDossier(Guid userId) {
         var profile = _repository.GetPlayerProfile(userId);
-        if (profile == null) return Task.FromResult<PlayerDossier?>(null);
+        if (profile == null) return Task.FromResult<PlayerDossierDto?>(null);
 
         var user = _repository.GetUser(userId); 
-        if (user == null) return Task.FromResult<PlayerDossier?>(null);
+        if (user == null) return Task.FromResult<PlayerDossierDto?>(null);
 
-        var dossier = new PlayerDossier {
-            User = user,
-            Profile = profile,
-            ActualRtp = profile.TotalWagered > 0 ? (profile.TotalPaid / profile.TotalWagered) * 100 : 0,
-            LifetimeValue = profile.TotalWagered - profile.TotalPaid, // Simple LTV
-            RecentActivity = _repository.GetAllAuditLogs()
-                .Where(a => a.UserId == userId.ToString())
-                .OrderByDescending(a => a.Timestamp)
-                .Take(20)
-                .ToList()
+        // Fetch recent bets
+        var recentBets = _repository.GetUserHistory(userId, 20).Select(r => new GameRoundSummaryDto {
+            Id = r.Id,
+            Timestamp = r.Timestamp,
+            GameName = r.GameName,
+            BetAmount = r.BetAmount,
+            WinAmount = r.WinAmount,
+            DecisionType = r.DecisionType,
+            ClientSeed = r.ClientSeed,
+            ServerSeed = r.ServerSeed
+        }).ToList();
+
+        // Fetch behavior logs
+        var behaviorLogs = _repository.GetAllAuditLogs()
+            .Where(a => a.UserId == userId.ToString())
+            .OrderByDescending(a => a.Timestamp)
+            .Take(30)
+            .Select(a => new AuditLogDto {
+                Id = a.Id,
+                Timestamp = a.Timestamp,
+                EventType = a.EventType,
+                Description = a.Description,
+                UserId = a.UserId,
+                MetadataJson = a.MetadataJson ?? ""
+            }).ToList();
+
+        var dossier = new PlayerDossierDto {
+            Id = user.Id,
+            Username = user.Username,
+            Email = user.Email,
+            Role = user.Role.ToString(),
+            AvatarUrl = user.AvatarUrl ?? "",
+            Balance = user.Balance,
+            BonusBalance = user.BonusBalance,
+            IsActive = user.IsActive,
+            CreatedAt = user.CreatedAt,
+            LastLoginAt = user.LastLoginAt,
+            AdminNotes = "Clean player.", // Simplified for now
+            TotalWagered = profile.TotalWagered,
+            TotalWon = profile.TotalPaid,
+            RecentBets = recentBets,
+            BehaviorLogs = behaviorLogs,
+            KnownIps = new List<string> { "192.168.1.1" } // Mocked IP for demonstration
         };
 
-        return Task.FromResult<PlayerDossier?>(dossier);
+        return Task.FromResult<PlayerDossierDto?>(dossier);
     }
 
     public async Task InjectBonus(Guid adminId, Guid userId, decimal amount, string reason) {

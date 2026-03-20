@@ -27,10 +27,11 @@ public class RealTimeClient : IAsyncDisposable {
     public event Action<AdminRoundEvent>? OnAdminEventReceived;
 
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
+    public HubConnectionState State => _hubConnection?.State ?? HubConnectionState.Disconnected;
 
     public async Task StartAsync(string token) {
-        if (_hubConnection != null) {
-            await _hubConnection.DisposeAsync();
+        if (_hubConnection != null && _hubConnection.State != HubConnectionState.Disconnected) {
+            return; // Already started or starting
         }
 
         _hubConnection = new HubConnectionBuilder()
@@ -64,10 +65,6 @@ public class RealTimeClient : IAsyncDisposable {
             OnGameUpdateReceived?.Invoke(data);
         });
 
-        _hubConnection.On<object>("ReceiveBigWin", (data) => {
-             // Handle complex object if needed, or stick to simple args
-        });
-
         _hubConnection.On<string, string, decimal, decimal>("ReceiveBigWin", (username, game, amount, mult) => {
             OnBigWinReceived?.Invoke(new BigWinEventArgs(username, game, amount, mult));
         });
@@ -84,6 +81,12 @@ public class RealTimeClient : IAsyncDisposable {
     }
 
     public async Task JoinAdminFeed() {
+        int retries = 0;
+        while (_hubConnection?.State == HubConnectionState.Connecting && retries < 10) {
+            await Task.Delay(500);
+            retries++;
+        }
+
         if (_hubConnection?.State == HubConnectionState.Connected) {
             await _hubConnection.SendAsync("JoinAdminFeed");
         }

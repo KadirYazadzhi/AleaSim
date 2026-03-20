@@ -9,7 +9,7 @@ public interface IAdminService {
     Task<AdminDashboardStats> GetStatsForPeriod(string period);
     
     // Player Inspection & Intervention
-    Task<PlayerDossier?> GetPlayerDossier(Guid userId);
+    Task<PlayerDossierDto?> GetPlayerDossier(Guid userId);
     Task InjectBonus(Guid adminId, Guid userId, decimal amount, string reason);
     Task ForceCooldown(Guid adminId, Guid userId, int durationMinutes, string reason);
     

@@ -95,25 +95,31 @@
                         <MudItem xs="6" sm="3">
                             <MudPaper Class="pa-4 text-center rounded-xl" Elevation="1">
                                 <MudText Typo="Typo.caption" Class="fw-bold opacity-40">TOTAL WAGERED</MudText>
-                                <MudText Typo="Typo.h6" Class="fw-black">@selectedPlayer.TotalWagered.ToString("C0")</MudText>
+                                <MudText Typo="Typo.h6" Class="fw-black">@(fullDossier != null ? fullDossier.TotalWagered.ToString("C0") : selectedPlayer.TotalWagered.ToString("C0"))</MudText>
                             </MudPaper>
                         </MudItem>
                         <MudItem xs="6" sm="3">
                             <MudPaper Class="pa-4 text-center rounded-xl" Elevation="1">
                                 <MudText Typo="Typo.caption" Class="fw-bold opacity-40">TOTAL WON</MudText>
-                                <MudText Typo="Typo.h6" Class="fw-black text-success">@selectedPlayer.TotalWon.ToString("C0")</MudText>
+                                <MudText Typo="Typo.h6" Class="fw-black text-success">@(fullDossier != null ? fullDossier.TotalWon.ToString("C0") : selectedPlayer.TotalWon.ToString("C0"))</MudText>
                             </MudPaper>
                         </MudItem>
                         <MudItem xs="6" sm="3">
                             <MudPaper Class="pa-4 text-center rounded-xl" Elevation="1">
                                 <MudText Typo="Typo.caption" Class="fw-bold opacity-40">PERSONAL RTP</MudText>
-                                <MudText Typo="Typo.h6" Class="fw-black text-info">@((selectedPlayer.TotalWagered > 0 ? (selectedPlayer.TotalWon / selectedPlayer.TotalWagered * 100) : 0).ToString("F1"))%</MudText>
+                                <MudText Typo="Typo.h6" Class="fw-black text-info">
+                                    @(fullDossier != null ? fullDossier.ActualRtp.ToString("F1") : (selectedPlayer.TotalWagered > 0 ? (selectedPlayer.TotalWon / selectedPlayer.TotalWagered * 100) : 0).ToString("F1"))%
+                                </MudText>
                             </MudPaper>
                         </MudItem>
                         <MudItem xs="6" sm="3">
                             <MudPaper Class="pa-4 text-center rounded-xl" Elevation="1">
-                                <MudText Typo="Typo.caption" Class="fw-bold opacity-40">LUCK FACTOR</MudText>
-                                <MudText Typo="Typo.h6" Class="fw-black">1.04</MudText>
+                                <MudText Typo="Typo.caption" Class="fw-bold opacity-40">NET PROFIT (LTV)</MudText>
+                                @if (fullDossier != null) {
+                                    <MudText Typo="Typo.h6" Class="@(fullDossier.NetProfit > 0 ? "text-success fw-black" : "text-error fw-black")">@fullDossier.NetProfit.ToString("C0")</MudText>
+                                } else {
+                                    <MudText Typo="Typo.h6" Class="fw-black opacity-40">---</MudText>
+                                }
                             </MudPaper>
                         </MudItem>
                     </MudGrid>
@@ -151,10 +157,82 @@
                         </MudTabPanel>
 
                         <MudTabPanel Text="BEHAVIOR LOGS" Icon="@Icons.Material.Filled.MenuBook">
-                            <div class="pa-4 text-center opacity-30 py-12">
-                                <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Large" Class="mb-2" />
-                                <MudText>Deep behavior analysis logs coming soon.</MudText>
-                            </div>
+                            @if (isLoadingDossier) {
+                                <div class="d-flex justify-center pa-8"><MudProgressCircular Indeterminate="true" Color="Color.Primary" /></div>
+                            } else if (fullDossier?.BehaviorLogs.Any() == true) {
+                                <MudTable Items="@fullDossier.BehaviorLogs" Dense="true" Hover="true" Elevation="0" Class="bg-transparent" Height="400px" FixedHeader="true">
+                                    <HeaderContent>
+                                        <MudTh>TIME</MudTh>
+                                        <MudTh>EVENT</MudTh>
+                                        <MudTh>DESCRIPTION</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd DataLabel="TIME">@context.Timestamp.ToString("g")</MudTd>
+                                        <MudTd DataLabel="EVENT">
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Primary">@context.EventType</MudChip>
+                                        </MudTd>
+                                        <MudTd DataLabel="DESCRIPTION">@context.Description</MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            } else {
+                                <div class="pa-4 text-center opacity-30 py-12">
+                                    <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Large" Class="mb-2" />
+                                    <MudText>No behavior logs found.</MudText>
+                                </div>
+                            }
+                        </MudTabPanel>
+
+                        <MudTabPanel Text="BET HISTORY" Icon="@Icons.Material.Filled.Casino">
+                            @if (isLoadingDossier) {
+                                <div class="d-flex justify-center pa-8"><MudProgressCircular Indeterminate="true" Color="Color.Primary" /></div>
+                            } else if (fullDossier?.RecentBets.Any() == true) {
+                                <MudTable Items="@fullDossier.RecentBets" Dense="true" Hover="true" Elevation="0" Class="bg-transparent" Height="400px" FixedHeader="true">
+                                    <HeaderContent>
+                                        <MudTh>TIME</MudTh>
+                                        <MudTh>GAME</MudTh>
+                                        <MudTh>BET</MudTh>
+                                        <MudTh>PAYOUT</MudTh>
+                                        <MudTh>MULT</MudTh>
+                                        <MudTh>RESULT</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd>@context.Timestamp.ToString("HH:mm:ss")</MudTd>
+                                        <MudTd>@context.GameName</MudTd>
+                                        <MudTd>@context.BetAmount.ToString("C2")</MudTd>
+                                        <MudTd><span class="@(context.WinAmount > 0 ? "text-success fw-bold" : "opacity-60")">@context.WinAmount.ToString("C2")</span></MudTd>
+                                        <MudTd>@(context.Multiplier.ToString("F2"))x</MudTd>
+                                        <MudTd>
+                                            <MudChip T="string" Size="Size.Small" Color="@(context.WinAmount > 0 ? Color.Success : Color.Default)">
+                                                @context.DecisionType
+                                            </MudChip>
+                                        </MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            } else {
+                                <div class="pa-4 text-center opacity-30 py-12">
+                                    <MudIcon Icon="@Icons.Material.Filled.Casino" Size="Size.Large" Class="mb-2" />
+                                    <MudText>No recent bets found.</MudText>
+                                </div>
+                            }
+                        </MudTabPanel>
+
+                        <MudTabPanel Text="SECURITY & KYC" Icon="@Icons.Material.Filled.Security">
+                             @if (isLoadingDossier) {
+                                <div class="d-flex justify-center pa-8"><MudProgressCircular Indeterminate="true" Color="Color.Primary" /></div>
+                            } else if (fullDossier != null) {
+                                <div class="pa-4">
+                                    <MudText Typo="Typo.subtitle2" Class="fw-bold mb-2">Known IP Addresses</MudText>
+                                    <MudList T="string" Dense="true">
+                                        @foreach(var ip in fullDossier.KnownIps) {
+                                            <MudListItem Icon="@Icons.Material.Filled.Router">@ip</MudListItem>
+                                        }
+                                    </MudList>
+                                    
+                                    <MudDivider Class="my-4" />
+                                    <MudText Typo="Typo.subtitle2" Class="fw-bold mb-2">Admin Notes (Internal Only)</MudText>
+                                    <MudTextField @bind-Value="fullDossier.AdminNotes" Lines="3" Variant="Variant.Outlined" ReadOnly="true" />
+                                </div>
+                            }
                         </MudTabPanel>
                     </MudTabs>
                 </MudStack>
@@ -204,8 +282,10 @@
     private bool isSearching = false;
     private List<PlayerSearchResultDto> searchResults = new();
     private PlayerSearchResultDto? selectedPlayer;
+    private PlayerDossierDto? fullDossier;
     private decimal bonusAmount = 100;
     private string bonusReason = "VIP Loyalty Bonus";
+    private bool isLoadingDossier = false;
 
     protected override async Task OnInitializedAsync() {
         // Initial load of recently active players
@@ -225,9 +305,19 @@
         } finally { isSearching = false; }
     }
 
-    private void SelectPlayer(PlayerSearchResultDto player)
+    private async Task SelectPlayer(PlayerSearchResultDto player)
     {
         selectedPlayer = player;
+        isLoadingDossier = true;
+        StateHasChanged();
+        
+        try {
+            fullDossier = await Http.GetFromJsonAsync<PlayerDossierDto>($"api/Admin/players/{player.Id}");
+        } catch (Exception ex) {
+            Snackbar.Add($"Error loading player intel: {ex.Message}", Severity.Error);
+        } finally {
+            isLoadingDossier = false;
+        }
     }
 
     private async Task OpenChat() {
