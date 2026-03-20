@@ -35,7 +35,9 @@ public class AdminController : ControllerBase {
         var trend = _repo.GetRtpTrend(24); // Last 24 hours
         var result = trend.Select(t => new RtpTrendPoint {
             Label = t.Hour.ToString("HH:mm"),
-            Rtp = t.Bets > 0 ? (double)(t.Wins / t.Bets) * 100 : 95.0
+            Rtp = t.Bets > 0 ? (double)(t.Wins / t.Bets) * 100 : 95.0,
+            Bets = (double)t.Bets,
+            Wins = (double)t.Wins
         }).ToList();
 
         return Ok(result);

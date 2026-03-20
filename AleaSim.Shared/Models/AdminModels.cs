@@ -49,6 +49,8 @@ public class AdminRoundEvent {
 public class RtpTrendPoint {
     public string Label { get; set; } = string.Empty;
     public double Rtp { get; set; }
+    public double Bets { get; set; }
+    public double Wins { get; set; }
 }
 
 public class ShadowCompareDto {
