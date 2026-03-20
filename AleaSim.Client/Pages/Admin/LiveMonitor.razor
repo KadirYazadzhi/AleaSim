@@ -144,9 +144,8 @@
     private decimal totalWins = 0;
     private int activeUserCount = 0;
     private int eventsPerMinute = 0;
-    private DateTime lastMinuteStart = DateTime.Now;
-    private int minuteCounter = 0;
     private HashSet<string> activeUsers = new();
+    private CancellationTokenSource _cts = new();
     
     // Filtering
     private bool showOnlyBigWins = false;
@@ -168,6 +167,16 @@
             activeUserCount = stats.ActivePlayerCount;
         } catch { }
         
+        // Background update for EPM (Events Per Minute)
+        _ = Task.Run(async () => {
+            while (!_cts.Token.IsCancellationRequested) {
+                var oneMinuteAgo = DateTime.Now.AddMinutes(-1);
+                eventsPerMinute = events.Count(e => e.Timestamp >= oneMinuteAgo);
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(5000, _cts.Token);
+            }
+        });
+
         // Wait for connection if needed
         _ = Task.Run(async () => {
             int retries = 0;
@@ -195,15 +204,8 @@
 
     private void AddEvent(string type, string data, decimal bet) {
         events.Insert(0, new StreamEvent(DateTime.Now, type, data, bet));
-        if (events.Count > 100) events.RemoveAt(100);
+        if (events.Count > 200) events.RemoveAt(200); // Increased buffer for better EPM accuracy
         
-        minuteCounter++;
-        if ((DateTime.Now - lastMinuteStart).TotalSeconds >= 60) {
-            eventsPerMinute = minuteCounter;
-            minuteCounter = 0;
-            lastMinuteStart = DateTime.Now;
-        }
-
         InvokeAsync(StateHasChanged);
     }
 
@@ -217,6 +219,8 @@
     };
 
     public void Dispose() {
+        _cts.Cancel();
+        _cts.Dispose();
         RealTime.OnAdminEventReceived -= OnAdminEvent;
         RealTime.OnBigWinReceived -= OnBigWin;
     }
