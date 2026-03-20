@@ -50,16 +50,22 @@
                         </div>
                     } else {
                         <MudList T="PlayerSearchResultDto" SelectionMode="SelectionMode.SingleSelection" Class="player-list-scroll">
-                            @foreach (var p in searchResults)
+                            @foreach (var p in searchResults.Where(x => x.Role != "Admin" && !x.Username.StartsWith("Sim_")))
                             {
                                 <MudListItem OnClick="() => SelectPlayer(p)" Class='@($"player-list-item {(selectedPlayer?.Id == p.Id ? "selected" : "")}")'>
                                     <div class="d-flex align-center gap-3">
                                         <MudAvatar Size="Size.Small"><MudImage Src="@p.AvatarUrl" /></MudAvatar>
                                         <div class="flex-grow-1">
-                                            <MudText Typo="Typo.body2" Class="fw-bold">@p.Username</MudText>
-                                            <MudText Typo="Typo.caption" Class="opacity-60">@p.Email</MudText>
+                                            <div class="d-flex align-center gap-2">
+                                                <MudText Typo="Typo.body2" Class="fw-bold">@p.Username</MudText>
+                                                <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.ExtraSmall" OnClick='() => Snackbar.Add($"Email: {p.Email}", Severity.Info)' />
+                                            </div>
+                                            <MudText Typo="Typo.caption" Class="opacity-60">Wagered: @p.TotalWagered.ToString("C0")</MudText>
                                         </div>
-                                        <MudText Typo="Typo.caption" Class="fw-black text-success">@p.Balance.ToString("C0")</MudText>
+                                        <div class="text-right">
+                                            <MudText Typo="Typo.caption" Class="fw-black text-success d-block">@( (p.Balance + p.BonusBalance).ToString("C0") )</MudText>
+                                            <MudText Typo="Typo.caption" Class="opacity-40" Style="font-size: 0.6rem;">INC. BONUS</MudText>
+                                        </div>
                                     </div>
                                 </MudListItem>
                             }
@@ -145,6 +151,10 @@
                                     <MudStack Spacing="2">
                                         <MudButton Variant="Variant.Outlined" Color="Color.Error" FullWidth="true" OnClick='() => ForceSpin(0, "Cool-down", false, true)' Class="py-3">FORCE NEAR MISS</MudButton>
                                         <MudButton Variant="Variant.Outlined" Color="Color.Error" FullWidth="true" OnClick="KillSession" Class="py-3">KILL ACTIVE SESSION</MudButton>
+                                        <div class="d-flex gap-2">
+                                            <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" OnClick="() => ToggleLock(24)" Class="py-2">LOCK 24H</MudButton>
+                                            <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick="BanPermanently" Class="py-2">BAN PERM</MudButton>
+                                        </div>
                                     </MudStack>
                                 </MudItem>
                             </MudGrid>
@@ -463,6 +473,23 @@
             Snackbar.Add("Admin notes updated successfully.", Severity.Success);
         } else {
             Snackbar.Add("Failed to update admin notes.", Severity.Error);
+        }
+    }
+
+    private async Task ToggleLock(int hours) {
+        if (selectedPlayer == null) return;
+        var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/cooldown", new { DurationMinutes = hours * 60, Reason = "Administrative Lock" });
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add($"Player {selectedPlayer.Username} locked for {hours} hours.", Severity.Warning);
+        }
+    }
+
+    private async Task BanPermanently() {
+        if (selectedPlayer == null) return;
+        var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/status", new { IsActive = false });
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add($"Player {selectedPlayer.Username} has been PERMANENTLY BANNED.", Severity.Error);
+            selectedPlayer.IsActive = false;
         }
     }
 }

@@ -189,6 +189,13 @@ public class AdminController : ControllerBase {
         return Ok(new { Message = "Bonus injected successfully." });
     }
 
+    [HttpPost("players/{id}/status")]
+    public async Task<IActionResult> ToggleUserStatus(Guid id, [FromBody] ToggleStatusDto dto) {
+        var adminId = GetCurrentUserId();
+        await _adminService.ToggleUserStatus(adminId, id, dto.IsActive);
+        return Ok(new { Message = dto.IsActive ? "User activated." : "User banned." });
+    }
+
     [HttpPost("players/{id}/cooldown")]
     public async Task<IActionResult> ForceCooldown(Guid id, [FromBody] ForceCooldownDto dto) {
         var adminId = GetCurrentUserId();

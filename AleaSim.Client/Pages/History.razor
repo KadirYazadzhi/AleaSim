@@ -2,9 +2,11 @@
 @using AleaSim.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
+@implements IDisposable
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject RealTimeClient RealTime
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 pb-12">
     <div class="d-flex align-center gap-4 mb-8">
@@ -91,6 +93,25 @@
 
     protected override async Task OnInitializedAsync() {
         await LoadHistory();
+        RealTime.OnGameUpdateReceived += OnGameUpdate;
+    }
+
+    private void OnGameUpdate(object data) {
+        if (data.ToString()?.Contains("FORCE_LOGOUT") == true) {
+            _ = AuthService.Logout().ContinueWith(_ => Navigation.NavigateTo("/login?error=Banned"));
+            return;
+        }
+
+        // Since we don't have the full GameRoundDto here from the generic game update, 
+        // the most reliable way to maintain perfect history is to trigger a silent refresh.
+        _ = InvokeAsync(async () => {
+            await LoadHistory();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose() {
+        RealTime.OnGameUpdateReceived -= OnGameUpdate;
     }
 
     private async Task LoadHistory() {

@@ -195,7 +195,16 @@
         activeUsers.Add(ev.Username);
         activeUserCount = activeUsers.Count;
         
-        AddEvent(ev.Game, $"{ev.Username}: {ev.Bet:C} -> {ev.Win:C} ({ev.Decision})", ev.Bet);
+        string friendlyGame = ev.Game.ToLower() switch {
+            "slot" => "Clover Chase",
+            "fruitblast" => "Fruit Blast",
+            "roulette" => "Roulette Royale",
+            "blackjack" => "Blackjack",
+            "dice" => "Neon Dice",
+            _ => ev.Game
+        };
+
+        AddEvent(friendlyGame, $"{ev.Username}: {ev.Bet:C} -> {ev.Win:C} ({ev.Decision})", ev.Bet);
     }
 
     private void OnBigWin(BigWinEventArgs args) {

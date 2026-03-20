@@ -5,8 +5,10 @@
 @using System.Security.Cryptography
 @using System.Text
 @inject IGameService GameService
+@inject RealTimeClient RealTime
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@implements IDisposable
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 pb-12">
     <div class="d-flex align-center gap-4 mb-8">
@@ -44,7 +46,7 @@
                         <MudChip T="string" Size="Size.Small" Color="@GetEventColor(context.EventType)" Variant="Variant.Text" Class="fw-bold">@context.EventType</MudChip>
                     </MudTd>
                     <MudTd DataLabel="Desc">
-                        <MudText Typo="Typo.body2" Class="fw-bold">@context.Description</MudText>
+                        <MudText Typo="Typo.body2" Class="fw-bold">@FormatFriendlyDesc(context.Description)</MudText>
                     </MudTd>
                     <MudTd DataLabel="Hash">
                         <div class="hash-stack">
@@ -201,6 +203,7 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadAuditChain();
+        RealTime.OnAuditLogReceived += OnLiveLog;
 
         if (Game != null || NonceParam != null || ClientSeedParam != null || ServerSeedParam != null) {
             if (Game != null) selectedGame = Game.ToLower();
@@ -214,6 +217,27 @@
                 VerifyOutcome();
             }
         }
+    }
+
+    private void OnLiveLog(AuditLogDto log) {
+        auditChain.Insert(0, log);
+        if (auditChain.Count > 100) auditChain.RemoveAt(100);
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() {
+        RealTime.OnAuditLogReceived -= OnLiveLog;
+    }
+
+    private string FormatFriendlyDesc(string raw) {
+        if (string.IsNullOrEmpty(raw)) return "";
+        return raw
+            .Replace("slot Round", "Clover Chase #")
+            .Replace("fruitblast Round", "Fruit Blast #")
+            .Replace("roulette Round", "Roulette Royale #")
+            .Replace("blackjack Round", "Blackjack #")
+            .Replace("dice Round", "Neon Dice #")
+            .Replace("baccarat Round", "Baccarat #");
     }
 
     private string Truncate(string? value, int length)

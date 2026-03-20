@@ -218,6 +218,11 @@ public class AdminService : IAdminService {
             user.IsActive = isActive;
             _repository.UpdateUser(user);
             _auditService.LogEvent("ADMIN_USER_STATUS", $"Admin {adminId} set status to {isActive} for {userId}", adminId.ToString(), isActive.ToString());
+
+            // IMMEDIATE KICK: If banned, force them out via SignalR
+            if (!isActive) {
+                await _realTime.NotifyGameUpdate(userId, new { Action = "FORCE_LOGOUT", Reason = "Account Banned" });
+            }
         }
     }
 
