@@ -77,8 +77,8 @@
                             <MudText Typo="Typo.h6" Class="fw-black">Bankruptcy Relief (Faucet)</MudText>
                         </div>
                         <MudStack Spacing="4">
-                            <MudNumericField @bind-Value="_faucetAmount" Label="Relief Amount ($)" Variant="Variant.Outlined" Prefix="$" />
-                            <MudNumericField @bind-Value="_faucetThreshold" Label="Trigger Threshold ($)" Variant="Variant.Outlined" Prefix="$" HelperText="User balance must be below this to claim" />
+                            <MudNumericField @bind-Value="_faucetAmount" Label="Relief Amount ($)" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="$" />
+                            <MudNumericField @bind-Value="_faucetThreshold" Label="Trigger Threshold ($)" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="$" HelperText="User balance must be below this to claim" />
                             <MudNumericField @bind-Value="_faucetCooldown" Label="Cooldown (Minutes)" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Timer" />
                         </MudStack>
                     </div>
@@ -193,7 +193,7 @@
                     <div class="settings-group-card h-100">
                         <MudText Typo="Typo.h6" Class="fw-black mb-6">Tournament Configuration</MudText>
                         <MudStack Spacing="4">
-                            <MudNumericField @bind-Value="_tournamentPrizePool" Label="Total Monthly Prize Pool ($)" Variant="Variant.Outlined" Prefix="$" />
+                            <MudNumericField @bind-Value="_tournamentPrizePool" Label="Total Monthly Prize Pool ($)" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="$" />
                             <MudNumericField @bind-Value="_tournamentDurationDays" Label="Season Duration (Days)" Variant="Variant.Outlined" />
                             <MudSwitch @bind-Value="_tournamentActive" Label="Active Tournament" Color="Color.Warning" T="bool" />
                         </MudStack>
@@ -215,7 +215,14 @@
                             <MudText Typo="Typo.h5" Class="fw-black mt-4">@(_integrityResult?.IsValid == true ? "AUDIT CHAIN SECURE" : "AWAITING SCAN")</MudText>
                             <MudText Typo="Typo.caption" Class="opacity-60">Verification of all historical hash signatures.</MudText>
                         </div>
-                        <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Class="py-4 rounded-xl fw-black" OnClick="RunIntegrityCheck">INITIALIZE SYSTEM SCAN</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Class="py-4 rounded-xl fw-black" OnClick="RunIntegrityCheck" Disabled="_verifyingIntegrity">
+                            @if (_verifyingIntegrity) {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                                <MudText Class="ms-2">SCANNING...</MudText>
+                            } else {
+                                <MudText>INITIALIZE SYSTEM SCAN</MudText>
+                            }
+                        </MudButton>
                     </div>
                 </MudItem>
                 <MudItem xs="12" md="6">

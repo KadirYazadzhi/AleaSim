@@ -45,7 +45,7 @@
             <MudTh>Expires</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd><MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(() => ShowBtnPress(context.Id))">@(context.ShowDetails ? "HIDE" : "SHOW")</MudTd>
+            <MudTd><MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(() => ShowBtnPress(context.Id))">@(context.ShowDetails ? "HIDE" : "SHOW")</MudButton></MudTd>
             <MudTd DataLabel="Code"><MudChip T="string" Color="Color.Info" Variant="Variant.Text">@context.Code</MudChip></MudTd>
             <MudTd DataLabel="Amount">@context.Amount.ToString("C2")</MudTd>
             <MudTd DataLabel="Usage">@context.CurrentUses / @context.MaxUses</MudTd>

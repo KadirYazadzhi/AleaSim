@@ -47,7 +47,7 @@
                             <MudText>No players matching query.</MudText>
                         </div>
                     } else {
-                        <MudList T="PlayerSearchResultDto" Clickable="true" Class="player-list-scroll">
+                        <MudList T="PlayerSearchResultDto" SelectionMode="SelectionMode.ClickSelection" Class="player-list-scroll">
                             @foreach (var p in searchResults)
                             {
                                 <MudListItem OnClick="() => SelectPlayer(p)" Class='@($"player-list-item {(selectedPlayer?.Id == p.Id ? "selected" : "")}")'>
@@ -150,7 +150,7 @@
 
                         <MudTabPanel Text="CURRENCY INJECTION" Icon="@Icons.Material.Filled.Payments">
                             <div class="pa-2">
-                                <MudNumericField @bind-Value="bonusAmount" Label="Bonus Credit Amount" Variant="Variant.Outlined" Prefix="$" />
+                                <MudNumericField @bind-Value="bonusAmount" Label="Bonus Credit Amount" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="$" />
                                 <MudTextField @bind-Value="bonusReason" Label="Official Reason" Variant="Variant.Outlined" Class="mt-4" />
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-6 py-3 px-12 rounded-lg fw-black" OnClick="InjectBonus">INJECT CREDITS</MudButton>
                             </div>
