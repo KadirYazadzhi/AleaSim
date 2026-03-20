@@ -145,6 +145,10 @@ public class GameDirector : IGameDirector {
             session?.UserId.ToString() ?? "Unknown", 
             JsonSerializer.Serialize(new { Win = round.TotalWinAmount, Result = round.RandomResult }));
 
+        // Re-fetch fresh user/profile to get exact sync values (prevents UI Drift)
+        var freshUser = user != null ? _repo.GetUser(user.Id) : null;
+        var freshProfile = user != null ? _repo.GetPlayerProfile(user.Id) : null;
+
         // BROADCAST TO ADMINS (SignalR Group: Admins)
         _ = _realTime.NotifyAdminFeed(new AdminRoundEvent {
             Timestamp = DateTime.UtcNow,
@@ -154,7 +158,13 @@ public class GameDirector : IGameDirector {
             Win = round.TotalWinAmount,
             RoundNumber = round.RoundNumber,
             Decision = round.DecisionType,
-            Multiplier = amount > 0 ? (double)(round.TotalWinAmount / (amount > 0 ? amount : 1)) : 0
+            Multiplier = amount > 0 ? (double)(round.TotalWinAmount / (amount > 0 ? amount : 1)) : 0,
+            
+            // Sync current state
+            Balance = freshUser?.Balance ?? 0,
+            BonusBalance = freshUser?.BonusBalance ?? 0,
+            LifetimeWagered = freshProfile?.TotalWagered ?? 0,
+            LifetimeWon = freshProfile?.TotalPaid ?? 0
         });
 
         return round;

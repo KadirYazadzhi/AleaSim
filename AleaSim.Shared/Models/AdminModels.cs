@@ -38,6 +38,12 @@ public class AdminRoundEvent {
     public int RoundNumber { get; set; }
     public string Decision { get; set; } = string.Empty;
     public double Multiplier { get; set; }
+    
+    // Sync fields to prevent UI Drift
+    public decimal Balance { get; set; }
+    public decimal BonusBalance { get; set; }
+    public decimal LifetimeWagered { get; set; }
+    public decimal LifetimeWon { get; set; }
 }
 
 public class RtpTrendPoint {

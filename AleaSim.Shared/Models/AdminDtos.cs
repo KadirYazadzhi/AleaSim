@@ -27,17 +27,17 @@ public class PlayerSearchResultDto {
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public decimal Balance { get; set; }
+    public decimal BonusBalance { get; set; }
     public string Role { get; set; } = string.Empty;
     public string AvatarUrl { get; set; } = string.Empty;
     public decimal TotalWagered { get; set; }
     public decimal TotalWon { get; set; }
 
-public class UpdateBalanceDto {
-    public decimal NewBalance { get; set; }
-}
+    public class UpdateBalanceDto {
+        public decimal NewBalance { get; set; }
+    }
 
-public class ToggleStatusDto {
-    public bool IsActive { get; set; }
-}
-
+    public class ToggleStatusDto {
+        public bool IsActive { get; set; }
+    }
 }

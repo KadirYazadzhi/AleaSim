@@ -315,14 +315,18 @@
         // 1. Update the Search Results / Directory list (Real-time Balance/Activity)
         var existing = searchResults.FirstOrDefault(p => p.Username == ev.Username);
         if (existing != null) {
-            existing.Balance += ev.Win - ev.Bet;
-            existing.TotalWagered += ev.Bet;
-            existing.TotalWon += ev.Win;
+            existing.Balance = ev.Balance;
+            existing.BonusBalance = ev.BonusBalance;
+            existing.TotalWagered = ev.LifetimeWagered;
+            existing.TotalWon = ev.LifetimeWon;
         } else {
             // New active player detected - add to top
             searchResults.Insert(0, new PlayerSearchResultDto {
                 Username = ev.Username,
-                Balance = 0, // Will be updated on next event or reload
+                Balance = ev.Balance,
+                BonusBalance = ev.BonusBalance,
+                TotalWagered = ev.LifetimeWagered,
+                TotalWon = ev.LifetimeWon,
                 Role = "User",
                 AvatarUrl = $"https://api.dicebear.com/7.x/bottts/svg?seed={ev.Username}"
             });
@@ -331,14 +335,16 @@
 
         // 2. If this is our selected player, update their dossier in real-time
         if (selectedPlayer != null && selectedPlayer.Username == ev.Username) {
-            selectedPlayer.Balance += ev.Win - ev.Bet;
-            selectedPlayer.TotalWagered += ev.Bet;
-            selectedPlayer.TotalWon += ev.Win;
+            selectedPlayer.Balance = ev.Balance;
+            selectedPlayer.BonusBalance = ev.BonusBalance;
+            selectedPlayer.TotalWagered = ev.LifetimeWagered;
+            selectedPlayer.TotalWon = ev.LifetimeWon;
 
             if (fullDossier != null) {
-                fullDossier.Balance += ev.Win - ev.Bet;
-                fullDossier.TotalWagered += ev.Bet;
-                fullDossier.TotalWon += ev.Win;
+                fullDossier.Balance = ev.Balance;
+                fullDossier.BonusBalance = ev.BonusBalance;
+                fullDossier.TotalWagered = ev.LifetimeWagered;
+                fullDossier.TotalWon = ev.LifetimeWon;
 
                 // Add to Bet History tab
                 fullDossier.RecentBets.Insert(0, new GameRoundSummaryDto {
