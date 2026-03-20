@@ -66,11 +66,15 @@
     <!-- Main Live Table -->
     <MudPaper Class="pa-8 rounded-xl overflow-hidden" Elevation="4">
         <div class="d-flex justify-space-between align-center mb-6">
-            <MudText Typo="Typo.h5" Class="fw-black">Activity Pipeline</MudText>
+            <div class="d-flex align-center gap-4">
+                <MudText Typo="Typo.h5" Class="fw-black">Activity Pipeline</MudText>
+                <MudSwitch T="bool" @bind-Value="showOnlyBigWins" Color="Color.Warning" Label="Only Big Wins" Class="ml-4" />
+                <MudNumericField T="decimal" @bind-Value="minBetFilter" Label="Min Bet ($)" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 120px;" />
+            </div>
             <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.ClearAll" OnClick="() => events.Clear()">Clear Stream</MudButton>
         </div>
 
-        <MudTable Items="@events" Hover="true" Dense="true" Elevation="0" Class="modern-monitor-table" FixedHeader="true" Height="600px">
+        <MudTable Items="@FilteredEvents" Hover="true" Dense="true" Elevation="0" Class="modern-monitor-table" FixedHeader="true" Height="600px">
             <HeaderContent>
                 <MudTh>TIME</MudTh>
                 <MudTh>CONTEXT</MudTh>
@@ -143,6 +147,14 @@
     private DateTime lastMinuteStart = DateTime.Now;
     private int minuteCounter = 0;
     private HashSet<string> activeUsers = new();
+    
+    // Filtering
+    private bool showOnlyBigWins = false;
+    private decimal minBetFilter = 0;
+    private IEnumerable<StreamEvent> FilteredEvents => events.Where(e => 
+        (!showOnlyBigWins || e.Type.Equals("BigWin", StringComparison.OrdinalIgnoreCase)) &&
+        (e.Bet >= minBetFilter)
+    );
 
     protected override async Task OnInitializedAsync() {
         RealTime.OnAdminEventReceived += OnAdminEvent;
@@ -174,15 +186,15 @@
         activeUsers.Add(ev.Username);
         activeUserCount = activeUsers.Count;
         
-        AddEvent(ev.Game, $"{ev.Username}: {ev.Bet:C} -> {ev.Win:C} ({ev.Decision})");
+        AddEvent(ev.Game, $"{ev.Username}: {ev.Bet:C} -> {ev.Win:C} ({ev.Decision})", ev.Bet);
     }
 
     private void OnBigWin(BigWinEventArgs args) {
-        AddEvent("BigWin", $"🏆 {args.Username} hit {args.Amount:C} on {args.GameName}!");
+        AddEvent("BigWin", $"🏆 {args.Username} hit {args.Amount:C} on {args.GameName}!", 0); // Bet amount is unknown here, default to 0 for BigWin to pass filter
     }
 
-    private void AddEvent(string type, string data) {
-        events.Insert(0, new StreamEvent(DateTime.Now, type, data));
+    private void AddEvent(string type, string data, decimal bet) {
+        events.Insert(0, new StreamEvent(DateTime.Now, type, data, bet));
         if (events.Count > 100) events.RemoveAt(100);
         
         minuteCounter++;
@@ -209,5 +221,5 @@
         RealTime.OnBigWinReceived -= OnBigWin;
     }
 
-    private record StreamEvent(DateTime Timestamp, string Type, string Data);
+    private record StreamEvent(DateTime Timestamp, string Type, string Data, decimal Bet);
 }

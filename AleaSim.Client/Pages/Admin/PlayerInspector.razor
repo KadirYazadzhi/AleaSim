@@ -142,7 +142,7 @@
                                     <MudText Typo="Typo.subtitle2" Class="fw-bold mb-4">Risk Management</MudText>
                                     <MudStack Spacing="2">
                                         <MudButton Variant="Variant.Outlined" Color="Color.Error" FullWidth="true" OnClick='() => ForceSpin(0, "Cool-down", false, true)' Class="py-3">FORCE NEAR MISS</MudButton>
-                                        <MudButton Variant="Variant.Outlined" Color="Color.Default" FullWidth="true" Disabled="true" Class="py-3">RESET RNG SEED</MudButton>
+                                        <MudButton Variant="Variant.Outlined" Color="Color.Error" FullWidth="true" OnClick="KillSession" Class="py-3">KILL ACTIVE SESSION</MudButton>
                                     </MudStack>
                                 </MudItem>
                             </MudGrid>
@@ -230,7 +230,8 @@
                                     
                                     <MudDivider Class="my-4" />
                                     <MudText Typo="Typo.subtitle2" Class="fw-bold mb-2">Admin Notes (Internal Only)</MudText>
-                                    <MudTextField @bind-Value="fullDossier.AdminNotes" Lines="3" Variant="Variant.Outlined" ReadOnly="true" />
+                                    <MudTextField @bind-Value="fullDossier.AdminNotes" Lines="3" Variant="Variant.Outlined" />
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" OnClick="SaveNotes">SAVE NOTES</MudButton>
                                 </div>
                             }
                         </MudTabPanel>
@@ -355,6 +356,28 @@
         var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/force-outcome", directive);
         if (response.IsSuccessStatusCode) {
             Snackbar.Add($"Next spin for {selectedPlayer.Username} is now LOCKED.", Severity.Success);
+        }
+    }
+
+    private async Task KillSession() {
+        if (selectedPlayer == null) return;
+        
+        var response = await Http.PostAsync($"api/Admin/players/{selectedPlayer.Id}/kill-session", null);
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add($"Active session for {selectedPlayer.Username} terminated.", Severity.Warning);
+        } else {
+            Snackbar.Add("Failed to kill session. Maybe they have no active session.", Severity.Error);
+        }
+    }
+
+    private async Task SaveNotes() {
+        if (fullDossier == null || selectedPlayer == null) return;
+        
+        var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/notes", new { Notes = fullDossier.AdminNotes });
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Admin notes updated successfully.", Severity.Success);
+        } else {
+            Snackbar.Add("Failed to update admin notes.", Severity.Error);
         }
     }
 }

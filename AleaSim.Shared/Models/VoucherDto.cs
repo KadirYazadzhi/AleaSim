@@ -8,4 +8,11 @@ public class VoucherDto {
     public int CurrentUses { get; set; }
     public DateTime? ExpiresAt { get; set; }
     public bool IsActive { get; set; }
+    public bool ShowDetails { get; set; }
+    public List<VoucherUsageDto> UsageHistory { get; set; } = new();
+}
+
+public class VoucherUsageDto {
+    public string Username { get; set; } = string.Empty;
+    public DateTime RedeemedAt { get; set; }
 }

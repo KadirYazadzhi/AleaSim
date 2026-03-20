@@ -125,6 +125,7 @@ public interface IGameRepository {
     bool HasUserRedeemedVoucher(Guid userId, Guid voucherId);
     void UpdateVoucher(Voucher voucher);
     void SaveUserVoucher(UserVoucher userVoucher);
+    IEnumerable<UserVoucher> GetVoucherUsages(Guid voucherId);
     void CreateVoucher(Voucher voucher);
     IEnumerable<Voucher> GetAllVouchers();
 

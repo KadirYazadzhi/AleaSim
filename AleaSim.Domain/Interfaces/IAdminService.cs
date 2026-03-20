@@ -12,6 +12,8 @@ public interface IAdminService {
     Task<PlayerDossierDto?> GetPlayerDossier(Guid userId);
     Task InjectBonus(Guid adminId, Guid userId, decimal amount, string reason);
     Task ForceCooldown(Guid adminId, Guid userId, int durationMinutes, string reason);
+    Task KillSession(Guid adminId, Guid userId);
+    Task UpdatePlayerNotes(Guid adminId, Guid userId, string notes);
     
     // System Control
     Task SetGlobalRtp(Guid adminId, decimal targetRtp);

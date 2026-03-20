@@ -37,6 +37,7 @@
 
     <MudTable Items="@vouchers" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" Elevation="2">
         <HeaderContent>
+            <MudTh></MudTh>
             <MudTh>Code</MudTh>
             <MudTh>Amount</MudTh>
             <MudTh>Usage</MudTh>
@@ -44,6 +45,7 @@
             <MudTh>Expires</MudTh>
         </HeaderContent>
         <RowTemplate>
+            <MudTd><MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(() => ShowBtnPress(context.Id))">@(context.ShowDetails ? "HIDE" : "SHOW")</MudTd>
             <MudTd DataLabel="Code"><MudChip T="string" Color="Color.Info" Variant="Variant.Text">@context.Code</MudChip></MudTd>
             <MudTd DataLabel="Amount">@context.Amount.ToString("C2")</MudTd>
             <MudTd DataLabel="Usage">@context.CurrentUses / @context.MaxUses</MudTd>
@@ -54,6 +56,31 @@
             </MudTd>
             <MudTd DataLabel="Expires">@(context.ExpiresAt?.ToShortDateString() ?? "Never")</MudTd>
         </RowTemplate>
+        <ChildRowContent>
+            @if (context.ShowDetails) {
+                <MudTr>
+                    <td colspan="6">
+                        <MudCard Elevation="0" Class="pa-4 bg-transparent border-t-solid border-divider">
+                            <MudText Typo="Typo.subtitle2" Class="fw-bold mb-2">Redemption History (@context.UsageHistory.Count records)</MudText>
+                            @if(context.UsageHistory.Any()) {
+                                <MudTable Items="@context.UsageHistory" Context="usageContext" Dense="true" Hover="true" Elevation="0" Class="bg-transparent">
+                                    <HeaderContent>
+                                        <MudTh>Player</MudTh>
+                                        <MudTh>Redeemed At</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd>@usageContext.Username</MudTd>
+                                        <MudTd>@usageContext.RedeemedAt.ToString("g")</MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            } else {
+                                <MudText Typo="Typo.body2" Class="opacity-50">No redemptions yet.</MudText>
+                            }
+                        </MudCard>
+                    </td>
+                </MudTr>
+            }
+        </ChildRowContent>
         <NoRecordsContent>
             <div class="pa-12 d-flex flex-column align-center justify-center">
                 <MudIcon Icon="@Icons.Material.Filled.ConfirmationNumber" Color="Color.Surface" Style="font-size: 4rem; opacity: 0.2;" Class="mb-4" />
@@ -87,6 +114,13 @@
     }
 
     private void ToggleCreateForm() => showCreateForm = !showCreateForm;
+
+    private void ShowBtnPress(Guid id) {
+        var voucher = vouchers.FirstOrDefault(f => f.Id == id);
+        if (voucher != null) {
+            voucher.ShowDetails = !voucher.ShowDetails;
+        }
+    }
 
     private async Task SaveVoucher() {
         if (string.IsNullOrWhiteSpace(newVoucher.Code)) return;

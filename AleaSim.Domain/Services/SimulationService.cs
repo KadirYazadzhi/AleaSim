@@ -65,6 +65,11 @@ public class SimulationService : ISimulationService {
             var detailedResults = new List<SimulationDetail>();
 
             var session = await engine.StartSession(dummyUser.Id, game.Id);
+            if (!string.IsNullOrEmpty(request.ForcedSeed)) {
+                session.ServerSeed = request.ForcedSeed; // Time Travel: Override server seed
+                repo.UpdateSession(session);
+            }
+            
             bool pendingFeature = false;
 
             for (int i = 0; i < request.Iterations; i++) {

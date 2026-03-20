@@ -69,6 +69,7 @@ public class SimulationRequest {
     public decimal BetAmount { get; set; } = 1.0m;
     public int Iterations { get; set; } = 100000;
     public Guid? UserId { get; set; }
+    public string? ForcedSeed { get; set; } // For Time Travel Testing
 }
 
 public class SimulationReport {

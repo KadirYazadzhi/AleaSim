@@ -192,6 +192,20 @@ public class AdminController : ControllerBase {
         return Ok(new { Message = "Cooldown enforced." });
     }
 
+    [HttpPost("players/{id}/kill-session")]
+    public async Task<IActionResult> KillSession(Guid id) {
+        var adminId = GetCurrentUserId();
+        await _adminService.KillSession(adminId, id);
+        return Ok(new { Message = "Session killed." });
+    }
+
+    [HttpPost("players/{id}/notes")]
+    public async Task<IActionResult> UpdateNotes(Guid id, [FromBody] UpdateNotesDto dto) {
+        var adminId = GetCurrentUserId();
+        await _adminService.UpdatePlayerNotes(adminId, id, dto.Notes);
+        return Ok(new { Message = "Notes updated." });
+    }
+
     // --- System Control ---
 
     [HttpPost("config/rtp")]
@@ -240,14 +254,22 @@ public class AdminController : ControllerBase {
     [HttpGet("vouchers")]
     public IActionResult GetAllVouchers() {
         var vouchers = _repo.GetAllVouchers();
-        var result = vouchers.Select(v => new VoucherDto {
-            Id = v.Id,
-            Code = v.Code,
-            Amount = v.Amount,
-            MaxUses = v.MaxUses,
-            CurrentUses = v.CurrentUses,
-            ExpiresAt = v.ExpiresAt,
-            IsActive = v.IsActive
+        var result = vouchers.Select(v => {
+            var usages = _repo.GetVoucherUsages(v.Id).Select(u => new VoucherUsageDto {
+                Username = _repo.GetUser(u.UserId)?.Username ?? "Unknown",
+                RedeemedAt = u.RedeemedAt
+            }).OrderByDescending(u => u.RedeemedAt).ToList();
+
+            return new VoucherDto {
+                Id = v.Id,
+                Code = v.Code,
+                Amount = v.Amount,
+                MaxUses = v.MaxUses,
+                CurrentUses = v.CurrentUses,
+                ExpiresAt = v.ExpiresAt,
+                IsActive = v.IsActive,
+                UsageHistory = usages
+            };
         }).ToList();
 
         return Ok(result);
@@ -300,4 +322,8 @@ public class AdminController : ControllerBase {
         }
         return Guid.Empty; // Or throw
     }
+}
+
+public class UpdateNotesDto {
+    public string Notes { get; set; } = string.Empty;
 }

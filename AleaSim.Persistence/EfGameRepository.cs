@@ -751,6 +751,10 @@ public class EfGameRepository : IGameRepository {
         _context.SaveChanges();
     }
 
+    public IEnumerable<UserVoucher> GetVoucherUsages(Guid voucherId) {
+        return _context.UserVouchers.Where(uv => uv.VoucherId == voucherId).ToList();
+    }
+
     public void SaveUserVoucher(UserVoucher userVoucher) {
         _context.UserVouchers.Add(userVoucher);
         _context.SaveChanges();

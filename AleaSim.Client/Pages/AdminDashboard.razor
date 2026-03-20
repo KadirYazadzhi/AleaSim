@@ -75,6 +75,22 @@
     </MudGrid>
 
     <MudGrid Class="mb-8">
+        <MudItem xs="12">
+            <MudPaper Class="pa-6 rounded-xl dashboard-card" Elevation="0">
+                <MudText Typo="Typo.h6" Class="fw-bold mb-4">Platform RTP Trend (24h)</MudText>
+                @if (trendData.Any()) {
+                    <MudChart ChartType="ChartType.Line" ChartSeries="@(new List<ChartSeries>() { new ChartSeries { Name = "RTP %", Data = trendData.Select(t => t.Rtp).ToArray() } })" 
+                              XAxisLabels="@(trendData.Select(t => t.Label).ToArray())" Width="100%" Height="300px" />
+                } else {
+                    <div class="d-flex justify-center align-center py-12 opacity-50">
+                        <MudText>No trend data available.</MudText>
+                    </div>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Class="mb-8">
         <MudItem xs="12" md="8">
             <MudPaper Class="pa-6 rounded-xl dashboard-card h-100" Elevation="0">
                 <MudText Typo="Typo.h6" Class="fw-bold mb-4">Game Performance Analytics</MudText>
@@ -272,6 +288,7 @@
 
 @code {
     private AdminDashboardStats stats = new();
+    private List<RtpTrendPoint> trendData = new();
     private string _selectedPeriod = "Day";
     private decimal _targetRtp = 95.0m;
     private bool _emergencyStop = false;
@@ -387,6 +404,8 @@
             stats = await AdminService.GetDashboardStats(_selectedPeriod);
             _targetRtp = Math.Round(stats.CurrentRtp > 0 ? (decimal)stats.CurrentRtp : 95.0m, 2);
             _emergencyStop = stats.IsEmergencyStopActive;
+            
+            trendData = await AdminService.GetRtpTrend();
         } catch {}
     }
 

@@ -247,6 +247,60 @@
                 </MudItem>
             </MudGrid>
         </MudTabPanel>
+
+        <!-- 6. GAME MANAGEMENT -->
+        <MudTabPanel Text="GAMES" Icon="@Icons.Material.Filled.Casino">
+            <MudGrid>
+                <MudItem xs="12">
+                    <div class="settings-group-card">
+                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Game Availability Control</MudText>
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Class="mb-4">Disabling a game will immediately disconnect all active players and refund their pending bets.</MudAlert>
+                        <MudList T="string" Class="bg-transparent">
+                            @foreach(var game in new[] { "Slot (Clover Chase)", "Roulette", "Blackjack", "Fruit Blast", "Dice" }) {
+                                <MudListItem>
+                                    <div class="d-flex justify-space-between align-center">
+                                        <div class="d-flex align-center gap-3">
+                                            <MudIcon Icon="@Icons.Material.Filled.Games" Color="Color.Primary" />
+                                            <MudText Typo="Typo.body1" Class="fw-bold">@game</MudText>
+                                        </div>
+                                        <MudSwitch T="bool" Value="true" Color="Color.Success" UncheckedColor="Color.Error" Label="ONLINE" />
+                                    </div>
+                                </MudListItem>
+                                <MudDivider Class="my-2 opacity-10" />
+                            }
+                        </MudList>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <!-- 7. PROMOTIONAL TOOLS -->
+        <MudTabPanel Text="PROMOTIONS" Icon="@Icons.Material.Filled.Campaign">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <div class="settings-group-card h-100">
+                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Global Banner Announcement</MudText>
+                        <MudStack Spacing="4">
+                            <MudTextField T="string" Label="Banner Title" Variant="Variant.Outlined" />
+                            <MudTextField T="string" Label="Banner Message" Lines="3" Variant="Variant.Outlined" />
+                            <MudSelect T="string" Label="Severity/Color" Variant="Variant.Outlined">
+                                <MudSelectItem Value="@("Info")">Info (Blue)</MudSelectItem>
+                                <MudSelectItem Value="@("Success")">Success (Green)</MudSelectItem>
+                                <MudSelectItem Value="@("Warning")">Warning (Orange)</MudSelectItem>
+                                <MudSelectItem Value="@("Error")">Critical (Red)</MudSelectItem>
+                            </MudSelect>
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="py-3" OnClick='() => Snackbar.Add("Banner Broadcasted!", Severity.Success)'>BROADCAST BANNER</MudButton>
+                        </MudStack>
+                    </div>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <div class="settings-group-card h-100">
+                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Active Promotions</MudText>
+                        <MudText Typo="Typo.body2" Class="opacity-60 text-center py-12">No active promotions currently running.</MudText>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
     </MudTabs>
 </MudContainer>
 
