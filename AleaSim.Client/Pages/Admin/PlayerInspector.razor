@@ -47,7 +47,7 @@
                             <MudText>No players matching query.</MudText>
                         </div>
                     } else {
-                        <MudList T="PlayerSearchResultDto" SelectionMode="SelectionMode.ClickSelection" Class="player-list-scroll">
+                        <MudList T="PlayerSearchResultDto" SelectionMode="SelectionMode.SingleSelection" Class="player-list-scroll">
                             @foreach (var p in searchResults)
                             {
                                 <MudListItem OnClick="() => SelectPlayer(p)" Class='@($"player-list-item {(selectedPlayer?.Id == p.Id ? "selected" : "")}")'>
