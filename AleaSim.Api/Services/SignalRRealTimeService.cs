@@ -65,6 +65,20 @@ public class SignalRRealTimeService : IRealTimeService {
         await _hubContext.Clients.Group("Admins").SendAsync("ReceiveAdminEvent", adminEvent);
     }
 
+    public async Task NotifyAuditLog(AuditEvent auditEvent) {
+        var dto = new AuditLogDto {
+            Id = auditEvent.Id,
+            Timestamp = auditEvent.Timestamp,
+            EventType = auditEvent.EventType,
+            Description = auditEvent.Description,
+            UserId = auditEvent.UserId,
+            MetadataJson = auditEvent.MetadataJson,
+            Hash = auditEvent.Hash,
+            PreviousHash = auditEvent.PreviousHash
+        };
+        await _hubContext.Clients.Group("Admins").SendAsync("ReceiveAuditLog", dto);
+    }
+
     public async Task BroadcastMessage(string sender, string message) {
         await _hubContext.Clients.All.SendAsync("ReceiveChatMessage", sender, message, DateTime.UtcNow, "https://cdn-icons-png.flaticon.com/512/1041/1041916.png");
     }

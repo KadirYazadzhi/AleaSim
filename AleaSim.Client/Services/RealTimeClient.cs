@@ -25,6 +25,7 @@ public class RealTimeClient : IAsyncDisposable {
     public event Action<string, string, DateTime, string, Guid>? OnPrivateMessageReceived;
     public event Action<UserProgressionDto>? OnProgressionUpdated;
     public event Action<AdminRoundEvent>? OnAdminEventReceived;
+    public event Action<AuditLogDto>? OnAuditLogReceived;
 
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
     public HubConnectionState State => _hubConnection?.State ?? HubConnectionState.Disconnected;
@@ -75,6 +76,10 @@ public class RealTimeClient : IAsyncDisposable {
 
         _hubConnection.On<AdminRoundEvent>("ReceiveAdminEvent", (data) => {
             OnAdminEventReceived?.Invoke(data);
+        });
+
+        _hubConnection.On<AuditLogDto>("ReceiveAuditLog", (data) => {
+            OnAuditLogReceived?.Invoke(data);
         });
 
         await _hubConnection.StartAsync();

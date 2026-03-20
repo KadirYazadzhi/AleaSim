@@ -14,5 +14,6 @@ public interface IRealTimeService {
     Task NotifyBigWin(string username, string gameName, decimal amount, decimal multiplier);
     Task NotifyLeaderboardUpdate(string leaderboardName, object topList);
     Task NotifyAdminFeed(object adminEvent);
+    Task NotifyAuditLog(AuditEvent auditEvent);
     Task BroadcastMessage(string sender, string message);
 }

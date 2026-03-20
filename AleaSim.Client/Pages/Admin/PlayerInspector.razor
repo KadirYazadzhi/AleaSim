@@ -5,9 +5,11 @@
 @using Microsoft.AspNetCore.Authorization
 @layout AleaSim.Client.Layout.AdminLayout
 @attribute [Authorize(Roles = "Admin")]
+@implements IDisposable
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject RealTimeClient RealTime
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 pb-16">
     <div class="d-flex align-center gap-4 mb-8">
@@ -290,7 +292,84 @@
 
     protected override async Task OnInitializedAsync() {
         // Initial load of recently active players
-        searchResults = await Http.GetFromJsonAsync<List<PlayerSearchResultDto>>("api/Admin/players/active") ?? new();
+        try {
+            searchResults = await Http.GetFromJsonAsync<List<PlayerSearchResultDto>>("api/Admin/players/active") ?? new();
+        } catch {}
+
+        RealTime.OnAdminEventReceived += HandleLiveAdminEvent;
+        RealTime.OnAuditLogReceived += HandleLiveAuditLog;
+        
+        // Ensure Admin Feed is joined
+        _ = Task.Run(async () => {
+            int retries = 0;
+            while (!RealTime.IsConnected && retries < 15) {
+                await Task.Delay(1000);
+                retries++;
+            }
+            await RealTime.JoinAdminFeed();
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private void HandleLiveAdminEvent(AdminRoundEvent ev) {
+        // 1. Update the Search Results / Directory list (Real-time Balance/Activity)
+        var existing = searchResults.FirstOrDefault(p => p.Username == ev.Username);
+        if (existing != null) {
+            existing.Balance += ev.Win - ev.Bet;
+            existing.TotalWagered += ev.Bet;
+            existing.TotalWon += ev.Win;
+        } else {
+            // New active player detected - add to top
+            searchResults.Insert(0, new PlayerSearchResultDto {
+                Username = ev.Username,
+                Balance = 0, // Will be updated on next event or reload
+                Role = "User",
+                AvatarUrl = $"https://api.dicebear.com/7.x/bottts/svg?seed={ev.Username}"
+            });
+            if (searchResults.Count > 50) searchResults.RemoveAt(50);
+        }
+
+        // 2. If this is our selected player, update their dossier in real-time
+        if (selectedPlayer != null && selectedPlayer.Username == ev.Username) {
+            selectedPlayer.Balance += ev.Win - ev.Bet;
+            selectedPlayer.TotalWagered += ev.Bet;
+            selectedPlayer.TotalWon += ev.Win;
+
+            if (fullDossier != null) {
+                fullDossier.Balance += ev.Win - ev.Bet;
+                fullDossier.TotalWagered += ev.Bet;
+                fullDossier.TotalWon += ev.Win;
+
+                // Add to Bet History tab
+                fullDossier.RecentBets.Insert(0, new GameRoundSummaryDto {
+                    Id = Guid.NewGuid(),
+                    Timestamp = ev.Timestamp,
+                    GameName = ev.Game,
+                    BetAmount = ev.Bet,
+                    WinAmount = ev.Win,
+                    DecisionType = ev.Decision
+                });
+                if (fullDossier.RecentBets.Count > 50) fullDossier.RecentBets.RemoveAt(50);
+            }
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleLiveAuditLog(AuditLogDto log) {
+        // Update Behavior Logs in real-time if they belong to the selected player
+        if (selectedPlayer != null && log.UserId == selectedPlayer.Id.ToString()) {
+            if (fullDossier != null) {
+                fullDossier.BehaviorLogs.Insert(0, log);
+                if (fullDossier.BehaviorLogs.Count > 50) fullDossier.BehaviorLogs.RemoveAt(50);
+                InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    public void Dispose() {
+        RealTime.OnAdminEventReceived -= HandleLiveAdminEvent;
+        RealTime.OnAuditLogReceived -= HandleLiveAuditLog;
     }
 
     private async Task HandleSearchKey(KeyboardEventArgs e) {

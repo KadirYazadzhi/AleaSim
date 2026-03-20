@@ -9,11 +9,13 @@ namespace AleaSim.Domain.Services;
 public class AuditService : IAuditService {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IAuditBuffer _buffer;
+    private readonly IRealTimeService _realTime;
     private string _lastHash = "GENESIS";
 
-    public AuditService(IServiceScopeFactory scopeFactory, IAuditBuffer buffer) {
+    public AuditService(IServiceScopeFactory scopeFactory, IAuditBuffer buffer, IRealTimeService realTime) {
         _scopeFactory = scopeFactory;
         _buffer = buffer;
+        _realTime = realTime;
         InitializeLastHash();
     }
 
@@ -48,6 +50,9 @@ public class AuditService : IAuditService {
             // Buffer the event for background batch writing
             _buffer.Enqueue(auditEvent);
             
+            // Notify Admins in Real-Time
+            _ = _realTime.NotifyAuditLog(auditEvent);
+
             // Update memory immediately to maintain hash chain continuity
             _lastHash = hash;
         }
