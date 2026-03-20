@@ -32,6 +32,8 @@ public class PlayerSearchResultDto {
     public string AvatarUrl { get; set; } = string.Empty;
     public decimal TotalWagered { get; set; }
     public decimal TotalWon { get; set; }
+    public int RiskScore { get; set; }
+    public List<string> RedFlags { get; set; } = new();
 
     public class UpdateBalanceDto {
         public decimal NewBalance { get; set; }

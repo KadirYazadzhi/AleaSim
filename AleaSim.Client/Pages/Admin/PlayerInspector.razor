@@ -58,6 +58,9 @@
                                         <div class="flex-grow-1">
                                             <div class="d-flex align-center gap-2">
                                                 <MudText Typo="Typo.body2" Class="fw-bold">@p.Username</MudText>
+                                                @if (p.RiskScore > 0) {
+                                                    <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Color="Color.Error" Size="Size.Small" title="@string.Join(", ", p.RedFlags)" />
+                                                }
                                                 <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.ExtraSmall" OnClick='() => Snackbar.Add($"Email: {p.Email}", Severity.Info)' />
                                             </div>
                                             <MudText Typo="Typo.caption" Class="opacity-60">Wagered: @p.TotalWagered.ToString("C0")</MudText>
@@ -90,8 +93,20 @@
                                 <div class="d-flex align-center gap-2 mb-1">
                                     <MudText Typo="Typo.h4" Class="fw-black text-white">@selectedPlayer.Username</MudText>
                                     <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Filled" Class="fw-black">@selectedPlayer.Role</MudChip>
+                                    @if (selectedPlayer.RiskScore > 0) {
+                                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Filled" Class="fw-black" Icon="@Icons.Material.Filled.Warning">
+                                            RISK: @selectedPlayer.RiskScore
+                                        </MudChip>
+                                    }
                                 </div>
                                 <MudText Typo="Typo.body2" Class="text-white opacity-60">DATABASE ID: @selectedPlayer.Id</MudText>
+                                @if (selectedPlayer.RedFlags.Any()) {
+                                    <div class="d-flex gap-2 mt-2">
+                                        @foreach(var flag in selectedPlayer.RedFlags) {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Text" Class="ma-0 px-1" Style="font-size: 0.7rem;">@flag</MudChip>
+                                        }
+                                    </div>
+                                }
                             </div>
                             <MudButton Variant="Variant.Filled" Color="Color.Surface" StartIcon="@Icons.Material.Filled.Chat" OnClick="OpenChat" Class="rounded-lg py-3 px-6 fw-bold">OPEN COMMS</MudButton>
                         </div>

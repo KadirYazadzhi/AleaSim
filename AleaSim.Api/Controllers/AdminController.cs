@@ -140,16 +140,30 @@ public class AdminController : ControllerBase {
         // For now, let's return all users or a subset. 
         // In a real app, this would be based on last activity timestamp.
         var users = _repo.SearchUsers(""); 
-        var result = users.Select(u => new PlayerSearchResultDto {
-            Id = u.Id,
-            Username = u.Username,
-            Email = u.Email,
-            Balance = u.Balance,
-            BonusBalance = u.BonusBalance,
-            Role = u.Role.ToString(),
-            AvatarUrl = u.AvatarUrl,
-            TotalWagered = u.Profile?.TotalWagered ?? 0,
-            TotalWon = u.Profile?.TotalPaid ?? 0
+        var result = users.Select(u => {
+            var tw = u.Profile?.TotalWagered ?? 0;
+            var tp = u.Profile?.TotalPaid ?? 0;
+            var rtp = tw > 0 ? (tp / tw) * 100 : 0;
+            var flags = new List<string>();
+            int risk = 0;
+            
+            if (tw > 5000 && rtp > 150) { flags.Add("Abnormal RTP (>150%)"); risk += 50; }
+            if (u.BonusBalance > u.Balance * 5 && u.BonusBalance > 1000) { flags.Add("High Bonus Exposure"); risk += 30; }
+            if (tw == 0 && (u.Balance + u.BonusBalance) > 5000) { flags.Add("High Balance / No Activity"); risk += 40; }
+
+            return new PlayerSearchResultDto {
+                Id = u.Id,
+                Username = u.Username,
+                Email = u.Email,
+                Balance = u.Balance,
+                BonusBalance = u.BonusBalance,
+                Role = u.Role.ToString(),
+                AvatarUrl = u.AvatarUrl,
+                TotalWagered = tw,
+                TotalWon = tp,
+                RiskScore = risk,
+                RedFlags = flags
+            };
         }).Take(50).ToList();
 
         return Ok(result);
@@ -158,16 +172,30 @@ public class AdminController : ControllerBase {
     [HttpGet("players/search/{query}")]
     public ActionResult<List<PlayerSearchResultDto>> SearchPlayers(string query) {
         var users = _repo.SearchUsers(query);
-        var result = users.Select(u => new PlayerSearchResultDto {
-            Id = u.Id,
-            Username = u.Username,
-            Email = u.Email,
-            Balance = u.Balance,
-            BonusBalance = u.BonusBalance,
-            Role = u.Role.ToString(),
-            AvatarUrl = u.AvatarUrl,
-            TotalWagered = u.Profile?.TotalWagered ?? 0,
-            TotalWon = u.Profile?.TotalPaid ?? 0
+        var result = users.Select(u => {
+            var tw = u.Profile?.TotalWagered ?? 0;
+            var tp = u.Profile?.TotalPaid ?? 0;
+            var rtp = tw > 0 ? (tp / tw) * 100 : 0;
+            var flags = new List<string>();
+            int risk = 0;
+            
+            if (tw > 5000 && rtp > 150) { flags.Add("Abnormal RTP (>150%)"); risk += 50; }
+            if (u.BonusBalance > u.Balance * 5 && u.BonusBalance > 1000) { flags.Add("High Bonus Exposure"); risk += 30; }
+            if (tw == 0 && (u.Balance + u.BonusBalance) > 5000) { flags.Add("High Balance / No Activity"); risk += 40; }
+
+            return new PlayerSearchResultDto {
+                Id = u.Id,
+                Username = u.Username,
+                Email = u.Email,
+                Balance = u.Balance,
+                BonusBalance = u.BonusBalance,
+                Role = u.Role.ToString(),
+                AvatarUrl = u.AvatarUrl,
+                TotalWagered = tw,
+                TotalWon = tp,
+                RiskScore = risk,
+                RedFlags = flags
+            };
         }).ToList();
 
         return Ok(result);
