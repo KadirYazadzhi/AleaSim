@@ -267,7 +267,12 @@
                             <HeaderContent>
                                 <MudTh>TIER / NAME</MudTh>
                                 <MudTh>VALUE</MudTh>
-                                <MudTh>MAPPING</MudTh>
+                                <MudTh>
+                                    MAPPING
+                                    <MudTooltip Text="GLOBAL: Collects from all games. LOCAL: Collects only from the mapped game.">
+                                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="ms-1" Style="opacity:0.5; font-size: 1rem;" />
+                                    </MudTooltip>
+                                </MudTh>
                                 <MudTh>MUST DROP AT</MudTh>
                                 <MudTh Style="text-align: right;">ACTION</MudTh>
                             </HeaderContent>
@@ -285,12 +290,14 @@
                                     <MudText Typo="Typo.body2" Class="fw-bold text-success animate-pulse-fast">@context.CurrentValue.ToString("C2")</MudText>
                                 </MudTd>
                                 <MudTd>
-                                    <MudChip T="string" Size="Size.Small" Color="@(context.IsGlobal ? Color.Info : Color.Default)">
-                                        @(context.IsGlobal ? "GLOBAL" : GetGameName(context.GameId))
-                                    </MudChip>
+                                    <MudTooltip Text="@(context.IsGlobal ? "This is a cross-platform prize pool collecting from every bet on the site." : $"This prize is exclusive to {GetGameName(context.GameId)} and grows only from its turnover.")">
+                                        <MudChip T="string" Size="Size.Small" Color="@(context.IsGlobal ? Color.Info : Color.Default)">
+                                            @(context.IsGlobal ? "GLOBAL" : GetGameName(context.GameId))
+                                        </MudChip>
+                                    </MudTooltip>
                                 </MudTd>
                                 <MudTd>
-                                    <MudText Typo="Typo.body2" Class="opacity-80">@(context.MustDropAt?.ToString("C0") ?? "N/A")</MudText>
+                                    <MudText Typo="Typo.body2" Class="opacity-80">@(context.MustDropAt?.ToString("C0") ?? "∞")</MudText>
                                 </MudTd>
                                 <MudTd Style="text-align: right;">
                                     <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="() => ForceJackpotDrop(context.Id)">FORCE DROP</MudButton>

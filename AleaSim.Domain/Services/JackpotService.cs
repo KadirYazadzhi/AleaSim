@@ -27,6 +27,9 @@ public class JackpotService : IJackpotService {
             if (j.Tier == JackpotTier.Mini || j.Tier == JackpotTier.Minor) continue;
 
             bool shouldContribute = j.IsGlobal || (j.GameId.HasValue && j.GameId.Value == gameId);
+            
+            if (shouldContribute) { 
+                decimal increase = betAmount * j.ContributionRate;
                 string redisKey = $"jackpot:{j.Id}";
 
                 var redisVal = await db.StringGetAsync(redisKey);
