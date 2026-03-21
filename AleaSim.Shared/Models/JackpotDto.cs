@@ -3,6 +3,12 @@ using System.Text.Json.Serialization;
 namespace AleaSim.Shared.Models;
 
 public class JackpotDto {
+    [JsonPropertyName("id")]
+    public Guid Id { get; set; }
+
+    [JsonPropertyName("gameId")]
+    public Guid? GameId { get; set; }
+
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
 

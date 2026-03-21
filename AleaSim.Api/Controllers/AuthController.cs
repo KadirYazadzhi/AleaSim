@@ -22,14 +22,16 @@ public class AuthController : ControllerBase {
     private readonly ILevelService _levelService;
     private readonly IAchievementService _achievementService;
     private readonly IRedisCacheService _redisCache;
+    private readonly IAuditService _auditService;
 
-    public AuthController(IConfiguration configuration, IGameRepository repository, IPasswordHasher passwordHasher, ILevelService levelService, IAchievementService achievementService, IRedisCacheService redisCache) {
+    public AuthController(IConfiguration configuration, IGameRepository repository, IPasswordHasher passwordHasher, ILevelService levelService, IAchievementService achievementService, IRedisCacheService redisCache, IAuditService auditService) {
         _configuration = configuration;
         _repository = repository;
         _passwordHasher = passwordHasher;
         _levelService = levelService;
         _achievementService = achievementService;
         _redisCache = redisCache;
+        _auditService = auditService;
     }
 
     [AllowAnonymous]

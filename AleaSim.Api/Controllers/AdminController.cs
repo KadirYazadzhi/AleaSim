@@ -16,11 +16,13 @@ public class AdminController : ControllerBase {
     private readonly IAdminService _adminService;
     private readonly IAuditService _auditService;
     private readonly IGameRepository _repo;
+    private readonly IRealTimeService _realTime;
 
-    public AdminController(IAdminService adminService, IAuditService auditService, IGameRepository repo) {
+    public AdminController(IAdminService adminService, IAuditService auditService, IGameRepository repo, IRealTimeService realTime) {
         _adminService = adminService;
         _auditService = auditService;
         _repo = repo;
+        _realTime = realTime;
     }
 
     // --- Dashboard ---
