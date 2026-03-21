@@ -213,19 +213,19 @@ using (var scope = app.Services.CreateScope()) {
 
         db.Jackpots.AddRange(
             new AleaSim.Domain.Entities.Jackpot { 
-                Id = Guid.NewGuid(), Name = "Global MEGA Spades", Tier = AleaSim.Domain.Entities.JackpotTier.Spades, 
+                Id = Guid.NewGuid(), Name = "Global GRAND", Tier = AleaSim.Domain.Entities.JackpotTier.Grand, 
                 CurrentValue = 10000m, ContributionRate = 0.002m, IsGlobal = true, LastUpdated = DateTime.UtcNow 
             },
             new AleaSim.Domain.Entities.Jackpot { 
-                Id = Guid.NewGuid(), Name = "Global MAJOR Hearts", Tier = AleaSim.Domain.Entities.JackpotTier.Hearts, 
+                Id = Guid.NewGuid(), Name = "Global MEGA", Tier = AleaSim.Domain.Entities.JackpotTier.Mega, 
                 CurrentValue = 2500m, ContributionRate = 0.0015m, IsGlobal = true, LastUpdated = DateTime.UtcNow 
             },
             new AleaSim.Domain.Entities.Jackpot { 
-                Id = Guid.NewGuid(), Name = "Global MINOR Diamonds", Tier = AleaSim.Domain.Entities.JackpotTier.Diamonds, 
+                Id = Guid.NewGuid(), Name = "Global MAJOR", Tier = AleaSim.Domain.Entities.JackpotTier.Major, 
                 CurrentValue = 500m, ContributionRate = 0.001m, IsGlobal = true, MustDropAt = 1000m, LastUpdated = DateTime.UtcNow 
             },
             new AleaSim.Domain.Entities.Jackpot { 
-                Id = Guid.NewGuid(), Name = "Global MINI Clubs", Tier = AleaSim.Domain.Entities.JackpotTier.Clubs, 
+                Id = Guid.NewGuid(), Name = "Global MINI", Tier = AleaSim.Domain.Entities.JackpotTier.Mini, 
                 CurrentValue = 50m, ContributionRate = 0.0005m, IsGlobal = true, MustDropAt = 100m, LastUpdated = DateTime.UtcNow 
             }
         );

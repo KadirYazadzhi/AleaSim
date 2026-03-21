@@ -61,7 +61,6 @@
                                                 @if (p.RiskScore > 0) {
                                                     <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Color="Color.Error" Size="Size.Small" title="@string.Join(", ", p.RedFlags)" />
                                                 }
-                                                <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small" OnClick='() => Snackbar.Add($"Email: {p.Email}", Severity.Info)' />
                                             </div>
                                             <MudText Typo="Typo.caption" Class="opacity-60">Wagered: @p.TotalWagered.ToString("C0")</MudText>
                                         </div>
@@ -149,6 +148,35 @@
 
                     <!-- Control Panels -->
                     <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Class="rounded-xl overflow-hidden">
+                        <MudTabPanel Text="ACCOUNT INFO" Icon="@Icons.Material.Filled.Badge">
+                            <div class="pa-2">
+                                <MudGrid>
+                                    <MudItem xs="12" md="6">
+                                        <MudText Typo="Typo.caption" Class="fw-black opacity-40">PRIMARY EMAIL</MudText>
+                                        <MudText Typo="Typo.body1" Class="fw-bold mb-4">@selectedPlayer.Email</MudText>
+                                        
+                                        <MudText Typo="Typo.caption" Class="fw-black opacity-40">ACCOUNT ROLE</MudText>
+                                        <MudText Typo="Typo.body1" Class="fw-bold mb-4">@selectedPlayer.Role</MudText>
+
+                                        <MudText Typo="Typo.caption" Class="fw-black opacity-40">JOINED DATE</MudText>
+                                        <MudText Typo="Typo.body1" Class="fw-bold mb-4">@(fullDossier?.CreatedAt.ToString("D") ?? "---")</MudText>
+                                    </MudItem>
+                                    <MudItem xs="12" md="6">
+                                        <MudText Typo="Typo.caption" Class="fw-black opacity-40">REAL BALANCE</MudText>
+                                        <MudText Typo="Typo.body1" Class="fw-bold text-success mb-4">@selectedPlayer.Balance.ToString("C2")</MudText>
+
+                                        <MudText Typo="Typo.caption" Class="fw-black opacity-40">BONUS BALANCE</MudText>
+                                        <MudText Typo="Typo.body1" Class="fw-bold text-info mb-4">@selectedPlayer.BonusBalance.ToString("C2")</MudText>
+
+                                        <MudText Typo="Typo.caption" Class="fw-black opacity-40">ACCOUNT STATUS</MudText>
+                                        <MudChip T="string" Color="@(selectedPlayer.IsActive ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Filled">
+                                            @(selectedPlayer.IsActive ? "ACTIVE" : "BANNED")
+                                        </MudChip>
+                                    </MudItem>
+                                </MudGrid>
+                            </div>
+                        </MudTabPanel>
+
                         <MudTabPanel Text="SYSTEM OVERRIDES" Icon="@Icons.Material.Filled.Bolt">
                             <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Class="mb-6">
                                 Overrides will affect the <b>next valid spin</b> performed by this player.

@@ -29,23 +29,20 @@ public class JackpotService : IJackpotService {
         var jackpots = repo.GetJackpots().ToList();
         
         foreach (var j in jackpots) {
-            // Determine if this jackpot should receive contribution from the current game
-            bool shouldContribute = j.IsGlobal; // Global jackpots contribute from all games
-            if (!j.IsGlobal && j.GameId == gameId) shouldContribute = true; // Game-specific jackpots
+            bool shouldContribute = j.IsGlobal; 
+            if (!j.IsGlobal && j.GameId == gameId) shouldContribute = true; 
             
-            // EXCLUSIVE RULE: Mega (Spades) and Major (Hearts) are only for Clover Chase
-            bool isCloverChaseJackpot = (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts);
-            if (isCloverChaseJackpot) {
-                if (gameId != _cloverChaseGameId) continue; // Skip contribution from other games if not Clover Chase
-                shouldContribute = true; // If it's a Clover Chase Jackpot AND is Clover Chase game, it should contribute
+            // Mega and Grand are progressive and exclusive to Clover Chase in this logic
+            bool isBigJackpot = (j.Tier == JackpotTier.Grand || j.Tier == JackpotTier.Mega);
+            if (isBigJackpot) {
+                if (gameId != _cloverChaseGameId) continue;
+                shouldContribute = true; 
             }
 
-            // Only Spades (MEGA) and Hearts (MAJOR) are progressive in this implementation
-            if (shouldContribute && isCloverChaseJackpot) { 
+            if (shouldContribute && isBigJackpot) { 
                 decimal increase = betAmount * j.ContributionRate;
-                string redisKey = $"jackpot:{j.Id}"; // Use ID for absolute uniqueness
+                string redisKey = $"jackpot:{j.Id}";
 
-                // WARM-UP LOGIC: Ensure Redis has the current DB value if empty
                 var redisVal = await db.StringGetAsync(redisKey);
                 if (!redisVal.HasValue) {
                     await db.StringSetAsync(redisKey, (double)j.CurrentValue);
@@ -53,11 +50,9 @@ public class JackpotService : IJackpotService {
 
                 double newValue = await db.StringIncrementAsync(redisKey, (double)increase);
                 
-                // Sync to Entity
                 j.CurrentValue = (decimal)newValue;
                 j.LastUpdated = DateTime.UtcNow;
                 
-                // PERIODIC DB SYNC: Save to DB every ~1.00 unit increase to avoid DB stress
                 if (Math.Floor(newValue) > Math.Floor(newValue - (double)increase)) {
                     repo.UpdateJackpot(j);
                 }
@@ -77,22 +72,20 @@ public class JackpotService : IJackpotService {
             .ToList();
 
         foreach (var j in jackpots) {
-            // EXCLUSIVE RULE: Mega (Spades) and Major (Hearts) are only for Clover Chase
-            if (j.Tier == JackpotTier.Spades || j.Tier == JackpotTier.Hearts) {
+            if (j.Tier == JackpotTier.Grand || j.Tier == JackpotTier.Mega) {
                 if (gameId != _cloverChaseGameId) continue; 
             }
 
-            // ALWAYS get live value from Redis
             string redisKey = $"jackpot:{j.Id}";
             var redisVal = await db.StringGetAsync(redisKey);
             decimal currentValue = redisVal.HasValue ? (decimal)(double)redisVal : j.CurrentValue;
 
             decimal pressure = j.MustDropAt.HasValue ? currentValue / j.MustDropAt.Value : 0.1m;
             double baseChance = j.Tier switch {
-                JackpotTier.Clubs => 0.002,   // 1 in 500
-                JackpotTier.Diamonds => 0.001, // 1 in 1000
-                JackpotTier.Hearts => 0.0002, // 1 in 5000
-                JackpotTier.Spades => 0.00005, // 1 in 20000
+                JackpotTier.Mini => 0.002,   // 1 in 500
+                JackpotTier.Major => 0.001, // 1 in 1000
+                JackpotTier.Mega => 0.0002, // 1 in 5000
+                JackpotTier.Grand => 0.00005, // 1 in 20000
                 _ => 0.0001
             };
             
@@ -101,15 +94,12 @@ public class JackpotService : IJackpotService {
             if (roll < threshold || (j.MustDropAt.HasValue && currentValue >= j.MustDropAt.Value)) {
                 using var lockHandle = await _lockService.AcquireLockAsync($"jackpot_claim_{j.Tier}", TimeSpan.FromSeconds(2));
                 
-                // Re-verify after lock
                 redisVal = await db.StringGetAsync(redisKey);
                 currentValue = redisVal.HasValue ? (decimal)(double)redisVal : j.CurrentValue;
                 decimal resetValue = GetResetValue(j.Tier);
 
                 if (currentValue > resetValue) {
                     decimal win = currentValue;
-                    
-                    // Reset in Redis
                     await db.StringSetAsync(redisKey, (double)resetValue);
                     
                     j.CurrentValue = resetValue;
@@ -125,14 +115,14 @@ public class JackpotService : IJackpotService {
     }
 
     private decimal GetResetValue(JackpotTier tier) => tier switch {
-        JackpotTier.Clubs => 50m,
-        JackpotTier.Diamonds => 500m,
-        JackpotTier.Hearts => 2500m,
-        JackpotTier.Spades => 10000m,
+        JackpotTier.Mini => 50m,
+        JackpotTier.Major => 500m,
+        JackpotTier.Mega => 2500m,
+        JackpotTier.Grand => 10000m,
         _ => 100m
     };
 
-    public Jackpot GetGlobalJackpot(IGameRepository repo) => repo.GetJackpots().First(j => j.Tier == JackpotTier.Spades && j.IsGlobal);
+    public Jackpot GetGlobalJackpot(IGameRepository repo) => repo.GetJackpots().First(j => j.Tier == JackpotTier.Grand && j.IsGlobal);
     public Jackpot GetLocalJackpot(Guid gameId, IGameRepository repo) => repo.GetOrCreateLocalJackpot(gameId);
 
     public async Task<decimal> ClaimJackpot(JackpotTier tier, IGameRepository repo) {
@@ -147,19 +137,14 @@ public class JackpotService : IJackpotService {
         decimal win = redisVal.HasValue ? (decimal)(double)redisVal : jackpot.CurrentValue;
         
         decimal resetValue = GetResetValue(tier);
-        // Only reset if it hasn't been reset yet (concurrency check)
         if (win > resetValue) {
             await db.StringSetAsync(redisKey, (double)resetValue);
-
             jackpot.CurrentValue = resetValue;
             jackpot.LastUpdated = DateTime.UtcNow;
-                
             repo.UpdateJackpot(jackpot);
             await _realTimeService.NotifyJackpotUpdate(jackpot);
-                
             return win;
         }
-        
         return 0m;
     }
 
@@ -184,18 +169,12 @@ public class JackpotService : IJackpotService {
         string redisKey = $"jackpot:{jackpot.Id}";
         decimal resetValue = GetResetValue(jackpot.Tier);
         
-        // Reset in Redis
         await db.StringSetAsync(redisKey, (double)resetValue);
-        
-        // Update DB
         jackpot.CurrentValue = resetValue;
         jackpot.LastUpdated = DateTime.UtcNow;
         repo.UpdateJackpot(jackpot);
 
-        // Notify UI
         await _realTimeService.NotifyJackpotUpdate(jackpot);
-        
-        // Notify Chat about Manual Reset / Event
         await _realTimeService.BroadcastMessage("System", $"🏆 A massive Jackpot Event has occurred! The {jackpot.Tier} Jackpot has been claimed by a lucky participant!");
     }
 }

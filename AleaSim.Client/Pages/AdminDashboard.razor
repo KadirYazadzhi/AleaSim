@@ -78,33 +78,43 @@
     </MudGrid>
 
     <MudGrid Class="mb-8">
-        <MudItem xs="12">
+        <MudItem xs="12" md="6">
             <MudPaper Class="pa-6 rounded-xl dashboard-card" Elevation="0">
                 <div class="d-flex justify-space-between align-center mb-6">
                     <div>
-                        <MudText Typo="Typo.h6" Class="fw-black">TRANSACTION FLOW & PAYOUT EQUILIBRIUM</MudText>
-                        <MudText Typo="Typo.caption" Class="opacity-50">Real-time comparison of incoming wagers vs. outgoing winnings (Last 24h)</MudText>
+                        <MudText Typo="Typo.h6" Class="fw-black">WAGER VOLUME</MudText>
+                        <MudText Typo="Typo.caption" Class="opacity-50">Total incoming bets (Last 24h)</MudText>
                     </div>
-                    <div class="text-right">
-                        <MudText Typo="Typo.h6" Class="fw-black text-info">@stats.CurrentRtp.ToString("F2")%</MudText>
-                        <MudText Typo="Typo.caption" Class="opacity-50">AVG. PLATFORM RTP</MudText>
-                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Info" />
                 </div>
-                
                 @if (trendData.Any()) {
                     <MudChart ChartType="ChartType.Line" 
-                              ChartSeries="@(new List<ChartSeries>() { 
-                                  new ChartSeries { Name = "Total Wagered ($)", Data = trendData.Select(t => t.Bets).ToArray() },
-                                  new ChartSeries { Name = "Total Payouts ($)", Data = trendData.Select(t => t.Wins).ToArray() } 
-                              })" 
+                              ChartSeries="@(new List<ChartSeries>() { new ChartSeries { Name = "Wagers ($)", Data = trendData.Select(t => t.Bets).ToArray() } })" 
                               XAxisLabels="@(trendData.Select(t => t.Label).ToArray())" 
-                              Width="100%" Height="350px" 
-                              ChartOptions="@(new ChartOptions { InterpolationOption = trendData.Count >= 4 ? InterpolationOption.NaturalSpline : InterpolationOption.Straight, YAxisTicks = 10 })" />
+                              Width="100%" Height="250px" 
+                              ChartOptions="@(new ChartOptions { InterpolationOption = trendData.Count >= 4 ? InterpolationOption.NaturalSpline : InterpolationOption.Straight, YAxisTicks = 5 })" />
                 } else {
-                    <div class="d-flex justify-center align-center py-12 opacity-50">
-                        <MudIcon Icon="@Icons.Material.Filled.SsidChart" Size="Size.Large" Class="mr-2"/>
-                        <MudText>Awaiting more transaction data to build trend...</MudText>
+                    <div class="d-flex justify-center align-center py-12 opacity-30"><MudText>Awaiting data...</MudText></div>
+                }
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-6 rounded-xl dashboard-card" Elevation="0">
+                <div class="d-flex justify-space-between align-center mb-6">
+                    <div>
+                        <MudText Typo="Typo.h6" Class="fw-black">PAYOUT VOLUME</MudText>
+                        <MudText Typo="Typo.caption" Class="opacity-50">Total winnings paid (Last 24h)</MudText>
                     </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Payments" Color="Color.Success" />
+                </div>
+                @if (trendData.Any()) {
+                    <MudChart ChartType="ChartType.Line" 
+                              ChartSeries="@(new List<ChartSeries>() { new ChartSeries { Name = "Payouts ($)", Data = trendData.Select(t => t.Wins).ToArray() } })" 
+                              XAxisLabels="@(trendData.Select(t => t.Label).ToArray())" 
+                              Width="100%" Height="250px" 
+                              ChartOptions="@(new ChartOptions { InterpolationOption = trendData.Count >= 4 ? InterpolationOption.NaturalSpline : InterpolationOption.Straight, YAxisTicks = 5 })" />
+                } else {
+                    <div class="d-flex justify-center align-center py-12 opacity-30"><MudText>Awaiting data...</MudText></div>
                 }
             </MudPaper>
         </MudItem>

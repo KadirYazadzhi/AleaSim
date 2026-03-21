@@ -6,91 +6,125 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
-    <div class="d-flex justify-space-between align-center mb-6">
-        <MudText Typo="Typo.h3">Voucher Management</MudText>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="ToggleCreateForm">
-            @(showCreateForm ? "Cancel" : "Create New Voucher")
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 pb-16 animate-fade-in">
+    <div class="d-flex justify-space-between align-center mb-8">
+        <div>
+            <MudText Typo="Typo.h3" Class="fw-black text-gradient">VOUCHER ARMORY</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-60">Generate and track promotional credit codes.</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="ToggleCreateForm" Class="py-3 px-6 rounded-lg fw-black">
+            @(showCreateForm ? "DISCARD" : "FORGE NEW VOUCHER")
         </MudButton>
     </div>
 
     @if (showCreateForm)
     {
-        <MudPaper Class="pa-6 mb-6" Elevation="4">
-            <MudText Typo="Typo.h6" Class="mb-4">Generate New Promo Code</MudText>
+        <MudPaper Class="pa-8 rounded-xl mb-8 glass-card border-glow" Elevation="0">
+            <MudText Typo="Typo.h6" Class="fw-black mb-6">Forge New Promo Code</MudText>
             <MudGrid>
                 <MudItem xs="12" md="4">
-                    <MudTextField @bind-Value="newVoucher.Code" Label="Code" Placeholder="e.g. SUMMER2026" Variant="Variant.Outlined" />
+                    <MudTextField @bind-Value="newVoucher.Code" Label="Voucher Code" Placeholder="e.g. ALPHA2026" Variant="Variant.Outlined" Class="bg-dark-transparent" />
                 </MudItem>
                 <MudItem xs="12" md="4">
-                    <MudNumericField @bind-Value="newVoucher.Amount" Label="Bonus Amount ($)" Variant="Variant.Outlined" Min="1" />
+                    <MudNumericField @bind-Value="newVoucher.Amount" Label="Credit Value ($)" Variant="Variant.Outlined" Min="1" Adornment="Adornment.Start" AdornmentText="$" Class="bg-dark-transparent" />
                 </MudItem>
                 <MudItem xs="12" md="4">
-                    <MudNumericField @bind-Value="newVoucher.MaxUses" Label="Max Uses" Variant="Variant.Outlined" Min="1" />
+                    <MudNumericField @bind-Value="newVoucher.MaxUses" Label="Total Redemption Limit" Variant="Variant.Outlined" Min="1" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.People" Class="bg-dark-transparent" />
                 </MudItem>
-                <MudItem xs="12">
-                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="SaveVoucher" Class="mt-2">Save Voucher</MudButton>
+                <MudItem xs="12" Class="text-right">
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" OnClick="SaveVoucher" Class="px-12 py-3 rounded-lg fw-black">ACTIVATE CODE</MudButton>
                 </MudItem>
             </MudGrid>
         </MudPaper>
     }
 
-    <MudTable Items="@vouchers" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" Elevation="2">
-        <HeaderContent>
-            <MudTh></MudTh>
-            <MudTh>Code</MudTh>
-            <MudTh>Amount</MudTh>
-            <MudTh>Usage</MudTh>
-            <MudTh>Status</MudTh>
-            <MudTh>Expires</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd><MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(() => ShowBtnPress(context.Id))">@(context.ShowDetails ? "HIDE" : "SHOW")</MudButton></MudTd>
-            <MudTd DataLabel="Code"><MudChip T="string" Color="Color.Info" Variant="Variant.Text">@context.Code</MudChip></MudTd>
-            <MudTd DataLabel="Amount">@context.Amount.ToString("C2")</MudTd>
-            <MudTd DataLabel="Usage">@context.CurrentUses / @context.MaxUses</MudTd>
-            <MudTd DataLabel="Status">
-                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
-                    @(context.IsActive ? "ACTIVE" : "INACTIVE")
-                </MudChip>
-            </MudTd>
-            <MudTd DataLabel="Expires">@(context.ExpiresAt?.ToShortDateString() ?? "Never")</MudTd>
-        </RowTemplate>
-        <ChildRowContent>
-            @if (context.ShowDetails) {
-                <MudTr>
-                    <td colspan="6">
-                        <MudCard Elevation="0" Class="pa-4 bg-transparent border-t-solid border-divider">
-                            <MudText Typo="Typo.subtitle2" Class="fw-bold mb-2">Redemption History (@context.UsageHistory.Count records)</MudText>
-                            @if(context.UsageHistory.Any()) {
-                                <MudTable Items="@context.UsageHistory" Context="usageContext" Dense="true" Hover="true" Elevation="0" Class="bg-transparent">
-                                    <HeaderContent>
-                                        <MudTh>Player</MudTh>
-                                        <MudTh>Redeemed At</MudTh>
-                                    </HeaderContent>
-                                    <RowTemplate>
-                                        <MudTd>@usageContext.Username</MudTd>
-                                        <MudTd>@usageContext.RedeemedAt.ToString("g")</MudTd>
-                                    </RowTemplate>
-                                </MudTable>
-                            } else {
-                                <MudText Typo="Typo.body2" Class="opacity-50">No redemptions yet.</MudText>
-                            }
-                        </MudCard>
-                    </td>
-                </MudTr>
-            }
-        </ChildRowContent>
-        <NoRecordsContent>
-            <div class="pa-12 d-flex flex-column align-center justify-center">
-                <MudIcon Icon="@Icons.Material.Filled.ConfirmationNumber" Color="Color.Surface" Style="font-size: 4rem; opacity: 0.2;" Class="mb-4" />
-                <MudText Typo="Typo.h6" Class="mud-text-secondary">No active vouchers found.</MudText>
-                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">Create your first promo code to attract more players!</MudText>
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ToggleCreateForm">CREATE VOUCHER</MudButton>
-            </div>
-        </NoRecordsContent>
-    </MudTable>
+    <MudPaper Class="pa-6 rounded-xl overflow-hidden" Elevation="4">
+        <MudTable Items="@vouchers" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" Elevation="0" Class="modern-vouchers-table">
+            <HeaderContent>
+                <MudTh></MudTh>
+                <MudTh>IDENTIFIER</MudTh>
+                <MudTh>CREDIT</MudTh>
+                <MudTh>REDEMPTIONS</MudTh>
+                <MudTh>STATUS</MudTh>
+                <MudTh>EXPIRATION</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <MudIconButton Icon="@(context.ShowDetails ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" 
+                                   Color="Color.Primary" Size="Size.Small" OnClick="@(() => ShowBtnPress(context.Id))" />
+                </MudTd>
+                <MudTd DataLabel="Code"><MudText Class="fw-black font-mono" Style="letter-spacing: 1px;">@context.Code</MudText></MudTd>
+                <MudTd DataLabel="Amount"><MudText Color="Color.Success" Class="fw-bold">@context.Amount.ToString("C2")</MudText></MudTd>
+                <MudTd DataLabel="Usage">
+                    <div class="d-flex align-center gap-2">
+                        <MudProgressLinear Color="Color.Info" Value="@((double)context.CurrentUses / context.MaxUses * 100)" Class="rounded-pill" Style="width: 60px;" />
+                        <MudText Typo="Typo.caption" Class="fw-bold">@context.CurrentUses / @context.MaxUses</MudText>
+                    </div>
+                </MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Filled" Class="fw-bold">
+                        @(context.IsActive ? "ACTIVE" : "EXPIRED")
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Expires"><MudText Typo="Typo.caption" Class="opacity-60">@(context.ExpiresAt?.ToShortDateString() ?? "PERMANENT")</MudText></MudTd>
+            </RowTemplate>
+            <ChildRowContent>
+                @if (context.ShowDetails) {
+                    <MudTr>
+                        <td colspan="6" class="pa-0">
+                            <div class="pa-6 redemption-drawer">
+                                <MudText Typo="Typo.subtitle2" Class="fw-black mb-4"><MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Small" Class="mr-2"/>Usage History (@context.UsageHistory.Count)</MudText>
+                                @if(context.UsageHistory.Any()) {
+                                    <MudTable Items="@context.UsageHistory" Context="usageContext" Dense="true" Hover="true" Elevation="0" Class="bg-transparent rounded-lg border border-solid border-divider">
+                                        <HeaderContent>
+                                            <MudTh>PLAYER</MudTh>
+                                            <MudTh>TIMESTAMP</MudTh>
+                                        </HeaderContent>
+                                        <RowTemplate>
+                                            <MudTd>
+                                                <div class="d-flex align-center gap-2">
+                                                    <MudAvatar Size="Size.Small" Class="bg-dark-transparent">@usageContext.Username.Substring(0,1).ToUpper()</MudAvatar>
+                                                    <MudText Typo="Typo.body2" Class="fw-bold">@usageContext.Username</MudText>
+                                                </div>
+                                            </MudTd>
+                                            <MudTd>@usageContext.RedeemedAt.ToString("g")</MudTd>
+                                        </RowTemplate>
+                                    </MudTable>
+                                } else {
+                                    <div class="py-8 text-center opacity-30 border border-dashed rounded-lg">
+                                        <MudText>No one has redeemed this code yet.</MudText>
+                                    </div>
+                                }
+                            </div>
+                        </td>
+                    </MudTr>
+                }
+            </ChildRowContent>
+            <NoRecordsContent>
+                <div class="pa-12 d-flex flex-column align-center justify-center opacity-20 text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.ConfirmationNumber" Style="font-size: 6rem;" Class="mb-4" />
+                    <MudText Typo="Typo.h5" Class="fw-black">Vault is Empty</MudText>
+                    <MudText>Forge your first voucher to begin promotional campaigns.</MudText>
+                </div>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
 </MudContainer>
+
+<style>
+    .fw-black { font-weight: 950; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .text-gradient { background: linear-gradient(135deg, var(--mud-palette-primary), var(--mud-palette-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    
+    .glass-card { background: rgba(var(--mud-palette-surface-rgb), 0.4); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+    .border-glow { border: 1px solid var(--mud-palette-primary); box-shadow: 0 0 20px rgba(var(--mud-palette-primary-rgb), 0.1); }
+    .bg-dark-transparent { background: rgba(0,0,0,0.1) !important; }
+    
+    .redemption-drawer { background: rgba(var(--mud-palette-primary-rgb), 0.02); border-top: 2px solid var(--mud-palette-primary); }
+    
+    .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
 
 @code {
     private List<VoucherDto> vouchers = new();
@@ -128,13 +162,13 @@
         try {
             var response = await Http.PostAsJsonAsync("api/Admin/vouchers/create", newVoucher);
             if (response.IsSuccessStatusCode) {
-                Snackbar.Add("Voucher created successfully!", Severity.Success);
+                Snackbar.Add("Voucher forged successfully!", Severity.Success);
                 showCreateForm = false;
                 newVoucher = new();
                 await LoadVouchers();
             }
         } catch {
-            Snackbar.Add("Failed to create voucher.", Severity.Error);
+            Snackbar.Add("Failed to forge voucher.", Severity.Error);
         }
     }
 
