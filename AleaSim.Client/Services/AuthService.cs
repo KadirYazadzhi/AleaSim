@@ -85,21 +85,37 @@ public class AuthService : IAuthService {
     }
 
     public async Task Logout() {
-        await _httpClient.PostAsync("api/Auth/logout", null); // Notify server to clear cookie and revoke session
-        await _localStorage.RemoveItemAsync("authToken");
-        ((CustomAuthStateProvider)_authStateProvider).NotifyUserLogout();
+        try {
+            await _httpClient.PostAsync("api/Auth/logout", null); 
+        } catch {
+            // Server might be unreachable or token invalid, ignore and proceed with local cleanup
+        } finally {
+            await _localStorage.RemoveItemAsync("authToken");
+            await _localStorage.RemoveItemAsync("refreshToken"); // Ensure all auth items are gone
+            ((CustomAuthStateProvider)_authStateProvider).NotifyUserLogout();
+        }
     }
 
     public async Task<UserDto?> GetMe() {
         try {
             var response = await _httpClient.GetAsync("api/Auth/me");
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized) {
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || 
+                response.StatusCode == System.Net.HttpStatusCode.Forbidden) {
                 await Logout();
                 return null;
             }
             if (response.IsSuccessStatusCode) {
-                return await response.Content.ReadFromJsonAsync<UserDto>();
+                var user = await response.Content.ReadFromJsonAsync<UserDto>();
+                if (user == null) {
+                    await Logout();
+                }
+                return user;
             }
+            
+            // If we get here with a non-success but also non-401/403, 
+            // it might be a transient server error (500). 
+            // We don't logout immediately to avoid kicking users on temporary server glitches,
+            // but we return null so the UI can handle it.
             return null;
         } catch {
             return null;

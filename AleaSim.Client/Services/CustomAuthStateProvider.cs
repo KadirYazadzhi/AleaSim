@@ -37,22 +37,29 @@ public class CustomAuthStateProvider : AuthenticationStateProvider {
         NotifyAuthenticationStateChanged(authState);
     }
 
-        private IEnumerable<Claim> ParseClaimsFromJwt(string jwt) {
+    private IEnumerable<Claim> ParseClaimsFromJwt(string jwt) {
         var claims = new List<Claim>();
-        var payload = jwt.Split(".")[1];
-        var jsonBytes = ParseBase64WithoutPadding(payload);
-        var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
+        try {
+            var parts = jwt.Split(".");
+            if (parts.Length < 2) return claims;
 
-        if (keyValuePairs != null) {
-            foreach (var kvp in keyValuePairs) {
-                if (kvp.Value is JsonElement element && element.ValueKind == JsonValueKind.Array) {
-                    foreach (var item in element.EnumerateArray()) {
-                        claims.Add(new Claim(kvp.Key, item.ToString()));
+            var payload = parts[1];
+            var jsonBytes = ParseBase64WithoutPadding(payload);
+            var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
+
+            if (keyValuePairs != null) {
+                foreach (var kvp in keyValuePairs) {
+                    if (kvp.Value is JsonElement element && element.ValueKind == JsonValueKind.Array) {
+                        foreach (var item in element.EnumerateArray()) {
+                            claims.Add(new Claim(kvp.Key, item.ToString()));
+                        }
+                    } else {
+                        claims.Add(new Claim(kvp.Key, kvp.Value?.ToString() ?? ""));
                     }
-                } else {
-                    claims.Add(new Claim(kvp.Key, kvp.Value.ToString() ?? ""));
                 }
             }
+        } catch {
+            // If parsing fails, return empty claims which will result in Anonymous state
         }
         return claims;
     }

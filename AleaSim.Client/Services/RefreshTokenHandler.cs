@@ -31,7 +31,8 @@ public class RefreshTokenHandler : DelegatingHandler {
         var absPath = request.RequestUri?.AbsolutePath ?? "";
         bool isAuthEndpoint = absPath.Contains("api/Auth/login") || 
                              absPath.Contains("api/Auth/register") || 
-                             absPath.Contains("api/Auth/refresh");
+                             absPath.Contains("api/Auth/refresh") ||
+                             absPath.Contains("api/Auth/logout");
 
         if (!isAuthEndpoint) {
             var token = await _localStorage.GetItemAsync<string>("authToken");

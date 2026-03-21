@@ -1,7 +1,9 @@
 @page "/login"
+@using AleaSim.Client.Services
 @inject IAuthService AuthService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 
 <div class="d-flex justify-center align-center" style="min-height: 80vh; position: relative;">
     <!-- Background Decor -->
@@ -99,6 +101,9 @@
                 Don't have an account? 
                 <MudLink Href="/register" Color="Color.Secondary" Underline="Underline.Hover" Class="fw-bold ml-1">Create Account</MudLink>
             </MudText>
+            <div class="mt-4 opacity-30">
+                <MudLink OnClick="NuclearReset" Style="font-size: 0.7rem; color: inherit; cursor: pointer;">Trouble logging in? Click here to Reset Session</MudLink>
+            </div>
         </div>
     </div>
 </div>
@@ -182,5 +187,10 @@
         } else {
             Navigation.NavigateTo("/");
         }
+    }
+
+    private async Task NuclearReset() {
+        await LocalStorage.ClearAsync();
+        Navigation.NavigateTo("/login", forceLoad: true);
     }
 }

@@ -582,6 +582,16 @@
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true) {
             await LoadProfile();
+            // If we are authenticated but profile failed to load (e.g. broken token)
+            // we should have been logged out by AuthService.GetMe().
+            // If not, we force a check here.
+            if (userProfile == null) {
+                var token = await LocalStorage.GetItemAsync<string>("authToken");
+                if (!string.IsNullOrEmpty(token)) {
+                    await AuthService.Logout();
+                    Navigation.NavigateTo("/login?reason=error", forceLoad: true);
+                }
+            }
         } else {
             userProfile = null;
         }
