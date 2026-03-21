@@ -61,7 +61,7 @@
                                                 @if (p.RiskScore > 0) {
                                                     <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Color="Color.Error" Size="Size.Small" title="@string.Join(", ", p.RedFlags)" />
                                                 }
-                                                <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.ExtraSmall" OnClick='() => Snackbar.Add($"Email: {p.Email}", Severity.Info)' />
+                                                <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small" OnClick='() => Snackbar.Add($"Email: {p.Email}", Severity.Info)' />
                                             </div>
                                             <MudText Typo="Typo.caption" Class="opacity-60">Wagered: @p.TotalWagered.ToString("C0")</MudText>
                                         </div>
