@@ -152,7 +152,7 @@ public class GameController : ControllerBase {
     [HttpPost("{gameType}/bet/{sessionId}")]
     public async Task<IActionResult> PlaceBet(string gameType, Guid sessionId, [FromBody] PlaceBetRequest request) {
         try {
-            if (request.Amount < 0) return BadRequest("Bet amount cannot be negative.");
+            if (request.Amount <= 0) return BadRequest("Bet amount must be greater than zero.");
 
             var userId = GetUserIdOrThrow();
 

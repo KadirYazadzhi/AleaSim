@@ -109,7 +109,7 @@ public class GameDirector : IGameDirector {
                 }
             }
         }
-        if (amount < 0) throw new ArgumentException("Bet amount cannot be negative.");
+        if (amount <= 0) throw new ArgumentException("Bet amount must be greater than zero.");
 
         var game = _repo.GetGameByType(gameType);
         if (game != null) {

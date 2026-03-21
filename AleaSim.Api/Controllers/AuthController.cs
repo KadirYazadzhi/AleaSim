@@ -23,8 +23,9 @@ public class AuthController : ControllerBase {
     private readonly IAchievementService _achievementService;
     private readonly IRedisCacheService _redisCache;
     private readonly AleaSim.Domain.Interfaces.IAuditService _auditService;
+    private readonly IWebHostEnvironment _environment;
 
-    public AuthController(IConfiguration configuration, IGameRepository repository, IPasswordHasher passwordHasher, ILevelService levelService, IAchievementService achievementService, IRedisCacheService redisCache, AleaSim.Domain.Interfaces.IAuditService auditService) {
+    public AuthController(IConfiguration configuration, IGameRepository repository, IPasswordHasher passwordHasher, ILevelService levelService, IAchievementService achievementService, IRedisCacheService redisCache, AleaSim.Domain.Interfaces.IAuditService auditService, IWebHostEnvironment environment) {
         _configuration = configuration;
         _repository = repository;
         _passwordHasher = passwordHasher;
@@ -32,6 +33,7 @@ public class AuthController : ControllerBase {
         _achievementService = achievementService;
         _redisCache = redisCache;
         _auditService = auditService;
+        _environment = environment;
     }
 
     [AllowAnonymous]
@@ -69,8 +71,8 @@ public class AuthController : ControllerBase {
     private void SetRefreshTokenCookie(string refreshToken) {
         var cookieOptions = new CookieOptions {
             HttpOnly = true,
-            Secure = false, // Set to false for local development over HTTP
-            SameSite = SameSiteMode.Lax, // Lax is more compatible for local development with different ports
+            Secure = !_environment.IsDevelopment(), // SECURITY: Secure in production, allow HTTP in dev
+            SameSite = SameSiteMode.Strict, // SECURITY: Strict to prevent CSRF
             Expires = DateTime.UtcNow.AddDays(7)
         };
         Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
@@ -88,8 +90,14 @@ public class AuthController : ControllerBase {
         var user = _repository.GetUserByUsername(request.Username);
         if (user == null) return Unauthorized();
 
-        if (request.Code != "123456" && request.Code != "000000") {
-             return BadRequest("Invalid 2FA code.");
+        // SECURITY: Validate TOTP code instead of hardcoded values
+        if (string.IsNullOrEmpty(user.TwoFactorSecret)) {
+            return BadRequest("2FA is not properly configured for this account.");
+        }
+        
+        var totp = new OtpNet.Totp(Convert.FromBase64String(user.TwoFactorSecret));
+        if (!totp.VerifyTotp(request.Code, out _, new OtpNet.VerificationWindow(2, 2))) {
+            return BadRequest("Invalid 2FA code.");
         }
 
         var response = GenerateToken(user.Username, user.Id, user.Role);
@@ -280,13 +288,34 @@ public class AuthController : ControllerBase {
             return StatusCode(429, "Too many avatar updates. Please try again later.");
         }
 
+        // SECURITY: Stricter URL validation to prevent bypasses
         if (string.IsNullOrEmpty(avatarUrl) || avatarUrl.Length > 500) {
             return BadRequest("Invalid avatar URL length.");
         }
 
-        var imageRegex = new System.Text.RegularExpressions.Regex(@"^https?://.*\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        if (!imageRegex.IsMatch(avatarUrl) && !avatarUrl.Contains("api.dicebear.com")) {
-            return BadRequest("Only secure image URLs or DiceBear avatars are allowed.");
+        // Only allow HTTPS (or HTTP for dicebear API)
+        if (!avatarUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) && 
+            !avatarUrl.StartsWith("http://api.dicebear.com", StringComparison.OrdinalIgnoreCase)) {
+            return BadRequest("Only HTTPS URLs are allowed (except api.dicebear.com).");
+        }
+
+        // Whitelist approach: Only allow specific domains
+        var allowedDomains = new[] { 
+            "api.dicebear.com",
+            "i.imgur.com",
+            "cdn.discordapp.com"
+        };
+        
+        var uri = new Uri(avatarUrl);
+        if (!allowedDomains.Any(d => uri.Host.Equals(d, StringComparison.OrdinalIgnoreCase))) {
+            return BadRequest($"Avatar must be from allowed domains: {string.Join(", ", allowedDomains)}");
+        }
+
+        // Check file extension
+        var allowedExtensions = new[] { ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg" };
+        var path = uri.AbsolutePath.ToLowerInvariant();
+        if (!allowedExtensions.Any(ext => path.EndsWith(ext) || path.Contains(ext + "?"))) {
+            return BadRequest("Invalid image file type.");
         }
 
         var user = _repository.GetUser(userId);
@@ -341,26 +370,64 @@ public class AuthController : ControllerBase {
          return Ok(new { Message = "User created", UserId = user.Id });
     }
 
-    [HttpPost("dev/promote")]
-    [Authorize]
-    public IActionResult PromoteToAdmin([FromBody] string secret) {
-        var validSecret = _configuration["Admin:Secret"];
-        if (string.IsNullOrEmpty(validSecret) || secret != validSecret) return Unauthorized();
-        
-        var userId = GetUserIdOrThrow();
-        var user = _repository.GetUser(userId);
-        if (user == null) return NotFound();
+    // SECURITY: This endpoint is disabled for production
+    // Use admin panel or database direct access to promote users
+    // [HttpPost("dev/promote")]
+    // [Authorize]
+    // public IActionResult PromoteToAdmin([FromBody] string secret) {
+    //     var validSecret = _configuration["Admin:Secret"];
+    //     if (string.IsNullOrEmpty(validSecret) || secret != validSecret) return Unauthorized();
+    //     
+    //     var userId = GetUserIdOrThrow();
+    //     var user = _repository.GetUser(userId);
+    //     if (user == null) return NotFound();
+    //
+    //     user.Role = Role.Admin;
+    //     _repository.UpdateUser(user);
+    //     
+    //     // Audit log
+    //     _auditService.LogEvent("ADMIN_PROMOTE", $"User {user.Username} promoted to Admin via dev endpoint", userId.ToString(), "");
+    //     
+    //     return Ok(GenerateToken(user.Username, user.Id, Role.Admin));
+    // }
 
-        user.Role = Role.Admin;
-        _repository.UpdateUser(user);
-        
-        return Ok(GenerateToken(user.Username, user.Id, Role.Admin));
+    [Authorize(Roles = "Admin")]
+    [HttpPost("admin/promote-user")]
+    public IActionResult AdminPromoteUser([FromBody] AdminPromoteRequest request) {
+        var adminId = GetUserIdOrThrow();
+        var admin = _repository.GetUser(adminId);
+        if (admin == null || admin.Role != Role.Admin) return Forbid();
+
+        var targetUser = _repository.GetUser(request.TargetUserId);
+        if (targetUser == null) return NotFound("User not found");
+
+        // Parse role string to enum
+        if (!Enum.TryParse<Role>(request.NewRole, true, out var newRole)) {
+            return BadRequest("Invalid role");
+        }
+
+        targetUser.Role = newRole;
+        _repository.UpdateUser(targetUser);
+
+        // Audit log
+        _auditService.LogEvent("ADMIN_PROMOTE", 
+            $"Admin {admin.Username} changed {targetUser.Username} role to {newRole}", 
+            adminId.ToString(), 
+            System.Text.Json.JsonSerializer.Serialize(new { TargetUserId = request.TargetUserId, NewRole = newRole }));
+
+        return Ok(new { Message = $"User {targetUser.Username} role changed to {newRole}" });
     }
 
     [Authorize]
     [HttpPost("password")]
-    public IActionResult ChangePassword([FromBody] ChangePasswordRequest request) {
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request) {
         var userId = GetUserIdOrThrow();
+        
+        // SECURITY: Rate limit password changes (max 3 per hour)
+        if (await _redisCache.IncrementRateLimitAsync($"ratelimit:password:{userId}", TimeSpan.FromHours(1), 3)) {
+            return StatusCode(429, "Too many password change attempts. Please try again later.");
+        }
+        
         var user = _repository.GetUser(userId);
         if (user == null) return NotFound();
 
@@ -374,6 +441,12 @@ public class AuthController : ControllerBase {
         _repository.UpdateUser(user);
         
         _repository.InactivateAllUserSessions(userId); 
+        
+        // Audit log
+        _auditService.LogEvent("PASSWORD_CHANGE", 
+            $"User {user.Username} changed password", 
+            userId.ToString(), 
+            "");
         
         return Ok(new { Message = "Password updated successfully!" });
     }
@@ -401,8 +474,33 @@ public class AuthController : ControllerBase {
         var user = _repository.GetUser(userId);
         if (user == null) return NotFound();
 
+        // SECURITY: Prevent bypass by enforcing minimum exclusion period
+        if (hours < 24 && hours > 0) {
+            return BadRequest("Minimum self-exclusion period is 24 hours.");
+        }
+        
+        // SECURITY: Only allow setting exclusion, not removing it
+        if (hours <= 0) {
+            return BadRequest("Cannot remove self-exclusion. Contact support to lift the restriction.");
+        }
+        
+        // SECURITY: Cannot reduce existing exclusion period
+        if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.UtcNow) {
+            var existingHours = (user.LockoutUntil.Value - DateTime.UtcNow).TotalHours;
+            if (hours < existingHours) {
+                return BadRequest($"Cannot reduce existing self-exclusion. Current period ends at {user.LockoutUntil:yyyy-MM-dd HH:mm} UTC");
+            }
+        }
+
         user.LockoutUntil = DateTime.UtcNow.AddHours(hours);
         _repository.UpdateUser(user);
+        
+        // Audit log
+        _auditService.LogEvent("SELF_EXCLUSION", 
+            $"User {user.Username} self-excluded for {hours} hours until {user.LockoutUntil:yyyy-MM-dd HH:mm} UTC", 
+            userId.ToString(), 
+            System.Text.Json.JsonSerializer.Serialize(new { Hours = hours, Until = user.LockoutUntil }));
+        
         return Ok(new { Message = $"Self-exclusion active until {user.LockoutUntil:yyyy-MM-dd HH:mm} UTC" });
     }
 
@@ -448,14 +546,31 @@ public class AuthController : ControllerBase {
 
         user.IsTwoFactorEnabled = !user.IsTwoFactorEnabled;
         if (user.IsTwoFactorEnabled) {
-            user.TwoFactorSecret = Guid.NewGuid().ToString("N").Substring(0, 16).ToUpper();
+            // SECURITY: Generate cryptographically secure TOTP secret
+            var key = OtpNet.KeyGeneration.GenerateRandomKey(20); // 160 bits
+            user.TwoFactorSecret = Convert.ToBase64String(key);
+            
+            // Generate QR code URI for Google Authenticator
+            var totp = new OtpNet.Totp(key);
+            var otpUri = $"otpauth://totp/AleaSim:{user.Username}?secret={OtpNet.Base32Encoding.ToString(key)}&issuer=AleaSim";
+            
+            _repository.UpdateUser(user);
+            return Ok(new { 
+                Enabled = true, 
+                Secret = user.TwoFactorSecret,
+                QrCodeUri = otpUri // Client can use this to generate QR code
+            });
+        } else {
+            user.TwoFactorSecret = null;
+            _repository.UpdateUser(user);
+            return Ok(new { Enabled = false });
         }
-        _repository.UpdateUser(user);
-        return Ok(new { Enabled = user.IsTwoFactorEnabled, Secret = user.TwoFactorSecret });
     }
 
     private LoginResponse GenerateToken(string username, Guid userId, Role role, Guid? existingSessionId = null) {
         var secretKey = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key missing");
+        var issuer = _configuration["Jwt:Issuer"] ?? "AleaSim";
+        var audience = _configuration["Jwt:Audience"] ?? "AleaSim-Client";
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(secretKey);
         
@@ -487,7 +602,9 @@ public class AuthController : ControllerBase {
                 new Claim(ClaimTypes.Role, role.ToString()), 
                 new Claim("role", role.ToString())
             }),
-            Expires = DateTime.UtcNow.AddMinutes(30), 
+            Expires = DateTime.UtcNow.AddMinutes(30),
+            Issuer = issuer,
+            Audience = audience,
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
         var token = tokenHandler.CreateToken(tokenDescriptor);

@@ -16,7 +16,7 @@ public class VaultService : IVaultService {
     }
 
     public async Task<bool> ProcessBetAsync(Guid userId, decimal amount, IGameRepository repo) {
-        if (amount < 0) return false;
+        if (amount <= 0) throw new ArgumentException("Bet amount must be greater than zero.");
         
         // Lock specifically for this user's wallet
         using var lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(5));
@@ -74,11 +74,12 @@ public class VaultService : IVaultService {
         if (success) {
             if (profile != null) {
                 if (user.WageringRequirement == 0) {
-                     profile.ShadowBalance += amount * 0.95m;
+                     // SECURITY: Round calculations to prevent rounding error exploits
+                     profile.ShadowBalance += Math.Round(amount * 0.95m, 2, MidpointRounding.ToZero);
                      
                      // 10% Base Cashback + Level Bonus
                      decimal rate = 0.10m + (profile.CashbackLevel * 0.01m);
-                     profile.PendingCashback += amount * rate;
+                     profile.PendingCashback += Math.Round(amount * rate, 2, MidpointRounding.ToZero);
                      
                      repo.UpdatePlayerProfile(profile);
                 }
@@ -117,10 +118,12 @@ public class VaultService : IVaultService {
         // For now, we update the user balance.
 
         if (profile != null && user.WageringRequirement == 0) {
-            profile.ShadowBalance -= amount;
+            // SECURITY: Round to prevent rounding error exploits
+            profile.ShadowBalance -= Math.Round(amount, 2, MidpointRounding.ToZero);
             
             decimal rate = 0.10m + (profile.CashbackLevel * 0.01m);
-            profile.PendingCashback = Math.Max(0, profile.PendingCashback - (amount * rate));
+            decimal cashbackAdjustment = Math.Round(amount * rate, 2, MidpointRounding.ToZero);
+            profile.PendingCashback = Math.Max(0, profile.PendingCashback - cashbackAdjustment);
 
             repo.UpdatePlayerProfile(profile);
         }
@@ -229,7 +232,8 @@ public class VaultService : IVaultService {
         
         if (profile == null || user == null || profile.PendingCashback < 0.01m) return 0;
 
-        decimal amount = profile.PendingCashback; // No rounding here, keep full precision in DB
+        // SECURITY: Round to 2 decimal places to prevent micro-transaction exploits
+        decimal amount = Math.Round(profile.PendingCashback, 2, MidpointRounding.ToZero);
         profile.PendingCashback = 0;
         user.Balance += amount;
         

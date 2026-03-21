@@ -30,7 +30,12 @@ builder.WebHost.ConfigureKestrel(serverOptions => {
 
 builder.Services.AddCors(options => {
     options.AddPolicy("DefaultCors", policy => {
-        policy.SetIsOriginAllowed(_ => true) 
+        // SECURITY: Restrict to specific origins in production
+        // Get allowed origins from configuration (comma-separated list)
+        var allowedOrigins = builder.Configuration["Cors:AllowedOrigins"]?.Split(',') 
+            ?? new[] { "http://localhost:5000", "https://localhost:5001" };
+        
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -92,13 +97,17 @@ builder.Services.AddAuthentication(x => {
     x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(x => {
-    x.RequireHttpsMetadata = false;
+    // SECURITY: Require HTTPS in production, allow HTTP in development
+    x.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     x.SaveToken = true;
     x.TokenValidationParameters = new TokenValidationParameters {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false,
-        ValidateAudience = false
+        ValidateIssuer = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "AleaSim",
+        ValidateAudience = true,
+        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "AleaSim-Client",
+        ClockSkew = TimeSpan.Zero
     };
     
     // SignalR Auth: Extract token from query string
@@ -151,7 +160,10 @@ if (app.Environment.IsDevelopment()) {
     app.UseSwaggerUI();
 }
 
-// app.UseHttpsRedirection(); // Disabled to fix CORS preflight redirect issue
+// SECURITY: Enable HTTPS redirection in production
+if (!app.Environment.IsDevelopment()) {
+    app.UseHttpsRedirection();
+}
 app.UseMiddleware<AleaSim.Api.Middleware.ExceptionHandlingMiddleware>();
 app.UseRouting(); // Explicit routing
 app.UseCors("DefaultCors");

@@ -64,6 +64,11 @@ public class ConsoleRealTimeService : IRealTimeService {
         return Task.CompletedTask;
     }
 
+    public Task NotifyAuditLog(AuditEvent auditEvent) {
+        // CLI doesn't need real-time audit notifications
+        return Task.CompletedTask;
+    }
+
     public Task BroadcastMessage(string sender, string message) {
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine($"\n[SYSTEM BROADCAST from {sender}]: {message}");

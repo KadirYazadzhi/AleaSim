@@ -34,13 +34,17 @@ public class SupportController : ControllerBase {
             userId = id;
         }
 
+        // SECURITY: Sanitize user input to prevent XSS attacks
+        var sanitizer = new Ganss.Xss.HtmlSanitizer();
+        sanitizer.AllowedTags.Clear(); // No HTML tags allowed in support messages
+
         var message = new SupportMessage {
             Id = Guid.NewGuid(),
             UserId = userId,
-            SenderName = request.Name,
-            SenderEmail = request.Email,
-            Subject = request.Subject,
-            Message = request.Message,
+            SenderName = sanitizer.Sanitize(request.Name),
+            SenderEmail = sanitizer.Sanitize(request.Email),
+            Subject = sanitizer.Sanitize(request.Subject),
+            Message = sanitizer.Sanitize(request.Message),
             CreatedAt = DateTime.UtcNow,
             IsRead = false
         };

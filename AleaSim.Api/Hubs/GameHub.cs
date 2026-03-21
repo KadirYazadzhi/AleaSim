@@ -108,10 +108,17 @@ public class GameHub : Hub {
 
     private string Sanitize(string input) {
         if (string.IsNullOrWhiteSpace(input)) return string.Empty;
-        // Simple HTML Sanitization: Strip tags
-        string clean = System.Text.RegularExpressions.Regex.Replace(input, "<.*?>", string.Empty);
-        // HTML encode to catch remaining characters
-        return System.Net.WebUtility.HtmlEncode(clean).Trim();
+        
+        // SECURITY: Use HtmlSanitizer library for proper XSS prevention
+        var sanitizer = new Ganss.Xss.HtmlSanitizer();
+        // Only allow safe tags
+        sanitizer.AllowedTags.Clear();
+        sanitizer.AllowedTags.Add("b");
+        sanitizer.AllowedTags.Add("i");
+        sanitizer.AllowedTags.Add("em");
+        sanitizer.AllowedTags.Add("strong");
+        
+        return sanitizer.Sanitize(input).Trim();
     }
 
     // Clients can join groups for specific games or sessions

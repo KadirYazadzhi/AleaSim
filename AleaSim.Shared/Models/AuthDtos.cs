@@ -64,3 +64,8 @@ public class UpdateSettingsRequest {
     public decimal? MonthlyLossLimit { get; set; }
     public string? PreferencesJson { get; set; }
 }
+
+public class AdminPromoteRequest {
+    public Guid TargetUserId { get; set; }
+    public string NewRole { get; set; } = string.Empty; // "User", "Moderator", "Admin"
+}
