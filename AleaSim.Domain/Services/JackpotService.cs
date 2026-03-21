@@ -114,7 +114,7 @@ public class JackpotService : IJackpotService {
         JackpotTier.Major => 2500m,
         JackpotTier.Mega => 10000m,
         JackpotTier.Tournament => 25000m,
-        JackpotTier.Special => 1000m,
+        JackpotTier.Special => 500m,
         JackpotTier.Grand => 10000m,
         _ => 100m
     };

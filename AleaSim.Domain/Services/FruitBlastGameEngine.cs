@@ -185,8 +185,8 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     // Add Juice Reservoir to win - EXCLUDE SIMS FROM DRAINING POT
                     if (!isSimUser) {
                         state.CurrentRoundWin += juiceReservoir.CurrentValue;
-                        // Reset Juice Reservoir to seed value (1000 as per seeder)
-                        juiceReservoir.CurrentValue = 1000.0m;
+                        // Reset Juice Reservoir to seed value (500 as per seeder)
+                        juiceReservoir.CurrentValue = 500.0m;
                     }
                     
                     // Trigger Meltdown transformation
