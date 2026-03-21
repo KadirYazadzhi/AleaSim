@@ -397,17 +397,10 @@ public class AdminController : ControllerBase {
 
     
     [HttpPost("players/{id}/balance")]
-    public async Task<IActionResult> UpdateUserBalance(Guid id, [FromBody] PlayerSearchResultDto.UpdateBalanceDto dto) {
+    public async Task<IActionResult> UpdateUserBalance(Guid id, [FromBody] UpdateBalanceDto dto) {
         var adminId = GetCurrentUserId();
         await _adminService.UpdateUserBalance(adminId, id, dto.NewBalance);
         return Ok(new { Message = "Balance updated successfully." });
-    }
-
-    [HttpPost("players/{id}/status")]
-    public async Task<IActionResult> ToggleUserStatus(Guid id, [FromBody] PlayerSearchResultDto.ToggleStatusDto dto) {
-        var adminId = GetCurrentUserId();
-        await _adminService.ToggleUserStatus(adminId, id, dto.IsActive);
-        return Ok(new { Message = "User status updated." });
     }
 
     [HttpPost("actions/trigger")]

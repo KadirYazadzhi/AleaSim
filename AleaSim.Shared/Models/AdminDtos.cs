@@ -34,12 +34,13 @@ public class PlayerSearchResultDto {
     public decimal TotalWon { get; set; }
     public int RiskScore { get; set; }
     public List<string> RedFlags { get; set; } = new();
+    public bool IsActive { get; set; }
+}
 
-    public class UpdateBalanceDto {
-        public decimal NewBalance { get; set; }
-    }
+public class UpdateBalanceDto {
+    public decimal NewBalance { get; set; }
+}
 
-    public class ToggleStatusDto {
-        public bool IsActive { get; set; }
-    }
+public class ToggleStatusDto {
+    public bool IsActive { get; set; }
 }
