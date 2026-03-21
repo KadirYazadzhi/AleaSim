@@ -345,7 +345,11 @@ public class GameController : ControllerBase {
         var jackpots = _repo.GetJackpots();
         var mega = jackpots.FirstOrDefault(j => j.Tier == AleaSim.Domain.Entities.JackpotTier.Mega);
         
-        decimal weeklyJackpot = mega?.CurrentValue ?? 0m;
+        decimal weeklyJackpot = 0;
+        if (mega != null) {
+            var redisVal = await redis.GetAsync<double?>($"jackpot:{mega.Id}");
+            weeklyJackpot = redisVal.HasValue ? (decimal)redisVal.Value : mega.CurrentValue;
+        }
         decimal totalRewards = _repo.GetGlobalTotalRewardsPaid();
         
         var tournamentEndsAt = startOfMonth.AddMonths(1).AddSeconds(-1);

@@ -469,24 +469,25 @@ public class EfGameRepository : IGameRepository {
 
     public IEnumerable<Jackpot> GetJackpots() {
         var jackpots = _context.Jackpots.ToList();
-        if (!jackpots.Any(j => j.Tier == JackpotTier.Mini)) {
+        
+        // Remove ANY old Mini/Minor jackpots if they exist in DB
+        var toRemove = jackpots.Where(j => j.Tier == JackpotTier.Mini || j.Tier == JackpotTier.Minor).ToList();
+        if (toRemove.Any()) {
+            _context.Jackpots.RemoveRange(toRemove);
+            _context.SaveChanges();
+            jackpots = _context.Jackpots.ToList();
+        }
+
+        if (!jackpots.Any(j => j.Tier == JackpotTier.Major)) {
             var cloverChaseId = Guid.Parse("11111111-1111-1111-1111-111111111111");
             var fruitBlastId = Guid.Parse("44444444-4444-4444-4444-444444444444");
-            
-            // Clear old jackpots if any to ensure clean transition
-            if (jackpots.Any()) {
-                _context.Jackpots.RemoveRange(jackpots);
-                _context.SaveChanges();
-            }
 
             _context.Jackpots.AddRange(
-                // Clover Chase - Game Specific
-                new Jackpot { Id = Guid.NewGuid(), Name = "Clover Mini", Tier = JackpotTier.Mini, CurrentValue = 50, ContributionRate = 0.01m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = 100, LastUpdated = DateTime.UtcNow },
-                new Jackpot { Id = Guid.NewGuid(), Name = "Clover Minor", Tier = JackpotTier.Minor, CurrentValue = 150, ContributionRate = 0.008m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = 300, LastUpdated = DateTime.UtcNow },
+                // Clover Chase - Only Major and Mega are progressive
                 new Jackpot { Id = Guid.NewGuid(), Name = "Clover Major", Tier = JackpotTier.Major, CurrentValue = 500, ContributionRate = 0.005m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = 1000, LastUpdated = DateTime.UtcNow },
                 new Jackpot { Id = Guid.NewGuid(), Name = "Clover Mega", Tier = JackpotTier.Mega, CurrentValue = 2500, ContributionRate = 0.002m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = 5000, LastUpdated = DateTime.UtcNow },
                 
-                // Fruit Blast - Game Specific
+                // Fruit Blast - Special Jackpot
                 new Jackpot { Id = Guid.NewGuid(), Name = "Juice Reservoir", Tier = JackpotTier.Special, CurrentValue = 1000, ContributionRate = 0.005m, IsGlobal = false, GameId = fruitBlastId, MustDropAt = 5000, LastUpdated = DateTime.UtcNow },
                 
                 // Global Tournament

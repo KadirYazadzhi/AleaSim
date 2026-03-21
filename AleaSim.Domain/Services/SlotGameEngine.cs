@@ -170,24 +170,23 @@ public class SlotGameEngine : BaseGameEngine {
 
             if (totalWin > 0) {
                 repo.UpdateGamePoolBalance(session.GameId, -totalWin);
-                await VaultService.ProcessWinAsync(session.UserId, totalWin, repo);
-                await questService.UpdateProgressAsync(session.UserId, "WinAmount", totalWin, repo, RealTimeService, VaultService);
+                await VaultService.ProcessWinAsync(session.UserId, totalWin, repo).ConfigureAwait(false);
+                await questService.UpdateProgressAsync(session.UserId, "WinAmount", totalWin, repo, RealTimeService, VaultService).ConfigureAwait(false);
             }
 
             // Jackpot Trigger Check
             var user = repo.GetUser(session.UserId);
             bool isExcluded = user?.Username.StartsWith("Sim_") == true || user?.Role == Role.Admin;
             if (!isExcluded) {
-                var jackpotResult = await JackpotService.CheckJackpotTrigger(session.GameId, session.Seed, roundNum, repo);
+                var jackpotResult = await JackpotService.CheckJackpotTrigger(session.GameId, session.Seed, roundNum, repo).ConfigureAwait(false);
                 if (jackpotResult.Triggered) {
                     totalWin += jackpotResult.WinAmount;
-                    // Add jackpot win to the total win of the round
                 }
             }
             
             if (!state.IsRespinActive && !state.IsBonusActive) BrainService.UpdateProfile(session.UserId, 0, totalWin, repo);
 
-            await _cache.SetAsync(cacheKey, state, TimeSpan.FromMinutes(10));
+            await _cache.SetAsync(cacheKey, state, TimeSpan.FromMinutes(10)).ConfigureAwait(false);
             session.GameState = JsonSerializer.Serialize(state);
             
             // SECURITY: Only send labels when bonus is over and reveal starts
@@ -212,7 +211,7 @@ public class SlotGameEngine : BaseGameEngine {
                 ServerSeed = session.ServerSeed, ClientSeed = session.ClientSeed, Nonce = roundNum
             });
             repo.UpdateSession(session);
-            await RealTimeService.NotifyGameUpdate(session.UserId, new { Grid = state.Grid, Win = totalWin, IsRespin = state.IsRespinActive, Bonus = state.IsBonusActive });
+            await RealTimeService.NotifyGameUpdate(session.UserId, new { Grid = state.Grid, Win = totalWin, IsRespin = state.IsRespinActive, Bonus = state.IsBonusActive }).ConfigureAwait(false);
             return repo.GetLastRound(sessionId)!;
         });
     }

@@ -369,6 +369,10 @@
     private decimal GetMinorValue() => Denomination * 5000;
     private decimal GetMiniValue() => Denomination * 1000;
 
+    protected override void OnParametersSet() {
+        StateHasChanged();
+    }
+
     public void Dispose() {
         RealTime.OnJackpotUpdated -= HandleUpdate;
         LayoutService.OnMajorUpdate -= StateHasChanged;

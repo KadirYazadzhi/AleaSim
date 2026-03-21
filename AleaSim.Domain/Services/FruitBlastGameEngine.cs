@@ -226,7 +226,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
             // SMART VAULT PROTECTION: Bypassed for simulation users
             if (totalWin > 0 && !isSimUser) {
                 bool isRandom = directive.DecisionType == "Random";
-                if (!await VaultService.CanAffordWinAsync(session.UserId, _gameId, totalWin, repo, strictShadowCheck: !isRandom)) {
+                if (!await VaultService.CanAffordWinAsync(session.UserId, _gameId, totalWin, repo, strictShadowCheck: !isRandom).ConfigureAwait(false)) {
                     var game = repo.GetGame(_gameId);
                     decimal poolAffordable = (game?.PoolBalance ?? 0) * 0.9m; 
                     decimal fallback = Math.Max(bet.Amount, poolAffordable);
@@ -235,17 +235,15 @@ public class FruitBlastGameEngine : BaseGameEngine {
             }
 
             if (totalWin > 0) {
-                await VaultService.ProcessWinAsync(session.UserId, totalWin, repo);
+                await VaultService.ProcessWinAsync(session.UserId, totalWin, repo).ConfigureAwait(false);
                 repo.UpdateGamePoolBalance(_gameId, -totalWin);
             }
 
             // Jackpot Trigger Check (for Global and potentially other game jackpots)
             if (!isSimUser) {
-                var jackpotResult = await JackpotService.CheckJackpotTrigger(session.GameId, session.Seed, roundNum, repo);
+                var jackpotResult = await JackpotService.CheckJackpotTrigger(session.GameId, session.Seed, roundNum, repo).ConfigureAwait(false);
                 if (jackpotResult.Triggered) {
                     totalWin += jackpotResult.WinAmount;
-                    // Note: In clusters game, we might want to show this as a separate event, 
-                    // but for now we just add it to the total round win.
                 }
             }
 

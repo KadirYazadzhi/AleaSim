@@ -24,10 +24,9 @@ public class JackpotService : IJackpotService {
         var jackpots = repo.GetJackpots().ToList();
         
         foreach (var j in jackpots) {
+            if (j.Tier == JackpotTier.Mini || j.Tier == JackpotTier.Minor) continue;
+
             bool shouldContribute = j.IsGlobal || (j.GameId.HasValue && j.GameId.Value == gameId);
-            
-            if (shouldContribute) { 
-                decimal increase = betAmount * j.ContributionRate;
                 string redisKey = $"jackpot:{j.Id}";
 
                 var redisVal = await db.StringGetAsync(redisKey);
@@ -55,6 +54,7 @@ public class JackpotService : IJackpotService {
         var db = _redis.GetDatabase();
         
         var jackpots = repo.GetJackpots()
+            .Where(j => j.Tier != JackpotTier.Mini && j.Tier != JackpotTier.Minor) // Ignore fixed multipliers
             .Where(j => j.IsGlobal || (j.GameId.HasValue && j.GameId.Value == gameId))
             .OrderBy(j => j.Tier)
             .ToList();
@@ -66,10 +66,8 @@ public class JackpotService : IJackpotService {
 
             decimal pressure = j.MustDropAt.HasValue && j.MustDropAt.Value > 0 ? currentValue / j.MustDropAt.Value : 0.1m;
             
-            // Scaled chances based on tier
+            // Scaled chances based on tier (Mini/Minor removed)
             double baseChance = j.Tier switch {
-                JackpotTier.Mini => 0.005,        // 1 in 200 spins
-                JackpotTier.Minor => 0.002,       // 1 in 500 spins
                 JackpotTier.Major => 0.0005,      // 1 in 2000 spins
                 JackpotTier.Mega => 0.0001,       // 1 in 10000 spins
                 JackpotTier.Tournament => 0.00001, // 1 in 100000 spins
@@ -82,7 +80,7 @@ public class JackpotService : IJackpotService {
 
             // Forced drop if over Cap
             if (roll < threshold || (j.MustDropAt.HasValue && currentValue >= j.MustDropAt.Value)) {
-                using var lockHandle = await _lockService.AcquireLockAsync($"jackpot_claim_{j.Id}", TimeSpan.FromSeconds(2));
+                using var lockHandle = await _lockService.AcquireLockAsync($"jackpot_claim_{j.Id}", TimeSpan.FromSeconds(5));
                 
                 redisVal = await db.StringGetAsync(redisKey);
                 currentValue = redisVal.HasValue ? (decimal)(double)redisVal : j.CurrentValue;
@@ -110,8 +108,6 @@ public class JackpotService : IJackpotService {
     }
 
     private decimal GetResetValue(JackpotTier tier) => tier switch {
-        JackpotTier.Mini => 50m,
-        JackpotTier.Minor => 150m,
         JackpotTier.Major => 500m,
         JackpotTier.Mega => 2500m,
         JackpotTier.Tournament => 10000m,

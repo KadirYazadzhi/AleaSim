@@ -29,22 +29,22 @@ public abstract class BaseGameEngine : IGame {
     }
 
     public virtual async Task PlaceBet(Guid userId, Guid sessionId, decimal amount, string? betData) {
-        await ExecuteScopedAsync(async (repo, questService, levelService) => {
-            // 1. HARD BLOCK: Check emergency stop before touching money
+        using var scope = ScopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+        var questService = scope.ServiceProvider.GetRequiredService<IQuestService>();
+        var levelService = scope.ServiceProvider.GetRequiredService<ILevelService>();
+
+        using var tx = repo.BeginTransaction();
+        try {
             var stopSetting = repo.GetGlobalSetting("EmergencyStop");
             if (stopSetting == "true") {
-                throw new InvalidOperationException("SYSTEM_HALTED: The gaming platform is currently under maintenance. No bets are accepted.");
+                throw new InvalidOperationException("SYSTEM_HALTED: The gaming platform is currently under maintenance.");
             }
 
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
+            if (session.UserId != userId) throw new UnauthorizedAccessException("Session belongs to another user.");
             
-            // SECURITY CHECK: Session Hijacking Prevention
-            if (session.UserId != userId) {
-                throw new UnauthorizedAccessException("Session does not belong to the calling user.");
-            }
-            
-            // 2. MONEY TRANSACTION: Only proceed if system is active
             if (await VaultService.ProcessBetAsync(session.UserId, amount, repo)) {
                 var bet = new Bet {
                     Id = Guid.NewGuid(),
@@ -55,7 +55,6 @@ public abstract class BaseGameEngine : IGame {
                     CreatedAt = DateTime.UtcNow
                 };
                 repo.SaveBet(bet);
-
                 repo.UpdateGamePoolBalance(session.GameId, amount);
                 
                 var user = repo.GetUser(session.UserId);
@@ -65,17 +64,20 @@ public abstract class BaseGameEngine : IGame {
 
                 if (!isExcluded) {
                     PromotionService.ProcessBetActivity(session.UserId, amount, repo);
+                    // SEQUENTIAL AWAIT to prevent "Second operation started on this context"
                     await JackpotService.Contribute(session.GameId, amount, repo);
-                    
-                    // Quest Integration
                     await questService.GenerateDailyQuests(session.UserId, repo);
                     await questService.UpdateProgressAsync(session.UserId, "SpinCount", 1, repo, RealTimeService, VaultService);
                     await levelService.AddExperience(session.UserId, amount, repo, RealTimeService);
                 }
+                tx.Commit();
             } else {
                 throw new Exception("Insufficient funds");
             }
-        });
+        } catch {
+            tx.Rollback();
+            throw;
+        }
     }
 
     public virtual async Task<GameSession> StartSession(Guid userId, Guid gameId, int? seed = null, string? clientSeed = null) {
@@ -109,7 +111,7 @@ public abstract class BaseGameEngine : IGame {
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         using var tx = repo.BeginTransaction();
         try {
-            await action(repo);
+            await action(repo).ConfigureAwait(false);
             tx.Commit();
         } catch {
             tx.Rollback();
@@ -124,7 +126,7 @@ public abstract class BaseGameEngine : IGame {
         var levelService = scope.ServiceProvider.GetRequiredService<ILevelService>();
         using var tx = repo.BeginTransaction();
         try {
-            await action(repo, questService, levelService);
+            await action(repo, questService, levelService).ConfigureAwait(false);
             tx.Commit();
         } catch {
             tx.Rollback();
@@ -137,7 +139,7 @@ public abstract class BaseGameEngine : IGame {
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         using var tx = repo.BeginTransaction();
         try {
-            var result = await action(repo);
+            var result = await action(repo).ConfigureAwait(false);
             tx.Commit();
             return result;
         } catch {
@@ -153,7 +155,7 @@ public abstract class BaseGameEngine : IGame {
         var levelService = scope.ServiceProvider.GetRequiredService<ILevelService>();
         using var tx = repo.BeginTransaction();
         try {
-            var result = await action(repo, questService, levelService);
+            var result = await action(repo, questService, levelService).ConfigureAwait(false);
             tx.Commit();
             return result;
         } catch {
