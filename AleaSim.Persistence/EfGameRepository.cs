@@ -890,8 +890,17 @@ public class EfGameRepository : IGameRepository {
         _context.SaveChanges();
     }
 
+    public IEnumerable<SupportMessage> GetAllSupportMessages() {
+        return _context.SupportMessages.OrderByDescending(m => m.CreatedAt).ToList();
+    }
+
     public IEnumerable<SupportMessage> GetSupportMessages(int count) {
         return _context.SupportMessages.OrderByDescending(m => m.CreatedAt).Take(count).ToList();
+    }
+
+    public void UpdateSupportMessage(SupportMessage message) {
+        _context.SupportMessages.Update(message);
+        _context.SaveChanges();
     }
 
     public void MarkSupportMessageRead(Guid messageId) {
@@ -900,6 +909,37 @@ public class EfGameRepository : IGameRepository {
             msg.IsRead = true;
             _context.SaveChanges();
         }
+    }
+
+    public IEnumerable<Tournament> GetAllTournaments() {
+        return _context.Tournaments.OrderByDescending(t => t.StartDate).ToList();
+    }
+
+    public void CreateTournament(Tournament tournament) {
+        _context.Tournaments.Add(tournament);
+        _context.SaveChanges();
+    }
+
+    public void UpdateTournament(Tournament tournament) {
+        _context.Tournaments.Update(tournament);
+        _context.SaveChanges();
+    }
+
+    public void DeleteTournament(Guid id) {
+        var t = _context.Tournaments.Find(id);
+        if (t != null) {
+            _context.Tournaments.Remove(t);
+            _context.SaveChanges();
+        }
+    }
+
+    public IEnumerable<SystemError> GetRecentErrors(int count) {
+        return _context.SystemErrors.OrderByDescending(e => e.CreatedAt).Take(count).ToList();
+    }
+
+    public void ClearAllErrors() {
+        _context.SystemErrors.RemoveRange(_context.SystemErrors);
+        _context.SaveChanges();
     }
 
     public void SaveChatMessage(ChatMessage message) {

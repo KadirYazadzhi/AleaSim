@@ -1,0 +1,66 @@
+@page "/admin/tournaments"
+@using AleaSim.Shared.Models
+@using System.Text.Json
+@layout AleaSim.Client.Layout.AdminLayout
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 pb-16">
+    <div class="d-flex justify-space-between align-center mb-8">
+        <div>
+            <MudText Typo="Typo.h3" Class="fw-black text-gradient">TOURNAMENT HQ</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-60">Design, schedule and fund community competitions.</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">CREATE TOURNAMENT</MudButton>
+    </div>
+
+    <MudGrid>
+        @if (tournaments == null) {
+            <MudItem xs="12" Class="text-center pa-12"><MudProgressCircular Indeterminate="true" Color="Color.Primary" /></MudItem>
+        } else {
+            @foreach (var t in tournaments) {
+                <MudItem xs="12" md="6" lg="4">
+                    <MudPaper Class="pa-6 rounded-xl relative overflow-hidden" Elevation="4">
+                        <div class="d-flex justify-space-between align-start mb-4">
+                            <div>
+                                <MudText Typo="Typo.h6" Class="fw-black">@t.Name</MudText>
+                                <MudText Typo="Typo.caption" Class="opacity-60 d-block">@t.StartDate.ToShortDateString() - @t.EndDate.ToShortDateString()</MudText>
+                            </div>
+                            <MudChip T="string" Color="@(t.IsActive ? Color.Success : Color.Default)" Size="Size.Small">@(t.IsActive ? "ACTIVE" : "ENDED")</MudChip>
+                        </div>
+                        <MudText Typo="Typo.body2" Class="mb-6 opacity-80" Style="height: 40px; overflow: hidden;">@t.Description</MudText>
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.caption" Class="fw-bold opacity-40 uppercase">Prize Pool</MudText>
+                                <MudText Typo="Typo.h5" Class="fw-black text-success">@t.PrizePool.ToString("C0")</MudText>
+                            </div>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" OnClick="() => EditTournament(t)" />
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            }
+        }
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private List<TournamentDto>? tournaments;
+
+    protected override async Task OnInitializedAsync() {
+        await LoadTournaments();
+    }
+
+    private async Task LoadTournaments() {
+        tournaments = await Http.GetFromJsonAsync<List<TournamentDto>>("api/Admin/tournaments");
+    }
+
+    private void OpenCreateDialog() {
+        // Implementation for dialog
+        Snackbar.Add("Feature available in next build.", Severity.Info);
+    }
+
+    private void EditTournament(TournamentDto t) {
+        // Implementation for editing
+    }
+}

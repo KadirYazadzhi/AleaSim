@@ -1,0 +1,74 @@
+@page "/admin/errors"
+@using AleaSim.Domain.Entities
+@layout AleaSim.Client.Layout.AdminLayout
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 pb-16">
+    <div class="d-flex justify-space-between align-center mb-8">
+        <div>
+            <MudText Typo="Typo.h3" Class="fw-black text-error">SYSTEM EXCEPTIONS</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-60">Real-time database-logged application errors.</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteSweep" OnClick="ClearErrors">PURGE ALL LOGS</MudButton>
+    </div>
+
+    <MudPaper Class="pa-6 rounded-xl" Elevation="4">
+        @if (errors == null) {
+            <div class="d-flex justify-center pa-12">
+                <MudProgressCircular Indeterminate="true" Color="Color.Error" Size="Size.Large" />
+            </div>
+        } else if (!errors.Any()) {
+            <div class="text-center py-12 opacity-20">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Style="font-size: 6rem;" />
+                <MudText Typo="Typo.h5">System is running clean.</MudText>
+            </div>
+        } else {
+            <MudTable Items="@errors" Hover="true" Breakpoint="Breakpoint.Sm" Dense="true" FixedHeader="true" Height="600px">
+                <HeaderContent>
+                    <MudTh>TIME</MudTh>
+                    <MudTh>MESSAGE</MudTh>
+                    <MudTh>PATH</MudTh>
+                    <MudTh>USER</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="TIME">@context.CreatedAt.ToString("HH:mm:ss")</MudTd>
+                    <MudTd DataLabel="MESSAGE">
+                        <MudText Color="Color.Error" Class="fw-bold" Style="font-size: 0.8rem;">@context.Message</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="PATH"><code>@context.Path</code></MudTd>
+                    <MudTd DataLabel="USER">@(context.UserId ?? "Guest")</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.BugReport" Color="Color.Error" OnClick="() => InspectError(context)" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private List<SystemError>? errors;
+
+    protected override async Task OnInitializedAsync() {
+        await LoadErrors();
+    }
+
+    private async Task LoadErrors() {
+        errors = await Http.GetFromJsonAsync<List<SystemError>>("api/Admin/system/errors");
+    }
+
+    private async Task ClearErrors() {
+        await Http.DeleteAsync("api/Admin/system/errors");
+        Snackbar.Add("Error logs purged.", Severity.Info);
+        await LoadErrors();
+    }
+
+    private async Task InspectError(SystemError error) {
+        await Http.PostAsJsonAsync("api/Admin/debug/echo", error); // Just example
+        Snackbar.Add("Full stacktrace sent to developer console.", Severity.Warning);
+        Console.WriteLine(error.StackTrace);
+    }
+}

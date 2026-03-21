@@ -153,10 +153,22 @@ public interface IGameRepository {
     IEnumerable<GlobalSetting> GetAllGlobalSettings();
     void SetGlobalSetting(string key, string value, string description = "");
 
-    // Support Messages
+    // Tournaments
+    IEnumerable<Tournament> GetAllTournaments();
+    void CreateTournament(Tournament tournament);
+    void UpdateTournament(Tournament tournament);
+    void DeleteTournament(Guid id);
+
+    // Support Tickets
     void SaveSupportMessage(SupportMessage message);
+    IEnumerable<SupportMessage> GetAllSupportMessages();
     IEnumerable<SupportMessage> GetSupportMessages(int count);
+    void UpdateSupportMessage(SupportMessage message);
     void MarkSupportMessageRead(Guid messageId);
+
+    // System Errors
+    IEnumerable<SystemError> GetRecentErrors(int count);
+    void ClearAllErrors();
 
     // Chat
     void SaveChatMessage(ChatMessage message);

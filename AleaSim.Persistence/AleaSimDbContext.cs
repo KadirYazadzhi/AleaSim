@@ -26,10 +26,11 @@ public class AleaSimDbContext : DbContext {
     public DbSet<Voucher> Vouchers { get; set; }
     public DbSet<UserVoucher> UserVouchers { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
-    public DbSet<TournamentWinner> TournamentWinners { get; set; }
+        public DbSet<Tournament> Tournaments { get; set; }
+        public DbSet<TournamentWinner> TournamentWinners { get; set; }
         public DbSet<SupportMessage> SupportMessages { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
-    
+        public DbSet<SystemError> SystemErrors { get; set; }    
         public AleaSimDbContext(DbContextOptions<AleaSimDbContext> options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) {

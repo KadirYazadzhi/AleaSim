@@ -78,6 +78,14 @@
     bool success;
     bool _loading = false;
 
+    [Parameter][SupplyParameterFromQuery(Name = "ref")] public string? RefParam { get; set; }
+
+    protected override void OnInitialized() {
+        if (!string.IsNullOrEmpty(RefParam)) {
+            model.ReferralCode = RefParam;
+        }
+    }
+
     private async Task HandleEnter(KeyboardEventArgs e) {
         if (e.Key == "Enter" && success) {
             await OnRegister();

@@ -317,8 +317,17 @@ public class AuthController : ControllerBase {
              Balance = 5000m,
              AvatarUrl = $"https://api.dicebear.com/7.x/bottts/svg?seed={request.Username}",
              CreatedAt = DateTime.UtcNow,
-             IsActive = true
+             IsActive = true,
+             ReferralCode = request.Username.ToLower() // Auto-generate their own ref code
          };
+
+         if (!string.IsNullOrEmpty(request.ReferralCode)) {
+             var referrer = _repository.GetAllUsers().FirstOrDefault(u => u.ReferralCode == request.ReferralCode || u.Username.ToLower() == request.ReferralCode.ToLower());
+             if (referrer != null) {
+                 user.ReferredById = referrer.Id;
+                 _auditService.LogEvent("REFERRAL_JOIN", $"User {user.Username} joined via referral from {referrer.Username}", referrer.Id.ToString(), user.Id.ToString());
+             }
+         }
          
          _repository.CreateUser(user);
 

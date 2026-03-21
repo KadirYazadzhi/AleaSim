@@ -245,6 +245,69 @@ public class AdminController : ControllerBase {
         return Ok(new { Message = "Notes updated." });
     }
 
+    // --- Support & Communication ---
+
+    [HttpGet("support/all")]
+    public IActionResult GetAllSupportMessages() {
+        return Ok(_repo.GetAllSupportMessages());
+    }
+
+    [HttpPost("support/{id}/reply")]
+    public async Task<IActionResult> ReplyToSupport(Guid id, [FromBody] string reply) {
+        var msg = _repo.GetAllSupportMessages().FirstOrDefault(m => m.Id == id);
+        if (msg == null) return NotFound();
+        
+        msg.IsRead = true;
+        msg.Message += $"\n\n--- ADMIN REPLY ---\n{reply}";
+        _repo.UpdateSupportMessage(msg);
+        
+        if (msg.UserId.HasValue) {
+            await _realTime.BroadcastMessage("System", $"Support notification for {msg.SenderName}: Your ticket has been updated.");
+        }
+        
+        return Ok();
+    }
+
+    // --- Tournament Management ---
+
+    [HttpGet("tournaments")]
+    public IActionResult GetTournaments() {
+        return Ok(_repo.GetAllTournaments());
+    }
+
+    [HttpPost("tournaments")]
+    public IActionResult CreateTournament([FromBody] Tournament tournament) {
+        tournament.Id = Guid.NewGuid();
+        _repo.CreateTournament(tournament);
+        return Ok(tournament);
+    }
+
+    [HttpPut("tournaments/{id}")]
+    public IActionResult UpdateTournament(Guid id, [FromBody] Tournament tournament) {
+        tournament.Id = id;
+        _repo.UpdateTournament(tournament);
+        return Ok(tournament);
+    }
+
+    [HttpDelete("tournaments/{id}")]
+    public IActionResult DeleteTournament(Guid id) {
+        _repo.DeleteTournament(id);
+        return Ok();
+    }
+
+    // --- System Health ---
+
+    [HttpGet("system/errors")]
+    public IActionResult GetSystemErrors() {
+        return Ok(_repo.GetRecentErrors(100));
+    }
+
+    [HttpDelete("system/errors")]
+    public IActionResult ClearSystemErrors() {
+        _repo.ClearAllErrors();
+        return Ok();
+    }
+
     // --- System Control ---
 
     [HttpPost("config/rtp")]

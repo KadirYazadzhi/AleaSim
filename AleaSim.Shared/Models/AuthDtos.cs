@@ -42,12 +42,14 @@ public class RegisterRequest {
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string? ReferralCode { get; set; }
 
     public RegisterRequest() {}
-    public RegisterRequest(string username, string password, string email) {
+    public RegisterRequest(string username, string password, string email, string? referralCode = null) {
         Username = username;
         Password = password;
         Email = email;
+        ReferralCode = referralCode;
     }
 }
 

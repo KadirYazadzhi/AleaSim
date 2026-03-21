@@ -57,9 +57,16 @@
                         <MudSwitch T="bool" Value="@is2faEnabled" ValueChanged="Toggle2FA" Color="Color.Success" />
                     </div>
                     @if (is2faEnabled && !string.IsNullOrEmpty(tfaSecret)) {
-                        <div class="pa-4 rounded-lg bg-dark-transparent border-dashed">
-                            <MudText Typo="Typo.caption" Class="d-block mb-1">YOUR SECRET KEY</MudText>
-                            <MudText Typo="Typo.h6" Style="font-family: monospace; letter-spacing: 3px;">@tfaSecret</MudText>
+                        <div class="d-flex flex-column align-center gap-4 pa-6 rounded-xl bg-dark-transparent border-dashed">
+                            <MudText Typo="Typo.caption" Class="fw-bold text-center">SCAN WITH GOOGLE AUTHENTICATOR</MudText>
+                            <div class="pa-2 bg-white rounded-lg">
+                                <MudImage Src='@($"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=otpauth://totp/AleaSim:{profile?.Username}?secret={tfaSecret}&issuer=AleaSim")' 
+                                          Alt="2FA QR Code" Width="180" Height="180" />
+                            </div>
+                            <div class="text-center">
+                                <MudText Typo="Typo.caption" Class="d-block mb-1 opacity-60">MANUAL SETUP KEY</MudText>
+                                <MudText Typo="Typo.h6" Style="font-family: monospace; letter-spacing: 3px;">@tfaSecret</MudText>
+                            </div>
                         </div>
                     }
                 </div>
@@ -329,6 +336,7 @@
 </style>
 
 @code {
+    private UserProfileResponse? profile;
     // 1. Security
     private string currentPassword = "";
     private string newPassword = "";
@@ -362,7 +370,7 @@
 
     private async Task LoadSettings() {
         try {
-            var profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+            profile = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
             if (profile != null) {
                 is2faEnabled = profile.IsTwoFactorEnabled;
                 dailyLossLimit = profile.DailyLossLimit;
