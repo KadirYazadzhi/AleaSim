@@ -5,7 +5,7 @@ public enum JackpotTier { Mini, Major, Mega, Grand }
 public class Jackpot {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
-    public JackpotTier Tier { get; set; } = JackpotTier.Clubs; // Added
+    public JackpotTier Tier { get; set; } = JackpotTier.Mini; // Added
     public decimal CurrentValue { get; set; }
     public decimal ContributionRate { get; set; } // Percentage of bet that goes to jackpot
     public bool IsGlobal { get; set; }
