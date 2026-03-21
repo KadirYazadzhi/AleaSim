@@ -99,7 +99,7 @@
                               })" 
                               XAxisLabels="@(trendData.Select(t => t.Label).ToArray())" 
                               Width="100%" Height="350px" 
-                              ChartOptions="@(new ChartOptions { InterpolationOption = InterpolationOption.NaturalSpline, YAxisTicks = 10 })" />
+                              ChartOptions="@(new ChartOptions { InterpolationOption = trendData.Count >= 4 ? InterpolationOption.NaturalSpline : InterpolationOption.Straight, YAxisTicks = 10 })" />
                 } else {
                     <div class="d-flex justify-center align-center py-12 opacity-50">
                         <MudIcon Icon="@Icons.Material.Filled.SsidChart" Size="Size.Large" Class="mr-2"/>
