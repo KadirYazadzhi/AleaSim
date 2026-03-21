@@ -470,8 +470,14 @@ public class EfGameRepository : IGameRepository {
     public IEnumerable<Jackpot> GetJackpots() {
         var jackpots = _context.Jackpots.ToList();
         
-        // FORCE RESET: Remove limits and old names
-        if (jackpots.Any(j => j.MustDropAt.HasValue)) 
+        // Use FIXED GUIDs so Redis values persist even after DB resets
+        var majorId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        var megaId = Guid.Parse("00000000-0000-0000-0000-000000000002");
+        var juiceId = Guid.Parse("00000000-0000-0000-0000-000000000003");
+        var tournamentId = Guid.Parse("00000000-0000-0000-0000-000000000004");
+
+        // FORCE RESET if values or IDs are wrong
+        if (!jackpots.Any(j => j.Id == majorId) || jackpots.Any(j => j.CurrentValue < 1000 && j.Tier == JackpotTier.Major)) 
         {
             _context.Jackpots.RemoveRange(jackpots);
             _context.SaveChanges();
@@ -483,10 +489,10 @@ public class EfGameRepository : IGameRepository {
             var fruitBlastId = Guid.Parse("44444444-4444-4444-4444-444444444444");
 
             _context.Jackpots.AddRange(
-                new Jackpot { Id = Guid.NewGuid(), Name = "Clover Major", Tier = JackpotTier.Major, CurrentValue = 500, ContributionRate = 0.005m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = null, LastUpdated = DateTime.UtcNow },
-                new Jackpot { Id = Guid.NewGuid(), Name = "Clover Mega", Tier = JackpotTier.Mega, CurrentValue = 2500, ContributionRate = 0.002m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = null, LastUpdated = DateTime.UtcNow },
-                new Jackpot { Id = Guid.NewGuid(), Name = "Juice Reservoir", Tier = JackpotTier.Special, CurrentValue = 1000, ContributionRate = 0.005m, IsGlobal = false, GameId = fruitBlastId, MustDropAt = null, LastUpdated = DateTime.UtcNow },
-                new Jackpot { Id = Guid.NewGuid(), Name = "Season Tournament", Tier = JackpotTier.Tournament, CurrentValue = 25000, ContributionRate = 0.001m, IsGlobal = true, MustDropAt = null, LastUpdated = DateTime.UtcNow }
+                new Jackpot { Id = majorId, Name = "Clover Major", Tier = JackpotTier.Major, CurrentValue = 2500, ContributionRate = 0.005m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = null, LastUpdated = DateTime.UtcNow },
+                new Jackpot { Id = megaId, Name = "Clover Mega", Tier = JackpotTier.Mega, CurrentValue = 10000, ContributionRate = 0.002m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = null, LastUpdated = DateTime.UtcNow },
+                new Jackpot { Id = juiceId, Name = "Juice Reservoir", Tier = JackpotTier.Special, CurrentValue = 1000, ContributionRate = 0.005m, IsGlobal = false, GameId = fruitBlastId, MustDropAt = null, LastUpdated = DateTime.UtcNow },
+                new Jackpot { Id = tournamentId, Name = "Season Tournament", Tier = JackpotTier.Tournament, CurrentValue = 25000, ContributionRate = 0.001m, IsGlobal = true, MustDropAt = null, LastUpdated = DateTime.UtcNow }
             );
             _context.SaveChanges();
             return _context.Jackpots.ToList();
