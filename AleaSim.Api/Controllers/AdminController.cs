@@ -354,6 +354,25 @@ public class AdminController : ControllerBase {
         return Ok(new { Message = $"Action {dto.ActionType} executed." });
     }
 
+    [HttpGet("jackpots")]
+    public IActionResult GetJackpots() {
+        var jackpots = _repo.GetJackpots().Select(j => new JackpotDto {
+            Id = j.Id,
+            GameId = j.GameId,
+            Tier = j.Tier.ToString(),
+            CurrentValue = j.CurrentValue,
+            IsGlobal = j.IsGlobal
+        }).ToList();
+        return Ok(jackpots);
+    }
+
+    [HttpPost("jackpots/{id}/force-drop")]
+    public async Task<IActionResult> ForceJackpotDrop(Guid id) {
+        var adminId = GetCurrentUserId();
+        await _adminService.ForceJackpotDrop(adminId, id);
+        return Ok(new { Message = "Jackpot force drop triggered." });
+    }
+
     private Guid GetCurrentUserId() {
         var idClaim = User.FindFirst(ClaimTypes.NameIdentifier); // Assuming NameIdentifier holds the GUID
         if (idClaim != null && Guid.TryParse(idClaim.Value, out var id)) {

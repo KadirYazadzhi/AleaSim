@@ -18,6 +18,7 @@ public class AdminService : IAdminService {
     private readonly IMemoryCache _cache;
     private readonly IConfiguration _config;
     private readonly ILockService _lockService;
+    private readonly IJackpotService _jackpotService;
 
     public AdminService(
         IGameRepository repository,
@@ -27,7 +28,8 @@ public class AdminService : IAdminService {
         IRealTimeService realTime,
         IMemoryCache cache,
         IConfiguration config,
-        ILockService lockService) {
+        ILockService lockService,
+        IJackpotService jackpotService) {
         _repository = repository;
         _vaultService = vaultService;
         _auditService = auditService;
@@ -36,6 +38,7 @@ public class AdminService : IAdminService {
         _cache = cache;
         _config = config;
         _lockService = lockService;
+        _jackpotService = jackpotService;
     }
 
     public Task<AdminDashboardStats> GetLiveStats() {
@@ -250,6 +253,11 @@ public class AdminService : IAdminService {
                 await _auditService.RepairIntegrity();
                 break;
         }
+    }
+
+    public async Task ForceJackpotDrop(Guid adminId, Guid jackpotId) {
+        _auditService.LogEvent("ADMIN_JACKPOT_FORCE", $"Admin {adminId} triggered force drop for {jackpotId}", adminId.ToString(), jackpotId.ToString());
+        await _jackpotService.ForceDrop(jackpotId, _repository);
     }
 
     private async Task RunBackupAsync() {

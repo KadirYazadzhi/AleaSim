@@ -726,6 +726,10 @@ public class EfGameRepository : IGameRepository {
         return _context.Achievements.Where(a => a.ConditionType == conditionType).ToList();
     }
 
+    public IEnumerable<Achievement> GetAllAchievements() {
+        return _context.Achievements.ToList();
+    }
+
     public IEnumerable<UserAchievement> GetUserAchievements(Guid userId) {
         return _context.UserAchievements
             .Include(a => a.Achievement)
@@ -736,6 +740,10 @@ public class EfGameRepository : IGameRepository {
     public void SaveUserAchievement(UserAchievement userAchievement) {
         _context.UserAchievements.Add(userAchievement);
         _context.SaveChanges();
+    }
+
+    public int GetRoundCountByUser(Guid userId) {
+        return _context.GameRounds.Count(r => _context.GameSessions.Any(s => s.Id == r.GameSessionId && s.UserId == userId));
     }
 
     public Voucher? GetVoucherByCode(string code) {

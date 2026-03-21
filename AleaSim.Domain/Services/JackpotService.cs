@@ -173,4 +173,29 @@ public class JackpotService : IJackpotService {
 
         return jackpot.CurrentValue;
     }
+
+    public async Task ForceDrop(Guid jackpotId, IGameRepository repo) {
+        var db = _redis.GetDatabase();
+        var jackpot = repo.GetJackpots().FirstOrDefault(j => j.Id == jackpotId);
+        if (jackpot == null) return;
+
+        using var lockHandle = await _lockService.AcquireLockAsync($"jackpot_claim_{jackpot.Tier}", TimeSpan.FromSeconds(5));
+        
+        string redisKey = $"jackpot:{jackpot.Id}";
+        decimal resetValue = GetResetValue(jackpot.Tier);
+        
+        // Reset in Redis
+        await db.StringSetAsync(redisKey, (double)resetValue);
+        
+        // Update DB
+        jackpot.CurrentValue = resetValue;
+        jackpot.LastUpdated = DateTime.UtcNow;
+        repo.UpdateJackpot(jackpot);
+
+        // Notify UI
+        await _realTimeService.NotifyJackpotUpdate(jackpot);
+        
+        // Notify Chat about Manual Reset / Event
+        await _realTimeService.BroadcastMessage("System", $"🏆 A massive Jackpot Event has occurred! The {jackpot.Tier} Jackpot has been claimed by a lucky participant!");
+    }
 }

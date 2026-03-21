@@ -43,6 +43,10 @@ public class User {
     // Contains: AudioVolume, TurboMode, LowGraphics, HideBalance, IsIncognito
     public string PreferencesJson { get; set; } = "{}";
 
+    // --- Referral System ---
+    public string ReferralCode { get; set; } = string.Empty;
+    public Guid? ReferredById { get; set; }
+
     // --- Authentication ---
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiry { get; set; }

@@ -237,6 +237,7 @@ public class AuthController : ControllerBase {
                 IsTwoFactorEnabled = user.IsTwoFactorEnabled,
                 PreferencesJson = user.PreferencesJson,
                 LockoutUntil = user.LockoutUntil,
+                ReferralCode = string.IsNullOrEmpty(user.ReferralCode) ? user.Username.ToLower() : user.ReferralCode,
                 LuckyCloverLevel = userProfile.LuckyCloverLevel,
                 CashbackLevel = userProfile.CashbackLevel,
                 XpBoostLevel = userProfile.XpBoostLevel,

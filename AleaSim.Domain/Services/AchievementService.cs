@@ -3,28 +3,30 @@ using AleaSim.Domain.Interfaces;
 
 namespace AleaSim.Domain.Services;
 
+public interface IAchievementService {
+    Task CheckAchievements(Guid userId, IGameRepository repo, IRealTimeService realTime);
+}
+
 public class AchievementService : IAchievementService {
-    private readonly IRealTimeService _realTimeService;
-    private readonly IVaultService _vaultService;
+    public async Task CheckAchievements(Guid userId, IGameRepository repo, IRealTimeService realTime) {
+        var profile = repo.GetPlayerProfile(userId);
+        if (profile == null) return;
 
-    public AchievementService(IRealTimeService realTimeService, IVaultService vaultService) {
-        _realTimeService = realTimeService;
-        _vaultService = vaultService;
-    }
+        var unlocked = repo.GetUserAchievements(userId).Select(a => a.AchievementId).ToHashSet();
+        var allAchievements = repo.GetAllAchievements();
 
-    public async Task CheckAchievements(Guid userId, string conditionType, decimal currentValue, IGameRepository repo) {
-        // 1. Get all achievements for this condition type
-        // Note: Repo needs GetAchievementsByCondition
-        var potential = repo.GetAchievementsByCondition(conditionType);
-        
-        // 2. Get already unlocked for this user
-        var unlockedIds = repo.GetUserAchievements(userId).Select(a => a.AchievementId).ToHashSet();
+        foreach (var ach in allAchievements) {
+            if (unlocked.Contains(ach.Id)) continue;
 
-        foreach (var ach in potential) {
-            if (unlockedIds.Contains(ach.Id)) continue;
+            bool isMet = ach.ConditionType switch {
+                "TotalWagered" => profile.TotalWagered >= ach.ConditionValue,
+                "TotalPaid" => profile.TotalPaid >= ach.ConditionValue,
+                "LevelReached" => (repo.GetUserProgression(userId)?.CurrentLevel ?? 1) >= ach.ConditionValue,
+                "TotalBets" => repo.GetRoundCountByUser(userId) >= ach.ConditionValue,
+                _ => false
+            };
 
-            if (currentValue >= ach.ConditionValue) {
-                // UNLOCK!
+            if (isMet) {
                 var ua = new UserAchievement {
                     Id = Guid.NewGuid(),
                     UserId = userId,
@@ -32,25 +34,15 @@ public class AchievementService : IAchievementService {
                     UnlockedAt = DateTime.UtcNow
                 };
                 repo.SaveUserAchievement(ua);
-
-                // 3. Award Prize
-                if (ach.RewardAmount > 0) {
-                    await _vaultService.CreditBonusAsync(userId, ach.RewardAmount, ach.RewardAmount, repo);
-                }
-
-                // Notify User
-                await _realTimeService.NotifyGameUpdate(userId, new {
-                    Type = "AchievementUnlocked",
-                    Name = ach.Name,
-                    Description = ach.Description,
+                
+                // Notify user
+                await realTime.NotifyGameUpdate(userId, new { 
+                    Action = "AchievementUnlocked", 
+                    Name = ach.Name, 
                     Icon = ach.Icon,
-                    Message = $"🏆 Achievement Unlocked: {ach.Name}!"
+                    Description = ach.Description 
                 });
             }
         }
-    }
-
-    public Task<IEnumerable<UserAchievement>> GetUserAchievements(Guid userId, IGameRepository repo) {
-        return Task.FromResult(repo.GetUserAchievements(userId));
     }
 }

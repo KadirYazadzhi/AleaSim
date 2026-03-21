@@ -48,6 +48,7 @@ public class UserDto {
     public decimal? MonthlyLossLimit { get; set; }
     public string PreferencesJson { get; set; } = "{}";
     public DateTime? LockoutUntil { get; set; }
+    public string ReferralCode { get; set; } = "";
 }
 
 public class BalanceUpdateDto {

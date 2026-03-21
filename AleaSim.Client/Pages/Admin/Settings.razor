@@ -255,6 +255,44 @@
             </MudGrid>
         </MudTabPanel>
 
+        <!-- 5. JACKPOT CONTROL -->
+        <MudTabPanel Text="JACKPOTS" Icon="@Icons.Material.Filled.Diamond">
+            <MudGrid>
+                <MudItem xs="12">
+                    <div class="settings-group-card">
+                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Live Progressive Jackpots</MudText>
+                        <MudTable Items="@_jackpots" Hover="true" Dense="true" Elevation="0" Class="bg-transparent">
+                            <HeaderContent>
+                                <MudTh>TIER</MudTh>
+                                <MudTh>VALUE</MudTh>
+                                <MudTh>SCOPE</MudTh>
+                                <MudTh Style="text-align: right;">ACTION</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>
+                                    <div class="d-flex align-center gap-2">
+                                        <div class='@($"tier-indicator {context.Tier.ToLower()}")'></div>
+                                        <MudText Typo="Typo.body2" Class="fw-black">@context.Tier.ToUpper()</MudText>
+                                    </div>
+                                </MudTd>
+                                <MudTd>
+                                    <MudText Typo="Typo.body2" Class="fw-bold text-success">@context.CurrentValue.ToString("C2")</MudText>
+                                </MudTd>
+                                <MudTd>
+                                    <MudChip T="string" Size="Size.Small" Color="@(context.IsGlobal ? Color.Info : Color.Default)">
+                                        @(context.IsGlobal ? "GLOBAL" : "LOCAL")
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd Style="text-align: right;">
+                                    <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="() => ForceJackpotDrop(context.Id)">FORCE DROP</MudButton>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
         <!-- 6. GAME MANAGEMENT -->
         <MudTabPanel Text="GAMES" Icon="@Icons.Material.Filled.Casino">
             <MudGrid>
@@ -336,6 +374,12 @@
     .integrity-shield.secure { border-color: var(--mud-palette-success); color: var(--mud-palette-success); background: rgba(var(--mud-palette-success-rgb), 0.05); }
     .integrity-shield.warning { border-color: var(--mud-palette-warning); color: var(--mud-palette-warning); background: rgba(var(--mud-palette-warning-rgb), 0.05); }
 
+    .tier-indicator { width: 10px; height: 10px; border-radius: 50%; }
+    .tier-indicator.clubs { background: #4caf50; }
+    .tier-indicator.diamonds { background: #2196f3; }
+    .tier-indicator.hearts { background: #e91e63; }
+    .tier-indicator.spades { background: #ff9800; }
+
     @@keyframes pulse-error { 0% { box-shadow: 0 0 0 0 rgba(var(--mud-palette-error-rgb), 0.4); } 70% { box-shadow: 0 0 0 15px rgba(var(--mud-palette-error-rgb), 0); } 100% { box-shadow: 0 0 0 0 rgba(var(--mud-palette-error-rgb), 0); } }
 </style>
 
@@ -376,6 +420,7 @@
     private bool _verifyingIntegrity = false;
     private IntegrityResponse? _integrityResult;
     private List<GlobalSettingDto> _globalSettings = new();
+    private List<JackpotDto> _jackpots = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -385,6 +430,21 @@
     private async Task LoadAll() {
         await LoadCurrentPlatformStats();
         await LoadGlobalSettings();
+        await LoadJackpots();
+    }
+
+    private async Task LoadJackpots() {
+        try {
+            _jackpots = await Http.GetFromJsonAsync<List<JackpotDto>>("api/Admin/jackpots") ?? new();
+        } catch {}
+    }
+
+    private async Task ForceJackpotDrop(Guid id) {
+        var response = await Http.PostAsync($"api/Admin/jackpots/{id}/force-drop", null);
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Jackpot drop triggered successfully!", Severity.Success);
+            await LoadJackpots();
+        }
     }
 
     private async Task LoadGlobalSettings() {

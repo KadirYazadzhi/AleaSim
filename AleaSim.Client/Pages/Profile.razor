@@ -8,6 +8,8 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject LayoutService layoutService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 pb-12">
     <div class="d-flex align-center gap-4 mb-8">
@@ -79,6 +81,23 @@
                             <MudText Typo="Typo.caption" Class="opacity-60">BONUS CREDIT</MudText>
                         </div>
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/wallet" Class="rounded-lg px-6">REFILL</MudButton>
+                    </div>
+                </MudPaper>
+
+                <!-- Referral Card -->
+                <MudPaper Class="pa-6 referral-card gradient-bg-primary" Elevation="4">
+                    <div class="d-flex justify-space-between align-start mb-4">
+                        <div>
+                            <MudText Typo="Typo.h6" Class="fw-black text-white">Affiliate Program</MudText>
+                            <MudText Typo="Typo.caption" Class="text-white opacity-70">Invite friends and earn 1% of their wagers.</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.GroupAdd" Color="Color.Surface" Size="Size.Large" Class="opacity-30" />
+                    </div>
+                    <div class="d-flex gap-2 bg-dark-transparent pa-2 rounded-lg align-center">
+                        <MudText Typo="Typo.caption" Class="text-white font-mono flex-grow-1 px-2" Style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            @($"{Navigation.BaseUri}register?ref={profile?.ReferralCode}")
+                        </MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Surface" Size="Size.Small" OnClick="CopyRefLink" />
                     </div>
                 </MudPaper>
 
@@ -271,37 +290,36 @@
                     </MudTabs>
                 </MudPaper>
 
-                <!-- Achievement Showcase -->
-                <MudPaper Class="pa-8 achievement-section" Elevation="2">
+                <!-- Achievement Trophy Room -->
+                <MudPaper Class="pa-8 trophy-room-card" Elevation="2">
                     <div class="d-flex justify-space-between align-center mb-8">
                         <div>
-                            <MudText Typo="Typo.h5" Class="fw-black">Hall of Achievements</MudText>
-                            <MudText Typo="Typo.caption" Class="opacity-60">@(profile?.Achievements.Count ?? 0) trophies collected on your journey.</MudText>
+                            <MudText Typo="Typo.h5" Class="fw-black text-warning">Trophy Room</MudText>
+                            <MudText Typo="Typo.caption" Class="opacity-60">Displaying your legendary milestones.</MudText>
                         </div>
-                        <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Large" Class="opacity-10" />
+                        <MudIcon Icon="@Icons.Material.Filled.WorkspacePremium" Size="Size.Large" Color="Color.Warning" Class="opacity-40" />
                     </div>
 
-                    <div class="d-flex flex-wrap gap-6">
-                        @if (profile != null && profile.Achievements.Any())
+                    <div class="trophy-grid">
+                        @if (profile != null)
                         {
                             @foreach (var ach in profile.Achievements)
                             {
-                                <MudTooltip Text="@ach.Description">
-                                    <div class="achievement-trophy-card">
-                                        <div class="trophy-icon">@ach.Icon</div>
-                                        <div class="trophy-info">
-                                            <MudText Typo="Typo.caption" Class="fw-black text-center px-2">@ach.Name</MudText>
-                                        </div>
-                                    </div>
-                                </MudTooltip>
+                                <div class="trophy-item unlocked">
+                                    <div class="trophy-glow"></div>
+                                    <div class="trophy-emoji">@ach.Icon</div>
+                                    <MudText Typo="Typo.caption" Class="fw-black mt-2">@ach.Name</MudText>
+                                    <MudText Style="font-size: 0.6rem;" Class="opacity-50">@ach.UnlockedAt.ToShortDateString()</MudText>
+                                </div>
                             }
-                        }
-                        else
-                        {
-                            <div class="d-flex flex-column align-center py-12 w-100 opacity-30">
-                                <MudIcon Icon="@Icons.Material.Filled.Lock" Style="font-size: 4rem;" />
-                                <MudText Typo="Typo.h6">Play to unlock achievements!</MudText>
-                            </div>
+                            
+                            @* Placeholder for locked ones to show progression *@
+                            @for(int i=0; i < (5 - (profile.Achievements.Count % 5)); i++) {
+                                <div class="trophy-item locked">
+                                    <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Medium" Class="opacity-20" />
+                                    <MudText Typo="Typo.caption" Class="opacity-20 mt-2">LOCKED</MudText>
+                                </div>
+                            }
                         }
                     </div>
                 </MudPaper>
@@ -375,13 +393,21 @@
     .empty-chart-state { text-align: center; padding: 40px; }
 
     /* ACHIEVEMENTS */
-    .achievement-trophy-card { width: 100px; height: 120px; background: var(--mud-palette-background-grey); border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px solid var(--mud-palette-divider); transition: all 0.3s; cursor: help; }
-    .achievement-trophy-card:hover { border-color: var(--mud-palette-primary); transform: translateY(-5px) scale(1.05); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-    .trophy-icon { font-size: 2.5rem; margin-bottom: 8px; }
+    .trophy-room-card { border-radius: 32px; background: rgba(var(--mud-palette-surface-rgb), 0.5); border: 1px solid rgba(var(--mud-palette-warning-rgb), 0.2); }
+    .trophy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px; }
+    .trophy-item { position: relative; height: 140px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--mud-palette-background-grey); border: 1px solid var(--mud-palette-divider); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .trophy-item.unlocked { border-color: rgba(var(--mud-palette-warning-rgb), 0.3); cursor: pointer; }
+    .trophy-item.unlocked:hover { transform: translateY(-8px) scale(1.05); box-shadow: 0 15px 30px rgba(0,0,0,0.2); background: rgba(var(--mud-palette-warning-rgb), 0.05); }
+    .trophy-item.unlocked .trophy-glow { position: absolute; inset: 0; border-radius: 20px; background: radial-gradient(circle at center, rgba(255,215,0,0.1) 0%, transparent 70%); }
+    .trophy-emoji { font-size: 3rem; filter: drop-shadow(0 0 5px rgba(0,0,0,0.2)); }
+    .trophy-item.locked { opacity: 0.5; border-style: dashed; }
 
     /* PROMO */
     .gradient-bg-dark { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+    .gradient-bg-primary { background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-secondary) 100%); }
+    .bg-dark-transparent { background: rgba(0,0,0,0.2); }
     .promo-card { border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); }
+    .referral-card { border-radius: 24px; }
     .promo-input input { color: white !important; }
 
     .perk-icon-box { width: 48px; height: 48px; border-radius: 50%; background: var(--mud-palette-background-grey); display: flex; align-items: center; justify-content: center; }
@@ -452,6 +478,12 @@
                 Snackbar.Add(await response.Content.ReadAsStringAsync(), Severity.Warning);
             }
         } catch { }
+    }
+
+    private async Task CopyRefLink() {
+        var link = $"{Navigation.BaseUri}register?ref={profile?.ReferralCode}";
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", link);
+        Snackbar.Add("Referral link copied to clipboard!", Severity.Info);
     }
 
     private async Task UpgradeSkill(string name) {

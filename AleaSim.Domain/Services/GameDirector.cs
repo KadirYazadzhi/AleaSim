@@ -21,6 +21,7 @@ public class GameDirector : IGameDirector {
     private readonly IPromotionService _promotionService;
     private readonly ILeaderboardService _leaderboardService;
     private readonly IRealTimeService _realTime;
+    private readonly IAchievementService _achievementService;
 
     public GameDirector(
         Func<string, IGame> gameResolver, 
@@ -28,7 +29,8 @@ public class GameDirector : IGameDirector {
         IAuditService auditService, 
         IPromotionService promotionService,
         ILeaderboardService leaderboardService,
-        IRealTimeService realTime) 
+        IRealTimeService realTime,
+        IAchievementService achievementService) 
     {
         _gameResolver = gameResolver;
         _repo = repo;
@@ -36,6 +38,7 @@ public class GameDirector : IGameDirector {
         _promotionService = promotionService;
         _leaderboardService = leaderboardService;
         _realTime = realTime;
+        _achievementService = achievementService;
     }
 
     public async Task<object?> GetCurrentState(string gameType, Guid sessionId) {
@@ -166,6 +169,9 @@ public class GameDirector : IGameDirector {
             LifetimeWagered = freshProfile?.TotalWagered ?? 0,
             LifetimeWon = freshProfile?.TotalPaid ?? 0
         });
+
+        // ASYNC ACHIEVEMENT CHECK
+        _ = Task.Run(() => _achievementService.CheckAchievements(userId, _repo, _realTime));
 
         return round;
     }

@@ -116,9 +116,11 @@ public interface IGameRepository {
     void UpdateUserProgression(UserProgression progression);
 
     // Achievements
+    IEnumerable<Achievement> GetAllAchievements();
     IEnumerable<Achievement> GetAchievementsByCondition(string conditionType);
     IEnumerable<UserAchievement> GetUserAchievements(Guid userId);
     void SaveUserAchievement(UserAchievement userAchievement);
+    int GetRoundCountByUser(Guid userId);
 
     // Vouchers
     Voucher? GetVoucherByCode(string code);
