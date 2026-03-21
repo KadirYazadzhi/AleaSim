@@ -26,7 +26,7 @@ public static class ServiceCollectionExtensions {
 
         // Scoped Services (Per Request/Command)
         services.AddScoped<IQuestService, QuestService>();
-        services.AddScoped<IAchievementService, AchievementService>();
+        services.AddScoped<AleaSim.Domain.Interfaces.IAchievementService, AleaSim.Domain.Services.AchievementService>();
         services.AddScoped<IVoucherService, VoucherService>();
         services.AddScoped<ITournamentService, TournamentService>();
         services.AddScoped<ILevelService, LevelService>();

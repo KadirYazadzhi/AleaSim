@@ -52,7 +52,7 @@ public class LevelService : ILevelService {
         repo.UpdateUserProgression(prog);
 
         if (leveledUp) {
-            _ = _achievementService.CheckAchievements(userId, "LevelReached", prog.CurrentLevel, repo);
+            await _achievementService.CheckAchievements(userId, "LevelReached", (decimal)prog.CurrentLevel, repo);
 
             if (prog.CurrentLevel % 5 == 0) {
                 decimal milestonePrize = prog.CurrentLevel * 10m; 
