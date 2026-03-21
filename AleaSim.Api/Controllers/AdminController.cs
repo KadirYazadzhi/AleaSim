@@ -457,8 +457,10 @@ public class AdminController : ControllerBase {
         var jackpots = _repo.GetJackpots().Select(j => new JackpotDto {
             Id = j.Id,
             GameId = j.GameId,
+            Name = j.Name,
             Tier = j.Tier.ToString(),
             CurrentValue = j.CurrentValue,
+            MustDropAt = j.MustDropAt,
             IsGlobal = j.IsGlobal
         }).ToList();
         return Ok(jackpots);

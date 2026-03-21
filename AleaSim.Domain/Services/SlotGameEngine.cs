@@ -173,6 +173,17 @@ public class SlotGameEngine : BaseGameEngine {
                 await VaultService.ProcessWinAsync(session.UserId, totalWin, repo);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", totalWin, repo, RealTimeService, VaultService);
             }
+
+            // Jackpot Trigger Check
+            var user = repo.GetUser(session.UserId);
+            bool isExcluded = user?.Username.StartsWith("Sim_") == true || user?.Role == Role.Admin;
+            if (!isExcluded) {
+                var jackpotResult = await JackpotService.CheckJackpotTrigger(session.GameId, session.Seed, roundNum, repo);
+                if (jackpotResult.Triggered) {
+                    totalWin += jackpotResult.WinAmount;
+                    // Add jackpot win to the total win of the round
+                }
+            }
             
             if (!state.IsRespinActive && !state.IsBonusActive) BrainService.UpdateProfile(session.UserId, 0, totalWin, repo);
 

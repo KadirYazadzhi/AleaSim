@@ -1,6 +1,6 @@
 namespace AleaSim.Domain.Entities;
 
-public enum JackpotTier { Mini, Major, Mega, Grand }
+public enum JackpotTier { Mini, Minor, Major, Mega, Grand, Tournament, Special }
 
 public class Jackpot {
     public Guid Id { get; set; }

@@ -4,10 +4,12 @@
 @using Microsoft.AspNetCore.Authorization
 @layout AleaSim.Client.Layout.AdminLayout
 @attribute [Authorize(Roles = "Admin")]
+@implements IDisposable
 @inject IAdminService AdminService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject LayoutService LayoutService
+@inject RealTimeClient RealTime
 @inject HttpClient Http
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-16 animate-fade-in">
@@ -260,28 +262,35 @@
             <MudGrid>
                 <MudItem xs="12">
                     <div class="settings-group-card">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Live Progressive Jackpots</MudText>
+                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Live Progressive Jackpots (Real-time)</MudText>
                         <MudTable Items="@_jackpots" Hover="true" Dense="true" Elevation="0" Class="bg-transparent">
                             <HeaderContent>
-                                <MudTh>TIER</MudTh>
+                                <MudTh>TIER / NAME</MudTh>
                                 <MudTh>VALUE</MudTh>
-                                <MudTh>SCOPE</MudTh>
+                                <MudTh>MAPPING</MudTh>
+                                <MudTh>MUST DROP AT</MudTh>
                                 <MudTh Style="text-align: right;">ACTION</MudTh>
                             </HeaderContent>
                             <RowTemplate>
                                 <MudTd>
                                     <div class="d-flex align-center gap-2">
                                         <div class='@($"tier-indicator {context.Tier.ToLower()}")'></div>
-                                        <MudText Typo="Typo.body2" Class="fw-black">@context.Tier.ToUpper()</MudText>
+                                        <div>
+                                            <MudText Typo="Typo.body2" Class="fw-black">@context.Tier.ToUpper()</MudText>
+                                            <MudText Typo="Typo.caption" Class="opacity-60">@context.Name</MudText>
+                                        </div>
                                     </div>
                                 </MudTd>
                                 <MudTd>
-                                    <MudText Typo="Typo.body2" Class="fw-bold text-success">@context.CurrentValue.ToString("C2")</MudText>
+                                    <MudText Typo="Typo.body2" Class="fw-bold text-success animate-pulse-fast">@context.CurrentValue.ToString("C2")</MudText>
                                 </MudTd>
                                 <MudTd>
                                     <MudChip T="string" Size="Size.Small" Color="@(context.IsGlobal ? Color.Info : Color.Default)">
-                                        @(context.IsGlobal ? "GLOBAL" : "LOCAL")
+                                        @(context.IsGlobal ? "GLOBAL" : GetGameName(context.GameId))
                                     </MudChip>
+                                </MudTd>
+                                <MudTd>
+                                    <MudText Typo="Typo.body2" Class="opacity-80">@(context.MustDropAt?.ToString("C0") ?? "N/A")</MudText>
                                 </MudTd>
                                 <MudTd Style="text-align: right;">
                                     <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="() => ForceJackpotDrop(context.Id)">FORCE DROP</MudButton>
@@ -376,10 +385,16 @@
 
     .tier-indicator { width: 10px; height: 10px; border-radius: 50%; }
     .tier-indicator.mini { background: #cd7f32; } /* Bronze */
+    .tier-indicator.minor { background: #b0bec5; } /* Silver/Grey */
     .tier-indicator.major { background: #2196f3; } /* Blue */
     .tier-indicator.mega { background: #ff9800; } /* Gold */
     .tier-indicator.grand { background: #e91e63; } /* Pink/Vibrant */
+    .tier-indicator.tournament { background: #f43f5e; animation: pulse-red 2s infinite; }
+    .tier-indicator.special { background: #10b981; } /* Emerald */
 
+    @@keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(244, 63, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); } }
+    .animate-pulse-fast { animation: pulse-opacity 1s infinite; }
+    @@keyframes pulse-opacity { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
     @@keyframes pulse-error { 0% { box-shadow: 0 0 0 0 rgba(var(--mud-palette-error-rgb), 0.4); } 70% { box-shadow: 0 0 0 15px rgba(var(--mud-palette-error-rgb), 0); } 100% { box-shadow: 0 0 0 0 rgba(var(--mud-palette-error-rgb), 0); } }
 </style>
 
@@ -424,7 +439,24 @@
 
     protected override async Task OnInitializedAsync()
     {
+        RealTime.OnJackpotUpdated += HandleJackpotUpdate;
         await LoadAll();
+    }
+
+    private void HandleJackpotUpdate(JackpotDto dto) {
+        var existing = _jackpots.FirstOrDefault(j => j.Id == dto.Id);
+        if (existing != null) {
+            existing.CurrentValue = dto.CurrentValue;
+            existing.MustDropAt = dto.MustDropAt;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private string GetGameName(Guid? gameId) {
+        if (gameId == null) return "GLOBAL";
+        if (gameId == Guid.Parse("11111111-1111-1111-1111-111111111111")) return "CLOVER CHASE";
+        if (gameId == Guid.Parse("44444444-4444-4444-4444-444444444444")) return "FRUIT BLAST";
+        return "LOCAL";
     }
 
     private async Task LoadAll() {
@@ -538,6 +570,10 @@
 
     private async Task OnClearCache() { await AdminService.TriggerAction("ClearCache"); Snackbar.Add("Cache Cleared", Severity.Success); }
     private async Task OnRestartRng() { await AdminService.TriggerAction("RestartRng"); Snackbar.Add("RNG Restarted", Severity.Warning); }
+
+    public void Dispose() {
+        RealTime.OnJackpotUpdated -= HandleJackpotUpdate;
+    }
 
     public class GlobalSettingDto { public string Key { get; set; } = ""; public string Value { get; set; } = ""; }
 }

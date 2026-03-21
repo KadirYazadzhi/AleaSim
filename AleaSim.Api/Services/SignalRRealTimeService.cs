@@ -15,6 +15,8 @@ public class SignalRRealTimeService : IRealTimeService {
 
     public async Task NotifyJackpotUpdate(Jackpot jackpot) {
         var dto = new JackpotDto {
+            Id = jackpot.Id,
+            GameId = jackpot.GameId,
             Name = jackpot.Name,
             CurrentValue = jackpot.CurrentValue,
             MustDropAt = jackpot.MustDropAt,

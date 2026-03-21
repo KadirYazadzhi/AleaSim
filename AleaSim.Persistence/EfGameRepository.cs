@@ -471,11 +471,26 @@ public class EfGameRepository : IGameRepository {
         var jackpots = _context.Jackpots.ToList();
         if (!jackpots.Any(j => j.Tier == JackpotTier.Mini)) {
             var cloverChaseId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+            var fruitBlastId = Guid.Parse("44444444-4444-4444-4444-444444444444");
+            
+            // Clear old jackpots if any to ensure clean transition
+            if (jackpots.Any()) {
+                _context.Jackpots.RemoveRange(jackpots);
+                _context.SaveChanges();
+            }
+
             _context.Jackpots.AddRange(
-                new Jackpot { Id = Guid.NewGuid(), Name = "Mini", Tier = JackpotTier.Mini, CurrentValue = 50, ContributionRate = 0.01m, IsGlobal = true, MustDropAt = 100, LastUpdated = DateTime.UtcNow },
-                new Jackpot { Id = Guid.NewGuid(), Name = "Major", Tier = JackpotTier.Major, CurrentValue = 200, ContributionRate = 0.005m, IsGlobal = true, MustDropAt = 500, LastUpdated = DateTime.UtcNow },
-                new Jackpot { Id = Guid.NewGuid(), Name = "Mega", Tier = JackpotTier.Mega, CurrentValue = 1000, ContributionRate = 0.002m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = 2500, LastUpdated = DateTime.UtcNow },
-                new Jackpot { Id = Guid.NewGuid(), Name = "Grand", Tier = JackpotTier.Grand, CurrentValue = 10000, ContributionRate = 0.001m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = 50000, LastUpdated = DateTime.UtcNow }
+                // Clover Chase - Game Specific
+                new Jackpot { Id = Guid.NewGuid(), Name = "Clover Mini", Tier = JackpotTier.Mini, CurrentValue = 50, ContributionRate = 0.01m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = 100, LastUpdated = DateTime.UtcNow },
+                new Jackpot { Id = Guid.NewGuid(), Name = "Clover Minor", Tier = JackpotTier.Minor, CurrentValue = 150, ContributionRate = 0.008m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = 300, LastUpdated = DateTime.UtcNow },
+                new Jackpot { Id = Guid.NewGuid(), Name = "Clover Major", Tier = JackpotTier.Major, CurrentValue = 500, ContributionRate = 0.005m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = 1000, LastUpdated = DateTime.UtcNow },
+                new Jackpot { Id = Guid.NewGuid(), Name = "Clover Mega", Tier = JackpotTier.Mega, CurrentValue = 2500, ContributionRate = 0.002m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = 5000, LastUpdated = DateTime.UtcNow },
+                
+                // Fruit Blast - Game Specific
+                new Jackpot { Id = Guid.NewGuid(), Name = "Juice Reservoir", Tier = JackpotTier.Special, CurrentValue = 1000, ContributionRate = 0.005m, IsGlobal = false, GameId = fruitBlastId, MustDropAt = 5000, LastUpdated = DateTime.UtcNow },
+                
+                // Global Tournament
+                new Jackpot { Id = Guid.NewGuid(), Name = "Season Tournament", Tier = JackpotTier.Tournament, CurrentValue = 25000, ContributionRate = 0.001m, IsGlobal = true, MustDropAt = 100000, LastUpdated = DateTime.UtcNow }
             );
             _context.SaveChanges();
             return _context.Jackpots.ToList();
@@ -484,8 +499,7 @@ public class EfGameRepository : IGameRepository {
     }
 
     public Jackpot GetGlobalJackpot() {
-        // Fallback for legacy code
-        return GetJackpots().First(j => j.Tier == JackpotTier.Grand);
+        return _context.Jackpots.FirstOrDefault(j => j.IsGlobal) ?? GetJackpots().First(j => j.IsGlobal);
     }
 
     public Jackpot GetOrCreateLocalJackpot(Guid gameId) {

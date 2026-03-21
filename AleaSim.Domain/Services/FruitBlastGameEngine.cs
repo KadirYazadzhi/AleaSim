@@ -83,16 +83,21 @@ public class FruitBlastGameEngine : BaseGameEngine {
 
             var directive = BrainService.GetNextDirective(session.UserId, _gameId, bet.Amount, repo);
             var playerProfile = repo.GetPlayerProfile(session.UserId);
-            var juicePot = repo.GetOrCreateLocalJackpot(_gameId);
-            if (juicePot.Name != "The Juice Pot") {
-                juicePot.Name = "The Juice Pot";
-                if (juicePot.CurrentValue < 50) juicePot.CurrentValue = 50;
-                repo.UpdateJackpot(juicePot);
+            
+            // Get the specific Juice Reservoir jackpot for this game
+            var jackpots = repo.GetJackpots().ToList();
+            var juiceReservoir = jackpots.FirstOrDefault(j => j.GameId == _gameId && j.Tier == JackpotTier.Special)
+                                 ?? repo.GetOrCreateLocalJackpot(_gameId);
+            
+            if (juiceReservoir.Name != "Juice Reservoir") {
+                juiceReservoir.Name = "Juice Reservoir";
+                juiceReservoir.Tier = JackpotTier.Special;
+                repo.UpdateJackpot(juiceReservoir);
             }
 
             var state = new FruitBlastState { 
                 Denomination = denom, 
-                JuicePotValue = juicePot.CurrentValue,
+                JuicePotValue = juiceReservoir.CurrentValue,
                 LifetimeExplosions = playerProfile?.FruitBlastLifetimeExplosions ?? 0
             };
             
@@ -120,7 +125,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     step.MegaFruit = new MegaFruit { TopLeft = new Point { R = 1, C = 1 }, SymbolId = 12 }; // Golden Apple Mega
                     // Transform 3x3 area
                     for(int r=1; r<=3; r++) for(int c=1; c<=3; c++) state.Grid[r][c] = 12;
-                    // Reset lifetime counter (or keep going?) - reset for now
+                    // Reset lifetime counter
                     if (playerProfile != null) playerProfile.FruitBlastLifetimeExplosions = 0;
                 }
 
@@ -136,11 +141,11 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     state.LifetimeExplosions += explodedCount;
                     if (playerProfile != null) playerProfile.FruitBlastLifetimeExplosions += explodedCount;
 
-                    // Update Juice Pot Contribution (0.1% per exploded fruit) - EXCLUDE SIMS
+                    // Update Juice Reservoir Contribution (0.1% per exploded fruit) - EXCLUDE SIMS
                     if (!isSimUser) {
                         decimal contribution = bet.Amount * 0.001m * explodedCount;
-                        juicePot.CurrentValue += contribution;
-                        state.JuicePotValue = juicePot.CurrentValue;
+                        juiceReservoir.CurrentValue += contribution;
+                        state.JuicePotValue = juiceReservoir.CurrentValue;
                     }
 
                     step.AffectedColumns.AddRange(step.WinningClusters.Select(p => p.C).Distinct());
@@ -160,8 +165,8 @@ public class FruitBlastGameEngine : BaseGameEngine {
 
                         if (!isSimUser) {
                             decimal contribution = bet.Amount * 0.001m * affectedCount;
-                            juicePot.CurrentValue += contribution;
-                            state.JuicePotValue = juicePot.CurrentValue;
+                            juiceReservoir.CurrentValue += contribution;
+                            state.JuicePotValue = juiceReservoir.CurrentValue;
                         }
 
                         if (exp.Type == 10) {
@@ -171,23 +176,23 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     }
                 }
 
-                // --- Level 1 & 2: Juice Pot & Fruit Meltdown Trigger ---
+                // --- Level 1 & 2: Juice Reservoir & Fruit Meltdown Trigger ---
                 if (state.JuiceMeter >= 200 && !meltdownAwarded) {
                     state.IsMeltdownTriggered = true;
                     step.MeltdownActive = true;
                     meltdownAwarded = true;
                     
-                    // Add Juice Pot to win - EXCLUDE SIMS FROM DRAINING POT
+                    // Add Juice Reservoir to win - EXCLUDE SIMS FROM DRAINING POT
                     if (!isSimUser) {
-                        state.CurrentRoundWin += juicePot.CurrentValue;
-                        // Reset Juice Pot to seed value
-                        juicePot.CurrentValue = 50.0m;
+                        state.CurrentRoundWin += juiceReservoir.CurrentValue;
+                        // Reset Juice Reservoir to seed value (1000 as per seeder)
+                        juiceReservoir.CurrentValue = 1000.0m;
                     }
                     
                     // Trigger Meltdown transformation
                     for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) state.Grid[r][c] = 12; 
                     
-                    state.JuicePotValue = juicePot.CurrentValue;
+                    state.JuicePotValue = juiceReservoir.CurrentValue;
                 }
 
                 step.AffectedColumns = step.AffectedColumns.Distinct().OrderBy(c => c).ToList();
@@ -210,6 +215,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
             state.IsFinished = true;
             decimal totalWin = Math.Round(state.CurrentRoundWin * state.TotalMultiplier, 2);
 
+            // ... (Max win cap logic) ...
             // HARD CAP: Max win 10,000x bet
             decimal maxWinAllowed = bet.Amount * 10000;
             if (totalWin > maxWinAllowed) {
@@ -233,8 +239,18 @@ public class FruitBlastGameEngine : BaseGameEngine {
                 repo.UpdateGamePoolBalance(_gameId, -totalWin);
             }
 
+            // Jackpot Trigger Check (for Global and potentially other game jackpots)
+            if (!isSimUser) {
+                var jackpotResult = await JackpotService.CheckJackpotTrigger(session.GameId, session.Seed, roundNum, repo);
+                if (jackpotResult.Triggered) {
+                    totalWin += jackpotResult.WinAmount;
+                    // Note: In clusters game, we might want to show this as a separate event, 
+                    // but for now we just add it to the total round win.
+                }
+            }
+
             if (playerProfile != null) repo.UpdatePlayerProfile(playerProfile);
-            repo.UpdateJackpot(juicePot);
+            repo.UpdateJackpot(juiceReservoir);
             BrainService.UpdateProfile(session.UserId, bet.Amount, totalWin, repo);
 
             var round = new GameRound {

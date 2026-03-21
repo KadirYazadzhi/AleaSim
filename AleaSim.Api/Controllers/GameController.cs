@@ -308,6 +308,8 @@ public class GameController : ControllerBase {
     public IActionResult GetJackpots() {
         var jackpots = _repo.GetJackpots();
         var result = jackpots.Select(j => new JackpotDto {
+            Id = j.Id,
+            GameId = j.GameId,
             Name = j.Name,
             CurrentValue = j.CurrentValue,
             MustDropAt = j.MustDropAt,
