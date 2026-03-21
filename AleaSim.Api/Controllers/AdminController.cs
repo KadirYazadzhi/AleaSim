@@ -16,9 +16,9 @@ public class AdminController : ControllerBase {
     private readonly IAdminService _adminService;
     private readonly IAuditService _auditService;
     private readonly IGameRepository _repo;
-    private readonly IRealTimeService _realTime;
+    private readonly AleaSim.Domain.Interfaces.IRealTimeService _realTime;
 
-    public AdminController(IAdminService adminService, IAuditService auditService, IGameRepository repo, IRealTimeService realTime) {
+    public AdminController(IAdminService adminService, IAuditService auditService, IGameRepository repo, AleaSim.Domain.Interfaces.IRealTimeService realTime) {
         _adminService = adminService;
         _auditService = auditService;
         _repo = repo;
@@ -264,7 +264,7 @@ public class AdminController : ControllerBase {
         _repo.UpdateSupportMessage(msg);
         
         if (msg.UserId.HasValue) {
-            await _realTime.BroadcastMessage("System", $"Support notification for {msg.SenderName}: Your ticket has been updated.");
+            await this._realTime.BroadcastMessage("System", $"Support notification for {msg.SenderName}: Your ticket has been updated.");
         }
         
         return Ok();
@@ -274,21 +274,51 @@ public class AdminController : ControllerBase {
 
     [HttpGet("tournaments")]
     public IActionResult GetTournaments() {
-        return Ok(_repo.GetAllTournaments());
+        var tournaments = _repo.GetAllTournaments();
+        var result = tournaments.Select(t => new TournamentDto {
+            Id = t.Id,
+            Name = t.Name,
+            Description = t.Description,
+            StartDate = t.StartDate,
+            EndDate = t.EndDate,
+            PrizePool = t.PrizePool,
+            IsActive = t.IsActive,
+            IncludedGames = JsonSerializer.Deserialize<List<string>>(t.GameTypesJson) ?? new()
+        }).ToList();
+        return Ok(result);
     }
 
     [HttpPost("tournaments")]
-    public IActionResult CreateTournament([FromBody] Tournament tournament) {
-        tournament.Id = Guid.NewGuid();
+    public IActionResult CreateTournament([FromBody] TournamentDto dto) {
+        var tournament = new Tournament {
+            Id = Guid.NewGuid(),
+            Name = dto.Name,
+            Description = dto.Description,
+            StartDate = dto.StartDate,
+            EndDate = dto.EndDate,
+            PrizePool = dto.PrizePool,
+            IsActive = dto.IsActive,
+            GameTypesJson = JsonSerializer.Serialize(dto.IncludedGames)
+        };
         _repo.CreateTournament(tournament);
         return Ok(tournament);
     }
 
     [HttpPut("tournaments/{id}")]
-    public IActionResult UpdateTournament(Guid id, [FromBody] Tournament tournament) {
-        tournament.Id = id;
-        _repo.UpdateTournament(tournament);
-        return Ok(tournament);
+    public IActionResult UpdateTournament(Guid id, [FromBody] TournamentDto dto) {
+        var t = _repo.GetAllTournaments().FirstOrDefault(x => x.Id == id);
+        if (t == null) return NotFound();
+
+        t.Name = dto.Name;
+        t.Description = dto.Description;
+        t.StartDate = dto.StartDate;
+        t.EndDate = dto.EndDate;
+        t.PrizePool = dto.PrizePool;
+        t.IsActive = dto.IsActive;
+        t.GameTypesJson = JsonSerializer.Serialize(dto.IncludedGames);
+
+        _repo.UpdateTournament(t);
+        return Ok(t);
     }
 
     [HttpDelete("tournaments/{id}")]
@@ -301,7 +331,17 @@ public class AdminController : ControllerBase {
 
     [HttpGet("system/errors")]
     public IActionResult GetSystemErrors() {
-        return Ok(_repo.GetRecentErrors(100));
+        var errors = _repo.GetRecentErrors(100);
+        var result = errors.Select(e => new SystemErrorDto {
+            Id = e.Id,
+            Message = e.Message,
+            StackTrace = e.StackTrace,
+            Source = e.Source,
+            Path = e.Path,
+            UserId = e.UserId,
+            CreatedAt = e.CreatedAt
+        }).ToList();
+        return Ok(result);
     }
 
     [HttpDelete("system/errors")]

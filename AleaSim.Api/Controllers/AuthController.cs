@@ -22,9 +22,9 @@ public class AuthController : ControllerBase {
     private readonly ILevelService _levelService;
     private readonly IAchievementService _achievementService;
     private readonly IRedisCacheService _redisCache;
-    private readonly IAuditService _auditService;
+    private readonly AleaSim.Domain.Interfaces.IAuditService _auditService;
 
-    public AuthController(IConfiguration configuration, IGameRepository repository, IPasswordHasher passwordHasher, ILevelService levelService, IAchievementService achievementService, IRedisCacheService redisCache, IAuditService auditService) {
+    public AuthController(IConfiguration configuration, IGameRepository repository, IPasswordHasher passwordHasher, ILevelService levelService, IAchievementService achievementService, IRedisCacheService redisCache, AleaSim.Domain.Interfaces.IAuditService auditService) {
         _configuration = configuration;
         _repository = repository;
         _passwordHasher = passwordHasher;

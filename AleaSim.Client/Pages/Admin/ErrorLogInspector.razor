@@ -1,5 +1,5 @@
 @page "/admin/errors"
-@using AleaSim.Domain.Entities
+@using AleaSim.Shared.Models
 @layout AleaSim.Client.Layout.AdminLayout
 @attribute [Authorize(Roles = "Admin")]
 @inject HttpClient Http
@@ -50,14 +50,14 @@
 </MudContainer>
 
 @code {
-    private List<SystemError>? errors;
+    private List<SystemErrorDto>? errors;
 
     protected override async Task OnInitializedAsync() {
         await LoadErrors();
     }
 
     private async Task LoadErrors() {
-        errors = await Http.GetFromJsonAsync<List<SystemError>>("api/Admin/system/errors");
+        errors = await Http.GetFromJsonAsync<List<SystemErrorDto>>("api/Admin/system/errors");
     }
 
     private async Task ClearErrors() {
@@ -66,7 +66,7 @@
         await LoadErrors();
     }
 
-    private async Task InspectError(SystemError error) {
+    private async Task InspectError(SystemErrorDto error) {
         await Http.PostAsJsonAsync("api/Admin/debug/echo", error); // Just example
         Snackbar.Add("Full stacktrace sent to developer console.", Severity.Warning);
         Console.WriteLine(error.StackTrace);
