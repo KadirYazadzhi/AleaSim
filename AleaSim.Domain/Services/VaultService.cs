@@ -82,41 +82,41 @@ public class VaultService : IVaultService {
 
             if (user.BonusBalance > 0) {
                 if (user.BonusBalance >= amount) {
-                    user.BonusBalance -= amount;
+                    user.BonusBalance = (user.BonusBalance - amount).RoundForStorage();
                     if (user.WageringRequirement > 0) {
-                        user.WageringProgress += amount;
+                        user.WageringProgress = (user.WageringProgress + amount).RoundForStorage();
                         CheckWageringCompletion(user);
                     }
                     success = true;
                 }
                 else {
-                    decimal remainder = amount - user.BonusBalance;
+                    decimal remainder = (amount - user.BonusBalance).RoundForStorage();
                     decimal bonusPart = user.BonusBalance;
                     user.BonusBalance = 0;
                     if (user.WageringRequirement > 0) {
-                            user.WageringProgress += bonusPart;
+                            user.WageringProgress = (user.WageringProgress + bonusPart).RoundForStorage();
                             CheckWageringCompletion(user);
                     }
                     if (user.Balance >= remainder) {
-                        user.Balance -= remainder;
+                        user.Balance = (user.Balance - remainder).RoundForStorage();
                         success = true;
                     }
                 }
             }
             else if (user.Balance >= amount) {
-                user.Balance -= amount;
+                user.Balance = (user.Balance - amount).RoundForStorage();
                 success = true;
             }
 
             if (success && profile != null) {
                 if (user.WageringRequirement == 0) {
-                     // SECURITY: Round calculations to prevent rounding error exploits
-                     profile.ShadowBalance += Math.Round(amount * GameConstants.SHADOW_BALANCE_RATE, 2, MidpointRounding.ToZero);
+                     // Apply centralized rounding policy for consistency
+                     profile.ShadowBalance = (profile.ShadowBalance + (amount * GameConstants.SHADOW_BALANCE_RATE)).RoundForStorage();
                      
                      // SECURITY: Cap cashback level at maximum
                      int effectiveLevel = Math.Min(profile.CashbackLevel, GameConstants.MAX_CASHBACK_LEVEL);
                      decimal rate = GameConstants.BASE_CASHBACK_RATE + (effectiveLevel * GameConstants.CASHBACK_PER_LEVEL);
-                     profile.PendingCashback += Math.Round(amount * rate, 2, MidpointRounding.ToZero);
+                     profile.PendingCashback = (profile.PendingCashback + amount.MultiplyByPercent(rate * 100m)).RoundForStorage();
                      
                      repo.UpdatePlayerProfile(profile);
                 }
@@ -169,22 +169,22 @@ public class VaultService : IVaultService {
         }
 
         if (profile != null && user.WageringRequirement == 0) {
-            // SECURITY: Round to prevent rounding error exploits
-            profile.ShadowBalance -= Math.Round(amount, 2, MidpointRounding.ToZero);
+            // Apply centralized rounding policy
+            profile.ShadowBalance = (profile.ShadowBalance - amount).RoundForStorage();
             
             // SECURITY: Cap cashback level at maximum
             int effectiveLevel = Math.Min(profile.CashbackLevel, GameConstants.MAX_CASHBACK_LEVEL);
             decimal rate = GameConstants.BASE_CASHBACK_RATE + (effectiveLevel * GameConstants.CASHBACK_PER_LEVEL);
-            decimal cashbackAdjustment = Math.Round(amount * rate, 2, MidpointRounding.ToZero);
-            profile.PendingCashback = Math.Max(0, profile.PendingCashback - cashbackAdjustment);
+            decimal cashbackAdjustment = amount.MultiplyByPercent(rate * 100m);
+            profile.PendingCashback = Math.Max(0, (profile.PendingCashback - cashbackAdjustment).RoundForStorage());
 
             repo.UpdatePlayerProfile(profile);
         }
 
         if (user.BonusBalance > 0 && user.WageringProgress < user.WageringRequirement) {
-            user.BonusBalance += amount;
+            user.BonusBalance = (user.BonusBalance + amount).RoundForStorage();
         } else {
-            user.Balance += amount;
+            user.Balance = (user.Balance + amount).RoundForStorage();
         }
 
         repo.UpdateUser(user);

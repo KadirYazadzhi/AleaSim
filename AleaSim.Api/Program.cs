@@ -107,6 +107,7 @@ builder.Services.AddHostedService<AleaSim.Api.Workers.RaffleBackgroundService>()
 builder.Services.AddHostedService<AleaSim.Api.Workers.DailyBonusBackgroundService>();
 builder.Services.AddHostedService<AleaSim.Api.Workers.TournamentPayoutBackgroundService>();
 builder.Services.AddHostedService<AleaSim.Api.Workers.AuditWriterBackgroundService>();
+builder.Services.AddHostedService<AleaSim.Api.Workers.FinancialReconciliationService>(); // Financial integrity check
 
 // Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is missing in configuration.");

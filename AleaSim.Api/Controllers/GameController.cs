@@ -250,6 +250,72 @@ public class GameController : BaseApiController {
         }));
     }
 
+    [HttpGet("{gameType}/incomplete-round/{sessionId}")]
+    public IActionResult GetIncompleteRound(string gameType, Guid sessionId) {
+        try {
+            var userId = GetUserIdOrThrow();
+            var session = _repo.GetSession(sessionId);
+            
+            if (session == null || session.UserId != userId) {
+                return NotFound("Session not found or unauthorized");
+            }
+
+            var lastRound = _repo.GetLastRound(sessionId);
+            
+            // Check if there's an incomplete round (bet placed but round not finalized)
+            if (lastRound != null && !string.IsNullOrEmpty(lastRound.RandomResult)) {
+                // Parse state to check if round is actually incomplete
+                var stateJson = lastRound.RandomResult;
+                
+                // For slot games, check if spin was initiated
+                if (gameType.ToLower() == "slot") {
+                    try {
+                        var state = JsonSerializer.Deserialize<SlotGameEngine.SlotState>(stateJson);
+                        if (state != null && state.Grid != null && state.Grid.Length > 0) {
+                            // Round has a result, can be resumed/replayed
+                            return Ok(new {
+                                HasIncompleteRound = true,
+                                RoundId = lastRound.Id,
+                                SessionId = sessionId,
+                                State = stateJson,
+                                Timestamp = lastRound.ExecutedAt
+                            });
+                        }
+                    }
+                    catch {
+                        // State parsing failed, no incomplete round
+                    }
+                }
+                
+                // For other games (Blackjack, Roulette, etc.)
+                // Check if round is not marked as finished
+                if (gameType.ToLower() == "blackjack") {
+                    try {
+                        var state = JsonSerializer.Deserialize<BlackjackGameEngine.BlackjackState>(stateJson);
+                        if (state != null && !state.IsRoundOver) {
+                            return Ok(new {
+                                HasIncompleteRound = true,
+                                RoundId = lastRound.Id,
+                                SessionId = sessionId,
+                                State = stateJson,
+                                Timestamp = lastRound.ExecutedAt
+                            });
+                        }
+                    }
+                    catch {
+                        // State parsing failed
+                    }
+                }
+            }
+
+            return Ok(new { HasIncompleteRound = false });
+        }
+        catch (Exception ex) {
+            _logger.LogError(ex, "Error checking incomplete round");
+            return StatusCode(500, "Internal error");
+        }
+    }
+
     [AllowAnonymous]
     [HttpGet("public-history")]
     public IActionResult GetPublicHistory() {
