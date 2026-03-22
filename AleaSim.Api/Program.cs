@@ -38,13 +38,26 @@ builder.Services.AddCors(options => {
     options.AddPolicy("DefaultCors", policy => {
         // SECURITY: Restrict to specific origins in production
         // Get allowed origins from configuration (comma-separated list)
-        var allowedOrigins = builder.Configuration["Cors:AllowedOrigins"]?.Split(',') 
-            ?? new[] { "http://localhost:5000", "https://localhost:5001" };
+        var allowedOrigins = builder.Configuration["Cors:AllowedOrigins"]?.Split(',', StringSplitOptions.RemoveEmptyEntries) 
+            ?? Array.Empty<string>();
         
-        policy.WithOrigins(allowedOrigins)
+        // Default allowed origins for development and production
+        var defaultOrigins = new List<string> {
+            "http://localhost:5241",  // Blazor WASM dev
+            "http://localhost:5000",  // Alternative dev port
+            "https://localhost:5001", // HTTPS dev
+            "https://aleasim.kadiryazadzhi.tech" // Production domain
+        };
+        
+        // Merge config origins with defaults (config takes precedence)
+        var finalOrigins = allowedOrigins.Length > 0 
+            ? allowedOrigins 
+            : defaultOrigins.ToArray();
+        
+        policy.WithOrigins(finalOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials(); // Required for SignalR
     });
 });
 
