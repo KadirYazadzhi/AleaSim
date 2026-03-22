@@ -1,6 +1,7 @@
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Services;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -33,7 +34,8 @@ public class VaultServiceTests {
         _mockLock.Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
                  .ReturnsAsync(new Mock<IDisposable>().Object);
 
-        _vaultService = new VaultService(_mockRealTime.Object, _mockLock.Object, _mockCache.Object); // Fixed
+        var mockLogger = new Mock<ILogger<VaultService>>();
+        _vaultService = new VaultService(_mockRealTime.Object, _mockLock.Object, _mockCache.Object, mockLogger.Object);
     }
 
     [Fact]
