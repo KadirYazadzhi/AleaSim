@@ -9,10 +9,7 @@ public static class ValidationHelper {
     }
 
     public static decimal ValidateAndClamp(decimal value, decimal min, decimal max) {
-        if (!IsValidDecimal(value)) {
-            throw new ArgumentException($"Invalid decimal value: {value}");
-        }
-        
+        // Just clamp without throwing - caller should validate first
         return Math.Clamp(value, min, max);
     }
 }

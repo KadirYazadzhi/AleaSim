@@ -18,8 +18,9 @@ public static class GameConstants {
     public const double BORED_VOLATILITY = 0.5;
     public const double NORMAL_VOLATILITY = 1.0;
     
-    // Betting Limits
-    public const decimal MIN_BET = 0.01m;
+    // Betting Limits - REMOVED (games have their own min/max)
+    // Each game validates its own bet limits (SlotGameEngine: 10×denom, Roulette: game.MinBet, etc.)
+    public const decimal ABSOLUTE_MIN_BET = 0.001m; // Absolute floor to prevent division by zero
     public const decimal MAX_BET = 1000000m;
     public const decimal MAX_WIN = 10000000m;
     
