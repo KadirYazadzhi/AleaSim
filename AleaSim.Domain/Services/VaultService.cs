@@ -33,133 +33,117 @@ public class VaultService : IVaultService {
     }
 
     public async Task<bool> ProcessBetAsync(Guid userId, decimal amount, IGameRepository repo) {
+        _logger.LogDebug($"ProcessBetAsync START: userId={userId}, amount={amount}");
+        
+        // SECURITY: Validate decimal input (reject special values, not range)
+        if (!ValidationHelper.IsValidDecimal(amount) || amount <= 0) {
+            _logger.LogWarning($"Invalid bet amount: {amount}");
+            return false; // Reject gracefully
+        }
+        
+        // SECURITY: Hard cap at absolute maximum (prevent overflow attacks)
+        if (amount > GameConstants.MAX_BET) {
+            _logger.LogWarning($"Bet amount {amount} exceeds maximum {GameConstants.MAX_BET}");
+            return false; // Reject bets over 1 million
+        }
+        
+        _logger.LogDebug($"Acquiring wallet lock for user {userId}");
+        IDisposable? lockHandle = null;
         try {
-            _logger.LogDebug($"ProcessBetAsync START: userId={userId}, amount={amount}");
-            
-            // SECURITY: Validate decimal input (reject special values, not range)
-            if (!ValidationHelper.IsValidDecimal(amount) || amount <= 0) {
-                _logger.LogWarning($"Invalid bet amount: {amount}");
-                return false; // Reject gracefully
+            lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(5));
+        } catch (Exception ex) {
+            _logger.LogError(ex, $"Failed to acquire wallet lock for user {userId}");
+            return false; // Lock acquisition failed - reject bet gracefully
+        }
+        
+        // NOTE: Transaction is managed by caller (BaseGameEngine.PlaceBet)
+        // We don't start our own transaction to avoid nested transaction issues
+        using (lockHandle) {
+            var user = repo.GetUser(userId);
+            var profile = repo.GetPlayerProfile(userId);
+            if (user == null) {
+                return false;
             }
-            
-            // SECURITY: Hard cap at absolute maximum (prevent overflow attacks)
-            if (amount > GameConstants.MAX_BET) {
-                _logger.LogWarning($"Bet amount {amount} exceeds maximum {GameConstants.MAX_BET}");
-                return false; // Reject bets over 1 million
+
+            // 1. RESPONSIBLE GAMING: Self-Exclusion Check
+            if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.UtcNow) {
+                throw new InvalidOperationException($"Your account is self-excluded until {user.LockoutUntil.Value:yyyy-MM-dd HH:mm} UTC.");
             }
-            
-            _logger.LogDebug($"Acquiring wallet lock for user {userId}");
-            IDisposable? lockHandle = null;
-            try {
-                lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(5));
-            } catch (Exception ex) {
-                _logger.LogError(ex, $"Failed to acquire wallet lock for user {userId}");
-                return false; // Lock acquisition failed - reject bet gracefully
+
+            // 2. RESPONSIBLE GAMING: Daily Loss Limit Check
+            if (user.DailyLossLimit.HasValue && user.DailyLossLimit.Value > 0) {
+                var currentDailyLoss = repo.GetUserDailyLoss(userId, DateTime.UtcNow);
+                if (currentDailyLoss + amount > user.DailyLossLimit.Value) {
+                    throw new InvalidOperationException($"Bet denied. This would exceed your daily loss limit of {user.DailyLossLimit.Value:C2}. Current loss: {currentDailyLoss:C2}.");
+                }
             }
-            
-            using (lockHandle)
-            using (var transaction = repo.BeginTransaction()) {
-                try {
-                    var user = repo.GetUser(userId);
-                    var profile = repo.GetPlayerProfile(userId);
-                    if (user == null) {
-                        transaction.Rollback();
-                        return false;
-                    }
 
-                    // 1. RESPONSIBLE GAMING: Self-Exclusion Check
-                    if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.UtcNow) {
-                        transaction.Rollback();
-                        throw new InvalidOperationException($"Your account is self-excluded until {user.LockoutUntil.Value:yyyy-MM-dd HH:mm} UTC.");
-                    }
+            bool success = false;
 
-                    // 2. RESPONSIBLE GAMING: Daily Loss Limit Check
-                    if (user.DailyLossLimit.HasValue && user.DailyLossLimit.Value > 0) {
-                        var currentDailyLoss = repo.GetUserDailyLoss(userId, DateTime.UtcNow);
-                        if (currentDailyLoss + amount > user.DailyLossLimit.Value) {
-                            transaction.Rollback();
-                            throw new InvalidOperationException($"Bet denied. This would exceed your daily loss limit of {user.DailyLossLimit.Value:C2}. Current loss: {currentDailyLoss:C2}.");
-                        }
+            if (user.BonusBalance > 0) {
+                if (user.BonusBalance >= amount) {
+                    user.BonusBalance -= amount;
+                    if (user.WageringRequirement > 0) {
+                        user.WageringProgress += amount;
+                        CheckWageringCompletion(user);
                     }
-
-                    bool success = false;
-
-                    if (user.BonusBalance > 0) {
-                        if (user.BonusBalance >= amount) {
-                            user.BonusBalance -= amount;
-                            if (user.WageringRequirement > 0) {
-                                user.WageringProgress += amount;
-                                CheckWageringCompletion(user);
-                            }
-                            success = true;
-                        }
-                        else {
-                            decimal remainder = amount - user.BonusBalance;
-                            decimal bonusPart = user.BonusBalance;
-                            user.BonusBalance = 0;
-                            if (user.WageringRequirement > 0) {
-                                    user.WageringProgress += bonusPart;
-                                    CheckWageringCompletion(user);
-                            }
-                            if (user.Balance >= remainder) {
-                                user.Balance -= remainder;
-                                success = true;
-                            }
-                        }
+                    success = true;
+                }
+                else {
+                    decimal remainder = amount - user.BonusBalance;
+                    decimal bonusPart = user.BonusBalance;
+                    user.BonusBalance = 0;
+                    if (user.WageringRequirement > 0) {
+                            user.WageringProgress += bonusPart;
+                            CheckWageringCompletion(user);
                     }
-                    else if (user.Balance >= amount) {
-                        user.Balance -= amount;
+                    if (user.Balance >= remainder) {
+                        user.Balance -= remainder;
                         success = true;
                     }
-
-                    if (success && profile != null) {
-                        if (user.WageringRequirement == 0) {
-                             // SECURITY: Round calculations to prevent rounding error exploits
-                             profile.ShadowBalance += Math.Round(amount * GameConstants.SHADOW_BALANCE_RATE, 2, MidpointRounding.ToZero);
-                             
-                             // SECURITY: Cap cashback level at maximum
-                             int effectiveLevel = Math.Min(profile.CashbackLevel, GameConstants.MAX_CASHBACK_LEVEL);
-                             decimal rate = GameConstants.BASE_CASHBACK_RATE + (effectiveLevel * GameConstants.CASHBACK_PER_LEVEL);
-                             profile.PendingCashback += Math.Round(amount * rate, 2, MidpointRounding.ToZero);
-                             
-                             repo.UpdatePlayerProfile(profile);
-                        }
-                    }
-                    
-                    if (success) {
-                        repo.UpdateUser(user);
-                        
-                        repo.SaveTransaction(new Transaction {
-                            Id = Guid.NewGuid(), 
-                            UserId = userId, 
-                            Amount = -amount, 
-                            Type = TransactionType.Bet, 
-                            Description = (user.Role == Role.Admin) ? "Admin Bet" : "Game Bet", 
-                            Timestamp = DateTime.UtcNow, 
-                            ResultingBalance = user.Balance
-                        });
-
-                        repo.SaveChanges();
-                        transaction.Commit();
-                        
-                        // CACHE INVALIDATION after commit
-                        SafeFireAndForget(_cache.RemoveAsync($"user:profile:{userId}"), "Cache invalidation");
-                        SafeFireAndForget(_realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance), "Balance notification");
-                    } else {
-                        transaction.Rollback();
-                    }
-
-                    return success;
-                }
-                catch {
-                    transaction.Rollback();
-                    throw;
                 }
             }
-        }
-        catch (Exception ex) {
-            _logger.LogError(ex, $"ProcessBetAsync failed for user {userId}");
-            return false; // Return false instead of throwing - let BaseGameEngine handle it
+            else if (user.Balance >= amount) {
+                user.Balance -= amount;
+                success = true;
+            }
+
+            if (success && profile != null) {
+                if (user.WageringRequirement == 0) {
+                     // SECURITY: Round calculations to prevent rounding error exploits
+                     profile.ShadowBalance += Math.Round(amount * GameConstants.SHADOW_BALANCE_RATE, 2, MidpointRounding.ToZero);
+                     
+                     // SECURITY: Cap cashback level at maximum
+                     int effectiveLevel = Math.Min(profile.CashbackLevel, GameConstants.MAX_CASHBACK_LEVEL);
+                     decimal rate = GameConstants.BASE_CASHBACK_RATE + (effectiveLevel * GameConstants.CASHBACK_PER_LEVEL);
+                     profile.PendingCashback += Math.Round(amount * rate, 2, MidpointRounding.ToZero);
+                     
+                     repo.UpdatePlayerProfile(profile);
+                }
+            }
+            
+            if (success) {
+                repo.UpdateUser(user);
+                
+                repo.SaveTransaction(new Transaction {
+                    Id = Guid.NewGuid(), 
+                    UserId = userId, 
+                    Amount = -amount, 
+                    Type = TransactionType.Bet, 
+                    Description = (user.Role == Role.Admin) ? "Admin Bet" : "Game Bet", 
+                    Timestamp = DateTime.UtcNow, 
+                    ResultingBalance = user.Balance
+                });
+
+                // NOTE: SaveChanges() and Commit() will be called by BaseGameEngine
+                // We just prepare the entities for commit
+                
+                // CACHE INVALIDATION (fire and forget - no transaction dependency)
+                SafeFireAndForget(_cache.RemoveAsync($"user:profile:{userId}"), "Cache invalidation");
+                SafeFireAndForget(_realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance), "Balance notification");
+            }
+
+            return success;
         }
     }
 
@@ -173,55 +157,48 @@ public class VaultService : IVaultService {
             amount = GameConstants.MAX_WIN;
         }
 
+        // NOTE: Transaction is managed by caller (BaseGameEngine.ExecuteScopedAsync or similar)
+        // We don't start our own transaction to avoid nested transaction issues
         using var lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(5));
-        using var transaction = repo.BeginTransaction();
 
-        try {
-            var user = repo.GetUser(userId);
-            var profile = repo.GetPlayerProfile(userId);
-            
-            if (user == null) {
-                transaction.Rollback();
-                return;
-            }
-
-            if (profile != null && user.WageringRequirement == 0) {
-                // SECURITY: Round to prevent rounding error exploits
-                profile.ShadowBalance -= Math.Round(amount, 2, MidpointRounding.ToZero);
-                
-                // SECURITY: Cap cashback level at maximum
-                int effectiveLevel = Math.Min(profile.CashbackLevel, GameConstants.MAX_CASHBACK_LEVEL);
-                decimal rate = GameConstants.BASE_CASHBACK_RATE + (effectiveLevel * GameConstants.CASHBACK_PER_LEVEL);
-                decimal cashbackAdjustment = Math.Round(amount * rate, 2, MidpointRounding.ToZero);
-                profile.PendingCashback = Math.Max(0, profile.PendingCashback - cashbackAdjustment);
-
-                repo.UpdatePlayerProfile(profile);
-            }
-
-            if (user.BonusBalance > 0 && user.WageringProgress < user.WageringRequirement) {
-                user.BonusBalance += amount;
-            } else {
-                user.Balance += amount;
-            }
-
-            repo.UpdateUser(user);
-            
-            repo.SaveTransaction(new Transaction {
-                Id = Guid.NewGuid(), UserId = userId, Amount = amount, Type = TransactionType.Win, 
-                Description = "Game Win", Timestamp = DateTime.UtcNow, ResultingBalance = user.Balance
-            });
-
-            repo.SaveChanges();
-            transaction.Commit();
-            
-            // CACHE INVALIDATION after commit
-            SafeFireAndForget(_cache.RemoveAsync($"user:profile:{userId}"), "Cache invalidation");
-            SafeFireAndForget(_realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance), "Balance notification");
+        var user = repo.GetUser(userId);
+        var profile = repo.GetPlayerProfile(userId);
+        
+        if (user == null) {
+            return;
         }
-        catch {
-            transaction.Rollback();
-            throw;
+
+        if (profile != null && user.WageringRequirement == 0) {
+            // SECURITY: Round to prevent rounding error exploits
+            profile.ShadowBalance -= Math.Round(amount, 2, MidpointRounding.ToZero);
+            
+            // SECURITY: Cap cashback level at maximum
+            int effectiveLevel = Math.Min(profile.CashbackLevel, GameConstants.MAX_CASHBACK_LEVEL);
+            decimal rate = GameConstants.BASE_CASHBACK_RATE + (effectiveLevel * GameConstants.CASHBACK_PER_LEVEL);
+            decimal cashbackAdjustment = Math.Round(amount * rate, 2, MidpointRounding.ToZero);
+            profile.PendingCashback = Math.Max(0, profile.PendingCashback - cashbackAdjustment);
+
+            repo.UpdatePlayerProfile(profile);
         }
+
+        if (user.BonusBalance > 0 && user.WageringProgress < user.WageringRequirement) {
+            user.BonusBalance += amount;
+        } else {
+            user.Balance += amount;
+        }
+
+        repo.UpdateUser(user);
+        
+        repo.SaveTransaction(new Transaction {
+            Id = Guid.NewGuid(), UserId = userId, Amount = amount, Type = TransactionType.Win, 
+            Description = "Game Win", Timestamp = DateTime.UtcNow, ResultingBalance = user.Balance
+        });
+
+        // NOTE: SaveChanges() and Commit() will be called by caller
+        
+        // CACHE INVALIDATION (fire and forget)
+        SafeFireAndForget(_cache.RemoveAsync($"user:profile:{userId}"), "Cache invalidation");
+        SafeFireAndForget(_realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance), "Balance notification");
     }
 
     public async Task<bool> CanAffordWinAsync(Guid userId, Guid gameId, decimal winAmount, IGameRepository repo, bool strictShadowCheck = false) {
