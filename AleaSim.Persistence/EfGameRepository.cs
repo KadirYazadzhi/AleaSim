@@ -855,15 +855,14 @@ public class EfGameRepository : IGameRepository {
 
     public string GetGlobalSetting(string key) {
         string cacheKey = $"setting:{key}";
-        // Try Redis first
+        // PERFORMANCE: Reduced cache from 1 hour to 5 minutes for faster config updates
         var cachedValue = _redisCache.GetAsync<string>(cacheKey).GetAwaiter().GetResult();
         if (cachedValue != null) return cachedValue;
 
         var value = _context.GlobalSettings.FirstOrDefault(s => s.Key == key)?.Value ?? string.Empty;
         
-        // Cache for 1 hour
         if (!string.IsNullOrEmpty(value)) {
-            _redisCache.SetAsync(cacheKey, value, TimeSpan.FromHours(1)).GetAwaiter().GetResult();
+            _redisCache.SetAsync(cacheKey, value, TimeSpan.FromMinutes(5)).GetAwaiter().GetResult();
         }
         
         return value;
@@ -898,8 +897,8 @@ public class EfGameRepository : IGameRepository {
         }
         _context.SaveChanges();
 
-        // Sync to Redis immediately
-        _redisCache.SetAsync($"setting:{key}", value, TimeSpan.FromHours(1)).GetAwaiter().GetResult();
+        // PERFORMANCE: Sync to Redis immediately with 5 min TTL
+        _redisCache.SetAsync($"setting:{key}", value, TimeSpan.FromMinutes(5)).GetAwaiter().GetResult();
     }
 
     public void SaveSupportMessage(SupportMessage message) {

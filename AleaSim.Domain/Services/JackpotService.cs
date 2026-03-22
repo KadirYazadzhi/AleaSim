@@ -23,31 +23,34 @@ public class JackpotService : IJackpotService {
         var db = _redis.GetDatabase();
         var jackpots = repo.GetJackpots().ToList();
         
-        foreach (var j in jackpots) {
-            if (j.Tier == JackpotTier.Mini || j.Tier == JackpotTier.Minor) continue;
+        foreach (var jackpot in jackpots) {
+            if (jackpot.Tier == JackpotTier.Mini || jackpot.Tier == JackpotTier.Minor) continue;
 
-            bool shouldContribute = j.IsGlobal || (j.GameId.HasValue && j.GameId.Value == gameId);
+            bool shouldContribute = jackpot.IsGlobal || (jackpot.GameId.HasValue && jackpot.GameId.Value == gameId);
             
-            if (shouldContribute) { 
-                decimal increase = betAmount * j.ContributionRate;
-                string redisKey = $"jackpot:{j.Id}";
+            if (shouldContribute) {
+                // SECURITY: Use distributed lock to prevent race conditions
+                using var lockHandle = await _lockService.AcquireLockAsync($"jackpot:{jackpot.Id}", TimeSpan.FromSeconds(3));
+                
+                decimal increase = betAmount * jackpot.ContributionRate;
+                string redisKey = $"jackpot:{jackpot.Id}";
 
                 var redisVal = await db.StringGetAsync(redisKey);
                 if (!redisVal.HasValue) {
-                    await db.StringSetAsync(redisKey, (double)j.CurrentValue);
+                    await db.StringSetAsync(redisKey, (double)jackpot.CurrentValue);
                 }
 
                 double newValue = await db.StringIncrementAsync(redisKey, (double)increase);
                 
-                j.CurrentValue = (decimal)newValue;
-                j.LastUpdated = DateTime.UtcNow;
+                jackpot.CurrentValue = (decimal)newValue;
+                jackpot.LastUpdated = DateTime.UtcNow;
                 
                 // Only sync to DB every few increments to reduce load, or just sync when it crosses a whole number
                 if (Math.Floor(newValue) > Math.Floor(newValue - (double)increase)) {
-                    repo.UpdateJackpot(j);
+                    repo.UpdateJackpot(jackpot);
                 }
 
-                await _realTimeService.NotifyJackpotUpdate(j); 
+                await _realTimeService.NotifyJackpotUpdate(jackpot); 
             }
         }
     }

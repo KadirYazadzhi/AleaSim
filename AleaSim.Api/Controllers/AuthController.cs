@@ -48,6 +48,11 @@ public class AuthController : ControllerBase {
         var user = _repository.GetUserByUsername(request.Username);
         
         if (user != null && _passwordHasher.VerifyPassword(user.PasswordHash, request.Password)) {
+            // SECURITY: Check self-exclusion BEFORE allowing login
+            if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.UtcNow) {
+                return StatusCode(403, new { message = $"Your account is self-excluded until {user.LockoutUntil.Value:yyyy-MM-dd HH:mm} UTC." });
+            }
+
             if (user.IsTwoFactorEnabled) {
                 return Ok(new LoginResponse { RequiresTwoFactor = true, Username = user.Username });
             }

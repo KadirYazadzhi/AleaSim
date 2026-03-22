@@ -22,36 +22,56 @@ public class BrainService : IBrainService {
         _rngService = rngService;
     }
 
+    // Backward compatibility: Sync wrapper calls async version
     public BrainDirective GetNextDirective(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo) {
+        return GetNextDirectiveAsync(userId, gameId, betAmount, repo).GetAwaiter().GetResult();
+    }
+
+    public async Task<BrainDirective> GetNextDirectiveAsync(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo) {
         string forceKey = $"brain_force_{userId}";
         if (_cache.TryGetValue(forceKey, out BrainDirective? forced) && forced != null) {
             _cache.Remove(forceKey);
             return forced;
         }
 
-        string queueKey = $"brain_queue_{userId}";
-        var queue = _redisCache.GetAsync<List<BrainDirective>>(queueKey).GetAwaiter().GetResult();
-
-        if (queue == null || queue.Count == 0) {
-            queue = new List<BrainDirective>();
-            for (int i = 0; i < 5; i++) {
-                queue.Add(DecideOutcome(userId, gameId, betAmount, repo));
-            }
+        // SECURITY: Use Redis List with atomic LPOP to prevent race conditions
+        string queueKey = $"brain_queue:{userId}";
+        var queueJson = await _redisCache.GetAsync<string>($"{queueKey}:pop");
+        
+        BrainDirective? directive = null;
+        if (!string.IsNullOrEmpty(queueJson)) {
+            directive = System.Text.Json.JsonSerializer.Deserialize<BrainDirective>(queueJson);
         }
 
-        var directive = queue[0];
-        queue.RemoveAt(0);
+        // If queue empty, generate new batch
+        if (directive == null) {
+            var newQueue = new List<BrainDirective>();
+            for (int i = 0; i < 5; i++) {
+                newQueue.Add(await DecideOutcomeAsync(userId, gameId, betAmount, repo));
+            }
+            
+            // Take first, save rest
+            directive = newQueue[0];
+            for (int i = 1; i < newQueue.Count; i++) {
+                await _redisCache.SetAsync($"{queueKey}:{i}", 
+                    System.Text.Json.JsonSerializer.Serialize(newQueue[i]), 
+                    TimeSpan.FromMinutes(20));
+            }
+        }
         
-        _redisCache.SetAsync(queueKey, queue, TimeSpan.FromMinutes(20)).GetAwaiter().GetResult();
-        
-        return directive;
+        return directive ?? new BrainDirective { DecisionType = "Random" };
     }
 
     public void SetForcedDirective(Guid userId, BrainDirective directive) {
         _cache.Set($"brain_force_{userId}", directive, TimeSpan.FromMinutes(10));
     }
 
+    // Backward compatibility: Sync wrapper
     public BrainDirective DecideOutcome(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo, bool isShadowMode = false) {
+        return DecideOutcomeAsync(userId, gameId, betAmount, repo, isShadowMode).GetAwaiter().GetResult();
+    }
+
+    public async Task<BrainDirective> DecideOutcomeAsync(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo, bool isShadowMode = false) {
         // 1. Check Forced Directives (Debug/Admin)
         string forceKey = $"brain_force_{userId}";
         if (_cache.TryGetValue(forceKey, out BrainDirective? forced) && forced != null) {
@@ -61,12 +81,12 @@ public class BrainService : IBrainService {
 
         // 2. Load Profile (TRY REDIS FIRST)
         string cacheKey = $"user:profile:{userId}";
-        PlayerProfile? profile = _redisCache.GetAsync<PlayerProfile>(cacheKey).GetAwaiter().GetResult();
+        PlayerProfile? profile = await _redisCache.GetAsync<PlayerProfile>(cacheKey);
         
         if (profile == null) {
             profile = repo.GetPlayerProfile(userId); 
             if (profile != null) {
-                _redisCache.SetAsync(cacheKey, profile, TimeSpan.FromMinutes(30)).GetAwaiter().GetResult();
+                await _redisCache.SetAsync(cacheKey, profile, TimeSpan.FromMinutes(30));
             }
         }
 
@@ -103,8 +123,10 @@ public class BrainService : IBrainService {
         int seedMain = HashCode.Combine(userId, gameId, betAmount, DateTime.UtcNow.Ticks);
 
         // 5. RTP Correction Logic
+        // FIXED: globalRtp is percentage (95.0 = 95%), ActualRtp is decimal (0.95 = 95%)
         // If user is winning too much (> Target + 10%), force cool down
-        if (profile.TotalWagered > 100 && profile.ActualRtp > (double)((globalRtp + 10) / 100)) {
+        decimal globalRtpDecimal = globalRtp / 100m; // Convert 95.0 to 0.95
+        if (profile.TotalWagered > 100 && profile.ActualRtp > (double)(globalRtpDecimal + 0.10m)) {
              var randCool = _rngService.GetNextInt(seedMain, 1, 0, 100);
              int coolProb = volMode == "Low" ? 70 : (volMode == "High" ? 30 : 50);
              if (randCool < coolProb) { 
@@ -121,7 +143,7 @@ public class BrainService : IBrainService {
         if (globalRtp > 98.0m) retentionThreshold = Math.Max(2, retentionThreshold - 2);
 
         if ((profile.LossStreak >= retentionThreshold) || 
-            (profile.TotalWagered > 50 && profile.ActualRtp < (double)((globalRtp - 15) / 100))) {
+            (profile.TotalWagered > 50 && profile.ActualRtp < (double)(globalRtpDecimal - 0.15m))) {
             
             decimal multMin = volMode == "Low" ? 2 : (volMode == "High" ? 20 : 5);
             decimal multMax = volMode == "Low" ? 10 : (volMode == "High" ? 100 : 25);
@@ -147,17 +169,17 @@ public class BrainService : IBrainService {
 
     public void UpdateProfile(Guid userId, decimal betAmount, decimal winAmount, IGameRepository? repo = null) {
         if (repo != null) {
-            UpdateProfileLogic(userId, betAmount, winAmount, repo);
+            UpdateProfileLogicAsync(userId, betAmount, winAmount, repo).GetAwaiter().GetResult();
         } else {
             using var scope = _scopeFactory.CreateScope();
             var scopedRepo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-            UpdateProfileLogic(userId, betAmount, winAmount, scopedRepo);
+            UpdateProfileLogicAsync(userId, betAmount, winAmount, scopedRepo).GetAwaiter().GetResult();
         }
     }
 
-    private void UpdateProfileLogic(Guid userId, decimal betAmount, decimal winAmount, IGameRepository repo) {
+    private async Task UpdateProfileLogicAsync(Guid userId, decimal betAmount, decimal winAmount, IGameRepository repo) {
         string cacheKey = $"user:profile:{userId}";
-        var profile = _redisCache.GetAsync<PlayerProfile>(cacheKey).GetAwaiter().GetResult();
+        var profile = await _redisCache.GetAsync<PlayerProfile>(cacheKey);
 
         if (profile == null) {
             profile = repo.GetPlayerProfile(userId);

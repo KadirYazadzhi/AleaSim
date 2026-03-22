@@ -13,7 +13,7 @@ namespace AleaSim.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class GameController : ControllerBase {
+public class GameController : BaseApiController {
     private readonly IGameDirector _gameDirector;
     private readonly IVaultService _vaultService;
     private readonly IGameRepository _repo;

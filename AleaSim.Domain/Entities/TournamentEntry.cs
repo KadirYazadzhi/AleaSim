@@ -11,6 +11,9 @@ public class TournamentEntry {
     public decimal TotalPayout { get; set; }
     public int RoundCount { get; set; }
     
+    // FIXED: Track maximum single spin multiplier, not average
+    public decimal MaxMultiplier { get; set; } = 0m;
+    
     // Calculated ROI: ((TotalPayout - TotalWagered) / TotalWagered) * 100
     public decimal RoiPercentage { 
         get {

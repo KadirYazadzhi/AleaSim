@@ -10,7 +10,7 @@ namespace AleaSim.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class VaultController : ControllerBase {
+public class VaultController : BaseApiController {
     private readonly IGameRepository _repo;
     private readonly IVaultService _vault;
     private readonly ILockService _lockService;

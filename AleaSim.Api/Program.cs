@@ -14,6 +14,12 @@ using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// SECURITY: Validate JWT secret length on startup
+var jwtSecret = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is missing in configuration");
+if (jwtSecret.Length < 32) {
+    throw new InvalidOperationException($"Jwt:Key must be at least 32 characters long for security. Current length: {jwtSecret.Length}");
+}
+
 // Set Global Culture to en-US for USD currency unification
 var culture = new CultureInfo("en-US");
 CultureInfo.DefaultThreadCurrentCulture = culture;
