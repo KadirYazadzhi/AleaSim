@@ -1,12 +1,12 @@
 using AleaSim.Domain.Entities;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Domain.Services;
-using AleaSim.Domain.Enums;
 using AleaSim.Domain.Models;
+using AleaSim.Shared.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using Xunit;
 using System.Text.Json;
+using Xunit;
 
 namespace AleaSim.Tests.Services;
 
@@ -17,11 +17,11 @@ public class RouletteGameEngineTests {
     private readonly Mock<IPromotionService> _mockPromo;
     private readonly Mock<IJackpotService> _mockJackpot;
     private readonly Mock<IRealTimeService> _mockRealTime;
-    private readonly Mock<ILockService> _mockLock;
     private readonly Mock<IServiceScopeFactory> _mockScopeFactory;
     private readonly Mock<IServiceScope> _mockScope;
     private readonly Mock<IServiceProvider> _mockServiceProvider;
     private readonly Mock<IGameRepository> _mockRepo;
+    private readonly Mock<ILockService> _mockLock;
     private readonly RouletteGameEngine _engine;
 
     public RouletteGameEngineTests() {
@@ -30,16 +30,14 @@ public class RouletteGameEngineTests {
         _mockBrain = new Mock<IBrainService>();
         _mockPromo = new Mock<IPromotionService>();
         _mockJackpot = new Mock<IJackpotService>();
-        _mockJackpot.Setup(x => x.Contribute(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
-                    .Returns(Task.CompletedTask);
-
         _mockRealTime = new Mock<IRealTimeService>();
+
         _mockRealTime.Setup(x => x.NotifyGameUpdate(It.IsAny<Guid>(), It.IsAny<object>()))
                      .Returns(Task.CompletedTask);
         _mockRealTime.Setup(x => x.NotifyBigWin(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<decimal>()))
                      .Returns(Task.CompletedTask);
 
-        _mockVault.Setup(x => x.ProcessWinAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+        _mockVault.Setup(x => x.ProcessWinAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<Guid?>()))
                   .Returns(Task.CompletedTask);
         _mockVault.Setup(x => x.ProcessBetAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
                   .ReturnsAsync(true);
@@ -80,31 +78,34 @@ public class RouletteGameEngineTests {
     }
 
     [Fact]
-    public async Task ResolveRound_ShouldCalculateWin_WhenRedBetHitsRedNumber() {
+    public async Task ResolveRound_ShouldCalculateWin_WhenStraightUpHit() {
         // Arrange
         var userId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
         var session = new GameSession { Id = sessionId, UserId = userId, ServerSeed = "test", ClientSeed = "client" };
-        var betData = new { 
-            Bets = new[] { new { Type = "color", Value = "red", Amount = 10m } },
-            Mode = "Classic"
+        var betData = new List<RouletteBetDto> { 
+            new RouletteBetDto { Type = "straight", Value = "17", Amount = 10m } 
         };
-        var bet = new Bet { GameSessionId = sessionId, Amount = 10m, BetData = JsonSerializer.Serialize(betData) };
+        var bet = new Bet { 
+            GameSessionId = sessionId, 
+            Amount = 10m, 
+            BetData = JsonSerializer.Serialize(betData) 
+        };
         
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
         _mockRepo.Setup(r => r.GetLastBet(sessionId)).Returns(bet);
         _mockBrain.Setup(b => b.GetNextDirective(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
                   .Returns(new BrainDirective { DecisionType = "Random" });
 
-        // Force number 1 (Red)
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 0, 37)).Returns(1);
+        // Force roll 17
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 0, 37)).Returns(17);
 
         // Act
         var round = await _engine.ResolveRound(sessionId);
 
         // Assert
-        Assert.Equal(20m, round.TotalWinAmount); 
-        _mockVault.Verify(v => v.ProcessWinAsync(userId, 20m, _mockRepo.Object), Times.Once);
+        // Payout for straight is 36x. 10 * 36 = 360.
+        _mockVault.Verify(v => v.ProcessWinAsync(userId, 360m, _mockRepo.Object, It.IsAny<Guid?>()), Times.Once);
     }
 
     [Fact]
@@ -113,27 +114,26 @@ public class RouletteGameEngineTests {
         var userId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
         var session = new GameSession { Id = sessionId, UserId = userId, ServerSeed = "test", ClientSeed = "client" };
-        var betData = new { 
-            Bets = new[] { new { Type = "number", Value = "17", Amount = 10m } },
-            Mode = "Extreme"
+        var betData = new List<RouletteBetDto> { 
+            new RouletteBetDto { Type = "color", Value = "red", Amount = 10m } 
         };
-        var bet = new Bet { GameSessionId = sessionId, Amount = 10m, BetData = JsonSerializer.Serialize(betData) };
+        var bet = new Bet { 
+            GameSessionId = sessionId, 
+            Amount = 10m, 
+            BetData = JsonSerializer.Serialize(betData) 
+        };
         
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
         _mockRepo.Setup(r => r.GetLastBet(sessionId)).Returns(bet);
+        
+        // Target 10x win (Total 100)
         _mockBrain.Setup(b => b.GetNextDirective(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
-                  .Returns(new BrainDirective { DecisionType = "Random" });
-
-        // Force sequence for RngService.GetNextInt(serverSeed, clientSeed, nonce, min, max)
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 0, 37)).Returns(17);
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 1, 6)).Returns(1);
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 0, 6)).Returns(0); // Specifically for pool.Length=6
+                  .Returns(new BrainDirective { DecisionType = "RetentionHook", TargetWinAmount = 100m });
 
         // Act
         var round = await _engine.ResolveRound(sessionId);
 
         // Assert
-        // Payout for number 17 is 35:1 + mult. Our pool starts at 50x.
-        Assert.Equal(500m, round.TotalWinAmount);
+        Assert.Equal(100m, round.TotalWinAmount);
     }
 }

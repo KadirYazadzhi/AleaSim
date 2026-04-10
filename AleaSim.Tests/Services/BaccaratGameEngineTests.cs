@@ -4,8 +4,8 @@ using AleaSim.Domain.Services;
 using AleaSim.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using Xunit;
 using System.Text.Json;
+using Xunit;
 
 namespace AleaSim.Tests.Services;
 
@@ -16,11 +16,11 @@ public class BaccaratGameEngineTests {
     private readonly Mock<IPromotionService> _mockPromo;
     private readonly Mock<IJackpotService> _mockJackpot;
     private readonly Mock<IRealTimeService> _mockRealTime;
-    private readonly Mock<ILockService> _mockLock;
     private readonly Mock<IServiceScopeFactory> _mockScopeFactory;
     private readonly Mock<IServiceScope> _mockScope;
     private readonly Mock<IServiceProvider> _mockServiceProvider;
     private readonly Mock<IGameRepository> _mockRepo;
+    private readonly Mock<ILockService> _mockLock;
     private readonly BaccaratGameEngine _engine;
 
     public BaccaratGameEngineTests() {
@@ -29,16 +29,14 @@ public class BaccaratGameEngineTests {
         _mockBrain = new Mock<IBrainService>();
         _mockPromo = new Mock<IPromotionService>();
         _mockJackpot = new Mock<IJackpotService>();
-        _mockJackpot.Setup(x => x.Contribute(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
-                    .Returns(Task.CompletedTask);
-
         _mockRealTime = new Mock<IRealTimeService>();
+
         _mockRealTime.Setup(x => x.NotifyGameUpdate(It.IsAny<Guid>(), It.IsAny<object>()))
                      .Returns(Task.CompletedTask);
         _mockRealTime.Setup(x => x.NotifyBigWin(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<decimal>()))
                      .Returns(Task.CompletedTask);
 
-        _mockVault.Setup(x => x.ProcessWinAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+        _mockVault.Setup(x => x.ProcessWinAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<Guid?>()))
                   .Returns(Task.CompletedTask);
         _mockVault.Setup(x => x.ProcessBetAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
                   .ReturnsAsync(true);
@@ -107,7 +105,7 @@ public class BaccaratGameEngineTests {
 
         // Assert
         Assert.Equal(20m, round.TotalWinAmount);
-        _mockVault.Verify(v => v.ProcessWinAsync(userId, 20m, _mockRepo.Object), Times.Once);
+        _mockVault.Verify(v => v.ProcessWinAsync(userId, 20m, _mockRepo.Object, It.IsAny<Guid?>()), Times.Once);
     }
 
     [Fact]

@@ -5,8 +5,7 @@ using AleaSim.Domain.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
-
-using Microsoft.Extensions.Caching.Memory; // Added
+using Microsoft.Extensions.Caching.Memory;
 
 namespace AleaSim.Tests.Services;
 
@@ -14,10 +13,9 @@ public class BrainServiceTests {
     private readonly Mock<IServiceScopeFactory> _mockScopeFactory;
     private readonly Mock<IServiceScope> _mockScope;
     private readonly Mock<IServiceProvider> _mockServiceProvider;
-    private readonly Mock<IVaultService> _mockVault;
     private readonly Mock<IGameRepository> _mockRepo;
     private readonly Mock<IRngService> _mockRng;
-    private readonly Mock<IRedisCacheService> _mockRedis; // Added
+    private readonly Mock<IRedisCacheService> _mockRedis;
     private readonly IMemoryCache _cache;
     private readonly BrainService _brainService;
 
@@ -27,11 +25,8 @@ public class BrainServiceTests {
         _mockRepo.Setup(r => r.GetGlobalSetting("GlobalTargetRtp")).Returns("95");
         _mockRepo.Setup(r => r.GetGlobalSetting("VolatilityMode")).Returns("Medium");
 
-        _mockVault = new Mock<IVaultService>();
-        _mockVault.Setup(v => v.CanAffordWinCheck(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>())).Returns(true);
-        
         _mockRng = new Mock<IRngService>();
-        _mockRedis = new Mock<IRedisCacheService>(); // Init
+        _mockRedis = new Mock<IRedisCacheService>();
         _mockRedis.Setup(x => x.GetAsync<List<BrainDirective>>(It.IsAny<string>()))
                   .ReturnsAsync(new List<BrainDirective>());
         _mockRedis.Setup(x => x.GetAsync<PlayerProfile>(It.IsAny<string>()))
@@ -50,7 +45,7 @@ public class BrainServiceTests {
 
         _cache = new MemoryCache(new MemoryCacheOptions()); 
 
-        _brainService = new BrainService(_mockScopeFactory.Object, _mockVault.Object, _cache, _mockRedis.Object, _mockRng.Object); // Fixed
+        _brainService = new BrainService(_mockScopeFactory.Object, _cache, _mockRedis.Object, _mockRng.Object);
     }
 
     [Fact]
@@ -60,16 +55,15 @@ public class BrainServiceTests {
         var gameId = Guid.NewGuid();
         var profile = new PlayerProfile { 
             UserId = userId, 
-            LossStreak = 10, // High streak > 8
+            LossStreak = 10,
             TotalWagered = 1000,
             CurrentSessionRtp = 0.2m,
             SymbolAffinityJson = "{}"
         };
         _mockRepo.Setup(r => r.GetPlayerProfile(userId)).Returns(profile);
-        _mockVault.Setup(v => v.CanAffordWinCheck(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), _mockRepo.Object, It.IsAny<bool>())).Returns(true);
+        _mockRepo.Setup(r => r.GetGame(gameId)).Returns(new Game { Id = gameId, PoolBalance = 1000000m });
         
-        // Mock RNG to return a multiplier (e.g. 15)
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 10, 25)).Returns(15);
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>())).Returns(15);
 
         // Act
         var directive = _brainService.DecideOutcome(userId, gameId, 1.0m, _mockRepo.Object);
@@ -86,14 +80,14 @@ public class BrainServiceTests {
         var gameId = Guid.NewGuid();
         var profile = new PlayerProfile { 
             UserId = userId, 
-            ActualRtp = 3.0, // 300% RTP!
+            ActualRtp = 3.0m, // decimal literal
             TotalWagered = 500,
             SymbolAffinityJson = "{}"
         };
         _mockRepo.Setup(r => r.GetPlayerProfile(userId)).Returns(profile);
+        _mockRepo.Setup(r => r.GetGame(gameId)).Returns(new Game { Id = gameId, PoolBalance = 1000000m });
         
-        // Mock RNG to trigger CoolDown (< 40)
-        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), 3, 0, 100)).Returns(10);
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 100)).Returns(10);
 
         // Act
         var directive = _brainService.DecideOutcome(userId, gameId, 1.0m, _mockRepo.Object);
