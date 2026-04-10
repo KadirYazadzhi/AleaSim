@@ -102,11 +102,11 @@ public class SlotGameEngine : BaseGameEngine {
         }
         await base.PlaceBet(userId, sessionId, amount, betData);
     }
+public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
+    using var lockHandle = await LockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
 
-    public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
-        using var lockHandle = await LockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
-        return await ExecuteScopedAsync(async (repo, questService, levelService) => {
-            var session = repo.GetSession(sessionId);
+    var round = await ExecuteScopedAsync(async (repo, questService, levelService) => {
+        var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
             var gameEntity = repo.GetGame(session.GameId);
             var config = LoadConfig(gameEntity);
@@ -143,7 +143,9 @@ public class SlotGameEngine : BaseGameEngine {
                 if (state.IsBonusActive) { 
                     PlayBonusRound(state, session.ServerSeed, session.ClientSeed, attemptOffset, repo, config); 
                 } else {
-                    if (directive.DecisionType != "Random" && attempts > 30) {
+                    if (directive.DecisionType == "CoolDown" && !state.IsRespinActive && attempts == 1) {
+                        ForceNearMissGrid(state, config);
+                    } else if (directive.DecisionType != "Random" && attempts > 30) {
                         ForceWinGrid(state, config, directive.TargetWinAmount, currentBet);
                     } else {
                         instantWin = PlayStandardRound(state, session.ServerSeed, session.ClientSeed, attemptOffset, config.BaseStrip, config);
@@ -168,9 +170,11 @@ public class SlotGameEngine : BaseGameEngine {
                 }
             } while (attempts < 50);
 
+            var roundId = Guid.NewGuid();
+
             if (totalWin > 0) {
                 repo.UpdateGamePoolBalance(session.GameId, -totalWin);
-                await VaultService.ProcessWinAsync(session.UserId, totalWin, repo).ConfigureAwait(false);
+                await VaultService.ProcessWinAsync(session.UserId, totalWin, repo, roundId).ConfigureAwait(false);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", totalWin, repo, RealTimeService, VaultService).ConfigureAwait(false);
             }
 
@@ -178,13 +182,13 @@ public class SlotGameEngine : BaseGameEngine {
             var user = repo.GetUser(session.UserId);
             bool isExcluded = user?.Username.StartsWith("Sim_") == true || user?.Role == Role.Admin;
             if (!isExcluded) {
-                var jackpotResult = await JackpotService.CheckJackpotTrigger(session.GameId, session.Seed, roundNum, repo).ConfigureAwait(false);
+                var jackpotResult = await JackpotService.CheckJackpotTrigger(session.GameId, session.ServerSeed, session.ClientSeed, roundNum, repo).ConfigureAwait(false);
                 if (jackpotResult.Triggered) {
                     totalWin += jackpotResult.WinAmount;
                 }
             }
             
-            if (!state.IsRespinActive && !state.IsBonusActive) BrainService.UpdateProfile(session.UserId, 0, totalWin, repo);
+            if (!state.IsRespinActive && !state.IsBonusActive) await BrainService.UpdateProfileAsync(session.UserId, 0, totalWin, repo);
 
             await _cache.SetAsync(cacheKey, state, TimeSpan.FromMinutes(10)).ConfigureAwait(false);
             session.GameState = JsonSerializer.Serialize(state);
@@ -192,9 +196,13 @@ public class SlotGameEngine : BaseGameEngine {
             // SECURITY: Only send labels when bonus is over and reveal starts
             var clientBells = (state.IsBonusActive || state.IsRespinActive) ? new List<BellValue>() : state.BonusBells;
 
+            // Shadow Mode Simulation: What WOULD the brain have done?
+            var shadowDirective = BrainService.DecideOutcome(session.UserId, session.GameId, currentBet, repo, isShadowMode: true);
+
             repo.SaveRound(new GameRound {
-                Id = Guid.NewGuid(), GameSessionId = sessionId, TotalBetAmount = currentBet, TotalWinAmount = Math.Round(totalWin, 2),
+                Id = roundId, GameSessionId = sessionId, TotalBetAmount = currentBet, TotalWinAmount = Math.Round(totalWin, 2),
                 RoundNumber = roundNum, DecisionType = directive.DecisionType, ExecutedAt = DateTime.UtcNow,
+                ShadowBrainResult = JsonSerializer.Serialize(shadowDirective),
                 RandomResult = JsonSerializer.Serialize(new { 
                     Grid = state.Grid, 
                     state.IsRespinActive, 
@@ -210,10 +218,19 @@ public class SlotGameEngine : BaseGameEngine {
                 }),
                 ServerSeed = session.ServerSeed, ClientSeed = session.ClientSeed, Nonce = roundNum
             });
-            repo.UpdateSession(session);
+            await repo.UpdateSessionAsync(session);
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Grid = state.Grid, Win = totalWin, IsRespin = state.IsRespinActive, Bonus = state.IsBonusActive }).ConfigureAwait(false);
             return repo.GetLastRound(sessionId)!;
         });
+
+        // Sync Cache AFTER Transaction Commit
+        using (var scope = ScopeFactory.CreateScope()) {
+            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+            var session = await repo.GetSessionAsync(sessionId);
+            if (session != null) await BrainService.SyncProfileToCacheAsync(session.UserId, repo).ConfigureAwait(false);
+        }
+
+        return round;
     }
 
     private void ForceWinGrid(SlotState state, SlotGameConfig config, decimal targetWin, decimal currentBet) {
@@ -221,6 +238,16 @@ public class SlotGameEngine : BaseGameEngine {
         int sym = targetWin > currentBet * 5 ? 7 : 3;
         int count = targetWin > currentBet * 10 ? 5 : 3;
         for(int r=0; r<2; r++) for(int c=0; c<count; c++) state.Grid[r][c] = sym; 
+    }
+
+    private void ForceNearMissGrid(SlotState state, SlotGameConfig config) {
+        // High value pattern: 7-7-7-X
+        for(int r=0; r<config.Rows; r++) for(int c=0; c<config.Cols; c++) state.Grid[r][c] = (r+c)%3 + 1;
+        state.Grid[0][0] = 7; state.Grid[0][1] = 7; state.Grid[0][2] = 7;
+        state.Grid[0][3] = 4; // Break the line
+        
+        // Feature Near-Miss: Two bells (9)
+        state.Grid[1][0] = 9; state.Grid[2][4] = 9;
     }
 
     private decimal PlayStandardRound(SlotState state, string ss, string cs, int off, int[] strip, SlotGameConfig cfg) {
@@ -292,6 +319,13 @@ public class SlotGameEngine : BaseGameEngine {
     }
 
     private void PlayBonusRound(SlotState state, string ss, string cs, int off, IGameRepository repo, SlotGameConfig cfg) {
+        // CRITICAL: Ensure Grid is synced with BonusBells for accurate visualization and evaluation
+        foreach (var bell in state.BonusBells) {
+            if (bell.Pos.R < cfg.Rows && bell.Pos.C < cfg.Cols) {
+                state.Grid[bell.Pos.R][bell.Pos.C] = 9; // Bell symbol
+            }
+        }
+
         bool hit = false; int n = off;
         int minMult = state.LockedBet >= 50m ? 5 : 2;
         int maxMult = state.LockedBet >= 50m ? 40 : 30;

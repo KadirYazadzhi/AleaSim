@@ -19,7 +19,7 @@ public class PromotionService : IPromotionService {
         _lockService = lockService;
     }
 
-    public void ProcessBetActivity(Guid userId, decimal betAmount, IGameRepository repo) {
+    public async Task ProcessBetActivity(Guid userId, decimal betAmount, IGameRepository repo) {
         var profile = repo.GetPlayerProfile(userId);
         if (profile != null) {
             profile.WeeklyWagered += betAmount;
@@ -40,16 +40,17 @@ public class PromotionService : IPromotionService {
         repo.UpdateTournamentEntry(entry);
 
         // Update Global Tournament Pool (1% contribution)
-        UpdateTournamentPool(betAmount * 0.01m, repo);
+        await UpdateTournamentPool(betAmount * 0.01m, repo);
     }
 
-    private void UpdateTournamentPool(decimal increase, IGameRepository repo) {
+    private async Task UpdateTournamentPool(decimal increase, IGameRepository repo) {
         // Use Redis for high-frequency updates
         string cacheKey = "tournament:prize_pool";
-        var current = _redisCache.GetAsync<decimal?>(cacheKey).GetAwaiter().GetResult();
+        var current = await _redisCache.GetAsync<decimal?>(cacheKey);
         
         if (current == null) {
-            if (decimal.TryParse(repo.GetGlobalSetting("TournamentPrizePool"), out var dbVal)) {
+            var dbValStr = await repo.GetGlobalSettingAsync("TournamentPrizePool");
+            if (decimal.TryParse(dbValStr, out var dbVal)) {
                 current = dbVal;
             } else {
                 current = 25000m; // Starting base
@@ -57,7 +58,7 @@ public class PromotionService : IPromotionService {
         }
 
         decimal newValue = current.Value + increase;
-        _redisCache.SetAsync(cacheKey, newValue, TimeSpan.FromHours(2)).GetAwaiter().GetResult();
+        await _redisCache.SetAsync(cacheKey, newValue, TimeSpan.FromHours(2));
 
         // Periodic Sync to DB (every $10 increase) to keep it safe but fast
         if (Math.Floor(newValue / 10) > Math.Floor(current.Value / 10)) {
@@ -65,11 +66,12 @@ public class PromotionService : IPromotionService {
         }
     }
     
-    public void ProcessWinActivity(Guid userId, decimal winAmount, IGameRepository repo) {
+    public Task ProcessWinActivity(Guid userId, decimal winAmount, IGameRepository repo) {
         // Always update tournament stats
         var entry = repo.GetOrCreateTournamentEntry(userId, DateTime.UtcNow);
         entry.TotalPayout += winAmount;
         repo.UpdateTournamentEntry(entry);
+        return Task.CompletedTask;
     }
 
     public bool IsUserActive(Guid userId, IGameRepository repo) {
@@ -115,8 +117,9 @@ public class PromotionService : IPromotionService {
         var user = repo.GetUser(userId);
         if (user == null) throw new Exception("User not found");
 
-        if (user.LastDailySpin.HasValue && user.LastDailySpin.Value.Date == DateTime.UtcNow.Date) {
-            throw new Exception("You already used your daily spin!");
+        if (user.LastDailySpin.HasValue && (DateTime.UtcNow - user.LastDailySpin.Value).TotalHours < 24) {
+            var remaining = 24 - (DateTime.UtcNow - user.LastDailySpin.Value).TotalHours;
+            throw new Exception($"Bonus wheel is on cooldown. Try again in {Math.Ceiling(remaining)} hours.");
         }
 
         user.LastDailySpin = DateTime.UtcNow;
@@ -147,19 +150,20 @@ public class PromotionService : IPromotionService {
         var user = repo.GetUser(userId);
         if (user == null) throw new Exception("User not found");
 
-        var now = DateTime.UtcNow.Date;
-        if (user.LastStreakClaim.HasValue && user.LastStreakClaim.Value.Date == now) {
-            throw new Exception("Already claimed today's reward!");
+        var now = DateTime.UtcNow;
+        if (user.LastStreakClaim.HasValue && (now - user.LastStreakClaim.Value).TotalHours < 24) {
+            var remaining = 24 - (now - user.LastStreakClaim.Value).TotalHours;
+            throw new Exception($"Daily reward is on cooldown. Try again in {Math.Ceiling(remaining)} hours.");
         }
 
-        // Calculate Streak
-        if (user.LastStreakClaim.HasValue && user.LastStreakClaim.Value.Date == now.AddDays(-1)) {
+        // Calculate Streak: Must be within 48 hours to continue, else reset
+        if (user.LastStreakClaim.HasValue && (now - user.LastStreakClaim.Value).TotalHours < 48) {
             user.CurrentStreak++;
         } else {
             user.CurrentStreak = 1;
         }
 
-        user.LastStreakClaim = DateTime.UtcNow;
+        user.LastStreakClaim = now;
         
         // Reward: $1 * Streak (capped at $50)
         decimal reward = Math.Min(user.CurrentStreak * 1.0m, 50m);

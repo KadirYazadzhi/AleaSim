@@ -11,10 +11,8 @@ namespace AleaSim.Domain.Services;
 
 public class FruitBlastGameEngine : BaseGameEngine {
     private readonly IRedisCacheService _cache;
-    private const int Rows = 5;
-    private const int Cols = 6;
-    private const int MinCluster = 5;
     private readonly Guid _gameId = Guid.Parse("44444444-4444-4444-4444-444444444444");
+    private readonly FruitBlastConfig _defaultConfig = new();
 
     // Symbols: 1:Lemon, 2:Cherry, 3:Orange, 4:Plum, 5:Watermelon, 6:Apple, 7:Star, 8:TNT, 9:Nuclear, 10:Supernova, 12:Golden Apple
     private static readonly Dictionary<int, decimal[]> Paytable = new() {
@@ -29,7 +27,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
     };
 
     public class FruitBlastState {
-        public int[][] Grid { get; set; } = new int[Rows][];
+        public int[][] Grid { get; set; }
         public int JuiceMeter { get; set; } = 0;
         public decimal TotalMultiplier { get; set; } = 1.0m;
         public List<AvalancheStep> History { get; set; } = new();
@@ -42,9 +40,18 @@ public class FruitBlastGameEngine : BaseGameEngine {
         public int LifetimeExplosions { get; set; }
         public decimal MaxWinCap { get; set; }
 
-        public FruitBlastState() {
-            for (int r = 0; r < Rows; r++) Grid[r] = new int[Cols];
+        public FruitBlastState(int rows, int cols) {
+            Grid = new int[rows][];
+            for (int r = 0; r < rows; r++) Grid[r] = new int[cols];
         }
+        public FruitBlastState() : this(5, 6) { }
+    }
+
+    private FruitBlastConfig LoadConfig(Game? gameEntity) {
+        if (gameEntity == null || string.IsNullOrWhiteSpace(gameEntity.ConfigurationJson)) return _defaultConfig;
+        try {
+            return JsonSerializer.Deserialize<FruitBlastConfig>(gameEntity.ConfigurationJson) ?? _defaultConfig;
+        } catch { return _defaultConfig; }
     }
 
     public class AvalancheStep {
@@ -68,7 +75,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
-        return await ExecuteScopedAsync(async (repo, questService, levelService) => {
+        var round = await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
             var bet = repo.GetLastBet(sessionId);
@@ -95,7 +102,10 @@ public class FruitBlastGameEngine : BaseGameEngine {
                 repo.UpdateJackpot(juiceReservoir);
             }
 
-            var state = new FruitBlastState { 
+            var gameEntity = repo.GetGame(_gameId);
+            var config = LoadConfig(gameEntity);
+
+            var state = new FruitBlastState(config.Rows, config.Cols) { 
                 Denomination = denom, 
                 JuicePotValue = juiceReservoir.CurrentValue,
                 LifetimeExplosions = playerProfile?.FruitBlastLifetimeExplosions ?? 0
@@ -107,7 +117,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
             var user = repo.GetUser(session.UserId);
             bool isSimUser = user?.Username?.StartsWith("Sim_") ?? false;
 
-            FillGrid(state.Grid, session, baseNonce, directive);
+            FillGrid(state.Grid, session, baseNonce, directive, config);
 
             int avalancheCount = 0;
             bool continueAvalanche = true;
@@ -115,7 +125,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
 
             while (continueAvalanche && avalancheCount < 20) {
                 var step = new AvalancheStep {
-                    GridBefore = CopyGrid(state.Grid),
+                    GridBefore = CopyGrid(state.Grid, config),
                     JuiceMeterValue = state.JuiceMeter
                 };
 
@@ -129,7 +139,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     if (playerProfile != null) playerProfile.FruitBlastLifetimeExplosions = 0;
                 }
 
-                var clusters = FindClusters(state.Grid);
+                var clusters = FindClusters(state.Grid, config);
                 if (clusters.Any()) {
                     step.WinningClusters = clusters.SelectMany(c => c).ToList();
                     decimal stepWin = CalculateClusterWin(state.Grid, clusters, bet.Amount, state.JuiceMeter);
@@ -151,7 +161,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     step.AffectedColumns.AddRange(step.WinningClusters.Select(p => p.C).Distinct());
                 }
 
-                var explosions = ProcessBombs(state.Grid, session, baseNonce + avalancheCount + 50);
+                var explosions = ProcessBombs(state.Grid, config);
                 if (explosions.Any()) {
                     step.Explosions = explosions;
                     foreach (var exp in explosions) {
@@ -190,7 +200,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     }
                     
                     // Trigger Meltdown transformation
-                    for(int r=0; r<Rows; r++) for(int c=0; c<Cols; c++) state.Grid[r][c] = 12; 
+                    for(int r=0; r<config.Rows; r++) for(int c=0; c<config.Cols; c++) state.Grid[r][c] = 12; 
                     
                     state.JuicePotValue = juiceReservoir.CurrentValue;
                 }
@@ -204,8 +214,8 @@ public class FruitBlastGameEngine : BaseGameEngine {
                         foreach (var p in cluster) state.Grid[p.R][p.C] = 0;
                     }
 
-                    ApplyGravity(state.Grid);
-                    FillMissing(state.Grid, session, baseNonce + 100 + (avalancheCount * 30), directive);
+                    ApplyGravity(state.Grid, config);
+                    FillMissing(state.Grid, session, baseNonce + 100 + (avalancheCount * 30), directive, config);
                     
                     state.History.Add(step);
                     avalancheCount++;
@@ -234,14 +244,16 @@ public class FruitBlastGameEngine : BaseGameEngine {
                 }
             }
 
+            var roundId = Guid.NewGuid();
+
             if (totalWin > 0) {
-                await VaultService.ProcessWinAsync(session.UserId, totalWin, repo).ConfigureAwait(false);
+                await VaultService.ProcessWinAsync(session.UserId, totalWin, repo, roundId).ConfigureAwait(false);
                 repo.UpdateGamePoolBalance(_gameId, -totalWin);
             }
 
             // Jackpot Trigger Check (for Global and potentially other game jackpots)
             if (!isSimUser) {
-                var jackpotResult = await JackpotService.CheckJackpotTrigger(session.GameId, session.Seed, roundNum, repo).ConfigureAwait(false);
+                var jackpotResult = await JackpotService.CheckJackpotTrigger(session.GameId, session.ServerSeed, session.ClientSeed, roundNum, repo).ConfigureAwait(false);
                 if (jackpotResult.Triggered) {
                     totalWin += jackpotResult.WinAmount;
                 }
@@ -249,16 +261,19 @@ public class FruitBlastGameEngine : BaseGameEngine {
 
             if (playerProfile != null) repo.UpdatePlayerProfile(playerProfile);
             repo.UpdateJackpot(juiceReservoir);
-            BrainService.UpdateProfile(session.UserId, bet.Amount, totalWin, repo);
+            await BrainService.UpdateProfileAsync(session.UserId, bet.Amount, totalWin, repo);
+
+            var shadowDirective = BrainService.DecideOutcome(session.UserId, _gameId, bet.Amount, repo, isShadowMode: true);
 
             var round = new GameRound {
-                Id = Guid.NewGuid(),
+                Id = roundId,
                 GameSessionId = sessionId,
                 RoundNumber = roundNum,
                 TotalBetAmount = bet.Amount,
                 TotalWinAmount = totalWin,
                 DecisionType = directive.DecisionType,
                 TargetWinAmount = directive.TargetWinAmount,
+                ShadowBrainResult = JsonSerializer.Serialize(shadowDirective),
                 RandomResult = JsonSerializer.Serialize(state),
                 ExecutedAt = DateTime.UtcNow,
                 ServerSeed = session.ServerSeed,
@@ -271,44 +286,53 @@ public class FruitBlastGameEngine : BaseGameEngine {
 
             return round;
         });
+
+        // Sync Cache AFTER Transaction Commit
+        using (var scope = ScopeFactory.CreateScope()) {
+            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+            var session = repo.GetSession(sessionId);
+            if (session != null) await BrainService.SyncProfileToCacheAsync(session.UserId, repo).ConfigureAwait(false);
+        }
+
+        return round;
     }
 
-    private void FillGrid(int[][] grid, GameSession session, int nonce, BrainDirective directive) {
-        for (int r = 0; r < Rows; r++) {
-            for (int c = 0; c < Cols; c++) {
-                grid[r][c] = GetWeightedSymbol(session.ServerSeed, session.ClientSeed, nonce + (r * Cols + c), directive);
+    private void FillGrid(int[][] grid, GameSession session, int nonce, BrainDirective directive, FruitBlastConfig config) {
+        for (int r = 0; r < config.Rows; r++) {
+            for (int c = 0; c < config.Cols; c++) {
+                grid[r][c] = GetWeightedSymbol(session.ServerSeed, session.ClientSeed, nonce + (r * config.Cols + c), directive, config);
             }
         }
         if (directive.DecisionType != "Random" && directive.TargetWinAmount > 0) {
-            var clusters = FindClusters(grid);
-            if (!clusters.Any()) ForceCluster(grid, session, nonce);
+            var clusters = FindClusters(grid, config);
+            if (!clusters.Any()) ForceCluster(grid, session, nonce, config);
         }
     }
 
-    private void FillMissing(int[][] grid, GameSession session, int nonce, BrainDirective directive) {
-        for (int r = 0; r < Rows; r++) {
-            for (int c = 0; c < Cols; c++) {
+    private void FillMissing(int[][] grid, GameSession session, int nonce, BrainDirective directive, FruitBlastConfig config) {
+        for (int r = 0; r < config.Rows; r++) {
+            for (int c = 0; c < config.Cols; c++) {
                 if (grid[r][c] == 0) {
-                    grid[r][c] = GetWeightedSymbol(session.ServerSeed, session.ClientSeed, nonce + (r * Cols + c) + 5000, directive);
+                    grid[r][c] = GetWeightedSymbol(session.ServerSeed, session.ClientSeed, nonce + (r * config.Cols + c) + 5000, directive, config);
                 }
             }
         }
     }
 
-    private void ForceCluster(int[][] grid, GameSession session, int nonce) {
+    private void ForceCluster(int[][] grid, GameSession session, int nonce, FruitBlastConfig config) {
         int symbol = RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce + 555, 1, 5);
-        int startR = RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce + 666, 1, Rows - 1);
-        int startC = RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce + 777, 1, Cols - 1);
+        int startR = RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce + 666, 1, config.Rows - 1);
+        int startC = RngService.GetNextInt(session.ServerSeed, session.ClientSeed, nonce + 777, 1, config.Cols - 1);
         for (int r = startR - 1; r <= startR; r++)
             for (int c = startC - 1; c <= startC + 1; c++)
                 grid[r][c] = symbol;
     }
 
-    private int GetWeightedSymbol(string serverSeed, string clientSeed, int nonce, BrainDirective directive) {
+    private int GetWeightedSymbol(string serverSeed, string clientSeed, int nonce, BrainDirective directive, FruitBlastConfig config) {
         int val = RngService.GetNextInt(serverSeed, clientSeed, nonce, 1, 1001);
         int boost = (directive.DecisionType == "RetentionHook") ? 20 : 0;
 
-        if (val <= 970 - boost) {
+        if (val <= config.FruitThreshold - boost) {
             int fVal = RngService.GetNextInt(serverSeed, clientSeed, nonce + 10000, 1, 101);
             if (fVal <= 25) return 1; // Lemon 25%
             if (fVal <= 50) return 2; // Cherry 25%
@@ -316,45 +340,49 @@ public class FruitBlastGameEngine : BaseGameEngine {
             if (fVal <= 85) return 4; // Plum 15%
             return 5; // Watermelon 15%
         }
-        if (val <= 975) return 6; // Apple
-        if (val <= 982) return 7; // Star
-        if (val <= 992 + (boost/2)) return 8; // TNT
-        if (val <= 998 + (boost/4)) return 9; // Nuclear
+        if (val <= config.AppleThreshold) return 6; // Apple
+        if (val <= config.StarThreshold) return 7; // Star
+        if (val <= config.TntThreshold + (boost/2)) return 8; // TNT
+        if (val <= config.NuclearThreshold + (boost/4)) return 9; // Nuclear
         return 10; // Supernova
     }
 
-    private int[][] CopyGrid(int[][] grid) {
-        var copy = new int[Rows][];
-        for (int r = 0; r < Rows; r++) {
-            copy[r] = new int[Cols];
-            Array.Copy(grid[r], copy[r], Cols);
+    private int[][] CopyGrid(int[][] grid, FruitBlastConfig config) {
+        int rows = grid.Length;
+        int cols = grid[0].Length;
+        var copy = new int[rows][];
+        for (int r = 0; r < rows; r++) {
+            copy[r] = new int[cols];
+            Array.Copy(grid[r], copy[r], cols);
         }
         return copy;
     }
 
-    private List<List<Point>> FindClusters(int[][] grid) {
+    private List<List<Point>> FindClusters(int[][] grid, FruitBlastConfig config) {
         var clusters = new List<List<Point>>();
-        var visited = new bool[Rows, Cols];
-        for (int r = 0; r < Rows; r++) {
-            for (int c = 0; c < Cols; c++) {
-                if (!visited[r, c] && grid[r][c] > 0 && grid[r][c] <= 7 || grid[r][c] == 12) {
+        int rows = config.Rows;
+        int cols = config.Cols;
+        var visited = new bool[rows, cols];
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (!visited[r, c] && (grid[r][c] > 0 && grid[r][c] <= 7 || grid[r][c] == 12)) {
                     var cluster = new List<Point>();
-                    DFS(grid, r, c, grid[r][c], visited, cluster);
-                    if (cluster.Count >= MinCluster) clusters.Add(cluster);
+                    DFS(grid, r, c, grid[r][c], visited, cluster, config);
+                    if (cluster.Count >= config.MinCluster) clusters.Add(cluster);
                 }
             }
         }
         return clusters;
     }
 
-    private void DFS(int[][] grid, int r, int c, int symbol, bool[,] visited, List<Point> cluster) {
-        if (r < 0 || r >= Rows || c < 0 || c >= Cols || visited[r, c] || grid[r][c] != symbol) return;
+    private void DFS(int[][] grid, int r, int c, int symbol, bool[,] visited, List<Point> cluster, FruitBlastConfig config) {
+        if (r < 0 || r >= config.Rows || c < 0 || c >= config.Cols || visited[r, c] || grid[r][c] != symbol) return;
         visited[r, c] = true;
         cluster.Add(new Point { R = r, C = c });
-        DFS(grid, r - 1, c, symbol, visited, cluster);
-        DFS(grid, r + 1, c, symbol, visited, cluster);
-        DFS(grid, r, c - 1, symbol, visited, cluster);
-        DFS(grid, r, c + 1, symbol, visited, cluster);
+        DFS(grid, r - 1, c, symbol, visited, cluster, config);
+        DFS(grid, r + 1, c, symbol, visited, cluster, config);
+        DFS(grid, r, c - 1, symbol, visited, cluster, config);
+        DFS(grid, r, c + 1, symbol, visited, cluster, config);
     }
 
     private decimal CalculateClusterWin(int[][] grid, List<List<Point>> clusters, decimal bet, int juiceMeter) {
@@ -380,10 +408,10 @@ public class FruitBlastGameEngine : BaseGameEngine {
         return totalWin;
     }
 
-    private void ApplyGravity(int[][] grid) {
-        for (int c = 0; c < Cols; c++) {
-            int emptySpot = Rows - 1;
-            for (int r = Rows - 1; r >= 0; r--) {
+    private void ApplyGravity(int[][] grid, FruitBlastConfig config) {
+        for (int c = 0; c < config.Cols; c++) {
+            int emptySpot = config.Rows - 1;
+            for (int r = config.Rows - 1; r >= 0; r--) {
                 if (grid[r][c] != 0) {
                     if (r != emptySpot) {
                         grid[emptySpot][c] = grid[r][c];
@@ -395,11 +423,11 @@ public class FruitBlastGameEngine : BaseGameEngine {
         }
     }
 
-    private List<BombExplosion> ProcessBombs(int[][] grid, GameSession session, int nonce) {
+    private List<BombExplosion> ProcessBombs(int[][] grid, FruitBlastConfig config) {
         var explosions = new List<BombExplosion>();
         var bombPositions = new List<Point>();
-        for (int r = 0; r < Rows; r++) {
-            for (int c = 0; c < Cols; c++) {
+        for (int r = 0; r < config.Rows; r++) {
+            for (int c = 0; c < config.Cols; c++) {
                 if (grid[r][c] >= 8 && grid[r][c] <= 10) bombPositions.Add(new Point { R = r, C = c });
             }
         }
@@ -410,13 +438,13 @@ public class FruitBlastGameEngine : BaseGameEngine {
                 for (int dr = -1; dr <= 1; dr++)
                     for (int dc = -1; dc <= 1; dc++) {
                         int nr = bomb.R + dr; int nc = bomb.C + dc;
-                        if (nr >= 0 && nr < Rows && nc >= 0 && nc < Cols) affected.Add(new Point { R = nr, C = nc });
+                        if (nr >= 0 && nr < config.Rows && nc >= 0 && nc < config.Cols) affected.Add(new Point { R = nr, C = nc });
                     }
             } else if (type == 9) { 
-                for (int r = 0; r < Rows; r++) affected.Add(new Point { R = r, C = bomb.C });
-                for (int c = 0; c < Cols; c++) affected.Add(new Point { R = bomb.R, C = c });
+                for (int r = 0; r < config.Rows; r++) affected.Add(new Point { R = r, C = bomb.C });
+                for (int c = 0; c < config.Cols; c++) affected.Add(new Point { R = bomb.R, C = c });
             } else if (type == 10) { 
-                for (int r = 0; r < Rows; r++) for (int c = 0; c < Cols; c++) affected.Add(new Point { R = r, C = c });
+                for (int r = 0; r < config.Rows; r++) for (int c = 0; c < config.Cols; c++) affected.Add(new Point { R = r, C = c });
             }
             explosions.Add(new BombExplosion { Origin = bomb, Affected = affected, Type = type });
         }
@@ -426,24 +454,27 @@ public class FruitBlastGameEngine : BaseGameEngine {
     public override async Task<Outcome> GetOutcome(Guid roundId) => await Task.FromResult(new Outcome { Id = Guid.NewGuid(), GameRoundId = roundId });
     public override async Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData) => await Task.CompletedTask;
     public override async Task<object?> GetCurrentState(Guid sessionId) {
-        return await ExecuteScopedAsync(repo => {
+        return await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var round = repo.GetLastRound(sessionId);
             var juicePot = repo.GetOrCreateLocalJackpot(_gameId);
             
             if (round == null) {
-                var session = repo.GetSession(sessionId);
+                var session = await repo.GetSessionAsync(sessionId);
+                var gameEntity = repo.GetGame(_gameId);
+                var config = LoadConfig(gameEntity);
                 var profile = session != null ? repo.GetPlayerProfile(session.UserId) : null;
-                return Task.FromResult<object?>(new FruitBlastState { 
+                
+                return new FruitBlastState(config.Rows, config.Cols) { 
                     JuicePotValue = juicePot.CurrentValue,
                     LifetimeExplosions = profile?.FruitBlastLifetimeExplosions ?? 0
-                });
+                };
             }
             
             var state = JsonSerializer.Deserialize<FruitBlastState>(round.RandomResult);
             if (state != null) {
                 state.JuicePotValue = juicePot.CurrentValue; // Ensure UI sees most current value
             }
-            return Task.FromResult<object?>(state);
+            return state;
         });
     }
 }

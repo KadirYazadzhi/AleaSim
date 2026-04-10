@@ -87,7 +87,7 @@ public class RouletteGameEngine : BaseGameEngine {
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
         using var lockHandle = await LockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
 
-        return await ExecuteScopedAsync(async (repo, questService, levelService) => {
+        var round = await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
 
@@ -177,23 +177,28 @@ public class RouletteGameEngine : BaseGameEngine {
                 winMultiplier = 0; // Lost multiplier if moved to losing num
             }
 
+            var roundId = Guid.NewGuid();
+
             if (actualWin > 0) {
                 repo.UpdateGamePoolBalance(GameId, -actualWin);
-                await VaultService.ProcessWinAsync(session.UserId, actualWin, repo);
+                await VaultService.ProcessWinAsync(session.UserId, actualWin, repo, roundId);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", actualWin, repo, RealTimeService, VaultService);
             }
             
-            BrainService.UpdateProfile(session.UserId, betAmount, actualWin, repo);
+            await BrainService.UpdateProfileAsync(session.UserId, betAmount, actualWin, repo);
 
             int roundCount = repo.GetRoundCount(sessionId);
             RotateServerSeed(session, roundCount);
 
+            var shadowDirective = BrainService.DecideOutcome(session.UserId, session.GameId, betAmount, repo, isShadowMode: true);
+
             var round = new GameRound {
-                Id = Guid.NewGuid(),
+                Id = roundId,
                 GameSessionId = sessionId,
                 TotalBetAmount = betAmount,
                 TotalWinAmount = actualWin,
                 RoundNumber = roundCount + 1,
+                ShadowBrainResult = JsonSerializer.Serialize(shadowDirective),
                 RandomResult = JsonSerializer.Serialize(new { 
                     Number = number, 
                     Mode = mode, 
@@ -217,6 +222,15 @@ public class RouletteGameEngine : BaseGameEngine {
             }
             return round;
         });
+
+        // Sync Cache AFTER Transaction Commit
+        using (var scope = ScopeFactory.CreateScope()) {
+            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+            var session = repo.GetSession(sessionId);
+            if (session != null) await BrainService.SyncProfileToCacheAsync(session.UserId, repo).ConfigureAwait(false);
+        }
+
+        return round;
     }
 
     private decimal CalculatePayout(int number, List<RouletteBetDto> bets, string mode = "Classic", int activeMultiplier = 0) {

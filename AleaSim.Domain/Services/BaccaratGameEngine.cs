@@ -40,10 +40,9 @@ public class BaccaratGameEngine : BaseGameEngine {
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
         using var lockHandle = await LockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
-        
-        return await ExecuteScopedAsync(async (repo, questService, levelService) => {
-            var session = repo.GetSession(sessionId);
-            if (session == null) throw new Exception("Session not found");
+
+        var round = await ExecuteScopedAsync(async (repo, questService, levelService) => {
+            var session = repo.GetSession(sessionId);            if (session == null) throw new Exception("Session not found");
             var lastBet = repo.GetLastBet(sessionId);
             if (lastBet == null) throw new Exception("No bet found");
             
@@ -117,13 +116,18 @@ public class BaccaratGameEngine : BaseGameEngine {
 
             decimal win = CalculateWin(state);
 
+            var roundId = Guid.NewGuid();
+
+            var shadowDirective = BrainService.DecideOutcome(session.UserId, session.GameId, lastBet.Amount, repo, isShadowMode: true);
+
             var round = new GameRound {
-                Id = Guid.NewGuid(),
+                Id = roundId,
                 GameSessionId = sessionId,
                 RoundNumber = roundNum,
                 TotalBetAmount = lastBet.Amount,
                 TotalWinAmount = win,
                 ExecutedAt = DateTime.UtcNow,
+                ShadowBrainResult = JsonSerializer.Serialize(shadowDirective),
                 RandomResult = JsonSerializer.Serialize(state),
                 ServerSeed = session.ServerSeed ?? "",
                 ServerSeedHash = session.ServerSeedHash ?? "",
@@ -134,12 +138,12 @@ public class BaccaratGameEngine : BaseGameEngine {
 
             if (win > 0) {
                 repo.UpdateGamePoolBalance(session.GameId, -win);
-                await VaultService.ProcessWinAsync(session.UserId, win, repo);
+                await VaultService.ProcessWinAsync(session.UserId, win, repo, roundId);
                 repo.UpdateRtpStats(session.GameId, session.UserId, 0, win);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", win, repo, RealTimeService, VaultService);
             }
 
-            BrainService.UpdateProfile(session.UserId, lastBet.Amount, win, repo);
+            await BrainService.UpdateProfileAsync(session.UserId, lastBet.Amount, win, repo);
             
             int roundCount = repo.GetRoundCount(sessionId);
             RotateServerSeed(session, roundCount);
@@ -157,6 +161,15 @@ public class BaccaratGameEngine : BaseGameEngine {
 
             return round;
         });
+
+        // Sync Cache AFTER Transaction Commit
+        using (var scope = ScopeFactory.CreateScope()) {
+            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+            var session = repo.GetSession(sessionId);
+            if (session != null) await BrainService.SyncProfileToCacheAsync(session.UserId, repo).ConfigureAwait(false);
+        }
+
+        return round;
     }
 
     private decimal CalculateWin(BaccaratState state) {

@@ -59,7 +59,7 @@ public class DiceGameEngine : BaseGameEngine {
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
         using var lockHandle = await LockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
 
-        return await ExecuteScopedAsync(async (repo, questService, levelService) => {
+        var round = await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
             var lastBet = repo.GetLastBet(sessionId);
@@ -89,25 +89,30 @@ public class DiceGameEngine : BaseGameEngine {
                 winAmount = 0;
             }
 
+            var roundId = Guid.NewGuid();
+
             if (winAmount > 0) {
                 repo.UpdateGamePoolBalance(_gameId, -winAmount);
-                await VaultService.ProcessWinAsync(session.UserId, winAmount, repo);
+                await VaultService.ProcessWinAsync(session.UserId, winAmount, repo, roundId);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", winAmount, repo, RealTimeService, VaultService);
             }
             
             await questService.UpdateProgressAsync(session.UserId, "SpinCount", 1, repo, RealTimeService, VaultService);
-            BrainService.UpdateProfile(session.UserId, lastBet.Amount, winAmount, repo);
+            await BrainService.UpdateProfileAsync(session.UserId, lastBet.Amount, winAmount, repo);
 
             int roundCount = repo.GetRoundCount(sessionId);
             RotateServerSeed(session, roundCount);
 
+            var shadowDirective = BrainService.DecideOutcome(session.UserId, session.GameId, lastBet.Amount, repo, isShadowMode: true);
+
             var round = new GameRound {
-                Id = Guid.NewGuid(),
+                Id = roundId,
                 GameSessionId = sessionId,
                 RoundNumber = roundNum,
                 TotalBetAmount = lastBet.Amount,
                 TotalWinAmount = winAmount,
                 ExecutedAt = DateTime.UtcNow,
+                ShadowBrainResult = JsonSerializer.Serialize(shadowDirective),
                 RandomResult = JsonSerializer.Serialize(result),
                 DecisionType = directive.DecisionType,
                 ServerSeed = session.ServerSeed ?? "",
@@ -120,6 +125,15 @@ public class DiceGameEngine : BaseGameEngine {
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Game = "Dice", Result = result });
             return round;
         });
+
+        // Sync Cache AFTER Transaction Commit
+        using (var scope = ScopeFactory.CreateScope()) {
+            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+            var session = repo.GetSession(sessionId);
+            if (session != null) await BrainService.SyncProfileToCacheAsync(session.UserId, repo).ConfigureAwait(false);
+        }
+
+        return round;
     }
 
     private DiceResultDto ResolveSliderDice(string serverSeed, string clientSeed, int nonce, DiceBetDto bet, BrainDirective directive) {

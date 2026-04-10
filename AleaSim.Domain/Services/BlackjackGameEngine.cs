@@ -24,70 +24,135 @@ public class BlackjackGameEngine : BaseGameEngine {
     public class BlackjackState {
         public List<BlackjackHand> PlayerHands { get; set; } = new();
         public List<string> DealerHand { get; set; } = new();
+        public List<string> Shoe { get; set; } = new(); 
         public int ActiveHandIndex { get; set; } = 0; 
         public bool IsRoundOver { get; set; }
         public int Sequence { get; set; }
         public decimal TotalInitialBet { get; set; }
         public decimal TotalWin { get; set; } // Added for frontend reporting
         
-        // Legacy fields for UI compatibility if needed, but we should update UI
+        // Legacy fields for UI compatibility
         public List<string> PlayerHand => PlayerHands.Count > 0 ? PlayerHands[0].Cards : new();
         public List<string>? SplitHand => PlayerHands.Count > 1 ? PlayerHands[1].Cards : null;
+    }
+
+    private void InitializeShoe(BlackjackState state, string serverSeed, string clientSeed) {
+        string[] ranks = { "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K" };
+        string[] suits = { "H", "D", "C", "S" };
+        var deck = new List<string>();
+        
+        // Use 6 decks for a standard casino shoe
+        for (int i = 0; i < 6; i++) {
+            foreach (var s in suits) {
+                foreach (var r in ranks) {
+                    deck.Add(r + s);
+                }
+            }
+        }
+
+        // Shuffle using the seed
+        int n = deck.Count;
+        int shuffleNonce = 0;
+        while (n > 1) {
+            n--;
+            int k = RngService.GetNextInt(serverSeed, clientSeed, shuffleNonce++, 0, n + 1);
+            var value = deck[k];
+            deck[k] = deck[n];
+            deck[n] = value;
+        }
+        state.Shoe = deck;
+    }
+
+    private string DrawCardFromShoe(BlackjackState state) {
+        if (state.Shoe.Count == 0) return "10S"; // Fallback
+        var card = state.Shoe[0];
+        state.Shoe.RemoveAt(0);
+        return card;
     }
 
     public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile profile = SpinProfile.Standard) {
         using var lockHandle = await LockService.AcquireLockAsync(sessionId.ToString(), TimeSpan.FromSeconds(5));
         
-        return await ExecuteScopedAsync(async (repo, questService, levelService) => {
+        var round = await ExecuteScopedAsync(async (repo, questService, levelService) => {
             var session = repo.GetSession(sessionId);
             if (session == null) throw new Exception("Session not found");
             var lastBet = repo.GetLastBet(sessionId);
             if (lastBet == null) throw new Exception("No bet found");
             
             int roundNum = repo.GetRoundCount(sessionId) + 1;
-            int seq = roundNum * 100;
 
-            var state = new BlackjackState { TotalInitialBet = lastBet.Amount, Sequence = seq };
+            // Load or initialize state
+            var state = string.IsNullOrEmpty(session.GameState) 
+                ? new BlackjackState() 
+                : JsonSerializer.Deserialize<BlackjackState>(session.GameState) ?? new BlackjackState();
+
+            // Initialize shoe if empty or too low
+            if (state.Shoe.Count < 52) {
+                InitializeShoe(state, session.ServerSeed, session.ClientSeed);
+            }
+
+            // Reset for new round
+            state.PlayerHands.Clear();
+            state.DealerHand.Clear();
+            state.ActiveHandIndex = 0;
+            state.IsRoundOver = false;
+            state.TotalInitialBet = lastBet.Amount;
+            state.TotalWin = 0;
+
             var mainHand = new BlackjackHand { Bet = lastBet.Amount };
             state.PlayerHands.Add(mainHand);
             
             // Check for forced directives
             var directive = BrainService.GetNextDirective(session.UserId, session.GameId, lastBet.Amount, repo);
 
-            mainHand.Cards.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
-            state.DealerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
-            mainHand.Cards.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
-            state.DealerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
-            state.Sequence = seq;
+            mainHand.Cards.Add(DrawCardFromShoe(state));
+            state.DealerHand.Add(DrawCardFromShoe(state));
+            mainHand.Cards.Add(DrawCardFromShoe(state));
+            state.DealerHand.Add(DrawCardFromShoe(state));
+
+            var roundId = Guid.NewGuid();
 
             if (CalculateHandValue(mainHand.Cards) == 21) {
-                await FinishRoundAsync(session, state, repo, questService);
+                await FinishRoundAsync(session, state, repo, questService, roundId);
             }
 
             int roundCount = repo.GetRoundCount(sessionId);
             RotateServerSeed(session, roundCount);
 
+            var shadowDirective = BrainService.DecideOutcome(session.UserId, session.GameId, lastBet.Amount, repo, isShadowMode: true);
+
             var round = new GameRound {
-                Id = Guid.NewGuid(),
+                Id = roundId,
                 GameSessionId = sessionId,
                 RoundNumber = roundNum,
                 TotalBetAmount = lastBet.Amount,
                 ExecutedAt = DateTime.UtcNow,
+                ShadowBrainResult = JsonSerializer.Serialize(shadowDirective),
                 RandomResult = JsonSerializer.Serialize(state),
                 ServerSeed = session.ServerSeed ?? "",
                 ServerSeedHash = session.ServerSeedHash ?? "",
                 ClientSeed = session.ClientSeed ?? "",
-                Nonce = state.Sequence,
+                Nonce = state.Shoe.Count, // Nonce can be shoe state
                 DecisionType = directive.DecisionType
             };
             
             if (state.IsRoundOver) round.TotalWinAmount = CalculateWin(state);
 
+            session.GameState = JsonSerializer.Serialize(state);
             repo.SaveRound(round);
             repo.UpdateSession(session);
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Game = "Blackjack", State = state });
             return round;
         });
+
+        // Sync Cache AFTER Transaction Commit
+        using (var scope = ScopeFactory.CreateScope()) {
+            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+            var session = repo.GetSession(sessionId);
+            if (session != null) await BrainService.SyncProfileToCacheAsync(session.UserId, repo).ConfigureAwait(false);
+        }
+
+        return round;
     }
 
     public override async Task ProcessAction(Guid userId, Guid sessionId, string action, string actionData) {
@@ -114,11 +179,9 @@ public class BlackjackGameEngine : BaseGameEngine {
                     currentHand.IsDoubled = true;
                     currentHand.Bet *= 2;
 
-                    int seq = state.Sequence;
-                    currentHand.Cards.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
-                    state.Sequence = seq;
+                    currentHand.Cards.Add(DrawCardFromShoe(state));
                     
-                    await AdvanceOrFinish(session, state, repo, questService);
+                    await AdvanceOrFinish(session, state, repo, questService, round.Id);
                 } else throw new Exception("Insufficient funds");
             } 
             else if (action.ToLower() == "split" && state.PlayerHands.Count == 1 && currentHand.Cards.Count == 2) {
@@ -137,10 +200,8 @@ public class BlackjackGameEngine : BaseGameEngine {
                         currentHand.Cards.RemoveAt(1);
                         state.PlayerHands.Add(secondHand);
 
-                        int seq = state.Sequence;
-                        currentHand.Cards.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
-                        secondHand.Cards.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
-                        state.Sequence = seq;
+                        currentHand.Cards.Add(DrawCardFromShoe(state));
+                        secondHand.Cards.Add(DrawCardFromShoe(state));
                     } else throw new Exception("Insufficient funds");
                 }
             } 
@@ -159,56 +220,61 @@ public class BlackjackGameEngine : BaseGameEngine {
                 }
             }
             else if (action.ToLower() == "hit") {
-                int seq = state.Sequence;
-                currentHand.Cards.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
-                state.Sequence = seq;
+                currentHand.Cards.Add(DrawCardFromShoe(state));
                 if (CalculateHandValue(currentHand.Cards) >= 21) {
-                    await AdvanceOrFinish(session, state, repo, questService);
+                    await AdvanceOrFinish(session, state, repo, questService, round.Id);
                 }
             } 
             else if (action.ToLower() == "stand") {
                 currentHand.IsStand = true;
-                await AdvanceOrFinish(session, state, repo, questService);
+                await AdvanceOrFinish(session, state, repo, questService, round.Id);
             }
 
             round.RandomResult = JsonSerializer.Serialize(state);
+            session.GameState = JsonSerializer.Serialize(state);
             if (state.IsRoundOver) round.TotalWinAmount = CalculateWin(state);
             repo.SaveRound(round);
+            repo.UpdateSession(session);
             await RealTimeService.NotifyGameUpdate(session.UserId, new { Action = action, State = state });
         });
-    }
 
-    private async Task AdvanceOrFinish(GameSession session, BlackjackState state, IGameRepository repo, IQuestService questService) {
-        if (state.ActiveHandIndex < state.PlayerHands.Count - 1) {
-            state.ActiveHandIndex++;
-        } else {
-            await FinishRoundAsync(session, state, repo, questService);
+        // Sync Cache AFTER Transaction Commit
+        using (var scope = ScopeFactory.CreateScope()) {
+            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+            var session = repo.GetSession(sessionId);
+            if (session != null) await BrainService.SyncProfileToCacheAsync(session.UserId, repo).ConfigureAwait(false);
         }
     }
 
-    private async Task FinishRoundAsync(GameSession session, BlackjackState state, IGameRepository repo, IQuestService questService) {
+    private async Task AdvanceOrFinish(GameSession session, BlackjackState state, IGameRepository repo, IQuestService questService, Guid roundId) {
+        if (state.ActiveHandIndex < state.PlayerHands.Count - 1) {
+            state.ActiveHandIndex++;
+        } else {
+            await FinishRoundAsync(session, state, repo, questService, roundId);
+        }
+    }
+
+    private async Task FinishRoundAsync(GameSession session, BlackjackState state, IGameRepository repo, IQuestService questService, Guid roundId) {
         state.IsRoundOver = true;
         int dVal = CalculateHandValue(state.DealerHand);
         bool anyHandAlive = state.PlayerHands.Any(h => CalculateHandValue(h.Cards) <= 21);
 
         if (anyHandAlive) {
-            int seq = state.Sequence;
             while (dVal < 17) {
-                state.DealerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
+                state.DealerHand.Add(DrawCardFromShoe(state));
                 dVal = CalculateHandValue(state.DealerHand);
             }
-            state.Sequence = seq;
         }
 
         decimal totalWin = CalculateWin(state);
         state.TotalWin = totalWin;
         if (totalWin > 0) {
             repo.UpdateGamePoolBalance(session.GameId, -totalWin);
-            await VaultService.ProcessWinAsync(session.UserId, totalWin, repo);
+            await VaultService.ProcessWinAsync(session.UserId, totalWin, repo, roundId);
             repo.UpdateRtpStats(session.GameId, session.UserId, 0, totalWin);
             await questService.UpdateProgressAsync(session.UserId, "WinAmount", totalWin, repo, RealTimeService, VaultService);
         }
-        BrainService.UpdateProfile(session.UserId, state.TotalInitialBet, totalWin, repo);
+        await BrainService.UpdateProfileAsync(session.UserId, state.TotalInitialBet, totalWin, repo);
     }
 
     private decimal CalculateWin(BlackjackState state) {
@@ -250,15 +316,10 @@ public class BlackjackGameEngine : BaseGameEngine {
     private string GetRank(string card) => card.Substring(0, card.Length - 1);
     private bool IsTenValue(string r) => r == "10" || r == "J" || r == "Q" || r == "K";
 
-    private string DrawCard(string serverSeed, string clientSeed, ref int seq) {
-        seq++;
-        int idx = RngService.GetNextInt(serverSeed, clientSeed, seq, 0, 52);
-        string[] ranks = { "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K" };
-        string[] suits = { "H", "D", "C", "S" };
-        return ranks[idx % 13] + suits[idx / 13];
+    public override Task<Outcome> GetOutcome(Guid roundId) {
+        return Task.FromResult(new Outcome { Id = roundId });
     }
 
-    public override Task<Outcome> GetOutcome(Guid roundId) => Task.FromResult(new Outcome { GameRoundId = roundId });
     public override async Task<object?> GetCurrentState(Guid sessionId) {
         return await ExecuteScopedAsync(repo => {
             var round = repo.GetLastRound(sessionId);

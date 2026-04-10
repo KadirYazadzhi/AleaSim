@@ -137,7 +137,7 @@ public class GameDirector : IGameDirector {
         // ANALYTICS: Update Real-Time RTP Stats
         if (session != null) {
             _repo.UpdateRtpStats(session.GameId, session.UserId, amount, round.TotalWinAmount);
-            _promotionService.ProcessWinActivity(session.UserId, round.TotalWinAmount, _repo);
+            await _promotionService.ProcessWinActivity(session.UserId, round.TotalWinAmount, _repo);
 
             if (user != null && !user.Username.StartsWith("Sim_") && user.Role != Role.Admin) {
                 _leaderboardService.SubmitScore(session.UserId, user.Username, round.TotalWinAmount, amount, gameType);
