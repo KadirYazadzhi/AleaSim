@@ -13,6 +13,7 @@ public interface IRedisCacheService {
     Task<T?> GetAsync<T>(string key);
     Task RemoveAsync(string key);
     Task<bool> IncrementRateLimitAsync(string key, TimeSpan window, int maxRequests = 5);
+    IDatabase? GetRedisDatabase();
 }
 
 public class RedisCacheService : IRedisCacheService {
@@ -86,4 +87,6 @@ public class RedisCacheService : IRedisCacheService {
         _localCache.Set(key, localCount, window);
         return localCount > maxRequests;
     }
+
+    public IDatabase? GetRedisDatabase() => _db;
 }

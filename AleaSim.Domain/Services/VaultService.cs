@@ -130,7 +130,7 @@ public class VaultService : IVaultService {
                     UserId = userId, 
                     Amount = -amount, 
                     Type = TransactionType.Bet, 
-                    Description = (user.Role == Role.Admin) ? "Admin Bet" : "Game Bet", 
+                    Description = "Game Bet", 
                     Timestamp = DateTime.UtcNow, 
                     ResultingBalance = user.Balance
                 });
@@ -140,14 +140,14 @@ public class VaultService : IVaultService {
                 
                 // CACHE INVALIDATION (fire and forget - no transaction dependency)
                 SafeFireAndForget(_cache.RemoveAsync($"user:profile:{userId}"), "Cache invalidation");
-                SafeFireAndForget(_realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance), "Balance notification");
+                await _realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance).ConfigureAwait(false);
             }
 
             return success;
         }
     }
 
-    public async Task ProcessWinAsync(Guid userId, decimal amount, IGameRepository repo) {
+    public async Task ProcessWinAsync(Guid userId, decimal amount, IGameRepository repo, Guid? referenceId = null) {
         // SECURITY: Validate decimal input (reject special values)
         if (!ValidationHelper.IsValidDecimal(amount) || amount <= 0) return;
         
@@ -160,6 +160,14 @@ public class VaultService : IVaultService {
         // NOTE: Transaction is managed by caller (BaseGameEngine.ExecuteScopedAsync or similar)
         // We don't start our own transaction to avoid nested transaction issues
         using var lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(5));
+
+        if (referenceId.HasValue) {
+            var existing = repo.GetTransaction(referenceId.Value);
+            if (existing != null) {
+                _logger.LogWarning($"Duplicate ProcessWin request for userId {userId}, referenceId {referenceId}");
+                return; // Already processed
+            }
+        }
 
         var user = repo.GetUser(userId);
         var profile = repo.GetPlayerProfile(userId);
@@ -190,7 +198,8 @@ public class VaultService : IVaultService {
         repo.UpdateUser(user);
         
         repo.SaveTransaction(new Transaction {
-            Id = Guid.NewGuid(), UserId = userId, Amount = amount, Type = TransactionType.Win, 
+            Id = referenceId ?? Guid.NewGuid(), // Use referenceId as Transaction ID for strict DB idempotency
+            UserId = userId, Amount = amount, Type = TransactionType.Win, 
             Description = "Game Win", Timestamp = DateTime.UtcNow, ResultingBalance = user.Balance
         });
 
@@ -198,8 +207,7 @@ public class VaultService : IVaultService {
         
         // CACHE INVALIDATION (fire and forget)
         SafeFireAndForget(_cache.RemoveAsync($"user:profile:{userId}"), "Cache invalidation");
-        SafeFireAndForget(_realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance), "Balance notification");
-    }
+        await _realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance).ConfigureAwait(false);    }
 
     public async Task<bool> CanAffordWinAsync(Guid userId, Guid gameId, decimal winAmount, IGameRepository repo, bool strictShadowCheck = false) {
         using var lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(2));
@@ -216,22 +224,9 @@ public class VaultService : IVaultService {
         // Strict mode (Shadow Testing)
         bool userHasShadowCredit = profile == null || profile.ShadowBalance >= winAmount;
         return casinoCanAfford && userHasShadowCredit;
-    }
+        }
 
-    public bool CanAffordWinCheck(Guid userId, Guid gameId, decimal winAmount, IGameRepository repo, bool strictShadowCheck = true) {
-        var game = repo.GetGame(gameId);
-        var profile = repo.GetPlayerProfile(userId);
-        if (game == null) return false;
-        
-        bool casinoCanAfford = game.PoolBalance >= winAmount;
-        bool userHasShadowCredit = profile == null || profile.ShadowBalance >= winAmount;
-        
-        if (!strictShadowCheck) return casinoCanAfford;
-        return casinoCanAfford && userHasShadowCredit;
-    }
-
-    public async Task CreditBonusAsync(Guid userId, decimal amount, decimal wageringRequirement, IGameRepository repo) {
-        if (amount <= 0) return;
+        public async Task CreditBonusAsync(Guid userId, decimal amount, decimal wageringRequirement, IGameRepository repo) {        if (amount <= 0) return;
         
         using var lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(5));
         using var transaction = repo.BeginTransaction();
@@ -327,8 +322,8 @@ public class VaultService : IVaultService {
                 return 0;
             }
 
-            // SECURITY: Round to 2 decimal places to prevent micro-transaction exploits
-            decimal amount = Math.Round(profile.PendingCashback, 2, MidpointRounding.ToZero);
+            // SECURITY: Round to 2 decimal places using AwayFromZero to be fair to the player (Issue 37)
+            decimal amount = Math.Round(profile.PendingCashback, 2, MidpointRounding.AwayFromZero);
             profile.PendingCashback = 0;
             user.Balance += amount;
             
@@ -343,7 +338,7 @@ public class VaultService : IVaultService {
             repo.SaveChanges();
             transaction.Commit();
             
-            SafeFireAndForget(_realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance), "Cashback claim notification");
+            await _realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance).ConfigureAwait(false);
             return amount;
         }
         catch {

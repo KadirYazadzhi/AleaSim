@@ -103,7 +103,7 @@
                             <MudText Typo="Typo.h5" Class="fw-black">@_lastReport.GameType ANALYSIS</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">Calculated in @((_lastReport.ExecutionTimeMs / 1000.0).ToString("F2"))s</MudText>
                         </div>
-                        <MudChip T="string" Color="@(GetRtpColor(_lastReport.ActualRTP))" Variant="Variant.Filled" Class="fw-bold">@_lastReport.ActualRTP.ToString("F2")% RTP</MudChip>
+                        <MudChip T="string" Color="@(GetRtpColor((double)_lastReport.ActualRTP))" Variant="Variant.Filled" Class="fw-bold">@_lastReport.ActualRTP.ToString("F2")% RTP</MudChip>
                     </div>
 
                     <div class="d-flex gap-2 mb-6">
@@ -177,7 +177,7 @@
                              <MudText Color="Color.Success" Class="fw-bold">@(context.Report?.TotalWin.ToString("C2") ?? "?")</MudText>
                         </MudTd>
                         <MudTd>
-                            <MudText Color="@(GetRtpColor(context.Report?.ActualRTP ?? 0))" Class="fw-bold">
+                            <MudText Color="@(GetRtpColor((double)(context.Report?.ActualRTP ?? 0)))" Class="fw-bold">
                                 @(context.Report?.ActualRTP.ToString("F2") ?? "0.00")%
                             </MudText>
                         </MudTd>

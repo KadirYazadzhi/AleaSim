@@ -49,8 +49,8 @@ public class AdminRoundEvent {
 public class RtpTrendPoint {
     public string Label { get; set; } = string.Empty;
     public double Rtp { get; set; }
-    public double Bets { get; set; }
-    public double Wins { get; set; }
+    public decimal Bets { get; set; }
+    public decimal Wins { get; set; }
 }
 
 public class ShadowCompareDto {
@@ -85,7 +85,7 @@ public class SimulationReport {
     public int TotalIterations { get; set; }
     public decimal TotalBet { get; set; }
     public decimal TotalWin { get; set; }
-    public double ActualRTP { get; set; }
+    public decimal ActualRTP { get; set; }
     public decimal MaxWin { get; set; }
     public int BonusGamesTriggered { get; set; }
     public int RespinsTriggered { get; set; }

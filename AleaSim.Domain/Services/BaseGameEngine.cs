@@ -34,50 +34,67 @@ public abstract class BaseGameEngine : IGame {
         var questService = scope.ServiceProvider.GetRequiredService<IQuestService>();
         var levelService = scope.ServiceProvider.GetRequiredService<ILevelService>();
 
-        using var tx = repo.BeginTransaction();
-        try {
-            var stopSetting = repo.GetGlobalSetting("EmergencyStop");
-            if (stopSetting == "true") {
-                throw new InvalidOperationException("SYSTEM_HALTED: The gaming platform is currently under maintenance.");
+        var stopSetting = await repo.GetGlobalSettingAsync("EmergencyStop");
+        if (stopSetting == "true") {
+            throw new InvalidOperationException("SYSTEM_HALTED: The gaming platform is currently under maintenance.");
+        }
+
+        bool betProcessed = false;
+            bool isExcluded = false;
+            Guid currentUserId = Guid.Empty;
+
+            using (var tx = repo.BeginTransaction()) {
+                try {
+                    var session = await repo.GetSessionAsync(sessionId);
+                    if (session == null) throw new Exception("Session not found");
+                    if (session.UserId != userId) throw new UnauthorizedAccessException("Session belongs to another user.");
+                    currentUserId = session.UserId;
+
+                    if (await VaultService.ProcessBetAsync(session.UserId, amount, repo)) {
+                        var bet = new Bet {
+                            Id = Guid.NewGuid(),
+                            GameSessionId = sessionId,
+                            UserId = session.UserId,
+                            Amount = amount,
+                            BetData = betData ?? "{}",
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        repo.SaveBet(bet);
+                        repo.UpdateGamePoolBalance(session.GameId, amount);
+                        
+                        var user = repo.GetUser(session.UserId);
+                        isExcluded = user?.Username.StartsWith("Sim_") == true || user?.Role == Role.Admin;
+
+                        await BrainService.UpdateProfileAsync(session.UserId, amount, 0, repo);
+                        tx.Commit();
+                        betProcessed = true;
+                    } else {
+                        throw new Exception("Insufficient funds");
+                    }
+                } catch {
+                    tx.Rollback();
+                    throw;
+                }
             }
 
-            var session = repo.GetSession(sessionId);
-            if (session == null) throw new Exception("Session not found");
-            if (session.UserId != userId) throw new UnauthorizedAccessException("Session belongs to another user.");
-            
-            if (await VaultService.ProcessBetAsync(session.UserId, amount, repo)) {
-                var bet = new Bet {
-                    Id = Guid.NewGuid(),
-                    GameSessionId = sessionId,
-                    UserId = session.UserId,
-                    Amount = amount,
-                    BetData = betData ?? "{}",
-                    CreatedAt = DateTime.UtcNow
-                };
-                repo.SaveBet(bet);
-                repo.UpdateGamePoolBalance(session.GameId, amount);
-                
-                var user = repo.GetUser(session.UserId);
-                bool isExcluded = user?.Username.StartsWith("Sim_") == true || user?.Role == Role.Admin;
-
-                BrainService.UpdateProfile(session.UserId, amount, 0, repo);
+            // 4. Perform non-critical updates AFTER the primary financial transaction is committed
+            if (betProcessed && currentUserId != Guid.Empty) {
+                // Sync Cache immediately for UI responsiveness
+                await BrainService.SyncProfileToCacheAsync(currentUserId, repo).ConfigureAwait(false);
 
                 if (!isExcluded) {
-                    PromotionService.ProcessBetActivity(session.UserId, amount, repo);
-                    // SEQUENTIAL AWAIT to prevent "Second operation started on this context"
-                    await JackpotService.Contribute(session.GameId, amount, repo);
-                    await questService.GenerateDailyQuests(session.UserId, repo);
-                    await questService.UpdateProgressAsync(session.UserId, "SpinCount", 1, repo, RealTimeService, VaultService);
-                    await levelService.AddExperience(session.UserId, amount, repo, RealTimeService);
+                    var session = await repo.GetSessionAsync(sessionId); // Refresh session for safety
+                    if (session != null) {
+                        // These are performed outside the main transaction to prevent pool exhaustion
+                        // but still sequential to avoid DB concurrency issues on the same repo context
+                        await PromotionService.ProcessBetActivity(currentUserId, amount, repo);
+                        await JackpotService.Contribute(session.GameId, amount, repo);
+                        await questService.GenerateDailyQuests(currentUserId, repo);
+                        await questService.UpdateProgressAsync(currentUserId, "SpinCount", 1, repo, RealTimeService, VaultService);
+                        await levelService.AddExperience(currentUserId, amount, repo, RealTimeService);
+                    }
                 }
-                tx.Commit();
-            } else {
-                throw new Exception("Insufficient funds");
             }
-        } catch {
-            tx.Rollback();
-            throw;
-        }
     }
 
     public virtual async Task<GameSession> StartSession(Guid userId, Guid gameId, int? seed = null, string? clientSeed = null) {
@@ -179,8 +196,8 @@ public abstract class BaseGameEngine : IGame {
     }
 
     protected void RotateServerSeed(GameSession session, int roundCount) {
-        // Rotate server seed every 100 rounds to prevent long-term pattern analysis
-        if (roundCount > 0 && roundCount % 100 == 0) {
+        // Rotate server seed every round to prevent long-term pattern analysis
+        if (roundCount > 0) {
             var newServerSeed = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
             var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(newServerSeed));
             var newServerSeedHash = Convert.ToHexString(hashBytes);

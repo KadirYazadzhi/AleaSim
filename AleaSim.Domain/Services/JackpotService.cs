@@ -29,24 +29,17 @@ public class JackpotService : IJackpotService {
             bool shouldContribute = jackpot.IsGlobal || (jackpot.GameId.HasValue && jackpot.GameId.Value == gameId);
             
             if (shouldContribute) {
-                // SECURITY: Use distributed lock to prevent race conditions
-                using var lockHandle = await _lockService.AcquireLockAsync($"jackpot:{jackpot.Id}", TimeSpan.FromSeconds(3));
-                
                 decimal increase = betAmount * jackpot.ContributionRate;
                 string redisKey = $"jackpot:{jackpot.Id}";
 
-                var redisVal = await db.StringGetAsync(redisKey);
-                if (!redisVal.HasValue) {
-                    await db.StringSetAsync(redisKey, (double)jackpot.CurrentValue);
-                }
-
+                // Atomic increment in Redis - NO LOCK NEEDED for contribution
                 double newValue = await db.StringIncrementAsync(redisKey, (double)increase);
                 
                 jackpot.CurrentValue = (decimal)newValue;
                 jackpot.LastUpdated = DateTime.UtcNow;
                 
-                // Only sync to DB every few increments to reduce load, or just sync when it crosses a whole number
-                if (Math.Floor(newValue) > Math.Floor(newValue - (double)increase)) {
+                // Sync to DB every 0.1 increment to improve persistence accuracy while maintaining performance
+                if (Math.Floor(newValue * 10) > Math.Floor((newValue - (double)increase) * 10)) {
                     repo.UpdateJackpot(jackpot);
                 }
 
@@ -55,8 +48,8 @@ public class JackpotService : IJackpotService {
         }
     }
 
-    public async Task<(bool Triggered, decimal WinAmount)> CheckJackpotTrigger(Guid gameId, int seed, int sequence, IGameRepository repo) {
-        double roll = _rngService.GetNextDouble(seed, HashCode.Combine(sequence, "jackpot_trigger"));
+    public async Task<(bool Triggered, decimal WinAmount)> CheckJackpotTrigger(Guid gameId, string serverSeed, string clientSeed, int sequence, IGameRepository repo) {
+        double roll = _rngService.GetNextDouble(serverSeed, clientSeed, HashCode.Combine(sequence, "jackpot_trigger"));
         var db = _redis.GetDatabase();
         
         var jackpots = repo.GetJackpots()

@@ -18,5 +18,10 @@ public class AuditEventConfiguration : IEntityTypeConfiguration<AuditEvent> {
         
         builder.Property(e => e.EventType).IsRequired().HasMaxLength(50);
         builder.Property(e => e.Hash).IsRequired();
+
+        // Indexes for performance (Issue 22)
+        builder.HasIndex(e => e.Timestamp);
+        builder.HasIndex(e => e.EventType);
+        builder.HasIndex(e => e.UserId);
     }
 }

@@ -30,6 +30,7 @@ public class SentinelBackgroundService : BackgroundService {
             try {
                 await ScanForAnomalies();
                 await ReconcileBalances();
+                await CleanupPresence();
                 await PeriodicCleanup();
             }
             catch (Exception ex) {
@@ -39,6 +40,17 @@ public class SentinelBackgroundService : BackgroundService {
             // Runs every 5 minutes for balance reconciliation, 30s for general scan
             await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
         }
+    }
+
+    private async Task CleanupPresence() {
+        using var scope = _scopeFactory.CreateScope();
+        var redis = scope.ServiceProvider.GetRequiredService<AleaSim.Domain.Services.IRedisCacheService>();
+        var db = redis.GetRedisDatabase();
+        if (db == null) return;
+
+        // Remove users who haven't heartbeated in 5 minutes (300 seconds)
+        long cutoff = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - 300;
+        await db.SortedSetRemoveRangeByScoreAsync("presence:online_users", double.NegativeInfinity, cutoff);
     }
 
     private async Task PeriodicCleanup() {
@@ -81,9 +93,16 @@ public class SentinelBackgroundService : BackgroundService {
             var transactions = repo.GetUserTransactions(user.Id, 1000); // Check last 1000 tx
             decimal calculatedBalance = transactions.Sum(t => t.Amount); 
             
-            // Note: This logic assumes user starts at 0 and all credit/debit are in Transactions.
-            // For AleaSim, starting balance is 5000 or 1000000 for Admin.
-            decimal expectedStartingBalance = (user.Role == AleaSim.Domain.Enums.Role.Admin) ? 1000000m : 5000m;
+            // FIXED: Do not hardcode starting balance (Issue 34). 
+            // All credits/debits should be in Transactions.
+            decimal expectedStartingBalance = 0;
+            
+            // LEGACY SUPPORT: If no transactions are found but user has balance, 
+            // they might be a legacy user created before the transaction log fix.
+            if (!transactions.Any() && user.Balance > 0) {
+                expectedStartingBalance = (user.Role == AleaSim.Domain.Enums.Role.Admin) ? 1000000m : 5000m;
+            }
+
             decimal diff = Math.Abs(user.Balance - (expectedStartingBalance + calculatedBalance));
 
             if (diff > 0.01m) {

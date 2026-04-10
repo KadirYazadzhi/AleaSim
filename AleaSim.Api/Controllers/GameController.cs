@@ -268,31 +268,38 @@ public class GameController : BaseApiController {
                 var stateJson = lastRound.RandomResult;
                 
                 // For slot games, check if spin was initiated
-                if (gameType.ToLower() == "slot") {
+                if (gameType.ToLower() == "slot" || gameType.ToLower() == "fruitblast") {
                     try {
-                        var state = JsonSerializer.Deserialize<SlotGameEngine.SlotState>(stateJson);
-                        if (state != null && state.Grid != null && state.Grid.Length > 0) {
-                            // Round has a result, can be resumed/replayed
-                            return Ok(new {
-                                HasIncompleteRound = true,
-                                RoundId = lastRound.Id,
-                                SessionId = sessionId,
-                                State = stateJson,
-                                Timestamp = lastRound.ExecutedAt
-                            });
+                        if (gameType.ToLower() == "slot") {
+                            var state = JsonSerializer.Deserialize<SlotGameEngine.SlotState>(stateJson);
+                            if (state != null && state.Grid != null && state.Grid.Length > 0) {
+                                return Ok(new { HasIncompleteRound = true, RoundId = lastRound.Id, SessionId = sessionId, State = stateJson, Timestamp = lastRound.ExecutedAt });
+                            }
+                        } else {
+                            var state = JsonSerializer.Deserialize<FruitBlastGameEngine.FruitBlastState>(stateJson);
+                            if (state != null && state.Grid != null && state.Grid.Length > 0 && !state.IsFinished) {
+                                return Ok(new { HasIncompleteRound = true, RoundId = lastRound.Id, SessionId = sessionId, State = stateJson, Timestamp = lastRound.ExecutedAt });
+                            }
                         }
                     }
-                    catch {
-                        // State parsing failed, no incomplete round
-                    }
+                    catch { }
                 }
                 
-                // For other games (Blackjack, Roulette, etc.)
-                // Check if round is not marked as finished
-                if (gameType.ToLower() == "blackjack") {
+                if (gameType.ToLower() == "blackjack" || gameType.ToLower() == "baccarat" || gameType.ToLower() == "roulette" || gameType.ToLower().StartsWith("dice")) {
                     try {
-                        var state = JsonSerializer.Deserialize<BlackjackGameEngine.BlackjackState>(stateJson);
-                        if (state != null && !state.IsRoundOver) {
+                        bool isFinished = false;
+                        if (gameType.ToLower() == "blackjack") {
+                            var state = JsonSerializer.Deserialize<BlackjackGameEngine.BlackjackState>(stateJson);
+                            isFinished = state?.IsRoundOver ?? true;
+                        } else if (gameType.ToLower() == "baccarat") {
+                            // Baccarat rounds are usually instant but we check if it was saved
+                            isFinished = false; // Always allow re-read of last baccarat round if it exists
+                        } else {
+                            // Dice and Roulette are instant
+                            isFinished = true; 
+                        }
+
+                        if (!isFinished) {
                             return Ok(new {
                                 HasIncompleteRound = true,
                                 RoundId = lastRound.Id,
@@ -302,9 +309,7 @@ public class GameController : BaseApiController {
                             });
                         }
                     }
-                    catch {
-                        // State parsing failed
-                    }
+                    catch { }
                 }
             }
 
@@ -479,6 +484,13 @@ public class GameController : BaseApiController {
     public async Task<IActionResult> RedeemVoucher(string code) {
         try {
             var userId = GetUserIdOrThrow();
+
+            // SECURITY: Rate limit voucher attempts (max 5 per 10 minutes)
+            string rateLimitKey = $"ratelimit:voucher:{userId}";
+            if (await _redisCache.IncrementRateLimitAsync(rateLimitKey, TimeSpan.FromMinutes(10), 5)) {
+                return StatusCode(429, "Too many voucher attempts. Please try again in 10 minutes.");
+            }
+
             decimal amount = await _voucherService.RedeemVoucher(userId, code, _repo, _vaultService);
             return Ok(new { Message = "Voucher redeemed successfully!", Amount = amount });
         }

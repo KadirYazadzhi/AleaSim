@@ -10,8 +10,11 @@ public interface IGameRepository {
 
     // Sessions & Users
     GameSession CreateSession(GameSession session);
+    Task<GameSession> CreateSessionAsync(GameSession session);
     GameSession? GetSession(Guid sessionId);
+    Task<GameSession?> GetSessionAsync(Guid sessionId);
     void UpdateSession(GameSession session);
+    Task UpdateSessionAsync(GameSession session);
     IEnumerable<GameSession> GetAllActiveSessions(); // Added
     IEnumerable<ActiveSessionDto> GetActiveSessionsDetails();
     void EndSession(Guid sessionId);
@@ -26,6 +29,7 @@ public interface IGameRepository {
     User? GetUser(Guid userId);
     User? GetUserBySessionId(Guid sessionId);
     User? GetUserByUsername(string username);
+    User? GetUserByReferralCode(string code);
     IEnumerable<User> SearchUsers(string query);
     IEnumerable<User> GetAllUsers();
     int GetTotalUserCount();
@@ -142,6 +146,7 @@ public interface IGameRepository {
 
     // Transactions
     void SaveTransaction(Transaction transaction);
+    Transaction? GetTransaction(Guid id);
     IEnumerable<Transaction> GetUserTransactions(Guid userId, int count);
 
     // Tournament History
@@ -150,6 +155,7 @@ public interface IGameRepository {
 
     // Global Settings
     string GetGlobalSetting(string key);
+    Task<string> GetGlobalSettingAsync(string key);
     IEnumerable<GlobalSetting> GetAllGlobalSettings();
     void SetGlobalSetting(string key, string value, string description = "");
 

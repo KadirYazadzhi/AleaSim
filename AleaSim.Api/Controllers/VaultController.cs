@@ -136,10 +136,10 @@ public class VaultController : BaseApiController {
     }
 
     [HttpPost("cashback/claim")]
-    public IActionResult ClaimCashback() {
+    public async Task<IActionResult> ClaimCashback() {
         try {
             var userId = GetUserIdOrThrow();
-            var amount = _vault.ClaimCashbackAsync(userId, _repo).GetAwaiter().GetResult();
+            var amount = await _vault.ClaimCashbackAsync(userId, _repo);
             
             if (amount <= 0) return BadRequest("No pending cashback to claim.");
             

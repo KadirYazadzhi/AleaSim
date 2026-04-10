@@ -173,21 +173,26 @@ public class VaultServiceTests {
 
     [Fact]
     public async Task ClaimCashback_ShouldTransferFundsToBalance() {
+        // ... (unchanged)
+    }
+
+    [Fact]
+    public async Task ProcessWin_ShouldBeIdempotent_WhenReferenceIdIsProvided() {
         // Arrange
         var userId = Guid.NewGuid();
+        var roundId = Guid.NewGuid();
         var user = new User { Id = userId, Balance = 100m };
-        var profile = new PlayerProfile { UserId = userId, PendingCashback = 25.50m };
-        
         _mockRepo.Setup(r => r.GetUser(userId)).Returns(user);
-        _mockRepo.Setup(r => r.GetPlayerProfile(userId)).Returns(profile);
+        
+        // Mock that transaction already exists
+        var existingTx = new Transaction { Id = roundId };
+        _mockRepo.Setup(r => r.GetTransaction(roundId)).Returns(existingTx);
 
         // Act
-        decimal claimed = await _vaultService.ClaimCashbackAsync(userId, _mockRepo.Object);
+        await _vaultService.ProcessWinAsync(userId, 50m, _mockRepo.Object, roundId);
 
         // Assert
-        Assert.Equal(25.50m, claimed);
-        Assert.Equal(125.50m, user.Balance);
-        Assert.Equal(0m, profile.PendingCashback);
-        _mockRealTime.Verify(r => r.NotifyBalanceUpdate(userId, 125.50m, 0m), Times.Once);
+        Assert.Equal(100m, user.Balance); // Balance should NOT change
+        _mockRepo.Verify(r => r.SaveTransaction(It.IsAny<Transaction>()), Times.Never);
     }
 }

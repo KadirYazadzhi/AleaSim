@@ -13,18 +13,13 @@ public interface IVaultService {
     /// Credits the win amount to the appropriate wallet.
     /// Updates Wagering Progress if Bonus is active.
     /// </summary>
-    Task ProcessWinAsync(Guid userId, decimal amount, IGameRepository repo);
+    Task ProcessWinAsync(Guid userId, decimal amount, IGameRepository repo, Guid? referenceId = null);
 
     /// <summary>
     /// Checks if the casino (Pool) can afford to pay this win.
     /// Also checks User's pRTP status (Shadow Wallet).
     /// </summary>
     Task<bool> CanAffordWinAsync(Guid userId, Guid gameId, decimal winAmount, IGameRepository repo, bool strictShadowCheck = true);
-
-    /// <summary>
-    /// Synchronous check for AI/Brain logic. Does not lock. Not transactional.
-    /// </summary>
-    bool CanAffordWinCheck(Guid userId, Guid gameId, decimal winAmount, IGameRepository repo, bool strictShadowCheck = true);
 
     /// <summary>
     /// Adds funds to the user's bonus wallet (e.g., from Raffle).

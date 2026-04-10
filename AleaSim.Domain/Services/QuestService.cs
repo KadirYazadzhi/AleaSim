@@ -35,19 +35,23 @@ public class QuestService : IQuestService {
                 progress.IsCompleted = true;
                 progress.CompletedAt = DateTime.UtcNow;
 
+                repo.UpdateUserQuestProgress(progress);
+
                 // Award Reward
                 await vault.CreditBonusAsync(userId, quest.RewardAmount, quest.RewardAmount * 5, repo);
 
-                // Notify User
-                await realTime.NotifyGameUpdate(userId, new {
-                    Type = "QuestCompleted",
-                    Title = quest.Title,
-                    Reward = quest.RewardAmount,
-                    Message = $"Mission Accomplished: {quest.Title}! Rewarded {quest.RewardAmount:C}."
-                });
+                // Notify User (Safe await)
+                try {
+                    await realTime.NotifyGameUpdate(userId, new {
+                        Type = "QuestCompleted",
+                        Title = quest.Title,
+                        Reward = quest.RewardAmount,
+                        Message = $"Mission Accomplished: {quest.Title}! Rewarded {quest.RewardAmount:C}."
+                    });
+                } catch { /* Suppress SignalR errors */ }
+            } else {
+                repo.UpdateUserQuestProgress(progress);
             }
-
-            repo.UpdateUserQuestProgress(progress);
         }
     }
 

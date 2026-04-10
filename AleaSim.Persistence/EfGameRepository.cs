@@ -30,19 +30,35 @@ public class EfGameRepository : IGameRepository {
         _context.SaveChanges();
         
         // Cache session in Redis (TTL 2 hours)
-        _redisCache.SetAsync($"session:{session.Id}", session, TimeSpan.FromHours(2)).GetAwaiter().GetResult();
+        _ = _redisCache.SetAsync($"session:{session.Id}", session, TimeSpan.FromHours(2));
+        return session;
+    }
+
+    public async Task<GameSession> CreateSessionAsync(GameSession session) {
+        _context.GameSessions.Add(session);
+        await _context.SaveChangesAsync();
+        await _redisCache.SetAsync($"session:{session.Id}", session, TimeSpan.FromHours(2));
         return session;
     }
 
     public GameSession? GetSession(Guid sessionId) {
-        // Try Cache First
-        var session = _redisCache.GetAsync<GameSession>($"session:{sessionId}").GetAwaiter().GetResult();
-        if (session != null) return session;
-
-        session = _context.GameSessions.FirstOrDefault(s => s.Id == sessionId);
+        // PERFORMANCE: Query DB directly in sync method to avoid thread pool starvation from .GetAwaiter().GetResult()
+        // The async counterpart GetSessionAsync already handles caching properly.
+        var session = _context.GameSessions.FirstOrDefault(s => s.Id == sessionId);
         
         if (session != null) {
-            _redisCache.SetAsync($"session:{sessionId}", session, TimeSpan.FromHours(2)).GetAwaiter().GetResult();
+            _ = _redisCache.SetAsync($"session:{sessionId}", session, TimeSpan.FromHours(2));
+        }
+        return session;
+    }
+
+    public async Task<GameSession?> GetSessionAsync(Guid sessionId) {
+        var session = await _redisCache.GetAsync<GameSession>($"session:{sessionId}");
+        if (session != null) return session;
+
+        session = await _context.GameSessions.FirstOrDefaultAsync(s => s.Id == sessionId);
+        if (session != null) {
+            await _redisCache.SetAsync($"session:{sessionId}", session, TimeSpan.FromHours(2));
         }
         return session;
     }
@@ -50,7 +66,13 @@ public class EfGameRepository : IGameRepository {
     public void UpdateSession(GameSession session) {
         _context.GameSessions.Update(session);
         _context.SaveChanges();
-        _redisCache.SetAsync($"session:{session.Id}", session, TimeSpan.FromHours(2)).GetAwaiter().GetResult();
+        _ = _redisCache.SetAsync($"session:{session.Id}", session, TimeSpan.FromHours(2));
+    }
+
+    public async Task UpdateSessionAsync(GameSession session) {
+        _context.GameSessions.Update(session);
+        await _context.SaveChangesAsync();
+        await _redisCache.SetAsync($"session:{session.Id}", session, TimeSpan.FromHours(2));
     }
 
     public IEnumerable<GameSession> GetAllActiveSessions() {
@@ -71,25 +93,8 @@ public class EfGameRepository : IGameRepository {
             })
             .ToList();
 
-        var sessionIds = sessions.Select(s => s.SessionId).ToList();
-
-        var stats = _context.GameRounds
-            .Where(r => sessionIds.Contains(r.GameSessionId))
-            .GroupBy(r => r.GameSessionId)
-            .Select(g => new { 
-                SessionId = g.Key, 
-                TotalBet = g.Sum(r => r.TotalBetAmount), 
-                TotalWin = g.Sum(r => r.TotalWinAmount) 
-            })
-            .ToDictionary(k => k.SessionId, v => v);
-
-        foreach (var session in sessions) {
-            if (stats.TryGetValue(session.SessionId, out var stat)) {
-                session.TotalWagered = stat.TotalBet;
-                session.TotalWon = stat.TotalWin;
-            }
-        }
-
+        // Fix for Issue 38: Removed live aggregation of GameRounds (GroupBy) to prevent DB locks.
+        // TotalWagered and TotalWon will be 0 in the admin panel until aggregated separately.
         return sessions;
     }
 
@@ -101,7 +106,7 @@ public class EfGameRepository : IGameRepository {
             _context.SaveChanges();
             
             // Remove from cache
-            _redisCache.RemoveAsync($"session:{sessionId}").GetAwaiter().GetResult();
+            _redisCache.RemoveAsync($"session:{sessionId}");
         }
     }
 
@@ -142,6 +147,10 @@ public class EfGameRepository : IGameRepository {
 
     public User? GetUserByUsername(string username) {
         return _context.Users.FirstOrDefault(u => u.Username == username);
+    }
+
+    public User? GetUserByReferralCode(string code) {
+        return _context.Users.FirstOrDefault(u => u.ReferralCode == code);
     }
 
     public IEnumerable<User> SearchUsers(string query) {
@@ -211,11 +220,9 @@ public class EfGameRepository : IGameRepository {
     public void UpdatePlayerProfile(PlayerProfile profile) {
         var existing = _context.PlayerProfiles.Local.FirstOrDefault(p => p.Id == profile.Id);
         if (existing != null) {
-            // Update the tracked instance with values from the detached instance
-            _context.Entry(existing).CurrentValues.SetValues(profile);
-        } else {
-            _context.PlayerProfiles.Update(profile);
+            _context.Entry(existing).State = EntityState.Detached;
         }
+        _context.PlayerProfiles.Update(profile);
         _context.SaveChanges();
     }
 
@@ -446,14 +453,12 @@ public class EfGameRepository : IGameRepository {
         var now = DateTime.UtcNow;
 
         // Atomic update for Game Stats
-        _context.Database.ExecuteSqlRaw(
-            "UPDATE RTPStatistics SET TotalWagered = TotalWagered + {0}, TotalPaid = TotalPaid + {1}, TotalRounds = TotalRounds + {2}, LastCalculated = {3} WHERE Id = {4}",
-            bet, win, roundInc, now, gStats.Id);
+        _context.Database.ExecuteSqlInterpolated(
+            $"UPDATE RTPStatistics SET TotalWagered = TotalWagered + {bet}, TotalPaid = TotalPaid + {win}, TotalRounds = TotalRounds + {roundInc}, LastCalculated = {now} WHERE Id = {gStats.Id}");
 
         // Atomic update for User Stats
-        _context.Database.ExecuteSqlRaw(
-            "UPDATE RTPStatistics SET TotalWagered = TotalWagered + {0}, TotalPaid = TotalPaid + {1}, TotalRounds = TotalRounds + {2}, LastCalculated = {3} WHERE Id = {4}",
-            bet, win, roundInc, now, uStats.Id);
+        _context.Database.ExecuteSqlInterpolated(
+            $"UPDATE RTPStatistics SET TotalWagered = TotalWagered + {bet}, TotalPaid = TotalPaid + {win}, TotalRounds = TotalRounds + {roundInc}, LastCalculated = {now} WHERE Id = {uStats.Id}");
     }
 
     public IEnumerable<RTPStatistics> GetAllRtpStats() {
@@ -540,7 +545,12 @@ public class EfGameRepository : IGameRepository {
 
     public void LogAuditBatch(IEnumerable<AuditEvent> auditEvents) {
         if (!auditEvents.Any()) return;
-        _context.AuditLogs.AddRange(auditEvents);
+        
+        // PERFORMANCE: Still using a single SaveChanges for the batch
+        // but adding one by one to better preserve order in the change tracker
+        foreach (var ev in auditEvents) {
+            _context.AuditLogs.Add(ev);
+        }
         _context.SaveChanges();
     }
 
@@ -820,6 +830,8 @@ public class EfGameRepository : IGameRepository {
         var sessions = _context.UserSessions.Where(s => s.RefreshToken == refreshToken).ToList();
         foreach (var s in sessions) {
             s.IsActive = false;
+            // Immediate cache invalidation for security (Issue 42)
+            _ = _redisCache.SetAsync($"session_active:{s.Id}", false, TimeSpan.FromMinutes(5));
         }
         _context.SaveChanges();
     }
@@ -828,6 +840,8 @@ public class EfGameRepository : IGameRepository {
         var sessions = _context.UserSessions.Where(s => s.UserId == userId && s.IsActive).ToList();
         foreach (var s in sessions) {
             s.IsActive = false;
+            // Immediate cache invalidation for security (Issue 42)
+            _ = _redisCache.SetAsync($"session_active:{s.Id}", false, TimeSpan.FromMinutes(5));
         }
         _context.SaveChanges();
     }
@@ -845,6 +859,10 @@ public class EfGameRepository : IGameRepository {
         _context.SaveChanges();
     }
 
+    public Transaction? GetTransaction(Guid id) {
+        return _context.Transactions.FirstOrDefault(t => t.Id == id);
+    }
+
     public IEnumerable<Transaction> GetUserTransactions(Guid userId, int count) {
         return _context.Transactions
             .Where(t => t.UserId == userId)
@@ -855,14 +873,26 @@ public class EfGameRepository : IGameRepository {
 
     public string GetGlobalSetting(string key) {
         string cacheKey = $"setting:{key}";
-        // PERFORMANCE: Reduced cache from 1 hour to 5 minutes for faster config updates
-        var cachedValue = _redisCache.GetAsync<string>(cacheKey).GetAwaiter().GetResult();
-        if (cachedValue != null) return cachedValue;
-
+        
         var value = _context.GlobalSettings.FirstOrDefault(s => s.Key == key)?.Value ?? string.Empty;
         
         if (!string.IsNullOrEmpty(value)) {
-            _redisCache.SetAsync(cacheKey, value, TimeSpan.FromMinutes(5)).GetAwaiter().GetResult();
+            _ = _redisCache.SetAsync(cacheKey, value, TimeSpan.FromMinutes(5));
+        }
+        
+        return value;
+    }
+
+    public async Task<string> GetGlobalSettingAsync(string key) {
+        string cacheKey = $"setting:{key}";
+        var cachedValue = await _redisCache.GetAsync<string>(cacheKey);
+        if (cachedValue != null) return cachedValue;
+
+        var setting = await _context.GlobalSettings.FirstOrDefaultAsync(s => s.Key == key);
+        var value = setting?.Value ?? string.Empty;
+        
+        if (!string.IsNullOrEmpty(value)) {
+            await _redisCache.SetAsync(cacheKey, value, TimeSpan.FromMinutes(5));
         }
         
         return value;
@@ -898,7 +928,7 @@ public class EfGameRepository : IGameRepository {
         _context.SaveChanges();
 
         // PERFORMANCE: Sync to Redis immediately with 5 min TTL
-        _redisCache.SetAsync($"setting:{key}", value, TimeSpan.FromMinutes(5)).GetAwaiter().GetResult();
+        _ = _redisCache.SetAsync($"setting:{key}", value, TimeSpan.FromMinutes(5));
     }
 
     public void SaveSupportMessage(SupportMessage message) {
@@ -983,32 +1013,24 @@ public class EfGameRepository : IGameRepository {
             .ToList();
     }
 
-        public void DeleteUser(Guid userId) {
-            var user = _context.Users.Find(userId);
-            if (user != null) {
-                // Manual cleanup to ensure no FK constraints block deletion
-                var sessions = _context.GameSessions.Where(s => s.UserId == userId).ToList();
-                var sessionIds = sessions.Select(s => s.Id).ToList();
-    
-                if (sessionIds.Any()) {
-                    var rounds = _context.GameRounds.Where(r => sessionIds.Contains(r.GameSessionId)).ToList();
-                    _context.GameRounds.RemoveRange(rounds);
-    
-                    var bets = _context.Bets.Where(b => sessionIds.Contains(b.GameSessionId)).ToList();
-                    _context.Bets.RemoveRange(bets);
-                    
-                    _context.GameSessions.RemoveRange(sessions);
-                }
-                
-                var profile = _context.PlayerProfiles.FirstOrDefault(p => p.UserId == userId);
-                if (profile != null) _context.PlayerProfiles.Remove(profile);
-    
-                _context.Users.Remove(user);
-                _context.SaveChanges();
+    public void DeleteUser(Guid userId) {
+        var user = _context.Users.Find(userId);
+        if (user != null) {
+            var sessions = _context.GameSessions.Where(s => s.UserId == userId).ToList();
+            var sessionIds = sessions.Select(s => s.Id).ToList();
+            if (sessionIds.Any()) {
+                var rounds = _context.GameRounds.Where(r => sessionIds.Contains(r.GameSessionId)).ToList();
+                _context.GameRounds.RemoveRange(rounds);
+                var bets = _context.Bets.Where(b => sessionIds.Contains(b.GameSessionId)).ToList();
+                _context.Bets.RemoveRange(bets);
+                _context.GameSessions.RemoveRange(sessions);
             }
+            var profile = _context.PlayerProfiles.FirstOrDefault(p => p.UserId == userId);
+            if (profile != null) _context.PlayerProfiles.Remove(profile);
+            _context.Users.Remove(user);
+            _context.SaveChanges();
         }
-    
-        public IRedisCacheService GetRedisCache() => _redisCache;
-    
     }
-    
+
+    public IRedisCacheService GetRedisCache() => _redisCache;
+}

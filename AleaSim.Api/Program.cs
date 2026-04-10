@@ -42,19 +42,16 @@ builder.Services.AddCors(options => {
             ?? Array.Empty<string>();
         
         // Default allowed origins for development and production
-        var defaultOrigins = new List<string> {
-            "http://localhost:5241",  // Blazor WASM dev
-            "http://localhost:5000",  // Alternative dev port
-            "https://localhost:5001", // HTTPS dev
-            "https://aleasim.kadiryazadzhi.tech" // Production domain
-        };
+        var finalOrigins = new List<string>(allowedOrigins);
+        finalOrigins.Add("https://aleasim.kadiryazadzhi.tech");
+
+        if (builder.Environment.IsDevelopment()) {
+            finalOrigins.Add("http://localhost:5241");
+            finalOrigins.Add("http://localhost:5000");
+            finalOrigins.Add("https://localhost:5001");
+        }
         
-        // Merge config origins with defaults (config takes precedence)
-        var finalOrigins = allowedOrigins.Length > 0 
-            ? allowedOrigins 
-            : defaultOrigins.ToArray();
-        
-        policy.WithOrigins(finalOrigins)
+        policy.WithOrigins(finalOrigins.Distinct().ToArray())
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials(); // Required for SignalR
@@ -147,10 +144,11 @@ builder.Services.AddAuthentication(x => {
             // Extract JTI (Session ID)
             var jtiClaim = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti) ?? context.Principal?.FindFirst("jti");
             
-            // If JTI is missing, we might be in a legacy session or a dev environment.
-            // For production stability, we allow it for now but log warning.
             if (jtiClaim == null || !Guid.TryParse(jtiClaim.Value, out var sessionId)) {
-                return; // Let it pass if JTI is missing (Backward compatibility)
+                var env = context.HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>();
+                if (env.IsDevelopment()) return;
+                context.Fail("Session ID (JTI) is missing or invalid.");
+                return;
             }
 
             // Check Cache first for session status
@@ -159,14 +157,13 @@ builder.Services.AddAuthentication(x => {
             
             if (isActive == null) {
                 var session = repo.GetUserSession(sessionId);
-                // If session record exists, check its status. If missing, we assume it's valid 
-                // until the next refresh cycle (to prevent locking out valid legacy users).
-                isActive = (session == null) || session.IsActive;
+                // SECURITY: Fail Closed. If session is not found in DB, it is NOT active.
+                isActive = session != null && session.IsActive;
                 await redis.SetAsync(cacheKey, isActive.Value, TimeSpan.FromMinutes(5)); 
             }
 
             if (!isActive.Value) {
-                context.Fail("Session revoked");
+                context.Fail("Session has been revoked or expired.");
             }
         }
     };

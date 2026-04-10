@@ -19,8 +19,11 @@ public class GameRoundConfiguration : IEntityTypeConfiguration<GameRound> {
         builder.HasKey(r => r.Id);
         builder.HasIndex(r => r.GameSessionId);
         builder.HasIndex(r => r.ExecutedAt);
-        
+
         builder.Property(r => r.TotalBetAmount).HasPrecision(18, 2);
         builder.Property(r => r.TotalWinAmount).HasPrecision(18, 2);
-    }
-}
+
+        // Map to native JSON for performance (Issue 55)
+        builder.Property(r => r.RandomResult).HasColumnType("json");
+        builder.Property(r => r.ShadowBrainResult).HasColumnType("json");
+        }}

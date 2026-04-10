@@ -21,7 +21,7 @@ public class PlayerProfile {
     public decimal MonthlyWagered { get; set; }
 
     // --- RTP Tracking ---
-    public double ActualRtp { get; set; } = 0.0;       // Current reality
+    public decimal ActualRtp { get; set; } = 0m;       // Current reality
 
     // --- Strict pRTP Accounting ---
     public decimal ShadowBalance { get; set; } = 0m; // Accrued funds available for wins

@@ -108,10 +108,9 @@ public class SimulationService : ISimulationService {
                 // to see the true return of the math model.
                 if (!pendingFeature) {
                     await engine.PlaceBet(dummyUser.Id, session.Id, request.BetAmount, betData);
+                    // Track total theoretical bet (the denominator for RTP)
+                    totalBet += request.BetAmount;
                 }
-                
-                // Track total theoretical bet (the denominator for RTP)
-                totalBet += request.BetAmount;
 
                 var round = await engine.ResolveRound(session.Id);
                 
@@ -196,7 +195,7 @@ public class SimulationService : ISimulationService {
                 TotalIterations = request.Iterations,
                 TotalBet = totalBet,
                 TotalWin = totalWin,
-                ActualRTP = (double)rtpResult,
+                ActualRTP = rtpResult,
                 MaxWin = maxWin,
                 BonusGamesTriggered = bonusCount,
                 RespinsTriggered = respinCount,

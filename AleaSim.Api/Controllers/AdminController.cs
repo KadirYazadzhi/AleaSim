@@ -38,8 +38,8 @@ public class AdminController : ControllerBase {
         var result = trend.Select(t => new RtpTrendPoint {
             Label = t.Hour.ToString("HH:mm"),
             Rtp = t.Bets > 0 ? (double)(t.Wins / t.Bets) * 100 : 95.0,
-            Bets = (double)t.Bets,
-            Wins = (double)t.Wins
+            Bets = t.Bets,
+            Wins = t.Wins
         }).ToList();
 
         return Ok(result);

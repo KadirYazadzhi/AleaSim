@@ -101,7 +101,7 @@ public class AuthController : ControllerBase {
         }
         
         var totp = new OtpNet.Totp(Convert.FromBase64String(user.TwoFactorSecret));
-        if (!totp.VerifyTotp(request.Code, out _, new OtpNet.VerificationWindow(2, 2))) {
+        if (!totp.VerifyTotp(request.Code, out _, new OtpNet.VerificationWindow(1, 1))) {
             return BadRequest("Invalid 2FA code.");
         }
 
@@ -240,7 +240,6 @@ public class AuthController : ControllerBase {
                 Role = user.Role.ToString(),
                 AvatarUrl = string.IsNullOrEmpty(user.AvatarUrl) ? $"https://api.dicebear.com/7.x/bottts/svg?seed={user.Username}" : user.AvatarUrl,
                 ActiveGameStateJson = activeSession?.GameState,
-                SymbolAffinityJson = userProfile.SymbolAffinityJson,
                 TotalWagered = rtpStats.TotalWagered,
                 TotalWon = rtpStats.TotalPaid,
                 TotalRounds = (int)rtpStats.TotalRounds,
@@ -256,12 +255,8 @@ public class AuthController : ControllerBase {
                 LuckyCloverLevel = userProfile.LuckyCloverLevel,
                 CashbackLevel = userProfile.CashbackLevel,
                 XpBoostLevel = userProfile.XpBoostLevel,
-                VolatilityScore = userProfile.VolatilityScore,
-                ChurnRiskScore = userProfile.ChurnRiskScore,
                 BiggestWin = biggestWin,
                 PendingCashback = userProfile.PendingCashback,
-                AvgSpinInterval = userProfile.AvgSpinInterval,
-                LossStreak = userProfile.LossStreak,
                 LuckFactor = (decimal)luckFactor,
                 FruitBlastLifetimeExplosions = userProfile.FruitBlastLifetimeExplosions,
                 Progression = new UserProgressionDto {
@@ -354,11 +349,14 @@ public class AuthController : ControllerBase {
              AvatarUrl = $"https://api.dicebear.com/7.x/bottts/svg?seed={request.Username}",
              CreatedAt = DateTime.UtcNow,
              IsActive = true,
-             ReferralCode = request.Username.ToLower() // Auto-generate their own ref code
+             ReferralCode = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper() 
          };
 
          if (!string.IsNullOrEmpty(request.ReferralCode)) {
-             var referrer = _repository.GetAllUsers().FirstOrDefault(u => u.ReferralCode == request.ReferralCode || u.Username.ToLower() == request.ReferralCode.ToLower());
+             // PERFORMANCE: Use optimized repository methods instead of loading all users (Issue 45)
+             var referrer = _repository.GetUserByReferralCode(request.ReferralCode) 
+                         ?? _repository.GetUserByUsername(request.ReferralCode);
+             
              if (referrer != null) {
                  user.ReferredById = referrer.Id;
                  _auditService.LogEvent("REFERRAL_JOIN", $"User {user.Username} joined via referral from {referrer.Username}", referrer.Id.ToString(), user.Id.ToString());
@@ -366,6 +364,17 @@ public class AuthController : ControllerBase {
          }
          
          _repository.CreateUser(user);
+
+         // 3. FINANCIAL TRACEABILITY: Log the initial balance transaction (Issue 34)
+         _repository.SaveTransaction(new Transaction {
+             Id = Guid.NewGuid(),
+             UserId = userId,
+             Amount = user.Balance,
+             Type = TransactionType.Deposit,
+             Description = "Initial Sign-up Bonus",
+             Timestamp = DateTime.UtcNow,
+             ResultingBalance = user.Balance
+         });
 
          // INITIALIZE SUB-ENTITIES IMMEDIATELY
          _repository.CreatePlayerProfile(new PlayerProfile { Id = Guid.NewGuid(), UserId = userId });

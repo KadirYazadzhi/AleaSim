@@ -145,7 +145,16 @@ public class GameHub : Hub {
     public override async Task OnConnectedAsync() {
         var userId = Context.UserIdentifier;
         if (!string.IsNullOrEmpty(userId)) {
-            await _redisCache.SetAsync($"online_user:{userId}", true, TimeSpan.FromMinutes(5));
+            var db = _redisCache.GetRedisDatabase();
+            if (db != null) {
+                // Use a Sorted Set for online users (Score = Timestamp)
+                // This allows efficient cleanup of zombie sessions (Issue 33)
+                await db.SortedSetAddAsync("presence:online_users", userId, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                
+                // Track individual connections for this user to support multi-tab (Issue 56)
+                await db.SetAddAsync($"presence:connections:{userId}", Context.ConnectionId);
+                await db.KeyExpireAsync($"presence:connections:{userId}", TimeSpan.FromHours(24));
+            }
         }
         await base.OnConnectedAsync();
     }
@@ -153,7 +162,16 @@ public class GameHub : Hub {
     public override async Task OnDisconnectedAsync(Exception? exception) {
         var userId = Context.UserIdentifier;
         if (!string.IsNullOrEmpty(userId)) {
-            await _redisCache.RemoveAsync($"online_user:{userId}");
+            var db = _redisCache.GetRedisDatabase();
+            if (db != null) {
+                await db.SetRemoveAsync($"presence:connections:{userId}", Context.ConnectionId);
+                
+                // Only remove from online_users if NO MORE active connections exist for this user
+                long connectionCount = await db.SetLengthAsync($"presence:connections:{userId}");
+                if (connectionCount == 0) {
+                    await db.SortedSetRemoveAsync("presence:online_users", userId);
+                }
+            }
         }
 
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Slot");

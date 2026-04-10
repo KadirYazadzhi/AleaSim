@@ -68,11 +68,13 @@ public class AuditWriterBackgroundService : BackgroundService {
             using var scope = _scopeFactory.CreateScope();
             var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
             repo.LogAuditBatch(batch);
-            batch.Clear();
         }
         catch (Exception ex) {
-            _logger.LogError(ex, "Failed to flush audit batch");
-            // Note: In production, consider retry logic or dead-letter storage
+            _logger.LogError(ex, "Failed to flush audit batch of {Count} events. Logs are dropped to prevent memory exhaustion.", batch.Count);
+            // Note: In production, consider dead-letter storage
+        }
+        finally {
+            batch.Clear();
         }
         return Task.CompletedTask;
     }
