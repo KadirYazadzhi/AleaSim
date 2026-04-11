@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AleaSim.Shared.Models;
 
 public class StartSessionRequest {
@@ -26,6 +28,7 @@ public class StartSessionResponse {
 }
 
 public class PlaceBetRequest {
+    [Range(0.01, 1000000, ErrorMessage = "Bet amount must be between 0.01 and 1,000,000.")]
     public decimal Amount { get; set; }
     public object? BetData { get; set; } 
 }
@@ -70,6 +73,8 @@ public class GameActionResponse {
 public class RouletteBetDto {
     public string Type { get; set; } = string.Empty; // "number", "color", "evenodd"
     public string Value { get; set; } = string.Empty; // "17", "red", "even"
+    
+    [Range(0.01, 1000000, ErrorMessage = "Bet amount must be positive.")]
     public decimal Amount { get; set; }
 }
 
