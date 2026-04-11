@@ -8,7 +8,10 @@ namespace AleaSim.Domain.Extensions;
 public static class ServiceCollectionExtensions {
     public static IServiceCollection AddAleaSimCore(this IServiceCollection services) {
         
-        services.AddMemoryCache(); 
+        services.AddMemoryCache(options => {
+            // SECURITY: Set absolute limits to prevent OutOfMemory via cache-stuffing attacks (Issue 3)
+            options.SizeLimit = 1024 * 100; // e.g., 100,000 "units" (each cache entry should specify Size = 1)
+        }); 
         services.AddSingleton<ILockService, RedisLockService>(); // Switched to Redis distributed locking
         services.AddSingleton<IBackgroundTaskQueue>(new BackgroundTaskQueue(1000));
 

@@ -62,7 +62,10 @@ public class BrainService : IBrainService {
     }
 
     public void SetForcedDirective(Guid userId, BrainDirective directive) {
-        _cache.Set($"brain_force_{userId}", directive, TimeSpan.FromMinutes(10));
+        _cache.Set($"brain_force_{userId}", directive, new MemoryCacheEntryOptions {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+            Size = 1
+        });
     }
 
     public async Task<BrainDirective> DecideOutcomeAsync(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo, bool isShadowMode = false) {
