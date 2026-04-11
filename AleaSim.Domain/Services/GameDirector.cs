@@ -22,6 +22,7 @@ public class GameDirector : IGameDirector {
     private readonly ILeaderboardService _leaderboardService;
     private readonly IRealTimeService _realTime;
     private readonly IAchievementService _achievementService;
+    private readonly IBackgroundTaskQueue _taskQueue;
 
     public GameDirector(
         Func<string, IGame> gameResolver, 
@@ -30,7 +31,8 @@ public class GameDirector : IGameDirector {
         IPromotionService promotionService,
         ILeaderboardService leaderboardService,
         IRealTimeService realTime,
-        IAchievementService achievementService) 
+        IAchievementService achievementService,
+        IBackgroundTaskQueue taskQueue) 
     {
         _gameResolver = gameResolver;
         _repo = repo;
@@ -39,6 +41,7 @@ public class GameDirector : IGameDirector {
         _leaderboardService = leaderboardService;
         _realTime = realTime;
         _achievementService = achievementService;
+        _taskQueue = taskQueue;
     }
 
     public async Task<object?> GetCurrentState(string gameType, Guid sessionId) {
@@ -170,8 +173,11 @@ public class GameDirector : IGameDirector {
             LifetimeWon = freshProfile?.TotalPaid ?? 0
         });
 
-        // ASYNC ACHIEVEMENT CHECK
-        _ = Task.Run(() => _achievementService.CheckAchievements(userId, _repo, _realTime));
+        // ASYNC ACHIEVEMENT CHECK (Issue 2)
+        await _taskQueue.QueueBackgroundWorkItemAsync(async (ct) => {
+            _achievementService.CheckAchievements(userId, _repo, _realTime);
+            await ValueTask.CompletedTask;
+        });
 
         return round;
     }

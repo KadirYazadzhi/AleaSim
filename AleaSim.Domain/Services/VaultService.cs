@@ -12,22 +12,24 @@ public class VaultService : IVaultService {
     private readonly ILockService _lockService;
     private readonly IRedisCacheService _cache;
     private readonly ILogger<VaultService> _logger;
+    private readonly IBackgroundTaskQueue _taskQueue;
 
-    public VaultService(IRealTimeService realTime, ILockService lockService, IRedisCacheService cache, ILogger<VaultService> logger) {
+    public VaultService(IRealTimeService realTime, ILockService lockService, IRedisCacheService cache, ILogger<VaultService> logger, IBackgroundTaskQueue taskQueue) {
         _realTime = realTime;
         _lockService = lockService;
         _cache = cache;
         _logger = logger;
+        _taskQueue = taskQueue;
     }
     
-    // IMPROVEMENT: Safe fire-and-forget wrapper
-    private void SafeFireAndForget(Task task, string operationName) {
-        _ = Task.Run(async () => {
+    // IMPROVEMENT: Proper background task queue pattern (Issue 2)
+    private async Task EnqueueTask(Task task, string operationName) {
+        await _taskQueue.QueueBackgroundWorkItemAsync(async (ct) => {
             try {
                 await task;
             }
             catch (Exception ex) {
-                _logger.LogError(ex, "Fire-and-forget task failed: {Operation}", operationName);
+                _logger.LogError(ex, "Background task failed: {Operation}", operationName);
             }
         });
     }
@@ -148,9 +150,9 @@ public class VaultService : IVaultService {
                 // We just prepare the entities for commit
                 
                 // CACHE INVALIDATION (fire and forget - no transaction dependency)
-                // FIXED (Issue 26): Use SafeFireAndForget for both to avoid awaiting inside the transaction/lock
-                SafeFireAndForget(_cache.RemoveAsync($"user:profile:{userId}"), "Cache invalidation");
-                SafeFireAndForget(_realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance), "Balance update notification");
+                // FIXED (Issue 26): Use background queue for both to avoid awaiting inside the transaction/lock
+                await EnqueueTask(_cache.RemoveAsync($"user:profile:{userId}"), "Cache invalidation");
+                await EnqueueTask(_realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance), "Balance update notification");
             }
 
             return success;
@@ -216,8 +218,9 @@ public class VaultService : IVaultService {
         // NOTE: SaveChanges() and Commit() will be called by caller
         
         // CACHE INVALIDATION (fire and forget)
-        SafeFireAndForget(_cache.RemoveAsync($"user:profile:{userId}"), "Cache invalidation");
-        await _realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance).ConfigureAwait(false);    }
+        await EnqueueTask(_cache.RemoveAsync($"user:profile:{userId}"), "Cache invalidation");
+        await EnqueueTask(_realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance), "Balance update notification");
+    }
 
     public async Task<bool> CanAffordWinAsync(Guid userId, Guid gameId, decimal winAmount, IGameRepository repo, bool strictShadowCheck = false) {
         using var lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(2));
@@ -261,7 +264,7 @@ public class VaultService : IVaultService {
             repo.SaveChanges();
             transaction.Commit();
             
-            SafeFireAndForget(_realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance), "Bonus credit notification");
+            await EnqueueTask(_realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance), "Bonus credit notification");
         }
         catch {
             transaction.Rollback();
@@ -305,7 +308,7 @@ public class VaultService : IVaultService {
             repo.SaveChanges();
             transaction.Commit();
             
-            SafeFireAndForget(_realTime.NotifyBalanceUpdate(userId, user.Balance, 0), "Cashout notification");
+            await EnqueueTask(_realTime.NotifyBalanceUpdate(userId, user.Balance, 0), "Cashout notification");
             return true;
         }
         catch {

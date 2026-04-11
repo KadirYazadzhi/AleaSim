@@ -13,6 +13,7 @@ public class VaultServiceTests {
     private readonly Mock<IGameRepository> _mockRepo;
     private readonly Mock<ILockService> _mockLock;
     private readonly Mock<IRedisCacheService> _mockCache;
+    private readonly Mock<IBackgroundTaskQueue> _mockTaskQueue;
     private readonly VaultService _vaultService;
 
     public VaultServiceTests() {
@@ -31,11 +32,13 @@ public class VaultServiceTests {
         _mockCache.Setup(x => x.RemoveAsync(It.IsAny<string>()))
                   .Returns(Task.CompletedTask);
 
+        _mockTaskQueue = new Mock<IBackgroundTaskQueue>();
+
         _mockLock.Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
                  .ReturnsAsync(new Mock<IDisposable>().Object);
 
         var mockLogger = new Mock<ILogger<VaultService>>();
-        _vaultService = new VaultService(_mockRealTime.Object, _mockLock.Object, _mockCache.Object, mockLogger.Object);
+        _vaultService = new VaultService(_mockRealTime.Object, _mockLock.Object, _mockCache.Object, mockLogger.Object, _mockTaskQueue.Object);
     }
 
     [Fact]

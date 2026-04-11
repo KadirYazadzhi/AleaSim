@@ -19,6 +19,7 @@ public class AdminService : IAdminService {
     private readonly IConfiguration _config;
     private readonly ILockService _lockService;
     private readonly IJackpotService _jackpotService;
+    private readonly IBackgroundTaskQueue _taskQueue;
 
     public AdminService(
         IGameRepository repository,
@@ -29,7 +30,8 @@ public class AdminService : IAdminService {
         IMemoryCache cache,
         IConfiguration config,
         ILockService lockService,
-        IJackpotService jackpotService) {
+        IJackpotService jackpotService,
+        IBackgroundTaskQueue taskQueue) {
         _repository = repository;
         _vaultService = vaultService;
         _auditService = auditService;
@@ -39,6 +41,7 @@ public class AdminService : IAdminService {
         _config = config;
         _lockService = lockService;
         _jackpotService = jackpotService;
+        _taskQueue = taskQueue;
     }
 
     public Task<AdminDashboardStats> GetLiveStats() {
@@ -240,7 +243,9 @@ public class AdminService : IAdminService {
                 await _realTime.BroadcastMessage("System", "⚠️ System Maintenance Notice: Please finish your active rounds. The system will undergo maintenance shortly.");
                 break;
             case "BackupDb":
-                _ = Task.Run(() => RunBackupAsync()); // Background
+                await _taskQueue.QueueBackgroundWorkItemAsync(async (ct) => {
+                    await RunBackupAsync();
+                });
                 break;
             case "BlockIp":
                 // Mock blocking logic

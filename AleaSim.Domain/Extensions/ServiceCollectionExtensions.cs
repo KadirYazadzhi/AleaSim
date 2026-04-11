@@ -10,6 +10,7 @@ public static class ServiceCollectionExtensions {
         
         services.AddMemoryCache(); 
         services.AddSingleton<ILockService, RedisLockService>(); // Switched to Redis distributed locking
+        services.AddSingleton<IBackgroundTaskQueue>(new BackgroundTaskQueue(1000));
 
         // Core Engines & Logic
         services.AddSingleton<IRngService, DeterministicRngService>();

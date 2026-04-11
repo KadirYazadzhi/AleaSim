@@ -103,6 +103,7 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<AleaSim.Api.Worker
 builder.Services.AddHostedService<AleaSim.Api.Workers.RaffleBackgroundService>();
 builder.Services.AddHostedService<AleaSim.Api.Workers.DailyBonusBackgroundService>();
 builder.Services.AddHostedService<AleaSim.Api.Workers.TournamentPayoutBackgroundService>();
+builder.Services.AddHostedService<AleaSim.Api.Workers.QueuedHostedService>();
 builder.Services.AddHostedService<AleaSim.Api.Workers.AuditWriterBackgroundService>();
 builder.Services.AddHostedService<AleaSim.Api.Workers.FinancialReconciliationService>(); // Financial integrity check
 
