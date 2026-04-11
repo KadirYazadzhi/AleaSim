@@ -174,9 +174,9 @@ public class GameDirector : IGameDirector {
         });
 
         // ASYNC ACHIEVEMENT CHECK (Issue 2)
-        await _taskQueue.QueueBackgroundWorkItemAsync(async (ct) => {
+        await _taskQueue.QueueBackgroundWorkItemAsync(ct => {
             _achievementService.CheckAchievements(userId, _repo, _realTime);
-            await ValueTask.CompletedTask;
+            return ValueTask.CompletedTask;
         });
 
         return round;

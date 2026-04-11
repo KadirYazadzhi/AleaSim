@@ -9,6 +9,9 @@ public interface IPasswordHasher {
 }
 
 public class PasswordHasher : IPasswordHasher {
+    // SECURITY: In 2026, Argon2id is the preferred choice. 
+    // For PBKDF2-HMAC-SHA256, OWASP recommends at least 600,000 iterations.
+    // Keeping current values for existing DB compatibility but noting for next migration.
     private const int SaltSize = 16; // 128 bit
     private const int KeySize = 32;  // 256 bit
     private const int Iterations = 100000;
