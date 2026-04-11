@@ -70,7 +70,7 @@ public class DiceGameEngine : BaseGameEngine {
             int roundNum = repo.GetRoundCount(sessionId) + 1;
             int nonce = roundNum;
 
-            var directive = BrainService.DecideOutcome(session.UserId, _gameId, lastBet.Amount, repo);
+            var directive = await BrainService.DecideOutcomeAsync(session.UserId, _gameId, lastBet.Amount, repo);
             
             DiceResultDto result = new DiceResultDto();
             
@@ -95,6 +95,8 @@ public class DiceGameEngine : BaseGameEngine {
                 repo.UpdateGamePoolBalance(_gameId, -winAmount);
                 await VaultService.ProcessWinAsync(session.UserId, winAmount, repo, roundId);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", winAmount, repo, RealTimeService, VaultService);
+                
+                session.TotalWon += winAmount;
             }
             
             await questService.UpdateProgressAsync(session.UserId, "SpinCount", 1, repo, RealTimeService, VaultService);
@@ -103,7 +105,7 @@ public class DiceGameEngine : BaseGameEngine {
             int roundCount = repo.GetRoundCount(sessionId);
             RotateServerSeed(session, roundCount);
 
-            var shadowDirective = BrainService.DecideOutcome(session.UserId, session.GameId, lastBet.Amount, repo, isShadowMode: true);
+            var shadowDirective = await BrainService.DecideOutcomeAsync(session.UserId, session.GameId, lastBet.Amount, repo, isShadowMode: true);
 
             var round = new GameRound {
                 Id = roundId,

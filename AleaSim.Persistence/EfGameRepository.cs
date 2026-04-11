@@ -89,12 +89,13 @@ public class EfGameRepository : IGameRepository {
                 SessionId = x.s.Id,
                 Username = x.u.Username,
                 GameName = x.g.Name,
-                StartedAt = x.s.StartedAt
+                StartedAt = x.s.StartedAt,
+                TotalWagered = x.s.TotalWagered,
+                TotalWon = x.s.TotalWon
             })
             .ToList();
 
-        // Fix for Issue 38: Removed live aggregation of GameRounds (GroupBy) to prevent DB locks.
-        // TotalWagered and TotalWon will be 0 in the admin panel until aggregated separately.
+        // Fix for Issue 38: Uses pre-aggregated stats from GameSession entity for high performance.
         return sessions;
     }
 
@@ -185,10 +186,9 @@ public class EfGameRepository : IGameRepository {
     public void UpdateUser(User user) {
         var existing = _context.Users.Local.FirstOrDefault(u => u.Id == user.Id);
         if (existing != null) {
-            _context.Entry(existing).CurrentValues.SetValues(user);
-        } else {
-            _context.Users.Update(user);
+            _context.Entry(existing).State = EntityState.Detached;
         }
+        _context.Users.Update(user);
         _context.SaveChanges();
     }
 
@@ -306,7 +306,14 @@ public class EfGameRepository : IGameRepository {
     public IEnumerable<Quest> GetAllQuests() => _context.Quests.ToList();
     public IEnumerable<UserQuestProgress> GetUserQuestProgressions(Guid userId) => _context.UserQuestProgressions.Where(p => p.UserId == userId).ToList();
     public void CreateUserQuestProgress(UserQuestProgress progress) { _context.UserQuestProgressions.Add(progress); _context.SaveChanges(); }
-    public void UpdateUserQuestProgress(UserQuestProgress progress) { _context.UserQuestProgressions.Update(progress); _context.SaveChanges(); }
+    public void UpdateUserQuestProgress(UserQuestProgress progress) {
+        var existing = _context.UserQuestProgressions.Local.FirstOrDefault(p => p.Id == progress.Id);
+        if (existing != null) {
+            _context.Entry(existing).State = EntityState.Detached;
+        }
+        _context.UserQuestProgressions.Update(progress);
+        _context.SaveChanges();
+    }
 
     public void SaveBet(Bet bet) {
         _context.Bets.Add(bet);
@@ -728,10 +735,9 @@ public class EfGameRepository : IGameRepository {
     public void UpdateQuest(Quest quest) {
         var existing = _context.Quests.Local.FirstOrDefault(q => q.Id == quest.Id);
         if (existing != null) {
-            _context.Entry(existing).CurrentValues.SetValues(quest);
-        } else {
-            _context.Quests.Update(quest);
+            _context.Entry(existing).State = EntityState.Detached;
         }
+        _context.Quests.Update(quest);
         _context.SaveChanges();
     }
 

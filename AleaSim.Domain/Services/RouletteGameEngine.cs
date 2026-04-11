@@ -122,7 +122,7 @@ public class RouletteGameEngine : BaseGameEngine {
             int nonce = state.Nonce++;
             session.GameState = JsonSerializer.Serialize(state);
 
-            var directive = BrainService.GetNextDirective(session.UserId, GameId, betAmount, repo);
+            var directive = await BrainService.GetNextDirectiveAsync(session.UserId, GameId, betAmount, repo);
             
             int number = 0;
             var allNumbers = Enumerable.Range(0, 37).ToList();
@@ -183,6 +183,8 @@ public class RouletteGameEngine : BaseGameEngine {
                 repo.UpdateGamePoolBalance(GameId, -actualWin);
                 await VaultService.ProcessWinAsync(session.UserId, actualWin, repo, roundId);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", actualWin, repo, RealTimeService, VaultService);
+                
+                session.TotalWon += actualWin;
             }
             
             await BrainService.UpdateProfileAsync(session.UserId, betAmount, actualWin, repo);
@@ -190,7 +192,7 @@ public class RouletteGameEngine : BaseGameEngine {
             int roundCount = repo.GetRoundCount(sessionId);
             RotateServerSeed(session, roundCount);
 
-            var shadowDirective = BrainService.DecideOutcome(session.UserId, session.GameId, betAmount, repo, isShadowMode: true);
+            var shadowDirective = await BrainService.DecideOutcomeAsync(session.UserId, session.GameId, betAmount, repo, isShadowMode: true);
 
             var round = new GameRound {
                 Id = roundId,

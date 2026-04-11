@@ -58,7 +58,7 @@ public class BaccaratGameEngine : BaseGameEngine {
                 Sequence = seq 
             };
             
-            var directive = BrainService.GetNextDirective(session.UserId, session.GameId, lastBet.Amount, repo);
+            var directive = await BrainService.GetNextDirectiveAsync(session.UserId, session.GameId, lastBet.Amount, repo);
 
             // Initial Deal
             state.PlayerHand.Add(DrawCard(session.ServerSeed, session.ClientSeed, ref seq));
@@ -118,7 +118,7 @@ public class BaccaratGameEngine : BaseGameEngine {
 
             var roundId = Guid.NewGuid();
 
-            var shadowDirective = BrainService.DecideOutcome(session.UserId, session.GameId, lastBet.Amount, repo, isShadowMode: true);
+            var shadowDirective = await BrainService.DecideOutcomeAsync(session.UserId, session.GameId, lastBet.Amount, repo, isShadowMode: true);
 
             var round = new GameRound {
                 Id = roundId,
@@ -141,6 +141,8 @@ public class BaccaratGameEngine : BaseGameEngine {
                 await VaultService.ProcessWinAsync(session.UserId, win, repo, roundId);
                 repo.UpdateRtpStats(session.GameId, session.UserId, 0, win);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", win, repo, RealTimeService, VaultService);
+                
+                session.TotalWon += win;
             }
 
             await BrainService.UpdateProfileAsync(session.UserId, lastBet.Amount, win, repo);

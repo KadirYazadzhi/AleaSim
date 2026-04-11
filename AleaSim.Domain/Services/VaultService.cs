@@ -32,7 +32,7 @@ public class VaultService : IVaultService {
         });
     }
 
-    public async Task<bool> ProcessBetAsync(Guid userId, decimal amount, IGameRepository repo) {
+    public async Task<bool> ProcessBetAsync(Guid userId, decimal amount, IGameRepository repo, Guid? referenceId = null) {
         _logger.LogDebug($"ProcessBetAsync START: userId={userId}, amount={amount}");
         
         // SECURITY: Validate decimal input (reject special values, not range)
@@ -45,6 +45,15 @@ public class VaultService : IVaultService {
         if (amount > GameConstants.MAX_BET) {
             _logger.LogWarning($"Bet amount {amount} exceeds maximum {GameConstants.MAX_BET}");
             return false; // Reject bets over 1 million
+        }
+
+        // 0. IDEMPOTENCY CHECK (Issue 31)
+        if (referenceId.HasValue) {
+            var existing = repo.GetTransaction(referenceId.Value);
+            if (existing != null) {
+                _logger.LogWarning($"Duplicate ProcessBet request for userId {userId}, referenceId {referenceId}");
+                return true; // Already processed, treat as success
+            }
         }
         
         _logger.LogDebug($"Acquiring wallet lock for user {userId}");
@@ -126,7 +135,7 @@ public class VaultService : IVaultService {
                 repo.UpdateUser(user);
                 
                 repo.SaveTransaction(new Transaction {
-                    Id = Guid.NewGuid(), 
+                    Id = referenceId ?? Guid.NewGuid(), 
                     UserId = userId, 
                     Amount = -amount, 
                     Type = TransactionType.Bet, 
@@ -139,8 +148,9 @@ public class VaultService : IVaultService {
                 // We just prepare the entities for commit
                 
                 // CACHE INVALIDATION (fire and forget - no transaction dependency)
+                // FIXED (Issue 26): Use SafeFireAndForget for both to avoid awaiting inside the transaction/lock
                 SafeFireAndForget(_cache.RemoveAsync($"user:profile:{userId}"), "Cache invalidation");
-                await _realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance).ConfigureAwait(false);
+                SafeFireAndForget(_realTime.NotifyBalanceUpdate(userId, user.Balance, user.BonusBalance), "Balance update notification");
             }
 
             return success;

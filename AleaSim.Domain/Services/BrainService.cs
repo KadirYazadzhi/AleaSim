@@ -20,11 +20,6 @@ public class BrainService : IBrainService {
         _rngService = rngService;
     }
 
-    // Backward compatibility: Sync wrapper calls async version
-    public BrainDirective GetNextDirective(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo) {
-        return GetNextDirectiveAsync(userId, gameId, betAmount, repo).GetAwaiter().GetResult();
-    }
-
     public async Task<BrainDirective> GetNextDirectiveAsync(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo) {
         string forceKey = $"brain_force_{userId}";
         if (_cache.TryGetValue(forceKey, out BrainDirective? forced) && forced != null) {
@@ -68,11 +63,6 @@ public class BrainService : IBrainService {
 
     public void SetForcedDirective(Guid userId, BrainDirective directive) {
         _cache.Set($"brain_force_{userId}", directive, TimeSpan.FromMinutes(10));
-    }
-
-    // Backward compatibility: Sync wrapper
-    public BrainDirective DecideOutcome(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo, bool isShadowMode = false) {
-        return DecideOutcomeAsync(userId, gameId, betAmount, repo, isShadowMode).GetAwaiter().GetResult();
     }
 
     public async Task<BrainDirective> DecideOutcomeAsync(Guid userId, Guid gameId, decimal betAmount, IGameRepository repo, bool isShadowMode = false) {
@@ -233,19 +223,6 @@ public class BrainService : IBrainService {
         if (profile != null) {
             string cacheKey = $"user:profile:{userId}";
             await _redisCache.SetAsync(cacheKey, profile, TimeSpan.FromMinutes(30));
-        }
-    }
-
-    // Backward compatibility: Sync wrapper
-    public void UpdateProfile(Guid userId, decimal betAmount, decimal winAmount, IGameRepository? repo = null) {
-        if (repo != null) {
-            UpdateProfileAsync(userId, betAmount, winAmount, repo).GetAwaiter().GetResult();
-            SyncProfileToCacheAsync(userId, repo).GetAwaiter().GetResult();
-        } else {
-            using var scope = _scopeFactory.CreateScope();
-            var scopedRepo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-            UpdateProfileAsync(userId, betAmount, winAmount, scopedRepo).GetAwaiter().GetResult();
-            SyncProfileToCacheAsync(userId, scopedRepo).GetAwaiter().GetResult();
         }
     }
 }

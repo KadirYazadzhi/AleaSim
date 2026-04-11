@@ -49,7 +49,7 @@ public class BrainServiceTests {
     }
 
     [Fact]
-    public void DecideOutcome_ShouldTriggerRetentionHook_WhenLossStreakHigh() {
+    public async Task DecideOutcome_ShouldTriggerRetentionHook_WhenLossStreakHigh() {
         // Arrange
         var userId = Guid.NewGuid();
         var gameId = Guid.NewGuid();
@@ -66,7 +66,7 @@ public class BrainServiceTests {
         _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>())).Returns(15);
 
         // Act
-        var directive = _brainService.DecideOutcome(userId, gameId, 1.0m, _mockRepo.Object);
+        var directive = await _brainService.DecideOutcomeAsync(userId, gameId, 1.0m, _mockRepo.Object);
 
         // Assert
         Assert.Equal("RetentionHook", directive.DecisionType);
@@ -74,7 +74,7 @@ public class BrainServiceTests {
     }
 
     [Fact]
-    public void DecideOutcome_ShouldTriggerCoolDown_WhenRtpTooHigh() {
+    public async Task DecideOutcome_ShouldTriggerCoolDown_WhenRtpTooHigh() {
         // Arrange
         var userId = Guid.NewGuid();
         var gameId = Guid.NewGuid();
@@ -90,7 +90,7 @@ public class BrainServiceTests {
         _mockRng.Setup(r => r.GetNextInt(It.IsAny<int>(), It.IsAny<int>(), 0, 100)).Returns(10);
 
         // Act
-        var directive = _brainService.DecideOutcome(userId, gameId, 1.0m, _mockRepo.Object);
+        var directive = await _brainService.DecideOutcomeAsync(userId, gameId, 1.0m, _mockRepo.Object);
 
         // Assert
         Assert.Equal("Random", directive.DecisionType);

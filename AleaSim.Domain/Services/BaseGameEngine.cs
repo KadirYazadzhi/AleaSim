@@ -50,9 +50,10 @@ public abstract class BaseGameEngine : IGame {
                     if (session.UserId != userId) throw new UnauthorizedAccessException("Session belongs to another user.");
                     currentUserId = session.UserId;
 
-                    if (await VaultService.ProcessBetAsync(session.UserId, amount, repo)) {
+                    var betId = Guid.NewGuid();
+                    if (await VaultService.ProcessBetAsync(session.UserId, amount, repo, betId)) {
                         var bet = new Bet {
-                            Id = Guid.NewGuid(),
+                            Id = betId,
                             GameSessionId = sessionId,
                             UserId = session.UserId,
                             Amount = amount,
@@ -61,6 +62,10 @@ public abstract class BaseGameEngine : IGame {
                         };
                         repo.SaveBet(bet);
                         repo.UpdateGamePoolBalance(session.GameId, amount);
+                        
+                        // Update session stats for efficient Admin Dashboard (Issue 38)
+                        session.TotalWagered += amount;
+                        repo.UpdateSession(session);
                         
                         var user = repo.GetUser(session.UserId);
                         isExcluded = user?.Username.StartsWith("Sim_") == true || user?.Role == Role.Admin;

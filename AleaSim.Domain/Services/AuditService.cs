@@ -11,31 +11,34 @@ public class AuditService : IAuditService {
     private readonly IAuditBuffer _buffer;
     private readonly IRealTimeService _realTime;
     private string _lastHash = "GENESIS";
+    private int _lastSequence = 0;
 
     public AuditService(IServiceScopeFactory scopeFactory, IAuditBuffer buffer, IRealTimeService realTime) {
         _scopeFactory = scopeFactory;
         _buffer = buffer;
         _realTime = realTime;
-        InitializeLastHash();
+        InitializeState();
     }
 
-    private void InitializeLastHash() {
+    private void InitializeState() {
         using var scope = _scopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-        var lastHash = repo.GetLastAuditHash();
-        if (lastHash != null) {
-            _lastHash = lastHash;
+        var lastLog = repo.GetAuditLogs(1).FirstOrDefault();
+        if (lastLog != null) {
+            _lastHash = lastLog.Hash;
+            _lastSequence = lastLog.Sequence;
         }
     }
 
     public void LogEvent(string eventType, string description, string userId, string metadataJson) {
         lock (this) {
             var now = DateTime.UtcNow;
-            // Truncate to seconds to ensure perfect consistency with all DB providers (MySQL/SQLite/Postgres)
+            // Truncate to seconds to ensure perfect consistency across databases
             var safeTimestamp = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second, DateTimeKind.Utc);
 
+            _lastSequence++;
             var auditEvent = new AuditEvent {
-                Id = Guid.NewGuid(),
+                Sequence = _lastSequence,
                 Timestamp = safeTimestamp,
                 EventType = eventType,
                 Description = description,
@@ -70,11 +73,10 @@ public class AuditService : IAuditService {
             using var scope = _scopeFactory.CreateScope();
             var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
             
-            // IMPORTANT: Must sort by Timestamp AND Id to ensure deterministic order 
-            // when multiple records share the same second-precision timestamp.
+            // FIXED (Issue 59): Must sort by Sequence to ensure deterministic order 
+            // even when multiple records share the same second-precision timestamp.
             var logs = repo.GetAllAuditLogs()
-                .OrderBy(x => x.Timestamp)
-                .ThenBy(x => x.Id)
+                .OrderBy(x => x.Sequence)
                 .ToList();
             
             if (!logs.Any()) {
@@ -84,7 +86,6 @@ public class AuditService : IAuditService {
                 isValid = true;
 
                 foreach (var log in logs) {
-                    // Skip logging our own verify event if it was just added mid-loop (unlikely due to sync)
                     if (log.EventType == "SYSTEM_INTEGRITY_CHECK") continue;
 
                     // 1. Check Link: Does PreviousHash match?
@@ -125,12 +126,13 @@ public class AuditService : IAuditService {
         if (!allLogs.Any()) return;
 
         string currentHash = "GENESIS";
+        int seq = 0;
         
         foreach (var log in allLogs) {
-            // Force fix timestamp to seconds if they have milliseconds (cleaning up old records)
             var dt = log.Timestamp;
             log.Timestamp = new DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second, DateTimeKind.Utc);
             
+            log.Sequence = ++seq;
             log.PreviousHash = currentHash;
             log.Hash = CalculateHash(log);
             currentHash = log.Hash;
@@ -140,6 +142,7 @@ public class AuditService : IAuditService {
         
         lock(this) {
             _lastHash = currentHash;
+            _lastSequence = seq;
         }
         
         LogEvent("SYSTEM_INTEGRITY_REPAIR", "Full hash chain re-calculation performed.", "SYSTEM", "{}");
@@ -147,10 +150,10 @@ public class AuditService : IAuditService {
     }
 
     private string CalculateHash(AuditEvent ev) {
-        // Use a fixed format string for hashing to avoid DateTime.ToString() variations
+        // FIXED (Issue 59): Include Sequence in hash for extra integrity
         string ts = ev.Timestamp.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
         string metadata = ev.MetadataJson ?? "{}";
-        string data = $"{ts}|{ev.EventType}|{ev.UserId}|{metadata}|{ev.PreviousHash}";
+        string data = $"{ev.Sequence}|{ts}|{ev.EventType}|{ev.UserId}|{metadata}|{ev.PreviousHash}";
         
         byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(data));
         return Convert.ToHexString(bytes);

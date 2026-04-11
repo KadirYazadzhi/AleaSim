@@ -103,7 +103,7 @@ public class BlackjackGameEngine : BaseGameEngine {
             state.PlayerHands.Add(mainHand);
             
             // Check for forced directives
-            var directive = BrainService.GetNextDirective(session.UserId, session.GameId, lastBet.Amount, repo);
+            var directive = await BrainService.GetNextDirectiveAsync(session.UserId, session.GameId, lastBet.Amount, repo);
 
             mainHand.Cards.Add(DrawCardFromShoe(state));
             state.DealerHand.Add(DrawCardFromShoe(state));
@@ -119,7 +119,7 @@ public class BlackjackGameEngine : BaseGameEngine {
             int roundCount = repo.GetRoundCount(sessionId);
             RotateServerSeed(session, roundCount);
 
-            var shadowDirective = BrainService.DecideOutcome(session.UserId, session.GameId, lastBet.Amount, repo, isShadowMode: true);
+            var shadowDirective = await BrainService.DecideOutcomeAsync(session.UserId, session.GameId, lastBet.Amount, repo, isShadowMode: true);
 
             var round = new GameRound {
                 Id = roundId,
@@ -273,6 +273,8 @@ public class BlackjackGameEngine : BaseGameEngine {
             await VaultService.ProcessWinAsync(session.UserId, totalWin, repo, roundId);
             repo.UpdateRtpStats(session.GameId, session.UserId, 0, totalWin);
             await questService.UpdateProgressAsync(session.UserId, "WinAmount", totalWin, repo, RealTimeService, VaultService);
+            
+            session.TotalWon += totalWin;
         }
         await BrainService.UpdateProfileAsync(session.UserId, state.TotalInitialBet, totalWin, repo);
     }

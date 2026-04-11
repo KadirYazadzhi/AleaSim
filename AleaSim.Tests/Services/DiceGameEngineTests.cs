@@ -41,7 +41,7 @@ public class DiceGameEngineTests {
 
         _mockVault.Setup(x => x.ProcessWinAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<Guid?>()))
                   .Returns(Task.CompletedTask);
-        _mockVault.Setup(x => x.ProcessBetAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+        _mockVault.Setup(x => x.ProcessBetAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<Guid?>()))
                   .ReturnsAsync(true);
         _mockVault.Setup(x => x.CanAffordWinAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>()))
                   .ReturnsAsync(true);
@@ -90,8 +90,8 @@ public class DiceGameEngineTests {
         
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
         _mockRepo.Setup(r => r.GetLastBet(sessionId)).Returns(bet);
-        _mockBrain.Setup(b => b.DecideOutcome(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>()))
-                  .Returns(new BrainDirective { DecisionType = "Random" });
+        _mockBrain.Setup(b => b.DecideOutcomeAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>()))
+                  .ReturnsAsync(new BrainDirective { DecisionType = "Random" });
 
         // Force roll 75.00
         _mockRng.Setup(r => r.GetNextDouble(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>())).Returns(0.75);
@@ -115,8 +115,8 @@ public class DiceGameEngineTests {
         
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
         _mockRepo.Setup(r => r.GetLastBet(sessionId)).Returns(bet);
-        _mockBrain.Setup(b => b.DecideOutcome(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>()))
-                  .Returns(new BrainDirective { DecisionType = "Random" });
+        _mockBrain.Setup(b => b.DecideOutcomeAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>()))
+                  .ReturnsAsync(new BrainDirective { DecisionType = "Random" });
 
         // Force roll 6 for all 10 dice
         _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 1, 7)).Returns(6);

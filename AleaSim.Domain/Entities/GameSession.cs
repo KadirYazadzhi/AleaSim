@@ -16,4 +16,7 @@ public class GameSession {
     
     // Serialized state for complex games (e.g., Slot Respins, Blackjack Hand)
     public string GameState { get; set; } = string.Empty;
+
+    public decimal TotalWagered { get; set; }
+    public decimal TotalWon { get; set; }
 }

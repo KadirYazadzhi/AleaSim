@@ -130,7 +130,7 @@ public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile p
                 state.BonusBells.Clear();  // Clear payout data
             }
 
-            var directive = BrainService.GetNextDirective(session.UserId, session.GameId, currentBet, repo);
+            var directive = await BrainService.GetNextDirectiveAsync(session.UserId, session.GameId, currentBet, repo);
             
             decimal totalWin = 0;
             int attempts = 0;
@@ -176,6 +176,8 @@ public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile p
                 repo.UpdateGamePoolBalance(session.GameId, -totalWin);
                 await VaultService.ProcessWinAsync(session.UserId, totalWin, repo, roundId).ConfigureAwait(false);
                 await questService.UpdateProgressAsync(session.UserId, "WinAmount", totalWin, repo, RealTimeService, VaultService).ConfigureAwait(false);
+                
+                session.TotalWon += totalWin;
             }
 
             // Jackpot Trigger Check
@@ -197,7 +199,7 @@ public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile p
             var clientBells = (state.IsBonusActive || state.IsRespinActive) ? new List<BellValue>() : state.BonusBells;
 
             // Shadow Mode Simulation: What WOULD the brain have done?
-            var shadowDirective = BrainService.DecideOutcome(session.UserId, session.GameId, currentBet, repo, isShadowMode: true);
+            var shadowDirective = await BrainService.DecideOutcomeAsync(session.UserId, session.GameId, currentBet, repo, isShadowMode: true);
 
             repo.SaveRound(new GameRound {
                 Id = roundId, GameSessionId = sessionId, TotalBetAmount = currentBet, TotalWinAmount = Math.Round(totalWin, 2),

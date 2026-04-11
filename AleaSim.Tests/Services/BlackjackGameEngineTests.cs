@@ -36,7 +36,7 @@ public class BlackjackGameEngineTests {
         
         _mockVault.Setup(x => x.ProcessWinAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<Guid?>()))
                   .Returns(Task.CompletedTask);
-        _mockVault.Setup(x => x.ProcessBetAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+        _mockVault.Setup(x => x.ProcessBetAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<Guid?>()))
                   .ReturnsAsync(true);
         _mockVault.Setup(x => x.CanAffordWinAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>(), It.IsAny<bool>()))
                   .ReturnsAsync(true);
@@ -84,8 +84,8 @@ public class BlackjackGameEngineTests {
         
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
         _mockRepo.Setup(r => r.GetLastBet(sessionId)).Returns(bet);
-        _mockBrain.Setup(b => b.GetNextDirective(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
-                  .Returns(new AleaSim.Domain.Models.BrainDirective { DecisionType = "Random" });
+        _mockBrain.Setup(b => b.GetNextDirectiveAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
+                  .ReturnsAsync(new AleaSim.Domain.Models.BrainDirective { DecisionType = "Random" });
 
         // Draw cards: P1, D1, P2, D2
         _mockRng.SetupSequence(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 0, 52))

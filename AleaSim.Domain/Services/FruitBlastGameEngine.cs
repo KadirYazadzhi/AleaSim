@@ -88,7 +88,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     denom = d.GetDecimal();
             } catch {}
 
-            var directive = BrainService.GetNextDirective(session.UserId, _gameId, bet.Amount, repo);
+            var directive = await BrainService.GetNextDirectiveAsync(session.UserId, _gameId, bet.Amount, repo);
             var playerProfile = repo.GetPlayerProfile(session.UserId);
             
             // Get the specific Juice Reservoir jackpot for this game
@@ -247,8 +247,9 @@ public class FruitBlastGameEngine : BaseGameEngine {
             var roundId = Guid.NewGuid();
 
             if (totalWin > 0) {
-                await VaultService.ProcessWinAsync(session.UserId, totalWin, repo, roundId).ConfigureAwait(false);
                 repo.UpdateGamePoolBalance(_gameId, -totalWin);
+                await VaultService.ProcessWinAsync(session.UserId, totalWin, repo, roundId).ConfigureAwait(false);
+                session.TotalWon += totalWin;
             }
 
             // Jackpot Trigger Check (for Global and potentially other game jackpots)
@@ -263,7 +264,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
             repo.UpdateJackpot(juiceReservoir);
             await BrainService.UpdateProfileAsync(session.UserId, bet.Amount, totalWin, repo);
 
-            var shadowDirective = BrainService.DecideOutcome(session.UserId, _gameId, bet.Amount, repo, isShadowMode: true);
+            var shadowDirective = await BrainService.DecideOutcomeAsync(session.UserId, _gameId, bet.Amount, repo, isShadowMode: true);
 
             var round = new GameRound {
                 Id = roundId,

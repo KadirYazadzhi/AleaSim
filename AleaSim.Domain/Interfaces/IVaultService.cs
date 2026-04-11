@@ -7,7 +7,7 @@ public interface IVaultService {
     /// Deducts the bet amount from the appropriate wallet (Bonus first, then Real).
     /// Returns true if funds are sufficient.
     /// </summary>
-    Task<bool> ProcessBetAsync(Guid userId, decimal amount, IGameRepository repo);
+    Task<bool> ProcessBetAsync(Guid userId, decimal amount, IGameRepository repo, Guid? referenceId = null);
 
     /// <summary>
     /// Credits the win amount to the appropriate wallet.
