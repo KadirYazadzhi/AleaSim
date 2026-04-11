@@ -48,8 +48,10 @@ public class RedisCacheService : IRedisCacheService {
         }
         
         // Always set local as secondary/fallback
-        if (expiry.HasValue) _localCache.Set(key, value, expiry.Value);
-        else _localCache.Set(key, value, TimeSpan.FromMinutes(10));
+        _localCache.Set(key, value, new MemoryCacheEntryOptions {
+            AbsoluteExpirationRelativeToNow = expiry ?? TimeSpan.FromMinutes(10),
+            Size = 1
+        });
     }
 
     public async Task<T?> GetAsync<T>(string key) {
@@ -84,7 +86,10 @@ public class RedisCacheService : IRedisCacheService {
         // Local fallback for rate limiting (less accurate in cluster but prevents crash)
         int localCount = _localCache.Get<int?>(key) ?? 0;
         localCount++;
-        _localCache.Set(key, localCount, window);
+        _localCache.Set(key, localCount, new MemoryCacheEntryOptions {
+            AbsoluteExpirationRelativeToNow = window,
+            Size = 1
+        });
         return localCount > maxRequests;
     }
 
