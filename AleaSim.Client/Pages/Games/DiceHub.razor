@@ -13,94 +13,108 @@
 
 <PageTitle>Neon Dice | AleaSim</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-12 animate-fade-in">
-    <div class="d-flex justify-space-between align-center mb-8">
-        <div>
-            <MudText Typo="Typo.h3" Class="text-gradient fw-black">DICE HUB</MudText>
-            <MudText Typo="Typo.subtitle1" Class="opacity-70">High-speed cryptographic gaming.</MudText>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4 mt-md-12 animate-fade-in">
+    <div class="d-flex flex-column flex-sm-row justify-space-between align-center mb-4 mb-md-8 gap-4">
+        <div class="text-center text-sm-start">
+            <MudText Typo="Typo.h5" Class="text-gradient fw-black d-block d-md-none">DICE HUB</MudText>
+            <MudText Typo="Typo.h3" Class="text-gradient fw-black d-none d-md-block">DICE HUB</MudText>
+            <MudText Typo="Typo.subtitle2" Class="opacity-70 d-block d-md-none">High-speed cryptographic gaming.</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-70 d-none d-md-block">High-speed cryptographic gaming.</MudText>
         </div>
-        <div class="d-flex gap-4">
-            <MudToggleGroup T="string" @bind-Value="selectedMode" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Delimiters="true">
-                <MudToggleItem Value='@("Slider")'>CYBER SLIDER</MudToggleItem>
-                <MudToggleItem Value='@("Multi")'>GRID MULTIPLIER</MudToggleItem>
+        <div class="d-flex gap-2 w-100 w-sm-auto">
+            <MudToggleGroup T="string" @bind-Value="selectedMode" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Delimiters="true" Class="w-100" Dense="true">
+                <MudToggleItem Value='@("Slider")'>SLIDER</MudToggleItem>
+                <MudToggleItem Value='@("Multi")'>MULTI</MudToggleItem>
             </MudToggleGroup>
         </div>
     </div>
 
-    <MudGrid Spacing="6">
+    <MudGrid Spacing="2" SpacingMd="6">
         <!-- Control Panel -->
         <MudItem xs="12" md="4">
-            <MudPaper Class="glass-panel pa-6 rounded-xl" Elevation="0">
-                <MudNumericField @bind-Value="betAmount" Label="Bet Amount" Variant="Variant.Outlined" 
-                                 Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" 
-                                 Format="N2" Class="mb-6 custom-input" />
+            <MudPaper Class="glass-panel pa-4 pa-md-6 rounded-xl" Elevation="0">
+                <div class="d-flex flex-row flex-md-column gap-2 align-center mb-4 mb-md-6">
+                    <MudNumericField @bind-Value="betAmount" Label="Bet" Variant="Variant.Outlined" 
+                                     Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" 
+                                     Format="N2" Class="flex-grow-1 custom-input" Margin="Margin.Dense" />
+                    
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" 
+                               OnClick="PlayDice" Disabled="@(isSpinning || betAmount <= 0)"
+                               Class="d-md-none rounded-lg fw-black flex-grow-0 px-6" Style="height: 40px;">
+                        ROLL
+                    </MudButton>
+                </div>
 
                 @if (selectedMode == "Slider") {
-                    <div class="d-flex justify-space-between mb-2">
+                    <div class="d-flex justify-space-between mb-1">
                         <MudText Typo="Typo.caption">ROLL @(isRollOver ? "OVER" : "UNDER")</MudText>
                         <MudText Typo="Typo.caption" Color="Color.Primary" Class="fw-bold">@sliderTarget.ToString("F2")</MudText>
                     </div>
-                    <MudSlider T="decimal" @bind-Value="sliderTarget" Min="2" Max="98" Step="0.01m" Color="Color.Primary" Class="mb-6" />
+                    <MudSlider T="decimal" @bind-Value="sliderTarget" Min="2" Max="98" Step="0.01m" Color="Color.Primary" Class="mb-4 mb-md-6" />
                     
-                    <div class="d-flex gap-4 mb-6">
-                        <MudButton Variant="@(isRollOver ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" FullWidth="true" OnClick="() => isRollOver = true" Class="rounded-lg py-3">OVER</MudButton>
-                        <MudButton Variant="@(!isRollOver ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" FullWidth="true" OnClick="() => isRollOver = false" Class="rounded-lg py-3">UNDER</MudButton>
+                    <div class="d-flex gap-2 gap-md-4 mb-4 mb-md-6">
+                        <MudButton Variant="@(isRollOver ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" FullWidth="true" OnClick="() => isRollOver = true" Class="rounded-lg py-1 py-md-3">OVER</MudButton>
+                        <MudButton Variant="@(!isRollOver ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" FullWidth="true" OnClick="() => isRollOver = false" Class="rounded-lg py-1 py-md-3">UNDER</MudButton>
                     </div>
 
-                    <div class="pa-4 rounded-lg bg-dark-transparent mb-6">
+                    <div class="pa-2 pa-md-4 rounded-lg bg-dark-transparent mb-4 mb-md-6">
                         <div class="d-flex justify-space-between mb-1">
-                            <MudText Typo="Typo.caption">WIN CHANCE</MudText>
-                            <MudText Typo="Typo.caption" Class="fw-bold">@WinChance.ToString("F2")%</MudText>
+                            <MudText Typo="Typo.caption" Class="text-xs">WIN CHANCE</MudText>
+                            <MudText Typo="Typo.caption" Class="fw-bold text-xs">@WinChance.ToString("F2")%</MudText>
                         </div>
                         <div class="d-flex justify-space-between">
-                            <MudText Typo="Typo.caption">PAYOUT</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Success" Class="fw-bold">x@(PayoutMultiplier.ToString("F4"))</MudText>
+                            <MudText Typo="Typo.caption" Class="text-xs">PAYOUT</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Success" Class="fw-bold text-xs">x@(PayoutMultiplier.ToString("F4"))</MudText>
                         </div>
                     </div>
                 } else {
-                    <MudText Typo="Typo.caption" Class="mb-2 d-block">SELECT TARGET NUMBERS</MudText>
-                    <div class="d-flex justify-space-between gap-2 mb-6">
+                    <MudText Typo="Typo.caption" Class="mb-1 d-block">TARGETS</MudText>
+                    <div class="d-flex justify-space-between gap-1 gap-md-2 mb-4 mb-md-6">
                         @for (int i = 1; i <= 6; i++) {
                             int val = i;
                             <div class='@($"dice-selector {(selectedMultiNumbers.Contains(val) ? "active" : "")}")' @onclick="() => ToggleMultiNumber(val)">
-                                <div class='@($"die-face face-{val} small")'>
+                                <div class='@($"die-face face-{val} small-mobile")'>
                                     @for(int d=0; d<val; d++) { <span class="dot"></span> }
                                 </div>
                             </div>
                         }
                     </div>
-                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-6 rounded-lg" Style="font-size: 0.7rem;">Match at least 2 dice for a payout.</MudAlert>
                 }
 
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" 
                            OnClick="PlayDice" Disabled="@(isSpinning || betAmount <= 0)"
-                           Class="py-4 rounded-xl fw-black shadow-glow pulse-neon">
+                           Class="d-none d-md-block py-4 rounded-xl fw-black shadow-glow pulse-neon">
                     @(isSpinning ? "ROLLING..." : "ROLL DICE")
                 </MudButton>
 
-                <MudSwitch @bind-Value="autoBet" Label="AUTO BET MODE" Color="Color.Secondary" Class="mt-4" />
+                <div class="d-flex justify-space-between align-center mt-2">
+                    <MudSwitch @bind-Value="autoBet" Label="AUTO" Color="Color.Secondary" Dense="true" Size="Size.Small" />
+                    <MudText Typo="Typo.caption" Class="opacity-50 d-md-none">XP: @(betAmount * 10)</MudText>
+                </div>
             </MudPaper>
         </MudItem>
 
         <!-- Visual Area -->
         <MudItem xs="12" md="8">
-            <MudPaper Class="glass-panel pa-12 rounded-xl d-flex flex-column align-center justify-center position-relative overflow-hidden" Style="min-height: 400px;" Elevation="0">
+            <MudPaper Class="glass-panel pa-6 pa-md-12 rounded-xl d-flex flex-column align-center justify-center position-relative overflow-hidden" Style="min-height: 250px; height: 100%;" Elevation="0">
                 
                 @if (selectedMode == "Slider") {
                     <!-- Cyber Slider Visual -->
-                    <div class="dice-track mb-12">
+                    <div class="dice-track mb-8 mb-md-12">
                         <div class="track-fill" style="left: @(isRollOver ? sliderTarget : 0)%; width: @(isRollOver ? (100-sliderTarget) : sliderTarget)%;"></div>
                         <div class="track-pointer" style="left: @(currentRoll)%">
                             <div class="pointer-glow"></div>
-                            <MudText Typo="Typo.h5" Class="pointer-label">@(currentRoll.ToString("F2"))</MudText>
+                            <MudText Typo="Typo.h6" Class="pointer-label d-md-none">@(currentRoll.ToString("F2"))</MudText>
+                            <MudText Typo="Typo.h5" Class="pointer-label d-none d-md-block">@(currentRoll.ToString("F2"))</MudText>
                         </div>
-                        <div class="track-marks">
+                        <div class="track-marks d-none d-sm-flex">
                             <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
                         </div>
                     </div>
 
                     <div class='@($"result-display {(lastResultWasWin ? "win" : "loss")} {(isSpinning ? "spinning" : "")}")'>
-                        <MudText Typo="Typo.h1" Class="fw-black">@(currentRoll.ToString("F2"))</MudText>
+                        <MudText Typo="Typo.h3" Class="fw-black d-md-none">@(currentRoll.ToString("F2"))</MudText>
+                        <MudText Typo="Typo.h1" Class="fw-black d-none d-md-block">@(currentRoll.ToString("F2"))</MudText>
                     </div>
                 } else {
                     <!-- Multi-Dice Visual Grid -->
@@ -109,29 +123,30 @@
                             int idx = i;
                             <div class='@($"dice-wrapper {(multiResults.Count > idx && selectedMultiNumbers.Contains(multiResults[idx]) ? "hit" : "")}")'>
                                 @if (multiResults.Count > idx) {
-                                    <div class='@($"die-face face-{multiResults[idx]}")'>
+                                    <div class='@($"die-face face-{multiResults[idx]} responsive-die")'>
                                         @for(int d=0; d<multiResults[idx]; d++) { <span class="dot"></span> }
                                     </div>
                                 } else {
-                                    <div class="die-face unknown">?</div>
+                                    <div class="die-face unknown responsive-die">?</div>
                                 }
                             </div>
                         }
                     </div>
                     
                     @if (lastMultiHits > 0) {
-                        <div class="mt-8 text-center animate-bounce-subtle">
-                            <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black">@lastMultiHits HITS! (x@(lastMultiplier.ToString("F2")))</MudText>
+                        <div class="mt-4 mt-md-8 text-center animate-bounce-subtle">
+                            <MudText Typo="Typo.h5" Color="Color.Success" Class="fw-black d-md-none">@lastMultiHits HITS! (x@(lastMultiplier.ToString("F2")))</MudText>
+                            <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black d-none d-md-block">@lastMultiHits HITS! (x@(lastMultiplier.ToString("F2")))</MudText>
                         </div>
                     }
                 }
 
                 <!-- Decor -->
-                <div class="cyber-bg-text">DICE ENGINE 2.0</div>
+                <div class="cyber-bg-text d-none d-sm-block">DICE ENGINE 2.0</div>
             </MudPaper>
 
             <!-- Recent History -->
-            <div class="mt-6 d-flex gap-2 overflow-x-auto pb-2">
+            <div class="mt-4 mt-md-6 d-flex gap-2 overflow-x-auto pb-2">
                 @foreach (var res in recentRolls) {
                     <div class='@($"roll-history-item {(res.Win ? "win" : "loss")}")'>
                         @res.Label
@@ -219,6 +234,13 @@
     }
 
     .shadow-glow { box-shadow: 0 0 20px rgba(var(--mud-palette-primary-rgb), 0.4); }
+
+    @media (max-width: 600px) {
+        .small-mobile { width: 30px !important; height: 30px !important; padding: 2px !important; gap: 2px !important; border-radius: 4px !important; }
+        .responsive-die { width: 45px !important; height: 45px !important; padding: 4px !important; gap: 2px !important; }
+        .dice-grid { gap: 0.5rem !important; }
+        .text-xs { font-size: 0.7rem !important; }
+    }
 </style>
 
 @code {
