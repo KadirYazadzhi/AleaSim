@@ -26,11 +26,11 @@
 <FlowStateIndicator Intensity="@_flowIntensity" />
 
 <MudLayout>
-    <MudAppBar Elevation="0" Fixed="true" Color="Color.Transparent" Class="glass-appbar px-6 py-2">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => LayoutService.ToggleDrawer())" Class="mr-4" />
+    <MudAppBar Elevation="0" Fixed="true" Color="Color.Transparent" Class="glass-appbar px-4 px-md-6 py-2">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => LayoutService.ToggleDrawer())" Class="mr-2 mr-md-4" />
         
         <div class="d-flex align-center cursor-pointer" @onclick='@(() => Navigation.NavigateTo("/"))'>
-            <MudIcon Icon="@Icons.Material.Filled.Casino" Size="Size.Large" Color="Color.Primary" Class="mr-2 spin-hover" />
+            <MudIcon Icon="@Icons.Material.Filled.Casino" Size="Size.Large" Color="Color.Primary" Class="mr-2 spin-hover d-none d-sm-block" />
             <MudText Typo="Typo.h5" Class="text-gradient font-black tracking-wide">ALEASIM</MudText>
         </div>
         
@@ -38,38 +38,22 @@
         
         <AuthorizeView Context="authContext">
             <Authorized>
-                <div class="d-flex align-center gap-3">
-                    <!-- Flow State Debug/Visualizer -->
-                    @if (_flowIntensity > 0) {
-                        <div class="d-flex align-center flow-badge pa-1 px-3 rounded-pill glass-panel">
-                             <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="@(_flowIntensity > 0.8 ? Color.Error : Color.Warning)" Size="Size.Small" Class="mr-1 pulse-icon" />
-                             <MudText Typo="Typo.caption" Style="font-weight: bold;">FLOW</MudText>
-                        </div>
-                    }
-
-                    <!-- Level & XP Progress Pill -->
-                    <div class='@($"d-none d-sm-flex align-center mr-2 cursor-pointer level-pill-v2 {(_levelUpTriggered ? "levelup-anim" : "")}")' @onclick='@(() => Navigation.NavigateTo("/profile"))'>
+                <div class="d-flex align-center gap-1 gap-md-3">
+                    <!-- Level & XP (Desktop Only) -->
+                    <div class='@($"d-none d-md-flex align-center mr-2 cursor-pointer level-pill-v2 {(_levelUpTriggered ? "levelup-anim" : "")}")' @onclick='@(() => Navigation.NavigateTo("/profile"))'>
                         <div class="level-pill-inner d-flex align-center px-3 py-1 rounded-pill">
                             <MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment" Color="Color.Error" Size="Size.Small" Class='@($"mr-2 {(_levelUpTriggered ? "fire-flare" : "")}")' />
                             <MudText Typo="Typo.subtitle2" Class='@($"level-number-text {(_levelUpTriggered ? "text-pop" : "")}")'>LVL @(userProfile?.Progression?.CurrentLevel ?? 1)</MudText>
                         </div>
-                        
-                        <!-- SVG Progress Path Overlay (Starts from Middle Left) -->
                         <svg class="level-svg-container" viewBox="0 0 120 40">
-                            <!-- Background Track -->
-                            <path d="M 2,20 A 18,18 0 0 1 20,2 H 100 A 18,18 0 0 1 118,20 A 18,18 0 0 1 100,38 H 20 A 18,18 0 0 1 2,20 Z" 
-                                  fill="none" class="level-bg-path" />
-                            <!-- Active Progress -->
-                            <path d="M 2,20 A 18,18 0 0 1 20,2 H 100 A 18,18 0 0 1 118,20 A 18,18 0 0 1 100,38 H 20 A 18,18 0 0 1 2,20 Z" 
-                                  fill="none" 
-                                  class="level-progress-path"
-                                  style='@($"stroke-dasharray: 274; stroke-dashoffset: {274 - (274 * (userProfile?.Progression?.ProgressPercentage ?? 0) / 100)};")' />
+                            <path d="M 2,20 A 18,18 0 0 1 20,2 H 100 A 18,18 0 0 1 118,20 A 18,18 0 0 1 100,38 H 20 A 18,18 0 0 1 2,20 Z" fill="none" class="level-bg-path" />
+                            <path d="M 2,20 A 18,18 0 0 1 20,2 H 100 A 18,18 0 0 1 118,20 A 18,18 0 0 1 100,38 H 20 A 18,18 0 0 1 2,20 Z" fill="none" class="level-progress-path" style='@($"stroke-dasharray: 274; stroke-dashoffset: {274 - (274 * (userProfile?.Progression?.ProgressPercentage ?? 0) / 100)};")' />
                         </svg>
                     </div>
 
-                    <!-- Wallet Display -->
+                    <!-- Wallet Display (Desktop Only) -->
                     @if (userProfile != null) {
-                        <div class="wallet-container-premium px-3 py-1 rounded-pill glass-panel" @onclick='@(() => Navigation.NavigateTo("/wallet"))'>
+                        <div class="wallet-container-premium d-none d-md-flex px-3 py-1 rounded-pill glass-panel" @onclick='@(() => Navigation.NavigateTo("/wallet"))'>
                             <div class="d-flex align-center">
                                 <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Style="font-size: 1.4rem;" Color="Color.Success" Class="mr-2" />
                                 <MudText Typo="Typo.subtitle1" Color="Color.Success" Class="wallet-balance-text">
@@ -79,8 +63,8 @@
                         </div>
                     }
 
-                    <!-- Notifications -->
-                    <MudBadge Content="@NotifService.UnreadCount" Color="Color.Error" Overlap="true" Dot="@(NotifService.UnreadCount > 0)" Class="mx-1">
+                    <!-- Notifications (Desktop Only) -->
+                    <MudBadge Content="@NotifService.UnreadCount" Color="Color.Error" Overlap="true" Dot="@(NotifService.UnreadCount > 0)" Class="mx-1 d-none d-md-inline-flex">
                         <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" OnClick="@ToggleNotifications" />
                         <MudPopover Open="@_notificationsOpen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="pa-0 mt-2 glass-panel" Style="width: 320px;">
                             <div class="d-flex justify-space-between align-center pa-3 border-b border-white-10">
@@ -89,9 +73,7 @@
                             </div>
                             <MudList T="string" Dense="true" Style="max-height: 300px; overflow-y: auto;">
                                 @if (!NotifService.History.Any()) {
-                                    <MudListItem>
-                                        <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center" Class="pa-4">No new notifications</MudText>
-                                    </MudListItem>
+                                    <MudListItem><MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center" Class="pa-4">No new notifications</MudText></MudListItem>
                                 } else {
                                     @foreach (var item in NotifService.History.Take(5)) {
                                         <MudListItem>
@@ -108,42 +90,50 @@
 
                     <!-- Profile Menu & VIP Icon -->
                     <div class="position-relative">
-                        <MudMenu AnchorOrigin="Origin.BottomRight" LockScroll="true" TransformOrigin="Origin.TopRight">
+                        <MudMenu AnchorOrigin="Origin.BottomRight" LockScroll="true" TransformOrigin="Origin.TopRight" Dense="true" PopoverClass="profile-menu-popover">
                             <ActivatorContent>
-                                <div class="position-relative">
-                                    <MudAvatar Class="cursor-pointer border-2 border-primary shadow-lg">
-                                        <MudImage Src="@userProfile?.AvatarUrl" />
-                                    </MudAvatar>
-                                    @if (userProfile?.Progression?.Tier > VipTier.Bronze)
-                                    {
-                                        <div class="vip-badge-mini">
-                                            <MudIcon Icon="@GetTierIcon(userProfile.Progression.Tier)" Color="@GetTierColor(userProfile.Progression.Tier)" Style="font-size: 1rem;" />
-                                        </div>
-                                    }
+                                <div class="d-flex align-center cursor-pointer profile-activator pa-1 rounded-pill">
+                                    <div class="position-relative">
+                                        <MudAvatar Class="border-2 border-primary shadow-lg" Style="width: 40px; height: 40px; border-radius: 50% !important; flex-shrink: 0;">
+                                            <MudImage Src="@userProfile?.AvatarUrl" />
+                                        </MudAvatar>
+                                        @if (userProfile?.Progression?.Tier > VipTier.Bronze) {
+                                            <div class="vip-badge-mini"><MudIcon Icon="@GetTierIcon(userProfile.Progression.Tier)" Color="@GetTierColor(userProfile.Progression.Tier)" Style="font-size: 0.7rem;" /></div>
+                                        }
+                                    </div>
+                                    <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" Size="Size.Small" Color="Color.Inherit" Class="ml-1 opacity-70" />
                                 </div>
                             </ActivatorContent>
-                        <ChildContent>
-                            <div class="pa-4 d-flex flex-column align-center border-b border-white-10">
-                                <MudAvatar Size="Size.Large" Class="mb-2">
-                                    <MudImage Src="@userProfile?.AvatarUrl" />
-                                </MudAvatar>
-                                <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">@userProfile?.Username</MudText>
-                                <MudChip T="string" Size="Size.Small" Color="@GetTierColor(userProfile?.Progression?.Tier ?? VipTier.Bronze)" Variant="Variant.Text" Class="mt-1">
-                                    @userProfile?.Progression?.TierName
-                                </MudChip>
-                            </div>
-                            <MudMenuItem Href="/profile" Icon="@Icons.Material.Filled.Person">Profile</MudMenuItem>
-                            <MudMenuItem Href="/wallet" Icon="@Icons.Material.Filled.AccountBalanceWallet">Wallet</MudMenuItem>
-                            <MudMenuItem Href="/settings" Icon="@Icons.Material.Filled.Settings">Settings</MudMenuItem>
-                            <MudMenuItem Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" OnClick="@(async () => await LayoutService.ToggleDarkMode())">
-                                @(LayoutService.IsDarkMode ? "Light Mode" : "Dark Mode")
-                            </MudMenuItem>
-                            <MudDivider />
-                            <MudMenuItem OnClick="Logout" Icon="@Icons.Material.Filled.Logout" IconColor="Color.Error">Logout</MudMenuItem>
-                        </ChildContent>
-                    </MudMenu>
+                            <ChildContent>
+                                <div class="pa-4 d-flex flex-column align-center border-b border-white-10" style="min-width: 220px;">
+                                    <MudAvatar Size="Size.Large" Class="mb-2"><MudImage Src="@userProfile?.AvatarUrl" /></MudAvatar>
+                                    <MudText Typo="Typo.subtitle1" Style="font-weight: 900;">@userProfile?.Username</MudText>
+                                    <MudText Typo="Typo.caption" Color="@GetTierColor(userProfile?.Progression?.Tier ?? VipTier.Bronze)" Class="fw-bold">@userProfile?.Progression?.TierName VIP</MudText>
+                                    
+                                    <!-- Mobile Only Balance -->
+                                    <div class="d-flex d-md-none mt-4 pa-2 rounded-lg w-100 justify-center" style="background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.2);">
+                                        <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Color="Color.Success" Size="Size.Small" Class="mr-2" />
+                                        <MudText Typo="Typo.body2" Color="Color.Success" Class="fw-bold">@userProfile?.TotalBalance.ToString("C2")</MudText>
+                                    </div>
+                                </div>
+                                <MudMenuItem Href="/profile" Icon="@Icons.Material.Filled.Person">My Profile</MudMenuItem>
+                                <MudMenuItem Href="/wallet" Icon="@Icons.Material.Filled.AccountBalanceWallet">My Wallet</MudMenuItem>
+                                <MudMenuItem Href="/settings" Icon="@Icons.Material.Filled.Settings">Settings</MudMenuItem>
+                                
+                                <div class="d-md-none">
+                                    <MudDivider />
+                                    <MudMenuItem Href="/notifications" Icon="@Icons.Material.Filled.Notifications">Notifications @(NotifService.UnreadCount > 0 ? $"({NotifService.UnreadCount})" : "")</MudMenuItem>
+                                </div>
+
+                                <MudMenuItem Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" OnClick="@(async () => await LayoutService.ToggleDarkMode())">
+                                    @(LayoutService.IsDarkMode ? "Light Mode" : "Dark Mode")
+                                </MudMenuItem>
+                                <MudDivider />
+                                <MudMenuItem OnClick="Logout" Icon="@Icons.Material.Filled.Logout" IconColor="Color.Error">Logout</MudMenuItem>
+                            </ChildContent>
+                        </MudMenu>
+                    </div>
                 </div>
-            </div>
             </Authorized>
             <NotAuthorized>
                 <div class="d-flex gap-3">

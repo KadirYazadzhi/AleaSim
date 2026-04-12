@@ -78,38 +78,62 @@
         </MudItem>
 
         <MudItem xs="12" lg="3">
-            <MudPaper Class="pa-6 d-flex flex-column gap-4">
-                <MudText Typo="Typo.h5">Balance: <span style="color: #4caf50;">@balance.ToString("C2")</span></MudText>
+            <MudPaper Class="pa-4 pa-lg-6 d-flex flex-column gap-3 gap-lg-4 glass-panel">
+                <div class="d-flex flex-row flex-lg-column justify-space-between align-center">
+                    <MudText Typo="Typo.subtitle2" Class="opacity-70 d-none d-lg-block">BALANCE</MudText>
+                    <MudText Typo="Typo.body2" Class="d-block d-lg-none opacity-70 fw-bold">BAL:</MudText>
+                    <MudText Typo="Typo.h5" Class="d-block d-lg-none" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
+                    <MudText Typo="Typo.h4" Class="d-none d-lg-block" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
+                </div>
                 
-                <MudNumericField @bind-Value="betAmount" Label="Bet" Variant="Variant.Outlined" Min="1" Max="500" Disabled="@(!isRoundOver && playerHands.Any())" />
+                <MudDivider Class="d-none d-lg-block" />
 
-                @if (isRoundOver || !playerHands.Any())
-                {
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="OnDeal" Style="height: 80px;">DEAL</MudButton>
-                }
-                else
-                {
-                    <div class="d-flex flex-column gap-2">
-                        <div class="d-flex gap-2">
-                            <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" OnClick='() => OnAction("hit")' Style="height: 60px;">HIT</MudButton>
-                            <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick='() => OnAction("stand")' Style="height: 60px;">STAND</MudButton>
+                <div class="d-flex flex-column gap-2">
+                    @if (isRoundOver || !playerHands.Any())
+                    {
+                        <div class="d-flex flex-row flex-lg-column gap-2 align-center">
+                            <MudNumericField @bind-Value="betAmount" 
+                                             Label="Bet" 
+                                             Variant="Variant.Outlined" 
+                                             Min="1" Max="500" 
+                                             Disabled="@(!isRoundOver && playerHands.Any())"
+                                             Class="flex-grow-1"
+                                             Margin="Margin.Dense" />
+                            <MudButton Variant="Variant.Filled" 
+                                       Color="Color.Primary" 
+                                       Size="Size.Large" 
+                                       OnClick="OnDeal" 
+                                       Class="w-100 flex-grow-1 action-btn-responsive deal-btn">
+                                DEAL
+                            </MudButton>
                         </div>
-                        <div class="d-flex gap-2">
-                            @if (CanSplit()) {
-                                <MudButton Variant="Variant.Outlined" Color="Color.Info" FullWidth="true" OnClick='() => OnAction("split")'>SPLIT</MudButton>
-                            }
-                            @if (CanDouble()) {
-                                <MudButton Variant="Variant.Outlined" Color="Color.Warning" FullWidth="true" OnClick='() => OnAction("double")'>DOUBLE</MudButton>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-2">
+                            <div class="d-flex gap-2">
+                                <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" OnClick='() => OnAction("hit")' Class="action-btn-responsive">HIT</MudButton>
+                                <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick='() => OnAction("stand")' Class="action-btn-responsive">STAND</MudButton>
+                            </div>
+                            <div class="d-flex gap-2">
+                                @if (CanSplit()) {
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Info" FullWidth="true" OnClick='() => OnAction("split")' Class="action-btn-responsive-small">SPLIT</MudButton>
+                                }
+                                @if (CanDouble()) {
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" FullWidth="true" OnClick='() => OnAction("double")' Class="action-btn-responsive-small">DOUBLE</MudButton>
+                                }
+                            </div>
+                            @if (CanInsurance()) {
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" OnClick='() => OnAction("insurance")' Class="action-btn-responsive-small">INSURANCE</MudButton>
                             }
                         </div>
-                        @if (CanInsurance()) {
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true" OnClick='() => OnAction("insurance")'>INSURANCE</MudButton>
-                        }
-                    </div>
-                }
+                    }
+                </div>
 
-                <MudDivider Class="my-2" />
-                <MudText Typo="Typo.caption" Align="Align.Center">RPG XP per Deal: @(betAmount * 10)</MudText>
+                <div class="mt-2 d-none d-lg-block">
+                    <MudDivider Class="mb-2" />
+                    <MudText Typo="Typo.caption" Align="Align.Center">RPG XP per Deal: @(betAmount * 10)</MudText>
+                </div>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -138,6 +162,16 @@
     .bust-hand { opacity: 0.5; filter: grayscale(1); }
     .active-indicator { position: absolute; top: -25px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; font-weight: 900; color: var(--mud-palette-info); background: white; padding: 2px 8px; border-radius: 4px; }
     .color-warning { color: #ff9800; }
+
+    .action-btn-responsive { height: 60px; font-weight: 900; }
+    .action-btn-responsive-small { height: 45px; font-weight: 700; }
+    .deal-btn { height: 80px; font-size: 1.5rem; }
+
+    @@media (max-width: 960px) {
+        .action-btn-responsive { height: 45px !important; font-size: 0.9rem !important; }
+        .action-btn-responsive-small { height: 35px !important; font-size: 0.8rem !important; }
+        .deal-btn { height: 45px !important; font-size: 1rem !important; }
+    }
 </style>
 
 @code {
