@@ -21,26 +21,32 @@
             <MudText Typo="Typo.subtitle2" Class="opacity-70 d-block d-md-none">High-speed cryptographic gaming.</MudText>
             <MudText Typo="Typo.subtitle1" Class="opacity-70 d-none d-md-block">High-speed cryptographic gaming.</MudText>
         </div>
-        <div class="d-flex gap-2 w-100 w-sm-auto">
-            <MudToggleGroup T="string" @bind-Value="selectedMode" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Delimiters="true" Class="w-100" Dense="true">
+        <div class="d-flex gap-2 w-100 w-sm-auto" style="max-width: 320px;">
+            <MudToggleGroup T="string" @bind-Value="selectedMode" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Delimiters="true" Class="w-100">
                 <MudToggleItem Value='@("Slider")'>SLIDER</MudToggleItem>
                 <MudToggleItem Value='@("Multi")'>MULTI</MudToggleItem>
             </MudToggleGroup>
         </div>
     </div>
 
-    <MudGrid Spacing="2" SpacingMd="6">
+    <MudGrid Spacing="2">
         <!-- Control Panel -->
         <MudItem xs="12" md="4">
             <MudPaper Class="glass-panel pa-4 pa-md-6 rounded-xl" Elevation="0">
-                <div class="d-flex flex-row flex-md-column gap-2 align-center mb-4 mb-md-6">
-                    <MudNumericField @bind-Value="betAmount" Label="Bet" Variant="Variant.Outlined" 
+                <div class="d-flex flex-row flex-md-column gap-2 align-items-center align-items-md-stretch mb-4 mb-md-0">
+                    <MudNumericField @bind-Value="betAmount" 
+                                     Label='@(LayoutService.IsMobile ? null : "Bet Amount")' 
+                                     Placeholder='@(LayoutService.IsMobile ? "Bet..." : null)'
+                                     Variant="Variant.Outlined" 
                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" 
-                                     Format="N2" Class="flex-grow-1 custom-input" Margin="Margin.Dense" />
+                                     Format="N2" 
+                                     Class="flex-grow-1 w-100 custom-input mb-md-6" 
+                                     Margin='@(LayoutService.IsMobile ? Margin.Dense : Margin.Normal)' />
                     
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" 
                                OnClick="PlayDice" Disabled="@(isSpinning || betAmount <= 0)"
-                               Class="d-md-none rounded-lg fw-black flex-grow-0 px-6" Style="height: 40px;">
+                               Class="d-md-none rounded-lg fw-black flex-grow-1 px-6" 
+                               Style="height: 40px; min-width: 100px;">
                         ROLL
                     </MudButton>
                 </div>
@@ -88,7 +94,7 @@
                 </MudButton>
 
                 <div class="d-flex justify-space-between align-center mt-2">
-                    <MudSwitch @bind-Value="autoBet" Label="AUTO" Color="Color.Secondary" Dense="true" Size="Size.Small" />
+                    <MudSwitch @bind-Value="autoBet" Label="AUTO" Color="Color.Secondary" Size="Size.Small" />
                     <MudText Typo="Typo.caption" Class="opacity-50 d-md-none">XP: @(betAmount * 10)</MudText>
                 </div>
             </MudPaper>
@@ -160,12 +166,12 @@
 <style>
     /* Die Visuals */
     .die-face {
-        width: 60px; height: 60px; background: white; border-radius: 10px;
+        width: 48px; height: 48px; background: white; border-radius: 8px;
         position: relative; display: grid; grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: repeat(3, 1fr); padding: 8px; gap: 4px;
+        grid-template-rows: repeat(3, 1fr); padding: 6px; gap: 3px;
         box-shadow: inset 0 0 10px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.3);
     }
-    .die-face.small { width: 36px; height: 36px; padding: 4px; border-radius: 6px; }
+    .die-face.small { width: 32px; height: 32px; padding: 4px; border-radius: 6px; }
     .die-face.unknown { display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #333; font-weight: 900; }
     
     .dot { background: #333; border-radius: 50%; width: 100%; height: 100%; }
@@ -235,7 +241,7 @@
 
     .shadow-glow { box-shadow: 0 0 20px rgba(var(--mud-palette-primary-rgb), 0.4); }
 
-    @media (max-width: 600px) {
+    @@media (max-width: 600px) {
         .small-mobile { width: 30px !important; height: 30px !important; padding: 2px !important; gap: 2px !important; border-radius: 4px !important; }
         .responsive-die { width: 45px !important; height: 45px !important; padding: 4px !important; gap: 2px !important; }
         .dice-grid { gap: 0.5rem !important; }

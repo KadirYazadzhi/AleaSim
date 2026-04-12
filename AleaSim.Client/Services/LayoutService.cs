@@ -12,11 +12,13 @@ public class LayoutService
     private readonly ILocalStorageService _localStorage;
     private readonly IJSRuntime _jsRuntime;
     private readonly HttpClient _http;
+    private readonly IBrowserViewportService _viewportService;
 
     public bool IsDarkMode { get; private set; } = true;
     public string CurrentSkin { get; private set; } = "Default";
     public bool IsDrawerOpen { get; set; } = true;
     public bool IsBalanceUpdateSuppressed { get; private set; }
+    public bool IsMobile { get; private set; }
 
     public MudTheme CurrentTheme { get; private set; }
 
@@ -26,11 +28,12 @@ public class LayoutService
     public event Action<decimal>? OnOptimisticDeduction;
     public event Action<decimal>? OnOptimisticAdd;
 
-    public LayoutService(ILocalStorageService localStorage, IJSRuntime jsRuntime, HttpClient http)
+    public LayoutService(ILocalStorageService localStorage, IJSRuntime jsRuntime, HttpClient http, IBrowserViewportService viewportService)
     {
         _localStorage = localStorage;
         _jsRuntime = jsRuntime;
         _http = http;
+        _viewportService = viewportService;
         CurrentTheme = CreateDefaultTheme();
     }
 
@@ -44,6 +47,15 @@ public class LayoutService
         ApplySkinInternal(CurrentSkin);
         await _jsRuntime.InvokeVoidAsync("setTheme", IsDarkMode ? "dark" : "light");
         UpdateGlobalBackground();
+
+        // Initialize IsMobile using a simple width check
+        try {
+            var width = await _jsRuntime.InvokeAsync<int>("eval", "window.innerWidth");
+            IsMobile = width < 960; // Standard MudBlazor MD breakpoint
+        } catch {
+            IsMobile = false;
+        }
+
         OnMajorUpdate?.Invoke();
     }
 
