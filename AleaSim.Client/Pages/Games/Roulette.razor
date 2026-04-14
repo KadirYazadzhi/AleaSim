@@ -13,154 +13,164 @@
 @inject LayoutService layoutService
 @inject IJSRuntime JSRuntime
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4" Style="padding-top: 20px;">
-    <MudGrid>
-        <!-- TOP ROW: Wheel and Controls -->
-        <MudItem xs="12" lg="9">
-            <MudPaper Class="pa-4 d-flex justify-center align-center overflow-hidden" Style="background: radial-gradient(circle, #1a4a1a 0%, #0a2a0a 100%); border: 8px solid #3d2b1f; border-radius: 24px; box-shadow: 0 0 40px rgba(0,0,0,0.9); min-height: 520px; position: relative;">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-2 mt-md-4" Style="padding-top: 10px; position: relative;">
+    
+    @if (layoutService.IsMobile)
+    {
+        <!-- 1. MOBILE VIEW -->
+        <div class='@($"mobile-pip-container {(_wheelExpanded ? "expanded" : "pip")}")' 
+             style='@(_wheelExpanded ? "" : $"left: {_wheelX}px; top: {_wheelY}px;")'
+             @onpointerdown="OnPointerDown" @onpointermove="OnPointerMove" @onpointerup="OnPointerUp" @onpointerleave="OnPointerUp">
+            
+            <MudPaper Class="pa-1 wheel-paper" 
+                      Style='@($"background: radial-gradient(circle, #1a4a1a 0%, #0a2a0a 100%); border: 3px solid #3d2b1f; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); cursor: {(_isDragging ? "grabbing" : "pointer")};")'
+                      @onclick="ToggleWheelSize">
                 
-                <div id="roulette-pro-container" style="width: 600px; height: 500px;">
-                    <!-- PixiJS Canvas here -->
-                </div>
+                <div id="roulette-pro-container" class="canvas-container-pip"></div>
                 
-                @if (winningNumber.HasValue && !isSpinning)
-                {
-                    <div class="result-overlay-pro animate-fade-in">
-                        <MudText Typo="Typo.h3" Style='@($"font-weight: 900; color: {(winningNumber == 0 ? "#4caf50" : (GetNumberColor(winningNumber.Value) == "red" ? "#ff5252" : "#ffffff"))};")'>
+                @if (winningNumber.HasValue && !isSpinning) {
+                    <div class="result-badge-mini">
+                        <MudText Typo="Typo.h6" Style='@($"font-weight: 900; color: {(winningNumber == 0 ? "#4caf50" : (GetNumberColor(winningNumber.Value) == "red" ? "#ff5252" : "#ffffff"))};")'>
                             @winningNumber
                         </MudText>
-                        <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.6); text-transform: uppercase;">Winning Number</MudText>
                     </div>
                 }
+                @if (!_wheelExpanded) {
+                    <div class="pip-hint"><MudIcon Icon="@Icons.Material.Filled.ZoomOutMap" Size="Size.Small" /></div>
+                }
             </MudPaper>
-        </MudItem>
+        </div>
 
-        <MudItem xs="12" lg="3">
-            <MudPaper Class="pa-6 d-flex flex-column gap-4 h-100" Style='@($"background: {(layoutService.IsDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)")}; border: 1px solid var(--mud-palette-divider); border-radius: 24px;")'>
-                <div class="pa-4 rounded-xl border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.5)")};")'>
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary fw-bold">YOUR BALANCE</MudText>
-                    <MudText Typo="Typo.h4" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
-                </div>
-                
-                <MudNumericField @bind-Value="chipValue" Label="Chip Value" Variant="Variant.Outlined" Min="1" Max="100" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AddCard" Class="glass-input" />
-                
-                <div class="pa-4 rounded-xl border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.5)")};")'>
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary fw-bold">TOTAL WAGER</MudText>
-                    <MudText Typo="Typo.h5" Class="fw-bold" Color="Color.Primary">@currentBets.Sum(x => x.Amount).ToString("C2")</MudText>
-                </div>
-
-                <MudSpacer />
-
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Primary" 
-                           Size="Size.Large" 
-                           OnClick="OnSpin" 
-                           Disabled="@(isSpinning || !currentBets.Any())"
-                           Class="rounded-xl pulse-neon"
-                           Style="height: 100px; font-size: 1.5rem; font-weight: 900;">
-                    SPIN
-                </MudButton>
-
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ClearBets" Disabled="isSpinning" Class="rounded-lg border-2">
-                    CLEAR BETS
-                </MudButton>
-            </MudPaper>
-        </MudItem>
-
-        <!-- BOTTOM ROW: Betting Table -->
-        <MudItem xs="12" lg="9">
-            <div @onmousedown="() => isMouseDown = true" 
-                 @onmouseup="() => isMouseDown = false" 
-                 @onmouseleave="() => isMouseDown = false"
-                 class="roulette-board-container mt-2">
-                <MudPaper Class="pa-4" Style="background: #004d00; border: 10px solid #3d2b1f; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
-                    <div class="roulette-table">
-                        <!-- Zero -->
-                        @{ bool zeroLucky = currentLuckyNumbers.ContainsKey(0); }
-                        <div @key='"cell-0"' class='@($"cell zero {GetCursorClass("number", "0")} {(zeroLucky ? "lucky-cell lightning-flash" : "")}")' 
-                             @onmousedown='() => HandleMouseDown("number", "0")'
-                             @onmousedown:stopPropagation
-                             @onmouseenter='() => HandleMouseEnter("number", "0")'>
-                            0
-                            @GetBetBadge("number", "0")
-                            @GetLuckyBadge(0)
+        <div class="mobile-stack-layout">
+            <!-- Table (Top) -->
+            <div class="roulette-board-container">
+                <MudPaper Class="pa-1" Style="background: #004d00; border: 4px solid #3d2b1f; border-radius: 10px;">
+                    <div class="roulette-table mobile-vertical">
+                        <div @key='"cell-0"' class='@($"cell zero {GetCursorClass("number", "0")} {(currentLuckyNumbers.ContainsKey(0) ? "lucky-cell lightning-flash" : "")}")' 
+                             @onmousedown='() => HandleMouseDown("number", "0")' @onmousedown:stopPropagation>
+                            0 @GetBetBadge("number", "0")
                         </div>                                
-                        <!-- Numbers 1-36 -->
-                                                        <div class="numbers-grid">
-                                                            @for (int i = 1; i <= 36; i++)
-                                                            {
-                                                                var num = i;
-                                                                var type = "number";
-                                                                var val = num.ToString();
-                                                                bool isLucky = currentLuckyNumbers.ContainsKey(num);
-                                                                
-                                                                <div @key='"cell-" + num' class='@($"cell {GetNumberColor(num)} {GetCursorClass(type, val)} {(isLucky ? "lucky-cell lightning-flash" : "")}")' 
-                                                                     @onmousedown='() => HandleMouseDown(type, val)'
-                                                                     @onmouseenter='() => HandleMouseEnter(type, val)'>
-                                                                    @num
-                                                                    @GetBetBadge(type, val)
-                                                                    @GetLuckyBadge(num)
-                                                                </div>
-                                                            }
-                                                        </div>
-                        <!-- Outside Bets -->
-                        <div class="outside-bets">
-                            <div @key='"outside-red"' class='@($"cell red {GetCursorClass("color", "red")}")' 
-                                 @onmousedown='() => HandleMouseDown("color", "red")'
-                                 @onmouseenter='() => HandleMouseEnter("color", "red")'>RED @GetBetBadge("color", "red")</div>
-                            <div @key='"outside-black"' class='@($"cell black {GetCursorClass("color", "black")}")' 
-                                 @onmousedown='() => HandleMouseDown("color", "black")'
-                                 @onmouseenter='() => HandleMouseEnter("color", "black")'>BLACK @GetBetBadge("color", "black")</div>
-                            <div @key='"outside-even"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' 
-                                 @onmousedown='() => HandleMouseDown("evenodd", "even")'
-                                 @onmouseenter='() => HandleMouseEnter("evenodd", "even")'>EVEN @GetBetBadge("evenodd", "even")</div>
-                            <div @key='"outside-odd"' class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' 
-                                 @onmousedown='() => HandleMouseDown("evenodd", "odd")'
-                                 @onmouseenter='() => HandleMouseEnter("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
+                        <div class="mobile-piles-container">
+                            @foreach (var pile in new[] { Enumerable.Range(1, 12), Enumerable.Range(13, 12), Enumerable.Range(25, 12) }) {
+                                <div class="pile">
+                                    @foreach (int i in pile) {
+                                        <div @key='"cell-" + i' class='@($"cell {GetNumberColor(i)} {GetCursorClass("number", i.ToString())} {(currentLuckyNumbers.ContainsKey(i) ? "lucky-cell lightning-flash" : "")}")' 
+                                             @onmousedown='() => HandleMouseDown("number", i.ToString())'>
+                                            @i @GetBetBadge("number", i.ToString())
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <div class="outside-grid-mobile">
+                            <div @key='"outside-red"' class='@($"cell red {GetCursorClass("color", "red")}")' @onmousedown='() => HandleMouseDown("color", "red")'>RED</div>
+                            <div @key='"outside-black"' class='@($"cell black {GetCursorClass("color", "black")}")' @onmousedown='() => HandleMouseDown("color", "black")'>BLK</div>
+                            <div @key='"outside-even"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' @onmousedown='() => HandleMouseDown("evenodd", "even")'>EVN</div>
+                            <div @key='"outside-odd"' class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' @onmousedown='() => HandleMouseDown("evenodd", "odd")'>ODD</div>
                         </div>
                     </div>
                 </MudPaper>
             </div>
-        </MudItem>
 
-        <MudItem xs="12" lg="3">
-             <!-- Mode Selector - Clean Rectangular Stacking -->
-             <div class="pa-4 rounded-xl glass-panel h-100 d-flex flex-column gap-3 border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)")};")'>
-                 <MudText Typo="Typo.subtitle2" Class="fw-bold d-flex align-center">
-                     <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small" Class="mr-2" Color="Color.Primary" /> Game Profile
-                 </MudText>
-                 
-                 <MudDivider />
+            <!-- Controls (Middle) -->
+            <MudPaper Class="pa-2 glass-panel mt-2">
+                <div class="d-flex justify-space-between align-center px-2 mb-2">
+                    <MudText Typo="Typo.caption" Class="opacity-70 fw-bold">BALANCE</MudText>
+                    <MudText Typo="Typo.body1" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
+                </div>
+                <div class="d-flex gap-2">
+                    <MudNumericField @bind-Value="chipValue" Label="Chip" Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSpin" Disabled="@(isSpinning || !currentBets.Any())" 
+                               Class="rounded-lg fw-black px-6" Style="height: 40px;">SPIN</MudButton>
+                </div>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ClearBets" Disabled="isSpinning" Size="Size.Small" FullWidth="true" Class="mt-2">CLEAR</MudButton>
+            </MudPaper>
 
-                 <div class="d-flex flex-column gap-2 flex-grow-1">
-                     <MudTooltip Text="Standard 35:1 payouts. Low volatility, consistent game." Arrow="true" Placement="Placement.Left">
-                         <div class='@($"mode-rect-card {(selectedMode == "Classic" ? "active-classic" : "")}")' @onclick='() => SetMode("Classic")'>
-                             <MudIcon Icon="@Icons.Material.Filled.History" Class="mode-rect-icon" />
-                             <div class="flex-grow-1 text-end">
-                                 <MudText Typo="Typo.button" Class="fw-black">CLASSIC</MudText>
-                             </div>
-                         </div>
-                     </MudTooltip>
+            <!-- Profile (Bottom) -->
+            <div class="pa-2 rounded-xl glass-panel d-flex gap-2 border border-solid var(--mud-palette-divider) mt-2">
+                 <div class='@($"mode-btn-mobile {(selectedMode == "Classic" ? "active-classic" : "")} flex-grow-1")' @onclick='@(() => SetMode("Classic"))'>CLASSIC</div>
+                 <div class='@($"mode-btn-mobile {(selectedMode == "Extreme" ? "active-extreme" : "")} flex-grow-1")' @onclick='@(() => SetMode("Extreme"))'>EXTREME</div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- 2. DESKTOP VIEW -->
+        <MudGrid>
+            <!-- Top Section: Wheel & Controls -->
+            <MudItem xs="12" lg="9">
+                <MudPaper Class="pa-4 d-flex justify-center align-center overflow-hidden desktop-wheel-card" 
+                          Style="background: radial-gradient(circle, #1a4a1a 0%, #0a2a0a 100%); border: 8px solid #3d2b1f; border-radius: 24px; box-shadow: 0 0 40px rgba(0,0,0,0.9); position: relative;">
+                    <div id="roulette-pro-container" style="width: 600px; height: 500px;"></div>
+                    @if (winningNumber.HasValue && !isSpinning) {
+                        <div class="result-overlay-pro animate-fade-in">
+                            <MudText Typo="Typo.h3" Style='@($"font-weight: 900; color: {(winningNumber == 0 ? "#4caf50" : (GetNumberColor(winningNumber.Value) == "red" ? "#ff5252" : "#ffffff"))};")'>@winningNumber</MudText>
+                            <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.6);">Winning Number</MudText>
+                        </div>
+                    }
+                </MudPaper>
+            </MudItem>
 
-                     <MudTooltip Text="Base 29:1 payouts. Random Lightning Strikes apply 50x to 500x multipliers!" Arrow="true" Placement="Placement.Left">
-                         <div class='@($"mode-rect-card {(selectedMode == "Extreme" ? "active-extreme" : "")}")' @onclick='() => SetMode("Extreme")'>
-                             <MudIcon Icon="@Icons.Material.Filled.Bolt" Class='@($"mode-rect-icon {(selectedMode == "Extreme" ? "text-warning" : "")}")' />
-                             <div class="flex-grow-1 text-end">
-                                 <MudText Typo="Typo.button" Class='@($"fw-black {(selectedMode == "Extreme" ? "text-warning" : "")}")'>EXTREME</MudText>
-                             </div>
-                         </div>
-                     </MudTooltip>
-                 </div>
+            <MudItem xs="12" lg="3">
+                <MudPaper Class="pa-6 d-flex flex-column gap-4 h-100 glass-panel">
+                    <div class="pa-4 rounded-xl border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.5)")};")'>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary fw-bold">BALANCE</MudText>
+                        <MudText Typo="Typo.h4" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
+                    </div>
+                    
+                    <MudNumericField @bind-Value="chipValue" Label="Chip Value" Variant="Variant.Outlined" Min="1" Max="100" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AddCard" />
+                    
+                    <div class="pa-4 rounded-xl border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.5)")};")'>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary fw-bold">TOTAL WAGER</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-bold" Color="Color.Primary">@currentBets.Sum(x => x.Amount).ToString("C2")</MudText>
+                    </div>
 
-                 <div class="mt-auto pa-2 border-t border-solid var(--mud-palette-divider)">
-                     <MudText Typo="Typo.caption" Class='@($"fw-bold d-flex align-center justify-center {(selectedMode == "Extreme" ? "text-warning" : "text-info")}")'>
-                         <MudIcon Icon="@(selectedMode == "Extreme" ? Icons.Material.Filled.AutoAwesome : Icons.Material.Filled.Info)" Size="Size.Small" Class="mr-1" />
-                         @(selectedMode == "Extreme" ? "EXTREME ACTIVE" : "CLASSIC ACTIVE")
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="OnSpin" Disabled="@(isSpinning || !currentBets.Any())" Class="rounded-xl pulse-neon" Style="height: 100px; font-size: 1.5rem; font-weight: 900;">SPIN</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ClearBets" Disabled="isSpinning" Class="rounded-lg border-2">CLEAR ALL</MudButton>
+                </MudPaper>
+            </MudItem>
+
+            <!-- Bottom Section: Table & Profile -->
+            <MudItem xs="12" lg="9">
+                <MudPaper Class="pa-4" Style="background: #004d00; border: 10px solid #3d2b1f; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
+                    <div class="roulette-table">
+                        <div @key='"cell-0"' class='@($"cell zero {GetCursorClass("number", "0")} {(currentLuckyNumbers.ContainsKey(0) ? "lucky-cell lightning-flash" : "")}")' @onmousedown='() => HandleMouseDown("number", "0")'>0 @GetBetBadge("number", "0")</div>                                
+                        <div class="numbers-grid">
+                            @for (int i = 1; i <= 36; i++) {
+                                var num = i;
+                                <div @key='"cell-" + num' class='@($"cell {GetNumberColor(num)} {GetCursorClass("number", num.ToString())} {(currentLuckyNumbers.ContainsKey(num) ? "lucky-cell lightning-flash" : "")}")' @onmousedown='() => HandleMouseDown("number", num.ToString())' @onmouseenter='() => HandleMouseEnter("number", num.ToString())'>@num @GetBetBadge("number", num.ToString())</div>
+                            }
+                        </div>
+                        <div class="outside-bets">
+                            <div @key='"outside-red"' class='@($"cell red {GetCursorClass("color", "red")}")' @onmousedown='() => HandleMouseDown("color", "red")'>RED</div>
+                            <div @key='"outside-black"' class='@($"cell black {GetCursorClass("color", "black")}")' @onmousedown='() => HandleMouseDown("color", "black")'>BLACK</div>
+                            <div @key='"outside-even"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' @onmousedown='() => HandleMouseDown("evenodd", "even")'>EVEN</div>
+                            <div @key='"outside-odd"' class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' @onmousedown='() => HandleMouseDown("evenodd", "odd")'>ODD</div>
+                        </div>
+                    </div>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" lg="3">
+                 <div class="pa-4 rounded-xl glass-panel h-100 d-flex flex-column gap-3 border border-solid var(--mud-palette-divider)">
+                     <MudText Typo="Typo.subtitle2" Class="fw-bold d-flex align-center">
+                         <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small" Class="mr-2" Color="Color.Primary" /> Game Profile
                      </MudText>
+                     <MudDivider />
+                     <div class='@($"mode-rect-card {(selectedMode == "Classic" ? "active-classic" : "")}")' @onclick='() => SetMode("Classic")'>CLASSIC</div>
+                     <div class='@($"mode-rect-card {(selectedMode == "Extreme" ? "active-extreme" : "")}")' @onclick='() => SetMode("Extreme")'>EXTREME</div>
+                     
+                     <div class="mt-auto pa-2 border-t border-solid var(--mud-palette-divider)">
+                         <MudText Typo="Typo.caption" Class='@($"fw-bold d-flex align-center justify-center {(selectedMode == "Extreme" ? "text-warning" : "text-info")}")'>
+                             <MudIcon Icon="@(selectedMode == "Extreme" ? Icons.Material.Filled.AutoAwesome : Icons.Material.Filled.Info)" Size="Size.Small" Class="mr-1" />
+                             @(selectedMode == "Extreme" ? "EXTREME ACTIVE" : "CLASSIC ACTIVE")
+                         </MudText>
+                     </div>
                  </div>
-             </div>
-        </MudItem>
-    </MudGrid>
+            </MudItem>
+        </MudGrid>
+    }
 </MudContainer>
 
 <style>
@@ -168,62 +178,36 @@
     .zero { width: 60px; display: flex; align-items: center; justify-content: center; background: #008000; border: 1px solid white; cursor: pointer; position: relative; }
     .numbers-grid { display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(3, 1fr); flex-grow: 1; grid-auto-flow: column; }
     .cell { height: 60px; border: 1px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; font-weight: bold; }
-    .cell:hover { background: rgba(255,255,255,0.1); }
-    .limit-reached { cursor: not-allowed !important; opacity: 0.8; }
-    .red { background: #b30000; }
-    .black { background: #1a1a1a; }
-    .even, .odd { background: #004d00; width: 100px; }
+    .red { background: #b30000; } .black { background: #1a1a1a; } .even, .odd { background: #004d00; width: 100px; }
     .outside-bets { display: flex; flex-direction: column; }
-    
-    .result-ball { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 2rem; font-weight: bold; border: 4px solid white; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
-    
     .bet-badge { position: absolute; top: -5px; right: -5px; background: #ffD700; color: black; border-radius: 50%; width: 24px; height: 24px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border: 2px solid white; font-weight: 900; z-index: 5; }
-    
-    .lucky-badge { position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); background: #ff9800; color: black; border-radius: 4px; padding: 0 6px; font-size: 0.75rem; font-weight: 900; border: 1px solid white; z-index: 6; box-shadow: 0 0 10px #ff9800; }
-    
-    .lucky-cell { border: 2px solid #ff9800 !important; background: rgba(255, 152, 0, 0.2) !important; z-index: 2; }
-    
+    .lucky-cell { border: 2px solid #ff9800 !important; background: rgba(255, 152, 0, 0.2) !important; }
     .lightning-flash { animation: lightning-strike 0.5s ease-out infinite alternate; }
-    
-    @@keyframes lightning-strike {
-        0% { box-shadow: inset 0 0 5px #fff, 0 0 5px #ff9800; filter: brightness(1); }
-        100% { box-shadow: inset 0 0 20px #fff, 0 0 30px #ff9800; filter: brightness(1.8); }
-    }
+    @@keyframes lightning-strike { 0% { filter: brightness(1); } 100% { filter: brightness(1.8); } }
+    .result-overlay-pro { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.85); padding: 15px 25px; border-radius: 16px; border: 2px solid #d4af37; text-align: center; }
+    .mode-rect-card { padding: 20px; border-radius: 12px; cursor: pointer; background: rgba(255,255,255,0.05); text-align: center; font-weight: 900; border: 2px solid transparent; }
+    .active-classic { border-color: var(--mud-palette-primary) !important; background: rgba(124, 58, 237, 0.2) !important; }
+    .active-extreme { border-color: var(--mud-palette-warning) !important; background: rgba(255, 152, 0, 0.2) !important; }
 
-    .result-overlay-pro { 
-        position: absolute; 
-        top: 20px; 
-        right: 20px; 
-        background: rgba(0,0,0,0.85); 
-        padding: 15px 25px; 
-        border-radius: 16px; 
-        border: 2px solid #d4af37; 
-        text-align: center; 
-        box-shadow: 0 0 30px rgba(0,0,0,0.6); 
-        z-index: 10; 
-        backdrop-filter: blur(8px);
+    @@media (max-width: 960px) {
+        .mobile-pip-container { position: fixed; z-index: 2000; touch-action: none; }
+        .mobile-pip-container.expanded { position: fixed; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; transform: none !important; }
+        .pip .wheel-paper { width: 100px; height: 100px; }
+        .expanded .wheel-paper { width: 320px; height: 320px; }
+        .canvas-container-pip canvas { width: 100% !important; height: 100% !important; }
+        #roulette-pro-container { width: 90px; height: 90px; }
+        .expanded #roulette-pro-container { width: 300px; height: 300px; }
+        .pip-hint { position: absolute; bottom: 2px; right: 2px; font-size: 0.6rem; color: #fff; opacity: 0.5; }
+        .result-badge-mini { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); padding: 4px 8px; border-radius: 8px; z-index: 10; }
+        .mobile-vertical { display: flex; flex-direction: column; gap: 8px; }
+        .mobile-piles-container { display: flex; flex-direction: row; justify-content: space-between; gap: 12px; }
+        .pile { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+        .cell { height: 34px !important; font-size: 1rem !important; border-radius: 4px; }
+        .zero { width: 100% !important; height: 30px !important; margin-bottom: 4px; }
+        .outside-grid-mobile { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-top: 8px; }
+        .outside-grid-mobile .cell { height: 35px !important; }
+        .mode-btn-mobile { padding: 10px; text-align: center; font-size: 0.8rem; font-weight: 900; background: rgba(255,255,255,0.05); border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
     }
-    .fw-black { font-weight: 900; }
-    .bg-dark-lighten { background: rgba(255,255,255,0.05); }
-    .transition-all { transition: all 0.3s ease; }
-
-    /* Compact Rectangular Cards */
-    .mode-rect-card {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        padding: 20px 24px;
-        border-radius: 12px;
-        cursor: pointer;
-        border: 2px solid transparent;
-        background: rgba(255,255,255,0.05);
-        transition: all 0.2s ease;
-    }
-    .mode-rect-card:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
-    .mode-rect-icon { font-size: 1.8rem; opacity: 0.8; }
-    
-    .active-classic { border-color: var(--mud-palette-primary); background: rgba(124, 58, 237, 0.1); }
-    .active-extreme { border-color: var(--mud-palette-warning); background: rgba(255, 152, 0, 0.1); }
 </style>
 
 @code {
@@ -236,13 +220,34 @@
     private List<RouletteBetDto> currentBets = new();
     private string selectedMode = "Classic";
     private Dictionary<int, int> currentLuckyNumbers = new();
-    private bool _shouldRender = true;
-    
-    [Parameter]
-    [SupplyParameterFromQuery]
-    public string? Mode { get; set; }
+    private bool _wheelExpanded = false;
 
-    // Performance Flags
+    // Draggable Logic
+    private double _wheelX = 250; private double _wheelY = 80;
+    private bool _isDragging = false;
+    private double _dragStartX, _dragStartY;
+
+    private void OnPointerDown(PointerEventArgs e) {
+        if (!layoutService.IsMobile || _wheelExpanded) return;
+        _isDragging = true;
+        _dragStartX = e.ClientX - _wheelX;
+        _dragStartY = e.ClientY - _wheelY;
+    }
+    private void OnPointerMove(PointerEventArgs e) {
+        if (!_isDragging) return;
+        _wheelX = e.ClientX - _dragStartX;
+        _wheelY = e.ClientY - _dragStartY;
+    }
+    private void OnPointerUp(PointerEventArgs e) => _isDragging = false;
+    
+    private void ToggleWheelSize() {
+        if (layoutService.IsMobile && !_isDragging) {
+            _wheelExpanded = !_wheelExpanded;
+            StateHasChanged();
+        }
+    }
+
+    [Parameter] [SupplyParameterFromQuery] public string? Mode { get; set; }
     private bool turboMode = false;
     private bool lowGraphics = false;
 
@@ -253,19 +258,11 @@
         }
     }
 
-    protected override bool ShouldRender() => _shouldRender;
+    private void SetMode(string mode) { if (!isSpinning) { selectedMode = mode; StateHasChanged(); } }
 
-    private void SetMode(string mode) {
-        if (isSpinning) return;
-        selectedMode = mode;
-        _shouldRender = true;
-        StateHasChanged();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender) {
+            await Task.Delay(1000); // Give DOM time to settle
             await JSRuntime.InvokeVoidAsync("roulettePro.init", "roulette-pro-container");
         }
     }
@@ -279,10 +276,9 @@
         try {
             var sessionResponse = await GameService.StartSession("roulette");
             sessionId = sessionResponse.SessionId;
-            var user = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
+            var user = await AuthService.GetMe();
             if (user != null) {
                 balance = user.TotalBalance;
-                // Parse preferences for performance
                 var prefs = JsonSerializer.Deserialize<Dictionary<string, object>>(user.PreferencesJson) ?? new();
                 if (prefs.TryGetValue("TurboMode", out var turbo)) turboMode = turbo.ToString()?.ToLower() == "true";
                 if (prefs.TryGetValue("LowGraphics", out var low)) lowGraphics = low.ToString()?.ToLower() == "true";
@@ -290,124 +286,54 @@
         } catch { }
     }
 
-    private async Task HandleMouseDown(string type, string value) {
-        isMouseDown = true;
-        await AddBet(type, value);
-    }
-
-    private async Task HandleMouseEnter(string type, string value) {
-        if (isMouseDown) {
-            await AddBet(type, value);
-        }
-    }
-
-    private string GetCursorClass(string type, string value) {
-        var bet = currentBets.FirstOrDefault(b => b.Type == type && b.Value == value);
-        return (bet?.Amount >= 100) ? "limit-reached" : "";
-    }
+    private async Task HandleMouseDown(string type, string value) { isMouseDown = true; await AddBet(type, value); }
+    private async Task HandleMouseEnter(string type, string value) { if (isMouseDown) await AddBet(type, value); }
+    private string GetCursorClass(string type, string value) => currentBets.Any(b => b.Type == type && b.Value == value && b.Amount >= 100) ? "limit-reached" : "";
 
     private async Task AddBet(string type, string value) {
         if (isSpinning) return;
-        
         var existing = currentBets.FirstOrDefault(b => b.Type == type && b.Value == value);
         decimal currentAmount = existing?.Amount ?? 0;
-
         if (currentAmount >= 100) return;
-
         decimal allowedToAdd = Math.Min(chipValue, 100 - currentAmount);
-        
         await Audio.PlayClick();
         if (existing != null) existing.Amount += allowedToAdd;
         else currentBets.Add(new RouletteBetDto { Type = type, Value = value, Amount = allowedToAdd });
-        
-        _shouldRender = true;
         StateHasChanged();
-        // After rendering, we can set it to false for the next mouse-enter event if needed, 
-        // but Blazor's event loop will handle this mostly. 
-        // For 'drag betting', we want it to be smooth.
     }
 
-    private void ClearBets() {
-        currentBets.Clear();
-        _shouldRender = true;
-        StateHasChanged();
-    }
+    private void ClearBets() { currentBets.Clear(); StateHasChanged(); }
 
     private async Task OnSpin() {
         if (sessionId == null || isSpinning || !currentBets.Any()) return;
-        
         decimal totalWager = currentBets.Sum(x => x.Amount);
-        if (totalWager > balance) {
-            Snackbar.Add("Insufficient balance!", Severity.Warning);
-            return;
-        }
-
-        isSpinning = true;
-        winningNumber = null;
-        currentLuckyNumbers.Clear();
-        _shouldRender = true;
-        
-        // Optimistic local update
+        if (totalWager > balance) { Snackbar.Add("Insufficient balance!", Severity.Warning); return; }
+        isSpinning = true; winningNumber = null; currentLuckyNumbers.Clear();
         balance -= totalWager;
-        layoutService.DeductOptimisticBalance(totalWager); // Update Navbar immediately
-
-        // Suppress Navbar updates to prevent spoilers
+        layoutService.DeductOptimisticBalance(totalWager);
         layoutService.SetBalanceUpdateSuppression(true);
-        
         StateHasChanged();
-
         try {
             await Audio.PlaySpin();
-            var betPayload = new {
-                Bets = currentBets,
-                Mode = selectedMode
-            };
-            var result = await GameService.PlaceBet("roulette", sessionId.Value, totalWager, betPayload);
-            
+            var result = await GameService.PlaceBet("roulette", sessionId.Value, totalWager, new { Bets = currentBets, Mode = selectedMode });
             var resultData = JsonSerializer.Deserialize<RouletteResult>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            
             if (resultData != null) {
-                // Trigger Professional 2D Animation
                 await JSRuntime.InvokeVoidAsync("roulettePro.spin", resultData.Number);
-                
-                // Visual Delay for 'Lightning Strike' (Suspense) - much faster in turbo
                 await Task.Delay(turboMode ? 200 : 1500);
-                if (resultData.LuckyNumbers != null) {
-                    currentLuckyNumbers = resultData.LuckyNumbers;
-                    StateHasChanged();
-                    // Optional: Play lightning sound here
-                }
+                if (resultData.LuckyNumbers != null) { currentLuckyNumbers = resultData.LuckyNumbers; StateHasChanged(); }
             }
-
-            // Wait for visual animation to complete (matching gsap duration) - much faster in turbo
             await Task.Delay(turboMode ? 1500 : 5500);
-
             winningNumber = resultData?.Number;
-            
             if (result.TotalWin > 0) {
-                string winMsg = (resultData?.Multiplier > 0) 
-                    ? $"LIGHTNING WIN! {resultData.Multiplier}x Multiplier! Total: {result.TotalWin.ToString("C2")}"
-                    : $"WINNER! Number {winningNumber} paid {result.TotalWin.ToString("C2")}";
-                
+                string winMsg = (resultData?.Multiplier > 0) ? $"LIGHTNING WIN! {resultData.Multiplier}x! Total: {result.TotalWin:C2}" : $"WINNER! {winningNumber} paid {result.TotalWin:C2}";
                 Snackbar.Add(winMsg, resultData?.Multiplier > 0 ? Severity.Warning : Severity.Success);
                 await Audio.PlayWin();
             }
-            
-            // Sync exact balance from server
             var user = await AuthService.GetMe();
             if (user != null) balance = user.TotalBalance;
             currentBets.Clear();
-        }
-        catch (Exception ex) {
-            Snackbar.Add(ex.Message, Severity.Error);
-        }
-        finally {
-            isSpinning = false;
-            _shouldRender = true;
-            // Release Navbar updates
-            layoutService.SetBalanceUpdateSuppression(false);
-            StateHasChanged();
-        }
+        } catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { isSpinning = false; layoutService.SetBalanceUpdateSuppression(false); StateHasChanged(); }
     }
 
     private string GetNumberColor(int num) {
@@ -420,20 +346,16 @@
         var bet = currentBets.FirstOrDefault(b => b.Type == type && b.Value == value);
         if (bet == null) return null;
         return builder => {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "bet-badge");
-            builder.AddContent(2, bet.Amount.ToString("N0"));
-            builder.CloseElement();
+            builder.OpenElement(0, "div"); builder.AddAttribute(1, "class", "bet-badge");
+            builder.AddContent(2, bet.Amount.ToString("N0")); builder.CloseElement();
         };
     }
 
     private RenderFragment? GetLuckyBadge(int number) {
         if (!currentLuckyNumbers.TryGetValue(number, out int mult)) return null;
         return builder => {
-            builder.OpenElement(0, "div");
-            builder.AddAttribute(1, "class", "lucky-badge animate-bounce");
-            builder.AddContent(2, $"x{mult}");
-            builder.CloseElement();
+            builder.OpenElement(0, "div"); builder.AddAttribute(1, "class", "lucky-badge animate-bounce");
+            builder.AddContent(2, $"x{mult}"); builder.CloseElement();
         };
     }
 
