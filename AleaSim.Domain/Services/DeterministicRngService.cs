@@ -10,11 +10,25 @@ public class DeterministicRngService : IRngService {
     
     public int GetNextInt(string serverSeed, string clientSeed, int nonce, int min, int max) {
         if (min >= max) return min;
+        
+        // SECURITY: Fallback to True Cryptographic Randomness if seeds are empty
+        if (string.IsNullOrEmpty(serverSeed) || string.IsNullOrEmpty(clientSeed)) {
+            return RandomNumberGenerator.GetInt32(min, max);
+        }
+
         double randomValue = GetNextDouble(serverSeed, clientSeed, nonce);
         return (int)Math.Floor(min + (randomValue * (max - min)));
     }
 
     public double GetNextDouble(string serverSeed, string clientSeed, int nonce) {
+        if (string.IsNullOrEmpty(serverSeed) || string.IsNullOrEmpty(clientSeed)) {
+            // Generate a secure random double
+            byte[] bytes = new byte[8];
+            RandomNumberGenerator.Fill(bytes);
+            ulong randomUlong = BitConverter.ToUInt64(bytes, 0);
+            return (double)randomUlong / (double)ulong.MaxValue;
+        }
+
         // Combined Seed: serverSeed:clientSeed:nonce
         string combined = $"{serverSeed}:{clientSeed}:{nonce}";
         byte[] key = Encoding.UTF8.GetBytes(serverSeed);

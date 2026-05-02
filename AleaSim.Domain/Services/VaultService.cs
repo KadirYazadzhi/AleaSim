@@ -58,23 +58,12 @@ public class VaultService : IVaultService {
             }
         }
         
-        _logger.LogDebug($"Acquiring wallet lock for user {userId}");
-        IDisposable? lockHandle = null;
-        try {
-            lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(5));
-        } catch (Exception ex) {
-            _logger.LogError(ex, $"Failed to acquire wallet lock for user {userId}");
-            return false; // Lock acquisition failed - reject bet gracefully
+        // NOTE: Lock is now managed by the caller (BaseGameEngine) to cover the entire transaction
+        var user = repo.GetUser(userId);
+        var profile = repo.GetPlayerProfile(userId);
+        if (user == null) {
+            return false;
         }
-        
-        // NOTE: Transaction is managed by caller (BaseGameEngine.PlaceBet)
-        // We don't start our own transaction to avoid nested transaction issues
-        using (lockHandle) {
-            var user = repo.GetUser(userId);
-            var profile = repo.GetPlayerProfile(userId);
-            if (user == null) {
-                return false;
-            }
 
             // 1. RESPONSIBLE GAMING: Self-Exclusion Check
             if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.UtcNow) {
@@ -156,7 +145,6 @@ public class VaultService : IVaultService {
             }
 
             return success;
-        }
     }
 
     public async Task ProcessWinAsync(Guid userId, decimal amount, IGameRepository repo, Guid? referenceId = null) {
@@ -169,10 +157,7 @@ public class VaultService : IVaultService {
             amount = GameConstants.MAX_WIN;
         }
 
-        // NOTE: Transaction is managed by caller (BaseGameEngine.ExecuteScopedAsync or similar)
-        // We don't start our own transaction to avoid nested transaction issues
-        using var lockHandle = await _lockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(5));
-
+        // NOTE: Lock is managed by caller (BaseGameEngine)
         if (referenceId.HasValue) {
             var existing = repo.GetTransaction(referenceId.Value);
             if (existing != null) {

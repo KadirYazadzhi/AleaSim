@@ -12,6 +12,9 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Globalization;
 
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // SECURITY: Validate JWT secret length on startup
@@ -29,6 +32,36 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // Add Services
 builder.Services.AddControllers();
+
+// SECURITY: Add API Rate Limiting to prevent DDoS and Bot Abuse
+builder.Services.AddRateLimiter(options => {
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    
+    // Global Limit: 100 requests per 10 seconds per IP
+    options.AddPolicy("GlobalLimit", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: partition => new FixedWindowRateLimiterOptions {
+                AutoReplenishment = true,
+                PermitLimit = 100,
+                QueueLimit = 0,
+                Window = TimeSpan.FromSeconds(10)
+            }));
+            
+    // Financial Operations Limit: 10 requests per 5 seconds per User
+    options.AddPolicy("FinancialLimit", context => {
+        var userId = context.User?.FindFirst("sub")?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetTokenBucketLimiter(
+            partitionKey: userId,
+            factory: partition => new TokenBucketRateLimiterOptions {
+                TokenLimit = 10,
+                QueueLimit = 0,
+                TokensPerPeriod = 10,
+                ReplenishmentPeriod = TimeSpan.FromSeconds(5),
+                AutoReplenishment = true
+            });
+    });
+});
 
 builder.WebHost.ConfigureKestrel(serverOptions => {
     serverOptions.Limits.MaxRequestBodySize = 1024 * 1024; // 1MB Limit to prevent RAM DoS
@@ -184,6 +217,7 @@ if (!app.Environment.IsDevelopment()) {
 }
 app.UseMiddleware<AleaSim.Api.Middleware.ExceptionHandlingMiddleware>();
 app.UseRouting(); // Explicit routing
+app.UseRateLimiter(); // SECURITY: Apply rate limiting globally
 app.UseCors("DefaultCors");
 app.UseAuthentication();
 app.UseAuthorization();

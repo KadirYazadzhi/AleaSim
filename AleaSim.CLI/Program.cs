@@ -3,6 +3,8 @@ using AleaSim.Domain.Services;
 using AleaSim.Domain.Extensions;
 using AleaSim.Persistence;
 using AleaSim.CLI.Services;
+using AleaSim.Shared.Models;
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -388,7 +390,7 @@ class Program {
                 break;
 
             case "admin":
-                if (parts.Length < 2) { Console.WriteLine("Usage: admin <sim|stats|rtp>"); return; }
+                if (parts.Length < 2) { Console.WriteLine("Usage: admin <sim|stats|rtp|rtp-verify>"); return; }
                 string adminCmd = parts[1].ToLower();
                 
                 if (adminCmd == "stats") {
@@ -403,6 +405,50 @@ class Program {
                     if (parts.Length < 3) { Console.WriteLine("Usage: admin rtp <target>"); return; }
                     repo.SetGlobalSetting("GlobalTargetRtp", parts[2]);
                     Console.WriteLine($"Global Target RTP set to {parts[2]}%");
+                }
+                else if (adminCmd == "rtp-verify") {
+                    if (parts.Length < 4) { Console.WriteLine("Usage: admin rtp-verify <game> <iterations>"); return; }
+                    string game = parts[2];
+                    int totalIters = int.Parse(parts[3]);
+                    int threads = Environment.ProcessorCount;
+                    int itersPerThread = totalIters / threads;
+                    
+                    Console.WriteLine($"\n[MATH VALIDATION] Verifying {game} RTP over {totalIters:N0} rounds using {threads} threads...");
+                    var simService = scope.ServiceProvider.GetRequiredService<ISimulationService>();
+                    var tasks = new List<Task<SimulationReport>>();
+                    var sw = Stopwatch.StartNew();
+
+                    for (int i = 0; i < threads; i++) {
+                        tasks.Add(simService.RunSimulation(new SimulationRequest { 
+                            GameType = game, 
+                            Iterations = itersPerThread, 
+                            BetAmount = 1.0m 
+                        }));
+                    }
+
+                    var results = await Task.WhenAll(tasks);
+                    sw.Stop();
+
+                    decimal combinedBet = results.Sum(r => r.TotalBet);
+                    decimal combinedWin = results.Sum(r => r.TotalWin);
+                    decimal finalRtp = (combinedWin / combinedBet) * 100;
+
+                    Console.WriteLine("\n--- RTP VALIDATION REPORT ---");
+                    Console.WriteLine($"Duration:    {sw.Elapsed.TotalSeconds:F2}s");
+                    Console.WriteLine($"Throughput:  {totalIters / sw.Elapsed.TotalSeconds:N0} rounds/sec");
+                    Console.WriteLine($"Total Bet:   {combinedBet:C}");
+                    Console.WriteLine($"Total Win:   {combinedWin:C}");
+                    Console.WriteLine($"FINAL RTP:   {finalRtp:F4}%");
+                    
+                    if (Math.Abs(finalRtp - 95.0m) > 5.0m) {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("WARNING: Significant deviation from target RTP (95%)!");
+                        Console.ResetColor();
+                    } else {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("SUCCESS: Math model within tolerance.");
+                        Console.ResetColor();
+                    }
                 }
                 else if (adminCmd == "sim") {
                     if (parts.Length < 5) { Console.WriteLine("Usage: admin sim <game> <count> <bet>"); return; }

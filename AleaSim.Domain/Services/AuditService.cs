@@ -51,7 +51,14 @@ public class AuditService : IAuditService {
             auditEvent.Hash = hash;
 
             // Buffer the event for background batch writing
-            _buffer.Enqueue(auditEvent);
+            if (eventType == "JACKPOT_WIN" || eventType == "WITHDRAWAL" || eventType == "DEPOSIT") {
+                // WAL (Write-Ahead Log) for critical financial events
+                using var scope = _scopeFactory.CreateScope();
+                var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+                repo.LogAuditBatch(new[] { auditEvent });
+            } else {
+                _buffer.Enqueue(auditEvent);
+            }
             
             // Notify Admins in Real-Time
             _ = _realTime.NotifyAuditLog(auditEvent);

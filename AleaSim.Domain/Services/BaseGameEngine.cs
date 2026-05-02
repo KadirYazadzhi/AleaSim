@@ -40,9 +40,12 @@ public abstract class BaseGameEngine : IGame {
         }
 
         bool betProcessed = false;
-            bool isExcluded = false;
-            Guid currentUserId = Guid.Empty;
+        bool isExcluded = false;
+        Guid currentUserId = Guid.Empty;
 
+        // SECURITY: Acquire wallet lock BEFORE starting transaction and release AFTER commit
+        // This prevents the "phantom balance" issue where lock is released but TX is not yet visible to other threads.
+        using (await LockService.AcquireLockAsync($"wallet_{userId}", TimeSpan.FromSeconds(10))) {
             using (var tx = repo.BeginTransaction()) {
                 try {
                     var session = await repo.GetSessionAsync(sessionId);
@@ -81,6 +84,7 @@ public abstract class BaseGameEngine : IGame {
                     throw;
                 }
             }
+        }
 
             // 4. Perform non-critical updates AFTER the primary financial transaction is committed
             if (betProcessed && currentUserId != Guid.Empty) {
