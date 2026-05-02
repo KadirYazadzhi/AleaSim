@@ -32,51 +32,103 @@ public class TournamentService : ITournamentService {
     }
 
     public async Task ProcessMonthlyPayout(IGameRepository repo, IVaultService vault, IRealTimeService realTime) {
-        using var lockHandle = await _lockService.AcquireLockAsync("tournament_payout", TimeSpan.FromMinutes(1));
-        using var transaction = repo.BeginTransaction();
+        var now = DateTime.UtcNow;
+        // Payout happens on the 1st day of the month for the PREVIOUS month
+        if (now.Day != 1) return;
+
+        string currentSeasonStr = repo.GetGlobalSetting("TournamentSeason") ?? "1";
+        int currentSeason = int.Parse(currentSeasonStr);
+        string payoutKey = $"TournamentPaid_S{currentSeason}";
+
+        using var lockHandle = await _lockService.AcquireLockAsync("tournament_payout_master", TimeSpan.FromMinutes(10));
         
+        // Double check flag after acquiring lock
+        if (!string.IsNullOrEmpty(repo.GetGlobalSetting(payoutKey))) {
+            _logger.LogInformation($"Tournament Season {currentSeason} already paid out.");
+            return;
+        }
+
+        using var transaction = repo.BeginTransaction();
         try {
-            _logger.LogInformation("Processing Monthly Tournament Payouts...");
+            _logger.LogInformation($"--- STARTING PAYOUT FOR SEASON {currentSeason} ---");
             
-            var rankings = (await GetCurrentRankings(repo)).Take(10).ToList();
-            decimal[] prizes = { 5000, 3000, 2000, 1500, 1000, 800, 700, 600, 500, 400 };
-            var winnersToArchive = new List<TournamentWinner>();
+            // Get entries for the month that just ended
+            var lastMonth = now.AddMonths(-1);
+            var endOfLastMonth = new DateTime(now.Year, now.Month, 1).AddSeconds(-1);
+            var entries = repo.GetTopTournamentEntries(endOfLastMonth, 10).ToList();
 
-            foreach (var winner in rankings) {
-                decimal prize = prizes[winner.Rank - 1];
-                var user = repo.GetUser(winner.UserId);
-                
-                await vault.CreditBonusAsync(winner.UserId, prize, prize, repo); 
-                
-                winnersToArchive.Add(new TournamentWinner {
-                    Id = Guid.NewGuid(),
-                    UserId = winner.UserId,
-                    Username = winner.Username,
-                    AvatarUrl = user?.AvatarUrl ?? "",
-                    Rank = winner.Rank,
-                    PrizeAmount = prize,
-                    Score = winner.MaxMultiplier,
-                    Month = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1).AddMonths(-1)
-                });
-
-                await realTime.NotifyGameUpdate(winner.UserId, new {
-                    Type = "TournamentWin",
-                    Rank = winner.Rank,
-                    Amount = prize,
-                    Message = $"🏆 You finished #{winner.Rank} in the Tournament! ${prize} Bonus added!"
-                });
+            decimal totalPool = 25000m;
+            if (decimal.TryParse(repo.GetGlobalSetting("TournamentPrizePool"), out var dbVal)) {
+                totalPool = dbVal;
             }
 
-            repo.SaveTournamentWinners(winnersToArchive);
+            if (!entries.Any()) {
+                _logger.LogInformation($"No participants in Season {currentSeason}. Rolling over pool...");
+                // Rollover logic: Prize pool stays for next month, maybe increases?
+                // For now, we just proceed to next season.
+            } else {
+                decimal[] distribution = { 0.40m, 0.25m, 0.15m, 0.05m, 0.03m, 0.03m, 0.03m, 0.02m, 0.02m, 0.02m };
+                var winnersToArchive = new List<TournamentWinner>();
+
+                for (int i = 0; i < entries.Count && i < distribution.Length; i++) {
+                    var entry = entries[i];
+                    decimal prize = totalPool * distribution[i];
+                    var user = repo.GetUser(entry.UserId);
+                    if (user == null) continue;
+
+                    // IDEMPOTENT PAYOUT: referenceId is unique per season and rank
+                    var referenceId = Guid.Parse(SHA256Hash($"TOURN_S{currentSeason}_R{i+1}").Substring(0, 32));
+                    
+                    await vault.ProcessWinAsync(user.Id, prize, repo, referenceId);
+                    
+                    winnersToArchive.Add(new TournamentWinner {
+                        Id = Guid.NewGuid(),
+                        UserId = user.Id,
+                        Username = user.Username,
+                        AvatarUrl = user.AvatarUrl ?? "",
+                        Rank = i + 1,
+                        PrizeAmount = prize,
+                        Score = entry.MaxMultiplier,
+                        Month = new DateTime(lastMonth.Year, lastMonth.Month, 1)
+                    });
+
+                    await realTime.NotifyGameUpdate(user.Id, new {
+                        Type = "TournamentWin",
+                        Season = currentSeason,
+                        Rank = i + 1,
+                        Amount = prize,
+                        Message = $"🏆 SEASON {currentSeason} FINISHED! You won {prize:C2}!"
+                    });
+                }
+                repo.SaveTournamentWinners(winnersToArchive);
+            }
+
+            // --- AUTO ROTATION ---
+            // 1. Mark Season as Paid
+            repo.SetGlobalSetting(payoutKey, "true", $"Paid on {now}");
+            
+            // 2. Increment Season
+            int nextSeason = currentSeason + 1;
+            repo.SetGlobalSetting("TournamentSeason", nextSeason.ToString(), $"Started on {now}");
+            
+            // 3. Reset/Update Prize Pool (Base $25k + any carryover if desired)
+            repo.SetGlobalSetting("TournamentPrizePool", "25000.00", "Starting pool for new season");
+            
             repo.SaveChanges();
             transaction.Commit();
             
-            _logger.LogInformation("Tournament payouts processed successfully for {Count} winners", winnersToArchive.Count);
+            _logger.LogInformation($"Season {currentSeason} finalized. Season {nextSeason} is now ACTIVE.");
         }
         catch (Exception ex) {
-            _logger.LogError(ex, "Failed to process tournament payouts, rolling back");
+            _logger.LogError(ex, "CRITICAL: Tournament Payout failed. Rolling back.");
             transaction.Rollback();
             throw;
         }
+    }
+
+    private string SHA256Hash(string input) {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(bytes);
     }
 }

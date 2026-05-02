@@ -35,52 +35,12 @@ public class TournamentPayoutBackgroundService : BackgroundService {
         using var scope = _scopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
         var vault = scope.ServiceProvider.GetRequiredService<IVaultService>();
-        var redis = scope.ServiceProvider.GetRequiredService<AleaSim.Domain.Services.IRedisCacheService>();
-        var lockService = scope.ServiceProvider.GetRequiredService<ILockService>();
+        var tournament = scope.ServiceProvider.GetRequiredService<ITournamentService>();
+        var realTime = scope.ServiceProvider.GetRequiredService<IRealTimeService>();
 
-        var now = DateTime.UtcNow;
-        var previousMonth = now.AddMonths(-1);
-        string payoutKey = $"TournamentPaid_{previousMonth.Year}_{previousMonth.Month}";
-
-        // If we are on the 1st day of the month and haven't paid out yet
-        if (now.Day == 1) {
-            // 1. Quick check in Redis
-            var redisFlag = await redis.GetAsync<bool?>(payoutKey);
-            if (redisFlag == true) return;
-
-            // 2. Distributed Lock
-            using var lockHandle = await lockService.AcquireLockAsync("tournament_payout_lock", TimeSpan.FromMinutes(10));
-            
-            // 3. Database Check + Transaction
-            using var tx = repo.BeginTransaction();
-            try {
-                var dbFlag = repo.GetGlobalSetting(payoutKey);
-                if (string.IsNullOrEmpty(dbFlag)) {
-                    _logger.LogInformation($"Processing Tournament Payout for {previousMonth:MMMM yyyy}...");
-                    
-                    var audit = scope.ServiceProvider.GetRequiredService<IAuditService>();
-                    await ProcessPayoutForMonth(previousMonth, repo, vault, audit);
-                    
-                    // Mark as paid in DB
-                    repo.SetGlobalSetting(payoutKey, "true", $"Tournament Payout processed on {now}");
-                    
-                    // RESET POOL to base $25,000 for next month
-                    repo.SetGlobalSetting("TournamentPrizePool", "25000.00", "Base pool for new month");
-                    await redis.RemoveAsync("tournament:prize_pool");
-
-                    tx.Commit();
-
-                    // Update Redis for quick check
-                    await redis.SetAsync(payoutKey, true, TimeSpan.FromDays(40));
-                    _logger.LogInformation("Tournament Payout completed successfully.");
-                } else {
-                    tx.Rollback();
-                }
-            } catch (Exception ex) {
-                tx.Rollback();
-                _logger.LogError(ex, "Failed to process tournament payout transaction");
-            }
-        }
+        // Trigger the unified logic
+        // This method now handles dates, locking, and season rotation internally
+        await tournament.ProcessMonthlyPayout(repo, vault, realTime);
     }
 
     private async Task ProcessPayoutForMonth(DateTime month, IGameRepository repo, IVaultService vault, IAuditService audit) {
