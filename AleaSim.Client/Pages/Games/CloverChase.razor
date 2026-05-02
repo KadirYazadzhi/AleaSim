@@ -15,10 +15,10 @@
 @inject LayoutService LayoutService
 @inject IAuthService AuthService
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-md-4 mt-1 px-2 px-md-4">
-    <MudGrid Spacing="2">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-md-4 mt-1 px-1 px-md-4 overflow-hidden">
+    <MudGrid Spacing="1">
         <MudItem xs="12" lg="9">
-            <div class="mb-2 d-none d-lg-block">
+            <div class="mb-2">
                 <MultiJackpotWidget Denomination="@denomination" FullGridMode="true" />
             </div>
 
@@ -29,14 +29,14 @@
                 </div>
                 
                 <!-- Info Button -->
-                <div style="position: absolute; top: 15px; right: 15px; z-index: 101;">
+                <div style="position: absolute; top: 10px; right: 10px; z-index: 101;">
                     <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Inherit" Class="glass-panel rounded-circle info-btn-mobile" OnClick="OpenPaytable" />
                 </div>
 
                 <div class="win-light @(lastWin > 0 ? "active" : "")"></div>
                 
                 @if (gameState.IsRespinActive || (isSpinning && wasInRespin)) {
-                    <div class="overlay-text respin-counter-mobile" style="top: 20px;">
+                    <div class="overlay-text respin-counter-mobile" style="top: 15px;">
                         @{
                             var displayRespins = isSpinning ? Math.Max(0, (nextRespinLivesBuffer >= gameState.RespinLives && nextRespinLivesBuffer > 0 ? nextRespinLivesBuffer : (nextRespinLivesBuffer > 0 ? nextRespinLivesBuffer : gameState.RespinLives - 1))) : gameState.RespinLives;
                             if (displayRespins > 3) displayRespins = 3;
@@ -45,7 +45,7 @@
                     </div>
                 }
                 @if (wasNudged) {
-                    <div class="overlay-text nudged nudge-mobile" style="bottom: 20px;">MYSTERY NUDGE!</div>
+                    <div class="overlay-text nudged nudge-mobile" style="bottom: 15px;">MYSTERY NUDGE!</div>
                 }
 
                 <!-- Giant Win Display -->
@@ -64,7 +64,7 @@
                     <MudText Typo="Typo.h5" Class="value win mobile-status-val">@lastWin.ToString("C2")</MudText>
                 </div>
                 
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-1">
                     @if (gameState.IsBonusActive || (isSpinning && wasInBonus)) {
                         <div class="feature-badge bonus mobile-badge">
                             @{
@@ -75,8 +75,8 @@
                         </div>
                     }
                     @if (gameState.IsGambleActive) {
-                        <MudButton Variant="Variant.Filled" Color="Color.Warning" Size="Size.Small" OnClick="OpenGamble" Class="fw-black">GAMBLE</MudButton>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Success" Size="Size.Small" OnClick="CollectWin" Class="fw-black">COLLECT</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Warning" Size="Size.Small" OnClick="OpenGamble" Class="fw-black px-1" Style="font-size: 0.7rem;">GAMBLE</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Success" Size="Size.Small" OnClick="CollectWin" Class="fw-black px-1" Style="font-size: 0.7rem;">COLLECT</MudButton>
                     }
                 </div>
 
@@ -89,7 +89,7 @@
 
         <!-- Controls -->
         <MudItem xs="12" lg="3">
-            <MudPaper Class='@($"control-panel-v4 pa-md-6 pa-3 h-100 {(LayoutService.IsDarkMode ? "dark" : "light")}")' Elevation="0">
+            <MudPaper Class='@($"control-panel-v4 pa-md-6 pa-2 h-100 {(LayoutService.IsDarkMode ? "dark" : "light")}")' Elevation="0">
                 <div class="credits-display mb-1">
                     <MudText Typo="Typo.h6" Align="Align.Center" Class="credits-val">
                         CREDITS: @((balance / (denomination > 0 ? denomination : 0.01m)).ToString("N0"))
@@ -114,7 +114,7 @@
                     <MudText Typo="Typo.caption" Class="opacity-70">Total Stake: <b>@((creditsBet * denomination).ToString("C2"))</b></MudText>
                 </div>
 
-                <div class="d-flex flex-column gap-2 mt-md-8 mt-2">
+                <div class="d-flex flex-column gap-1 mt-md-8 mt-1">
                     <MudButton Variant="Variant.Filled" 
                                Color="@(gameState.IsBonusActive ? Color.Error : (gameState.IsRespinActive ? Color.Warning : Color.Primary))" 
                                OnClick="OnSpin" 
@@ -128,7 +128,7 @@
                         else { <text>SPIN</text> }
                     </MudButton>
 
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-1">
                         <MudButton Variant="@(isAutoSpinning ? Variant.Filled : Variant.Outlined)" 
                                    Color="@(isAutoSpinning ? Color.Secondary : Color.Primary)" 
                                    OnClick="ToggleAutoSpin" 
@@ -198,15 +198,15 @@
 
     /* --- MOBILE OPTIMIZATIONS --- */
     @@media (max-width: 992px) {
-        .game-viewport-v4 { border-width: 4px; border-radius: 12px; }
-        .slot-canvas-container { height: 320px; transform: scale(0.85); transform-origin: center; }
-        .status-bar-v4 { padding: 8px 12px; margin-top: 8px; border-radius: 12px; }
-        .mobile-status-val { font-size: 1.2rem !important; }
-        .mobile-badge { padding: 4px 10px; font-size: 0.7rem; }
-        .mobile-controls-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .spin-button-v4 { height: 60px !important; font-size: 1.5rem !important; margin-top: 4px; border-radius: 12px !important; }
-        .overlay-text { font-size: 1.5rem; }
-        .info-btn-mobile { width: 32px; height: 32px; padding: 4px; }
+        .game-viewport-v4 { border-width: 3px; border-radius: 12px; margin-left: -4px; margin-right: -4px; width: calc(100% + 8px); }
+        .slot-canvas-container { height: auto; aspect-ratio: 2000 / 1080; transform: none; }
+        .status-bar-v4 { padding: 6px 10px; margin-top: 4px; border-radius: 8px; }
+        .mobile-status-val { font-size: 1.1rem !important; }
+        .mobile-badge { padding: 4px 8px; font-size: 0.65rem; border-width: 1px; }
+        .mobile-controls-row { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .spin-button-v4 { height: 60px !important; font-size: 1.4rem !important; margin-top: 2px; border-radius: 8px !important; box-shadow: 0 4px 0 rgba(0,0,0,0.3); }
+        .overlay-text { font-size: 1.2rem; text-shadow: 0 0 10px black; }
+        .info-btn-mobile { width: 28px; height: 28px; padding: 2px; font-size: 0.8rem; }
     }
 
     @@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
