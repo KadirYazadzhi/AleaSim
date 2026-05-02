@@ -28,14 +28,29 @@ class Program {
         Console.WriteLine("╚══════════════════════════════════════════════════════╝");
         Console.ResetColor();
 
-        // 1. Setup Services
+        // 1. Setup Configuration
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile("../AleaSim.Api/appsettings.json", optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+        string connString = configuration.GetConnectionString("DefaultConnection") 
+            ?? "Server=localhost;Port=3306;Database=aleasim;User=root;Password=secretpassword;";
+
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
+        services.AddSingleton<IConfiguration>(configuration);
 
-        // DB - Use consistent connection string (Adjust if needed for local setup)
-        string connString = "Server=localhost;Port=5894;Database=aleasim;User=root;Password=AleaSim;";
-        services.AddDbContext<AleaSimDbContext>(options => 
-            options.UseMySql(connString, ServerVersion.AutoDetect(connString)));
+        services.AddDbContext<AleaSimDbContext>(options => {
+            try {
+                options.UseMySql(connString, ServerVersion.AutoDetect(connString));
+            } catch {
+                // Fallback to a default version if DB is not reachable during startup
+                options.UseMySql(connString, new MySqlServerVersion(new Version(8, 0, 31)));
+            }
+        });
 
         services.AddScoped<IGameRepository, EfGameRepository>();
         services.AddSingleton<IRealTimeService, ConsoleRealTimeService>();
@@ -357,17 +372,18 @@ class Program {
 
             case "jackpots":
                 var jpts = repo.GetJackpots();
-                Console.WriteLine("\n--- CURRENT JACKPOTS ---");
+                Console.WriteLine("\n--- CURRENT PROGRESSIVE JACKPOTS ---");
                 foreach (var j in jpts) {
-                    Console.WriteLine($"{j.Type.PadRight(10)} | {j.CurrentAmount:C} | Active: {j.IsActive}");
+                    string mustDrop = j.MustDropAt.HasValue ? $" | Must Drop: {j.MustDropAt:C}" : "";
+                    Console.WriteLine($"{j.Tier.ToString().PadRight(10)} | {j.CurrentValue:C}{mustDrop} | Global: {j.IsGlobal}");
                 }
                 break;
                 
             case "livewinners":
-                var logs = repo.GetAuditLogs(10);
+                var rounds = repo.GetGlobalHistory(10);
                 Console.WriteLine("\n--- LIVE WINNERS ---");
-                foreach(var log in logs.Where(x => x.TotalWin > 0)) {
-                    Console.WriteLine($"[{(log.GameType ?? "Game").ToUpper()}] {log.UserId} won {log.TotalWin:C} (Bet: {log.TotalBet:C})");
+                foreach(var r in rounds.Where(x => x.WinAmount > 0)) {
+                    Console.WriteLine($"[{r.GameName.ToUpper()}] Won {r.WinAmount:C} (Bet: {r.BetAmount:C}) | {r.ResultSummary}");
                 }
                 break;
 
