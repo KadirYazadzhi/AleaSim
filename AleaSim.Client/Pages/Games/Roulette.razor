@@ -17,7 +17,7 @@
     
     @if (layoutService.IsMobile)
     {
-        <!-- 1. MOBILE VIEW -->
+        <!-- 1. MOBILE VIEW: PiP Wheel and Vertical Flow -->
         <div class='@($"mobile-pip-container {(_wheelExpanded ? "expanded" : "pip")}")' 
              style='@(_wheelExpanded ? "" : $"left: {_wheelX}px; top: {_wheelY}px;")'
              @onpointerdown="OnPointerDown" @onpointermove="OnPointerMove" @onpointerup="OnPointerUp" @onpointerleave="OnPointerUp">
@@ -26,6 +26,7 @@
                       Style='@($"background: radial-gradient(circle, #1a4a1a 0%, #0a2a0a 100%); border: 3px solid #3d2b1f; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); cursor: {(_isDragging ? "grabbing" : "pointer")};")'
                       @onclick="ToggleWheelSize">
                 
+                <!-- SINGLE ID FOR BOTH MODES -->
                 <div id="roulette-pro-container" class="canvas-container-pip"></div>
                 
                 @if (winningNumber.HasValue && !isSpinning) {
@@ -95,12 +96,12 @@
     }
     else
     {
-        <!-- 2. DESKTOP VIEW -->
+        <!-- 2. DESKTOP VIEW: Full Original Layout -->
         <MudGrid>
-            <!-- Top Section: Wheel & Controls -->
             <MudItem xs="12" lg="9">
                 <MudPaper Class="pa-4 d-flex justify-center align-center overflow-hidden desktop-wheel-card" 
                           Style="background: radial-gradient(circle, #1a4a1a 0%, #0a2a0a 100%); border: 8px solid #3d2b1f; border-radius: 24px; box-shadow: 0 0 40px rgba(0,0,0,0.9); position: relative;">
+                    <!-- SHARED ID -->
                     <div id="roulette-pro-container" style="width: 600px; height: 500px;"></div>
                     @if (winningNumber.HasValue && !isSpinning) {
                         <div class="result-overlay-pro animate-fade-in">
@@ -117,21 +118,17 @@
                         <MudText Typo="Typo.caption" Class="mud-text-secondary fw-bold">BALANCE</MudText>
                         <MudText Typo="Typo.h4" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
                     </div>
-                    
                     <MudNumericField @bind-Value="chipValue" Label="Chip Value" Variant="Variant.Outlined" Min="1" Max="100" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AddCard" />
-                    
                     <div class="pa-4 rounded-xl border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.5)")};")'>
                         <MudText Typo="Typo.caption" Class="mud-text-secondary fw-bold">TOTAL WAGER</MudText>
                         <MudText Typo="Typo.h5" Class="fw-bold" Color="Color.Primary">@currentBets.Sum(x => x.Amount).ToString("C2")</MudText>
                     </div>
-
                     <MudSpacer />
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="OnSpin" Disabled="@(isSpinning || !currentBets.Any())" Class="rounded-xl pulse-neon" Style="height: 100px; font-size: 1.5rem; font-weight: 900;">SPIN</MudButton>
                     <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ClearBets" Disabled="isSpinning" Class="rounded-lg border-2">CLEAR ALL</MudButton>
                 </MudPaper>
             </MudItem>
 
-            <!-- Bottom Section: Table & Profile -->
             <MudItem xs="12" lg="9">
                 <MudPaper Class="pa-4" Style="background: #004d00; border: 10px solid #3d2b1f; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
                     <div class="roulette-table">
@@ -159,7 +156,7 @@
                      </MudText>
                      <MudDivider />
                      <div class='@($"mode-rect-card {(selectedMode == "Classic" ? "active-classic" : "")}")' @onclick='() => SetMode("Classic")'>CLASSIC</div>
-                     <div class='@($"mode-rect-card {(selectedMode == "Extreme" ? "active-extreme" : "")}")' @onclick='() => SetMode("Extreme")'>EXTREME</div>
+                     <div class='@($"mode-rect-card {(selectedMode == "Extreme" ? "active-extreme" : "")}")' @onclick='@(() => SetMode("Extreme"))'>EXTREME</div>
                      
                      <div class="mt-auto pa-2 border-t border-solid var(--mud-palette-divider)">
                          <MudText Typo="Typo.caption" Class='@($"fw-bold d-flex align-center justify-center {(selectedMode == "Extreme" ? "text-warning" : "text-info")}")'>
@@ -174,6 +171,7 @@
 </MudContainer>
 
 <style>
+    /* DESKTOP STYLES */
     .roulette-table { display: flex; flex-direction: row; color: white; user-select: none; }
     .zero { width: 60px; display: flex; align-items: center; justify-content: center; background: #008000; border: 1px solid white; cursor: pointer; position: relative; }
     .numbers-grid { display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(3, 1fr); flex-grow: 1; grid-auto-flow: column; }
@@ -189,16 +187,18 @@
     .active-classic { border-color: var(--mud-palette-primary) !important; background: rgba(124, 58, 237, 0.2) !important; }
     .active-extreme { border-color: var(--mud-palette-warning) !important; background: rgba(255, 152, 0, 0.2) !important; }
 
+    /* MOBILE PiP SYSTEM */
     @@media (max-width: 960px) {
         .mobile-pip-container { position: fixed; z-index: 2000; touch-action: none; }
         .mobile-pip-container.expanded { position: fixed; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; transform: none !important; }
         .pip .wheel-paper { width: 100px; height: 100px; }
         .expanded .wheel-paper { width: 320px; height: 320px; }
         .canvas-container-pip canvas { width: 100% !important; height: 100% !important; }
-        #roulette-pro-container { width: 90px; height: 90px; }
-        .expanded #roulette-pro-container { width: 300px; height: 300px; }
+        .pip .canvas-container-pip { width: 90px; height: 90px; }
+        .expanded .canvas-container-pip { width: 300px; height: 300px; }
         .pip-hint { position: absolute; bottom: 2px; right: 2px; font-size: 0.6rem; color: #fff; opacity: 0.5; }
         .result-badge-mini { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); padding: 4px 8px; border-radius: 8px; z-index: 10; }
+
         .mobile-vertical { display: flex; flex-direction: column; gap: 8px; }
         .mobile-piles-container { display: flex; flex-direction: row; justify-content: space-between; gap: 12px; }
         .pile { display: flex; flex-direction: column; gap: 3px; flex: 1; }
@@ -223,7 +223,8 @@
     private bool _wheelExpanded = false;
 
     // Draggable Logic
-    private double _wheelX = 250; private double _wheelY = 80;
+    private double _wheelX = 250; 
+    private double _wheelY = 80;
     private bool _isDragging = false;
     private double _dragStartX, _dragStartY;
 
@@ -262,7 +263,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (firstRender) {
-            await Task.Delay(1000); // Give DOM time to settle
+            await Task.Delay(1500); // Wait longer for DOM
             await JSRuntime.InvokeVoidAsync("roulettePro.init", "roulette-pro-container");
         }
     }

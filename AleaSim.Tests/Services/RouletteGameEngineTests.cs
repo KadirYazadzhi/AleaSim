@@ -84,7 +84,7 @@ public class RouletteGameEngineTests {
         var sessionId = Guid.NewGuid();
         var session = new GameSession { Id = sessionId, UserId = userId, ServerSeed = "test", ClientSeed = "client" };
         var betData = new List<RouletteBetDto> { 
-            new RouletteBetDto { Type = "straight", Value = "17", Amount = 10m } 
+            new RouletteBetDto { Type = "number", Value = "17", Amount = 10m } 
         };
         var bet = new Bet { 
             GameSessionId = sessionId, 
@@ -114,21 +114,34 @@ public class RouletteGameEngineTests {
         var userId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
         var session = new GameSession { Id = sessionId, UserId = userId, ServerSeed = "test", ClientSeed = "client" };
-        var betData = new List<RouletteBetDto> { 
-            new RouletteBetDto { Type = "color", Value = "red", Amount = 10m } 
+        var betData = new { 
+            Bets = new List<RouletteBetDto> { 
+                new RouletteBetDto { Type = "number", Value = "17", Amount = 1.0m } 
+            },
+            Mode = "Extreme"
         };
         var bet = new Bet { 
             GameSessionId = sessionId, 
-            Amount = 10m, 
+            Amount = 1.0m, 
             BetData = JsonSerializer.Serialize(betData) 
         };
         
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
         _mockRepo.Setup(r => r.GetLastBet(sessionId)).Returns(bet);
         
-        // Target 10x win (Total 100)
+        // Target 100 win
         _mockBrain.Setup(b => b.GetNextDirectiveAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
                   .ReturnsAsync(new BrainDirective { DecisionType = "RetentionHook", TargetWinAmount = 100m });
+
+        // Mock RNG for Extreme Multipliers
+        // 1 lucky number
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), 500, 1, 6)).Returns(1);
+        // Lucky number is 17
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), 1000, 0, 37)).Returns(17);
+        // Multiplier index 1 (pool[1] = 100)
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), 2000, 0, 6)).Returns(1);
+        // Winning index 0 (17 is the only winner)
+        _mockRng.Setup(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), 0, 0, 1)).Returns(0);
 
         // Act
         var round = await _engine.ResolveRound(sessionId);

@@ -79,20 +79,26 @@ public class BlackjackGameEngineTests {
         // Arrange
         var userId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
-        var session = new GameSession { Id = sessionId, UserId = userId, ServerSeed = "test", ClientSeed = "client" };
+        var shoe = new List<string>(Enumerable.Repeat("10S", 60));
+        shoe[0] = "AH"; // P1
+        shoe[1] = "2H"; // D1
+        shoe[2] = "JH"; // P2
+        shoe[3] = "3H"; // D2
+        
+        var state = new BlackjackGameEngine.BlackjackState { Shoe = shoe };
+        var session = new GameSession { 
+            Id = sessionId, 
+            UserId = userId, 
+            ServerSeed = "test", 
+            ClientSeed = "client",
+            GameState = JsonSerializer.Serialize(state)
+        };
         var bet = new Bet { GameSessionId = sessionId, Amount = 10m };
         
         _mockRepo.Setup(r => r.GetSession(sessionId)).Returns(session);
         _mockRepo.Setup(r => r.GetLastBet(sessionId)).Returns(bet);
         _mockBrain.Setup(b => b.GetNextDirectiveAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<IGameRepository>()))
                   .ReturnsAsync(new AleaSim.Domain.Models.BrainDirective { DecisionType = "Random" });
-
-        // Draw cards: P1, D1, P2, D2
-        _mockRng.SetupSequence(r => r.GetNextInt(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), 0, 52))
-                .Returns(0)  // P1: Ace (H)
-                .Returns(1)  // D1: 2 (H)
-                .Returns(10) // P2: Jack (H) -> Blackjack!
-                .Returns(2); // D2: 3 (H)
 
         // Act
         var round = await _engine.ResolveRound(sessionId);

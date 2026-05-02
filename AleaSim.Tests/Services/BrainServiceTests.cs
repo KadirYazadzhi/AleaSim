@@ -57,7 +57,8 @@ public class BrainServiceTests {
             UserId = userId, 
             LossStreak = 10,
             TotalWagered = 1000,
-            CurrentSessionRtp = 0.2m,
+            ActualRtp = 0.2m,
+            ShadowBalance = 1000m,
             SymbolAffinityJson = "{}"
         };
         _mockRepo.Setup(r => r.GetPlayerProfile(userId)).Returns(profile);

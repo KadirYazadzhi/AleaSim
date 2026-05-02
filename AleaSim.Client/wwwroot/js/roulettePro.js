@@ -11,27 +11,35 @@ window.roulettePro = {
         if (!el) return;
         el.innerHTML = '';
 
+        const width = el.clientWidth || 600;
+        const height = el.clientHeight || 500;
+
         window.roulettePro.app = new PIXI.Application({
-            width: 600,
-            height: 500,
+            width: width,
+            height: height,
             backgroundColor: 0x000000,
             backgroundAlpha: 0,
             antialias: true,
             resolution: window.devicePixelRatio || 1
         });
         el.appendChild(window.roulettePro.app.view);
-        window.roulettePro.setup();
+        window.roulettePro.setup(width, height);
     },
 
-    setup: () => {
+    setup: (width, height) => {
         const self = window.roulettePro;
         const { app, numbers } = self;
-        const centerX = 300;
-        const centerY = 250;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        
+        // Scale the wheel based on available space
+        const baseSize = 600;
+        const scale = Math.min(width, height) / baseSize;
 
         const root = new PIXI.Container();
         root.x = centerX; root.y = centerY;
-        root.scale.y = 0.75; 
+        root.scale.set(scale);
+        root.scale.y *= 0.75; // Perspective tilt
         app.stage.addChild(root);
 
         const frame = new PIXI.Graphics();
