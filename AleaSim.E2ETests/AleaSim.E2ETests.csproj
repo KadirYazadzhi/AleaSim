@@ -22,4 +22,8 @@
     <Using Include="NUnit.Framework" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\AleaSim.Shared\AleaSim.Shared.csproj" />
+  </ItemGroup>
+
 </Project>
