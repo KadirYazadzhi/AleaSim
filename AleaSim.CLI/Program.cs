@@ -95,13 +95,17 @@ class Program {
             case "help":
                 Console.WriteLine("---------------------------------------------------------");
                 Console.WriteLine("GENERAL: register <user> <email>, login <username>, balance, profile, exit");
-                Console.WriteLine("GAMING:  game <slot|roulette|blackjack|baccarat|dice>");
+                Console.WriteLine("GAMING:  game <slot|fruitblast|roulette|blackjack|baccarat|dice>");
                 Console.WriteLine("         mode <classic|extreme|slider|multi>");
                 Console.WriteLine("         bet <amount> [extra_params]");
                 Console.WriteLine("         auto <count> <amount>");
                 Console.WriteLine("SYSTEM:  cashback, missions, chat <message>, chat history");
+                Console.WriteLine("         leaderboard, jackpots, livewinners");
                 Console.WriteLine("         redeem <code>");
                 Console.WriteLine("         pchat <username> <message>, pchat history <username>");
+                Console.WriteLine("ADMIN:   admin sim <game> <count> <bet>");
+                Console.WriteLine("         admin stats");
+                Console.WriteLine("         admin rtp <target>");
                 Console.WriteLine("---------------------------------------------------------");
                 break;
 
@@ -341,6 +345,72 @@ class Program {
                     if (i % (count/10 == 0 ? 1 : count/10) == 0) Console.Write(".");
                 }
                 Console.WriteLine($"\nDONE. RTP: {(totalIn > 0 ? (totalOut/totalIn)*100 : 0):F2}%");
+                break;
+
+            case "leaderboard":
+                var leaders = repo.GetTopWinners(10);
+                Console.WriteLine("\n--- GLOBAL LEADERBOARD ---");
+                foreach (var l in leaders) {
+                    Console.WriteLine($"{l.Username.PadRight(15)} | {l.TotalWin:C}");
+                }
+                break;
+
+            case "jackpots":
+                var jpts = repo.GetAllJackpots();
+                Console.WriteLine("\n--- CURRENT JACKPOTS ---");
+                foreach (var j in jpts) {
+                    Console.WriteLine($"{j.Type.PadRight(10)} | {j.CurrentAmount:C} | Active: {j.IsActive}");
+                }
+                break;
+                
+            case "livewinners":
+                var logs = repo.GetRecentAuditLogs(10);
+                Console.WriteLine("\n--- LIVE WINNERS ---");
+                foreach(var log in logs.Where(x => x.TotalWin > 0)) {
+                    Console.WriteLine($"[{(log.GameType ?? "Game").ToUpper()}] {log.UserId} won {log.TotalWin:C} (Bet: {log.TotalBet:C})");
+                }
+                break;
+
+            case "admin":
+                if (parts.Length < 2) { Console.WriteLine("Usage: admin <sim|stats|rtp>"); return; }
+                string adminCmd = parts[1].ToLower();
+                
+                if (adminCmd == "stats") {
+                    var stats = repo.GetPlatformStats();
+                    Console.WriteLine("\n--- PLATFORM STATS ---");
+                    Console.WriteLine($"Total Bets:  {stats.TotalBets:C}");
+                    Console.WriteLine($"Total Wins:  {stats.TotalWins:C}");
+                    Console.WriteLine($"Total GGR:   {stats.GGR:C}");
+                    Console.WriteLine($"Global RTP:  {stats.GlobalRtp:F2}%");
+                } 
+                else if (adminCmd == "rtp") {
+                    if (parts.Length < 3) { Console.WriteLine("Usage: admin rtp <target>"); return; }
+                    repo.SetGlobalSetting("GlobalTargetRtp", parts[2]);
+                    Console.WriteLine($"Global Target RTP set to {parts[2]}%");
+                }
+                else if (adminCmd == "sim") {
+                    if (parts.Length < 5) { Console.WriteLine("Usage: admin sim <game> <count> <bet>"); return; }
+                    string simGame = parts[2];
+                    int simCount = int.Parse(parts[3]);
+                    decimal simBet = decimal.Parse(parts[4]);
+                    
+                    Console.WriteLine($"ADMIN SIMULATION: {simCount} rounds on {simGame} at {simBet:C}...");
+                    var simUser = new User { Id = Guid.NewGuid(), Username = "Sim_" + Guid.NewGuid().ToString().Substring(0,8), Role = Role.User, Balance = 1000000 };
+                    repo.CreateUser(simUser);
+                    repo.CreatePlayerProfile(new PlayerProfile { Id = Guid.NewGuid(), UserId = simUser.Id, TotalWagered = 1000000 });
+                    
+                    var simSession = await director.StartSession(simGame, simUser.Id);
+                    decimal totalIn = 0; decimal totalOut = 0;
+
+                    for(int i=0; i<simCount; i++) {
+                        var res = await director.PlayRound(simGame, simUser.Id, simSession.Id, simBet, new { });
+                        totalIn += res.TotalBetAmount;
+                        totalOut += res.TotalWinAmount;
+                        if (i % (simCount/10 == 0 ? 1 : simCount/10) == 0) Console.Write(".");
+                    }
+                    Console.WriteLine($"\nSIM DONE. RTP: {(totalIn > 0 ? (totalOut/totalIn)*100 : 0):F2}%");
+                    Console.WriteLine($"Total Bet: {totalIn:C} | Total Win: {totalOut:C}");
+                }
                 break;
 
             default:
