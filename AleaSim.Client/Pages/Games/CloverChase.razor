@@ -15,37 +15,37 @@
 @inject LayoutService LayoutService
 @inject IAuthService AuthService
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudGrid>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-md-4 mt-1 px-2 px-md-4">
+    <MudGrid Spacing="2">
         <MudItem xs="12" lg="9">
-            <div class="mb-4">
+            <div class="mb-2 d-none d-lg-block">
                 <MultiJackpotWidget Denomination="@denomination" FullGridMode="true" />
             </div>
 
             <!-- PixiJS Slot Machine View -->
             <div class='@($"game-viewport-v4 {(LayoutService.IsDarkMode ? "dark" : "light")}")'>
-                <div id="pixi-slot-container" style="width: 100%; height: 540px; display: flex; justify-content: center; align-items: center;">
+                <div id="pixi-slot-container" class="slot-canvas-container">
                     <!-- Canvas will be injected here by PixiJS -->
                 </div>
                 
                 <!-- Info Button -->
                 <div style="position: absolute; top: 15px; right: 15px; z-index: 101;">
-                    <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Inherit" Class="glass-panel rounded-circle" OnClick="OpenPaytable" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Inherit" Class="glass-panel rounded-circle info-btn-mobile" OnClick="OpenPaytable" />
                 </div>
 
                 <div class="win-light @(lastWin > 0 ? "active" : "")"></div>
                 
                 @if (gameState.IsRespinActive || (isSpinning && wasInRespin)) {
-                    <div class="overlay-text" style="top: 20px;">
+                    <div class="overlay-text respin-counter-mobile" style="top: 20px;">
                         @{
                             var displayRespins = isSpinning ? Math.Max(0, (nextRespinLivesBuffer >= gameState.RespinLives && nextRespinLivesBuffer > 0 ? nextRespinLivesBuffer : (nextRespinLivesBuffer > 0 ? nextRespinLivesBuffer : gameState.RespinLives - 1))) : gameState.RespinLives;
                             if (displayRespins > 3) displayRespins = 3;
                         }
-                        RESPINS LEFT: @displayRespins
+                        RESPINS: @displayRespins
                     </div>
                 }
                 @if (wasNudged) {
-                    <div class="overlay-text nudged" style="bottom: 20px;">MYSTERY NUDGE!</div>
+                    <div class="overlay-text nudged nudge-mobile" style="bottom: 20px;">MYSTERY NUDGE!</div>
                 }
 
                 <!-- Giant Win Display -->
@@ -61,84 +61,87 @@
             <div class='@($"status-bar-v4 {(LayoutService.IsDarkMode ? "dark" : "light")}")'>
                 <div class="d-flex flex-column">
                     <MudText Typo="Typo.caption" Class="label">LAST WIN</MudText>
-                    <MudText Typo="Typo.h4" Class="value win">@lastWin.ToString("C2")</MudText>
+                    <MudText Typo="Typo.h5" Class="value win mobile-status-val">@lastWin.ToString("C2")</MudText>
                 </div>
                 
-                <div class="d-flex gap-4">
+                <div class="d-flex gap-2">
                     @if (gameState.IsBonusActive || (isSpinning && wasInBonus)) {
-                        <div class="feature-badge bonus">
+                        <div class="feature-badge bonus mobile-badge">
                             @{
                                 var displayBonus = isSpinning ? Math.Max(0, (nextBonusLivesBuffer >= gameState.BonusLives && nextBonusLivesBuffer > 0 ? nextBonusLivesBuffer : (nextBonusLivesBuffer > 0 ? nextBonusLivesBuffer : gameState.BonusLives - 1))) : gameState.BonusLives;
                                 if (displayBonus > 3) displayBonus = 3;
                             }
-                            BELL BONUS: @displayBonus LIVES
+                            BONUS: @displayBonus
                         </div>
                     }
                     @if (gameState.IsGambleActive) {
-                        <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="OpenGamble" Class="fw-black">GAMBLE @gameState.PendingGambleWin.ToString("C2")</MudButton>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Success" OnClick="CollectWin" Class="fw-black ml-2">COLLECT</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Warning" Size="Size.Small" OnClick="OpenGamble" Class="fw-black">GAMBLE</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Success" Size="Size.Small" OnClick="CollectWin" Class="fw-black">COLLECT</MudButton>
                     }
                 </div>
 
                 <div class="text-right d-flex flex-column">
                     <MudText Typo="Typo.caption" Class="label">BALANCE</MudText>
-                    <MudText Typo="Typo.h4" Class="value bal">@balance.ToString("C2")</MudText>
+                    <MudText Typo="Typo.h5" Class="value bal mobile-status-val">@balance.ToString("C2")</MudText>
                 </div>
             </div>
         </MudItem>
 
         <!-- Controls -->
         <MudItem xs="12" lg="3">
-            <MudPaper Class='@($"control-panel-v4 pa-6 h-100 {(LayoutService.IsDarkMode ? "dark" : "light")}")' Elevation="0">
-                <div class="credits-display mb-2">
-                    <MudText Typo="Typo.h5" Align="Align.Center" Class="credits-val">
+            <MudPaper Class='@($"control-panel-v4 pa-md-6 pa-3 h-100 {(LayoutService.IsDarkMode ? "dark" : "light")}")' Elevation="0">
+                <div class="credits-display mb-1">
+                    <MudText Typo="Typo.h6" Align="Align.Center" Class="credits-val">
                         CREDITS: @((balance / (denomination > 0 ? denomination : 0.01m)).ToString("N0"))
                     </MudText>
                 </div>
-                <MudText Typo="Typo.caption" Class="d-block text-center opacity-50 mb-4" Style="letter-spacing: 1px;">20 FIXED PAYLINES</MudText>
-
-                <MudSelect T="decimal" Label="Denomination" @bind-Value="denomination" Variant="Variant.Filled" Class="mb-4" 
-                           Disabled="@(isSpinning || gameState.IsBonusActive || gameState.IsRespinActive || gameState.IsGambleActive)">
-                    <MudSelectItem Value="@(0.01m)">@((0.01m).ToString("C2"))</MudSelectItem>
-                    <MudSelectItem Value="@(0.05m)">@((0.05m).ToString("C2"))</MudSelectItem>
-                    <MudSelectItem Value="@(0.10m)">@((0.10m).ToString("C2"))</MudSelectItem>
-                    <MudSelectItem Value="@(0.50m)">@((0.50m).ToString("C2"))</MudSelectItem>
-                    <MudSelectItem Value="@(1.00m)">@((1.00m).ToString("C2"))</MudSelectItem>
-                </MudSelect>
-
-                <MudNumericField @bind-Value="creditsBet" Label="Bet (Credits)" Variant="Variant.Filled" Min="10" Max="100" Step="10" 
-                                 Disabled="@(isSpinning || gameState.IsBonusActive || gameState.IsRespinActive)" />
                 
-                <div class="mt-2 text-center">
-                    <MudText Typo="Typo.subtitle1" Class="opacity-70">Total Stake: <b>@((creditsBet * denomination).ToString("C2"))</b></MudText>
+                <div class="mobile-controls-row">
+                    <MudSelect T="decimal" Label="Denom" @bind-Value="denomination" Variant="Variant.Filled" Margin="Margin.Dense"
+                               Disabled="@(isSpinning || gameState.IsBonusActive || gameState.IsRespinActive || gameState.IsGambleActive)">
+                        <MudSelectItem Value="@(0.01m)">$0.01</MudSelectItem>
+                        <MudSelectItem Value="@(0.05m)">$0.05</MudSelectItem>
+                        <MudSelectItem Value="@(0.10m)">$0.10</MudSelectItem>
+                        <MudSelectItem Value="@(0.50m)">$0.50</MudSelectItem>
+                        <MudSelectItem Value="@(1.00m)">$1.00</MudSelectItem>
+                    </MudSelect>
+
+                    <MudNumericField @bind-Value="creditsBet" Label="Bet" Variant="Variant.Filled" Margin="Margin.Dense" Min="10" Max="100" Step="10" 
+                                     Disabled="@(isSpinning || gameState.IsBonusActive || gameState.IsRespinActive)" />
+                </div>
+                
+                <div class="mt-1 text-center d-none d-md-block">
+                    <MudText Typo="Typo.caption" Class="opacity-70">Total Stake: <b>@((creditsBet * denomination).ToString("C2"))</b></MudText>
                 </div>
 
-                <div class="d-flex flex-column gap-2 mt-8">
+                <div class="d-flex flex-column gap-2 mt-md-8 mt-2">
                     <MudButton Variant="Variant.Filled" 
                                Color="@(gameState.IsBonusActive ? Color.Error : (gameState.IsRespinActive ? Color.Warning : Color.Primary))" 
                                OnClick="OnSpin" 
                                Disabled="@(isSpinning || (balance < (creditsBet * denomination) && !gameState.IsRespinActive && !gameState.IsBonusActive))" 
                                FullWidth="true" 
                                Class="spin-button-v4"
-                               Style="height: 100px; font-size: 2.2rem; font-weight: 950;">
+                               Style="height: 60px; font-size: 1.5rem; font-weight: 950;">
                         @if (gameState.IsBonusActive) { <text>BONUS</text> }
                         else if (gameState.IsRespinActive) { <text>RESPIN</text> }
                         else if (isSpinning && !isAutoSpinning) { <text>WAIT</text> }
                         else { <text>SPIN</text> }
                     </MudButton>
 
-                    <MudButton Variant="@(isAutoSpinning ? Variant.Filled : Variant.Outlined)" 
-                               Color="@(isAutoSpinning ? Color.Secondary : Color.Primary)" 
-                               OnClick="ToggleAutoSpin" 
-                               Disabled="@(isSpinning && !isAutoSpinning)"
-                               Class="py-3 fw-black rounded-lg">
-                        @(isAutoSpinning ? "STOP AUTO" : "AUTO SPIN")
-                    </MudButton>
+                    <div class="d-flex gap-2">
+                        <MudButton Variant="@(isAutoSpinning ? Variant.Filled : Variant.Outlined)" 
+                                   Color="@(isAutoSpinning ? Color.Secondary : Color.Primary)" 
+                                   OnClick="ToggleAutoSpin" 
+                                   Disabled="@(isSpinning && !isAutoSpinning)"
+                                   Class="py-2 fw-black rounded-lg flex-grow-1" Style="font-size: 0.8rem;">
+                            @(isAutoSpinning ? "STOP" : "AUTO")
+                        </MudButton>
 
-                    <div class="d-flex justify-space-between gap-2 mt-2">
-                        <button class='@($"speed-btn-v4 {(animationSpeed == 1 ? "active" : "")}")' @onclick="() => SetSpeed(1)">1X</button>
-                        <button class='@($"speed-btn-v4 {(animationSpeed == 2 ? "active" : "")}")' @onclick="() => SetSpeed(2)">2X</button>
-                        <button class='@($"speed-btn-v4 {(animationSpeed == 3 ? "active" : "")}")' @onclick="() => SetSpeed(3)">TURBO</button>
+                        <div class="d-flex gap-1 flex-grow-1">
+                            <button class='@($"speed-btn-v4 {(animationSpeed == 1 ? "active" : "")}")' @onclick="() => SetSpeed(1)">1X</button>
+                            <button class='@($"speed-btn-v4 {(animationSpeed == 2 ? "active" : "")}")' @onclick="() => SetSpeed(2)">2X</button>
+                            <button class='@($"speed-btn-v4 {(animationSpeed == 3 ? "active" : "")}")' @onclick="() => SetSpeed(3)">⚡</button>
+                        </div>
                     </div>
                 </div>
             </MudPaper>
@@ -151,6 +154,8 @@
     .game-viewport-v4 { position: relative; border-radius: 24px; overflow: hidden; border: 8px solid; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
     .game-viewport-v4.dark { background: #000; border-color: #334155; }
     .game-viewport-v4.light { background: #fff; border-color: #cbd5e1; }
+    
+    .slot-canvas-container { width: 100%; height: 540px; display: flex; justify-content: center; align-items: center; }
 
     /* --- STATUS BAR --- */
     .status-bar-v4 { margin-top: 16px; padding: 16px 24px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; }
@@ -169,7 +174,7 @@
     .light .credits-val { color: #b45309; }
 
     /* --- BUTTONS --- */
-    .spin-button-v4 { box-shadow: 0 8px 0 rgba(0,0,0,0.3); transition: transform 0.1s; }
+    .spin-button-v4 { box-shadow: 0 6px 0 rgba(0,0,0,0.3); transition: transform 0.1s; }
     .spin-button-v4:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
     
     .speed-btn-v4 { flex: 1; height: 40px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #888; font-weight: 900; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
@@ -190,6 +195,19 @@
     .visible .win-content { transform: scale(1.2); }
     .win-header { font-size: 2rem; font-weight: 950; color: white; text-shadow: 0 0 15px #d4af37; }
     .win-sum { font-size: 5rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 30px black; line-height: 1; }
+
+    /* --- MOBILE OPTIMIZATIONS --- */
+    @@media (max-width: 992px) {
+        .game-viewport-v4 { border-width: 4px; border-radius: 12px; }
+        .slot-canvas-container { height: 320px; transform: scale(0.85); transform-origin: center; }
+        .status-bar-v4 { padding: 8px 12px; margin-top: 8px; border-radius: 12px; }
+        .mobile-status-val { font-size: 1.2rem !important; }
+        .mobile-badge { padding: 4px 10px; font-size: 0.7rem; }
+        .mobile-controls-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .spin-button-v4 { height: 60px !important; font-size: 1.5rem !important; margin-top: 4px; border-radius: 12px !important; }
+        .overlay-text { font-size: 1.5rem; }
+        .info-btn-mobile { width: 32px; height: 32px; padding: 4px; }
+    }
 
     @@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     @@keyframes bounce { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-20px); } }
