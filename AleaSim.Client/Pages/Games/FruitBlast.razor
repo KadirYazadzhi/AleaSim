@@ -16,59 +16,56 @@
 @inject LayoutService LayoutService
 @inject IAuthService AuthService
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudGrid>
-        <MudItem xs="12" lg="8">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-md-4 mt-2 px-md-4 px-1 main-game-wrapper">
+    <MudGrid Spacing="3" Class="desktop-grid-gap">
+        <MudItem xs="12" lg="8" Class="game-main-column">
             <!-- Game Top Header (Jackpots) -->
-            <div class="game-header-row d-flex align-center justify-space-between mb-6 gap-6">
+            <div class="game-header-row d-flex align-center justify-space-between mb-md-6 mb-2 gap-md-6 gap-2">
                 <!-- The Juice Pot -->
-                <div class="juice-pot-card-v4 @(LayoutService.IsDarkMode ? "dark" : "light")">
+                <div class="juice-pot-card-v4 @(LayoutService.IsDarkMode ? "dark" : "light") pot-card-adaptive">
                     <div class="pot-liquid-v4"></div>
-                    <div class="d-flex align-center gap-4 relative z-10">
-                        <div class="pot-icon-v4">🍹</div>
+                    <div class="d-flex align-center gap-md-4 gap-2 relative z-10">
+                        <div class="pot-icon-v4 icon-adaptive">🍹</div>
                         <div>
                             <div class="d-flex align-center gap-1">
-                                <MudText Typo="Typo.caption" Class="pot-label-v4 ma-0">JUICE RESERVOIR</MudText>
-                                <MudTooltip Text="The core reactor's energy reserve. Fill the juice meter to 100 to trigger a meltdown and claim this pot!">
+                                <MudText Typo="Typo.caption" Class="pot-label-v4 ma-0 label-adaptive">JUICE RESERVOIR</MudText>
+                                <MudTooltip Text="Meltdown at 100 Juice!">
                                     <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
                                 </MudTooltip>
                             </div>
-                            <MudText Typo="Typo.h3" Class="pot-value-v4">@juicePotValue.ToString("C2")</MudText>
+                            <MudText Typo="Typo.h3" Class="pot-value-v4 value-adaptive">@juicePotValue.ToString("C2")</MudText>
                         </div>
                     </div>
                 </div>
 
                 <!-- Vitamin Overload -->
-                <div class="vitamin-card-v4 @(LayoutService.IsDarkMode ? "dark" : "light")">
-                    <div class="d-flex justify-space-between align-center mb-3">
+                <div class="vitamin-card-v4 @(LayoutService.IsDarkMode ? "dark" : "light") vitamin-card-adaptive">
+                    <div class="d-flex justify-space-between align-center mb-md-3 mb-1">
                         <div class="d-flex align-center gap-1">
-                            <MudText Typo="Typo.caption" Class="vitamin-label-v4 ma-0">VITAMIN OVERLOAD</MudText>
-                            <MudTooltip Text="Progress bar for the platform-wide event. Once 5,000 fruits are extracted, a Mega 3x3 Fruit is guaranteed to drop in the next spin!">
-                                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
-                            </MudTooltip>
+                            <MudText Typo="Typo.caption" Class="vitamin-label-v4 ma-0 label-adaptive">VITAMIN OVERLOAD</MudText>
                         </div>
-                        <div class="vitamin-percent-v4">@((lifetimeExplosions * 100.0 / 5000.0).ToString("F1"))%</div>
+                        <div class="vitamin-percent-v4 percent-adaptive">@((lifetimeExplosions * 100.0 / 5000.0).ToString("F1"))%</div>
                     </div>
-                    <div class="cyber-track-v4">
+                    <div class="cyber-track-v4 track-adaptive">
                         <div class="cyber-fill-v4" style="width: @(Math.Min(100.0, (lifetimeExplosions * 100.0 / 5000.0)))%"></div>
                     </div>
-                    <MudText Style="font-size: 0.75rem; font-weight: 900; opacity: 0.8;" Class="mt-2 text-center d-block">
-                        @lifetimeExplosions.ToString("N0") / 5,000 FRUITS EXTRACTED
+                    <MudText Style="font-size: 0.7rem; font-weight: 900; opacity: 0.8;" Class="mt-1 text-center d-block extracted-text-adaptive">
+                        @lifetimeExplosions.ToString("N0") / 5K
                     </MudText>
                 </div>
             </div>
 
             <!-- Main Game Grid Container -->
-            <div class="game-main-paper @(LayoutService.IsDarkMode ? "dark" : "light") @(isMeltdownActive ? "meltdown-flash" : "")">
+            <div class="game-main-paper @(LayoutService.IsDarkMode ? "dark" : "light") @(isMeltdownActive ? "meltdown-flash" : "") paper-adaptive">
                 
                 <div class="info-btn-anchor">
-                    <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Inherit" OnClick="OpenRules" Class="glass-panel" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Info" Color="Color.Inherit" OnClick="OpenRules" Class="glass-panel info-icon-adaptive" />
                 </div>
 
                 <!-- Juice Meter (Sidebar) -->
-                <div class="juice-meter-sidebar">
-                    <div class="juice-value-v4">CORE @juiceMeter%</div>
-                    <div class="juice-meter-track">
+                <div class="juice-meter-sidebar meter-adaptive">
+                    <div class="juice-value-v4 value-label-adaptive">CORE</div>
+                    <div class="juice-meter-track track-inner-adaptive">
                         <div class="juice-meter-fill" style="height: @(Math.Min(100, (juiceMeter * 1.0)))%">
                             <div class="juice-meter-glow"></div>
                         </div>
@@ -79,16 +76,16 @@
                             <div class="juice-marker-badge @(juiceMeter >= 10 ? "active" : "")" style="bottom: 10%;">2X</div>
                         </div>
                     </div>
-                    <div class="juice-value-v4">@juiceMeter%</div>
+                    <div class="juice-value-v4 value-label-adaptive">@juiceMeter%</div>
                 </div>
 
                 <!-- Grid Rendering -->
-                <div class="fruit-grid-container-v4 @(isShaking ? "shake-grid" : "") @(isMeltdownActive ? "meltdown-shake" : "")">
+                <div class="fruit-grid-container-v4 @(isShaking ? "shake-grid" : "") @(isMeltdownActive ? "meltdown-shake" : "") grid-adaptive">
                     @if (currentGrid != null)
                     {
                         @for (int r = 0; r < 5; r++)
                         {
-                            <div class="grid-row-v4">
+                            <div class="grid-row-v4 row-adaptive">
                                 @for (int c = 0; c < 6; c++)
                                 {
                                     var row = r; var col = c;
@@ -97,10 +94,10 @@
                                     var isSymbolFalling = fallingCells[row, col];
                                     var isMega = megaFruit != null && row >= megaFruit.TopLeft.R && row < megaFruit.TopLeft.R + 3 && col >= megaFruit.TopLeft.C && col < megaFruit.TopLeft.C + 3;
                                     
-                                    <div class="grid-cell-v4 @(symbol == 0 ? "empty" : "") @(isSymbolFalling ? "falling-anim" : "") @(isExplodingFlag ? "exploding" : "") @(isMega ? "mega-fruit-part" : "")">
+                                    <div class="grid-cell-v4 cell-adaptive @(symbol == 0 ? "empty" : "") @(isSymbolFalling ? "falling-anim" : "") @(isExplodingFlag ? "exploding" : "") @(isMega ? "mega-fruit-part" : "")">
                                         @if (symbol > 0 && (!isMega || (row == megaFruit!.TopLeft.R && col == megaFruit!.TopLeft.C)))
                                         {
-                                            <span class="symbol-icon-v4 @(isMega ? "mega-symbol" : "")">@GetSymbolEmoji(symbol)</span>
+                                            <span class="symbol-icon-v4 @(isMega ? "mega-symbol" : "") symbol-adaptive">@GetSymbolEmoji(symbol)</span>
                                         }
                                     </div>
                                 }
@@ -109,9 +106,9 @@
                     }
                 </div>
 
-                <!-- Multiplier Badge (Absolute Positioned - No Layout Shift) -->
+                <!-- Multiplier Badge -->
                 @if (totalMultiplier > 1) {
-                    <div class="multiplier-badge-v4 animate-pop-in">
+                    <div class="multiplier-badge-v4 animate-pop-in mult-adaptive">
                         <div class="badge-label">MULT</div>
                         <div class="badge-value">X@(totalMultiplier.ToString("F1"))</div>
                     </div>
@@ -123,72 +120,70 @@
 
                 @if (isMeltdownActive) {
                     <div class="meltdown-overlay-v4">
-                        <MudText Typo="Typo.h2" Class="fw-black animate-pulse">NUCLEAR MELTDOWN!</MudText>
-                        <MudText Typo="Typo.h4" Class="fw-bold">EXTRACTING JUICE POT...</MudText>
+                        <MudText Typo="Typo.h2" Class="fw-black animate-pulse meltdown-text-adaptive">MELTDOWN!</MudText>
                     </div>
                 }
 
                 <!-- Giant Win Display -->
                 <div class="giant-win-overlay @(showWinDisplay ? "visible" : "") @(animationSpeed >= 2 ? "compact-win" : "")">
-                    <div class="win-content">
-                        <div class="win-header">TOTAL WIN</div>
-                        <div class="win-sum">@lastWin.ToString("C2")</div>
+                    <div class="win-content win-content-adaptive">
+                        <div class="win-header win-header-adaptive">TOTAL WIN</div>
+                        <div class="win-sum win-sum-adaptive">@lastWin.ToString("C2")</div>
                     </div>
                 </div>
             </div>
         </MudItem>
 
         <!-- Controls Column -->
-        <MudItem xs="12" lg="4">
-            <MudPaper Class="pa-6 d-flex flex-column gap-4" Style='@($"background: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border-radius: 24px; border: 2px solid var(--mud-palette-divider); height: 100%;")'>
-                <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Primary" Class="fw-black" Style="letter-spacing: 2px;">REACTOR COMMAND</MudText>
+        <MudItem xs="12" lg="4" Class="game-controls-column">
+            <MudPaper Class="pa-md-6 pa-3 d-flex flex-column gap-md-4 gap-2 controls-adaptive" Style='@($"background: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border-radius: 24px; border: 2px solid var(--mud-palette-divider); height: 100%;")'>
+                <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Primary" Class="fw-black d-none d-md-block" Style="letter-spacing: 2px;">REACTOR COMMAND</MudText>
                 
-                <div class="pa-4 rounded-xl text-center border-2" style="background: var(--mud-palette-background-grey); border-color: var(--mud-palette-divider);">
-                    <MudText Typo="Typo.caption" Class="opacity-50">REACTOR CREDITS</MudText>
-                    <MudText Typo="Typo.h4" Style="color: #22c55e; font-weight: 950;">@balance.ToString("C2")</MudText>
+                <div class="pa-md-4 pa-2 rounded-xl text-center border-2 balance-card-adaptive" style="background: var(--mud-palette-background-grey); border-color: var(--mud-palette-divider);">
+                    <MudText Typo="Typo.caption" Class="opacity-50">CREDITS</MudText>
+                    <MudText Typo="Typo.h4" Class="balance-text-adaptive" Style="color: #22c55e; font-weight: 950;">@balance.ToString("C2")</MudText>
                 </div>
 
-                <MudSelect T="decimal" Label="Symbol Grade" @bind-Value="denomination" Variant="Variant.Filled" Class="mb-2" Disabled="@isSpinning">
-                    <MudSelectItem Value="@(0.01m)">$0.01 (Standard)</MudSelectItem>
-                    <MudSelectItem Value="@(0.05m)">$0.05 (Rare)</MudSelectItem>
-                    <MudSelectItem Value="@(0.10m)">$0.10 (Epic)</MudSelectItem>
-                    <MudSelectItem Value="@(0.50m)">$0.50 (Legendary)</MudSelectItem>
-                    <MudSelectItem Value="@(1.00m)">$1.00 (Exotic)</MudSelectItem>
-                </MudSelect>
+                <div class="inputs-row-adaptive">
+                    <MudSelect T="decimal" Label="Grade" @bind-Value="denomination" Variant="Variant.Filled" Margin="Margin.Dense" Disabled="@isSpinning">
+                        <MudSelectItem Value="@(0.01m)">$0.01</MudSelectItem>
+                        <MudSelectItem Value="@(0.05m)">$0.05</MudSelectItem>
+                        <MudSelectItem Value="@(0.10m)">$0.10</MudSelectItem>
+                        <MudSelectItem Value="@(0.50m)">$0.50</MudSelectItem>
+                        <MudSelectItem Value="@(1.00m)">$1.00</MudSelectItem>
+                    </MudSelect>
 
-                <MudNumericField @bind-Value="creditsBet" Label="Energy Input" Variant="Variant.Filled" Min="10" Max="1000" Step="10" Disabled="@isSpinning" />
+                    <MudNumericField @bind-Value="creditsBet" Label="Input" Variant="Variant.Filled" Margin="Margin.Dense" Min="10" Max="1000" Step="10" Disabled="@isSpinning" />
+                </div>
                 
-                <div class="d-flex flex-column gap-2 mt-2">
+                <div class="d-flex flex-column gap-2 mt-md-2 mt-0 buttons-stack-adaptive">
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSpin" Disabled="@(isSpinning || balance < (creditsBet * denomination))" 
-                               Style="height: 100px; font-size: 2.2rem; font-weight: 950; border-radius: 20px; box-shadow: 0 10px 30px rgba(var(--mud-palette-primary-rgb), 0.4);">
-                        @(isSpinning && !isAutoSpinning ? "CORE FUSION..." : "BLAST")
+                               Class="spin-btn-adaptive"
+                               Style="height: 100px; font-size: 2.2rem; font-weight: 950; border-radius: 20px;">
+                        @(isSpinning && !isAutoSpinning ? "FUSION..." : "BLAST")
                     </MudButton>
 
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-md-column gap-2">
                         <MudButton Variant="@(isAutoSpinning ? Variant.Filled : Variant.Outlined)" 
                                    Color="@(isAutoSpinning ? Color.Secondary : Color.Primary)" 
                                    OnClick="ToggleAutoSpin" 
                                    Disabled="@(isSpinning && !isAutoSpinning)"
-                                   Class="flex-grow-1 py-3 fw-black rounded-lg">
-                            @(isAutoSpinning ? "STOP AUTO" : "AUTO BLAST")
+                                   Class="flex-grow-1 py-md-3 py-2 fw-black rounded-lg auto-btn-adaptive">
+                            @(isAutoSpinning ? "STOP" : "AUTO")
                         </MudButton>
-                    </div>
 
-                    <div class="d-flex justify-space-between gap-2">
-                        <button class='@($"speed-btn-v4 {(animationSpeed == 1 ? "active" : "")}")' @onclick="() => SetSpeed(1)">1X</button>
-                        <button class='@($"speed-btn-v4 {(animationSpeed == 2 ? "active" : "")}")' @onclick="() => SetSpeed(2)">2X</button>
-                        <button class='@($"speed-btn-v4 {(animationSpeed == 3 ? "active" : "")}")' @onclick="() => SetSpeed(3)">TURBO</button>
+                        <div class="d-flex justify-space-between gap-1 speed-box-adaptive flex-grow-1">
+                            <button class='@($"speed-btn-v4 {(animationSpeed == 1 ? "active" : "")}")' @onclick="() => SetSpeed(1)">1X</button>
+                            <button class='@($"speed-btn-v4 {(animationSpeed == 2 ? "active" : "")}")' @onclick="() => SetSpeed(2)">2X</button>
+                            <button class='@($"speed-btn-v4 {(animationSpeed == 3 ? "active" : "")}")' @onclick="() => SetSpeed(3)">⚡</button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="mt-4 d-flex flex-column gap-3">
+                <div class="mt-md-4 mt-0 d-none d-md-flex flex-column gap-3">
                     <div class="pa-3 rounded-lg border-l-4" style="border-left: 4px solid #ab47bc; background: rgba(171,71,188,0.05);">
                         <MudText Typo="Typo.caption" Class="fw-black" Style="color: #ab47bc;">POT MELTDOWN</MudText>
                         <MudText Typo="Typo.body2" Class="opacity-70">100 Strength drains the pot!</MudText>
-                    </div>
-                    <div class="pa-3 rounded-lg border-l-4" style="border-left: 4px solid #ffd740; background: rgba(255,215,64,0.05);">
-                        <MudText Typo="Typo.caption" Class="fw-black" Style="color: #ffd740;">VITAMIN OVERLOAD</MudText>
-                        <MudText Typo="Typo.body2" Class="opacity-70">5K fruits triggers Mega 3x3 Symbol!</MudText>
                     </div>
                 </div>
             </MudPaper>
@@ -221,14 +216,7 @@
     .pot-label-v4 { font-weight: 950; letter-spacing: 2px; font-size: 0.7rem !important; line-height: 0.7rem !important; display: inline-block; vertical-align: middle; }
     .vitamin-label-v4 { font-size: 0.7rem !important; line-height: 0.7rem !important; display: inline-block; vertical-align: middle; }
     
-    .info-icon-tweak {
-        font-size: 0.7rem !important;
-        opacity: 0.5;
-        cursor: help;
-        display: inline-block !important;
-        vertical-align: middle;
-        margin-left: 2px;
-    }
+    .info-icon-tweak { font-size: 0.7rem !important; opacity: 0.5; cursor: help; display: inline-block !important; vertical-align: middle; margin-left: 2px; }
     .dark .pot-label-v4 { color: #e040fb; } .light .pot-label-v4 { color: #7b1fa2; }
     
     .pot-value-v4 { font-weight: 950; font-family: 'JetBrains Mono', monospace; font-size: 3rem !important; }
@@ -249,19 +237,13 @@
     /* --- JUICE METER V4 --- */
     .juice-meter-sidebar { position: absolute; left: 40px; top: 50%; transform: translateY(-50%); width: 60px; height: 480px; display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 10; }
     .juice-meter-track { position: relative; width: 42px; height: 100%; background: rgba(0,0,0,0.7); border: 2px solid var(--game-border); border-radius: 20px; overflow: hidden; box-shadow: inset 0 0 15px rgba(0,0,0,0.8); }
-    
-    /* Technical Ticks (Lines) */
     .juice-meter-track::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(transparent, transparent 14px, rgba(255,255,255,0.08) 15px); z-index: 2; pointer-events: none; }
-
     .juice-meter-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, #ab47bc, #ffeb3b, #00ffff); transition: height 0.8s; border-radius: 15px; }
     .juice-meter-glow { position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: white; box-shadow: 0 0 15px white; }
-    
     .juice-meter-markers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
     .juice-marker-badge { position: absolute; left: 0; width: 100%; transform: translateY(50%); color: rgba(255,255,255,0.25); font-weight: 950; font-size: 0.8rem; transition: all 0.4s; text-align: center; text-shadow: 1px 1px 2px black; }
     .juice-marker-badge.active { color: #fff; text-shadow: 0 0 10px white, 0 0 20px #00ffff; transform: translateY(50%) scale(1.3); font-size: 1.1rem; }
     .juice-value-v4 { font-weight: 950; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #00ffff; margin-bottom: 5px; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
-    .light .juice-marker-badge { background: #cbd5e1; color: #475569; }
-    .light .juice-marker-badge.active { background: #7b1fa2; color: white; border-color: #4a148c; }
 
     /* --- GRID V4 --- */
     .fruit-grid-container-v4 { display: flex; flex-direction: column; gap: 14px; position: relative; margin-left: 80px; z-index: 5; }
@@ -269,45 +251,75 @@
     .grid-cell-v4 { width: 95px; height: 95px; border-radius: 20px; display: flex; justify-content: center; align-items: center; position: relative; }
     .dark .grid-cell-v4 { background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.05); box-shadow: inset 0 0 15px rgba(0,0,0,0.3); }
     .light .grid-cell-v4 { background: rgba(0,0,0,0.03); border: 2px solid rgba(0,0,0,0.08); }
-    
     .symbol-icon-v4 { font-size: 3.8rem; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4)); display: inline-block; }
 
-    /* --- ANIMATIONS --- */
-    .falling-anim .symbol-icon-v4 { animation: fallInV4 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
-    @@keyframes fallInV4 { 0% { transform: translateY(-600px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-
-    .exploding .symbol-icon-v4 { animation: explodeV4 0.5s ease-out forwards; z-index: 50; }
-    @@keyframes explodeV4 { 0% { transform: scale(1); } 50% { transform: scale(1.8) rotate(45deg); opacity: 1; filter: brightness(2); } 100% { transform: scale(0); opacity: 0; } }
-
-    .shake-grid { animation: shakeV4 0.4s ease-in-out; }
-    @@keyframes shakeV4 { 0%, 100% { transform: translate(0,0); } 20%, 60% { transform: translate(-8px, 0); } 40%, 80% { transform: translate(8px, 0); } }
-
-    /* --- MULTIPLIER BADGE --- */
-    .multiplier-badge-v4 { position: absolute; top: 100px; right: 40px; width: 100px; height: 100px; background: #ffeb3b; border: 4px solid #000; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(255,235,59,0.6); z-index: 150; animation: bounceV4 2s infinite; }
-    .badge-label { font-size: 0.7rem; font-weight: 900; color: #000; line-height: 1; }
-    .badge-value { font-size: 1.8rem; font-weight: 950; color: #000; line-height: 1; }
-    @@keyframes bounceV4 { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-
-    /* --- GIANT WIN OVERLAY --- */
-    .giant-win-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; z-index: 2000; pointer-events: none; opacity: 0; transition: opacity 0.4s; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); }
-    .giant-win-overlay.visible { opacity: 1; pointer-events: auto; }
-    
+    /* --- WIN OVERLAY --- */
+    .giant-win-overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 2000; pointer-events: none; opacity: 0; transition: opacity 0.4s; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); }
+    .giant-win-overlay.visible { display: flex; opacity: 1; pointer-events: auto; }
     .giant-win-overlay.compact-win { background: transparent; backdrop-filter: none; top: auto; bottom: 80px; height: 160px; }
     .compact-win .win-content { transform: scale(0.6) !important; background: rgba(0,0,0,0.6); padding: 20px 60px; border-radius: 30px; border: 2px solid #ffeb3b; }
-    .compact-win .win-header { font-size: 1.5rem; letter-spacing: 4px; margin-bottom: 5px; }
-    .compact-win .win-sum { font-size: 5rem; }
-
-    .win-content { text-align: center; transform: scale(0.5); transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .win-content { text-align: center; transform: scale(0.5); transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
     .visible .win-content { transform: scale(1.5); }
     .win-header { font-size: 3rem; font-weight: 950; color: white; text-shadow: 0 0 20px #ab47bc; letter-spacing: 12px; margin-bottom: 20px; }
     .win-sum { font-size: 9rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 50px black, 0 0 30px #ffeb3b; line-height: 1; }
 
-    /* --- FLOATING WIN V4 --- */
+    /* --- MOBILE OVERRIDES --- */
+    @@media (max-width: 992px) {
+        .main-game-wrapper { padding-bottom: 85px !important; }
+        .pot-card-adaptive, .vitamin-card-adaptive { min-height: 100px; padding: 12px; border-radius: 16px; }
+        .icon-adaptive { font-size: 2.2rem; }
+        .label-adaptive { font-size: 0.55rem !important; }
+        .value-adaptive { font-size: 1.4rem !important; }
+        .percent-adaptive { font-size: 0.8rem; }
+        .track-adaptive { height: 12px; }
+        .extracted-text-adaptive { font-size: 0.6rem !important; margin-top: 4px !important; }
+
+        .paper-adaptive { border-width: 4px; border-radius: 12px; min-height: 420px; margin-left: -4px; margin-right: -4px; width: calc(100% + 8px); }
+        .info-icon-adaptive { transform: scale(0.6); }
+        .info-btn-anchor { top: 5px; left: 5px; }
+
+        .meter-adaptive { left: 10px; width: 30px; height: 320px; gap: 4px; }
+        .track-inner-adaptive { width: 20px; }
+        .value-label-adaptive { font-size: 0.6rem; }
+        .juice-marker-badge { font-size: 0.5rem; }
+        .juice-marker-badge.active { font-size: 0.7rem; }
+
+        .grid-adaptive { margin-left: 50px; gap: 4px; }
+        .row-adaptive { gap: 4px; }
+        .cell-adaptive { width: 48px; height: 48px; border-radius: 8px; border-width: 1px; }
+        .symbol-adaptive { font-size: 2rem; }
+        
+        .mult-adaptive { width: 50px; height: 50px; top: 10px; right: 10px; border-width: 2px; }
+        .mult-adaptive .badge-label { font-size: 0.4rem; }
+        .mult-adaptive .badge-value { font-size: 0.9rem; }
+
+        .win-content-adaptive { transform: scale(0.6) !important; }
+        .visible .win-content-adaptive { transform: scale(0.9) !important; }
+        .win-header-adaptive { font-size: 1.2rem !important; letter-spacing: 4px; margin-bottom: 5px; }
+        .win-sum-adaptive { font-size: 2.8rem !important; }
+
+        .controls-adaptive { padding: 12px !important; border-radius: 16px !important; }
+        .balance-text-adaptive { font-size: 1.2rem !important; }
+        .inputs-row-adaptive { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .spin-btn-adaptive { height: 60px !important; font-size: 1.5rem !important; border-radius: 12px !important; }
+        .auto-btn-adaptive { height: 42px !important; font-size: 0.8rem !important; }
+        .speed-box-adaptive { height: 42px !important; }
+        .speed-btn-v4 { font-size: 0.7rem; }
+        
+        .meltdown-text-adaptive { font-size: 1.5rem !important; }
+    }
+
+    /* --- ANIMATIONS --- */
+    .falling-anim .symbol-icon-v4 { animation: fallInV4 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
+    @@keyframes fallInV4 { 0% { transform: translateY(-600px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    .exploding .symbol-icon-v4 { animation: explodeV4 0.5s ease-out forwards; z-index: 50; }
+    @@keyframes explodeV4 { 0% { transform: scale(1); } 50% { transform: scale(1.8) rotate(45deg); opacity: 1; filter: brightness(2); } 100% { transform: scale(0); opacity: 0; } }
+    .shake-grid { animation: shakeV4 0.4s ease-in-out; }
+    @@keyframes shakeV4 { 0%, 100% { transform: translate(0,0); } 20%, 60% { transform: translate(-8px, 0); } 40%, 80% { transform: translate(8px, 0); } }
+    @@keyframes bounceV4 { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
     .floating-win-v4 { position: absolute; font-size: 3.5rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 15px black, 0 0 10px #ffeb3b; z-index: 500; pointer-events: none; animation: floatUpV4 1.5s ease-out forwards; white-space: nowrap; }
     @@keyframes floatUpV4 { 0% { transform: translate(-50%, 0); opacity: 1; } 100% { transform: translate(-50%, -150px); opacity: 0; } }
-
-    .fw-black { font-weight: 900; }
-    .glass-panel { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1); }
+    @@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 </style>
 
 @code {
@@ -316,7 +328,7 @@
     private bool isMeltdownActive = false;
     private bool showWinDisplay = false;
     private bool isAutoSpinning = false;
-    private int animationSpeed = 1; // 1 = Normal, 2 = 2X, 3 = Turbo
+    private int animationSpeed = 1; 
     private decimal balance = 0;
     private decimal denomination = 0.01m;
     private int creditsBet = 10;
@@ -349,10 +361,9 @@
             if (profile != null) {
                 balance = profile.TotalBalance;
                 lifetimeExplosions = profile.FruitBlastLifetimeExplosions;
-                StateHasChanged(); // Immediate update for Vitamin Overload
+                StateHasChanged();
             }
 
-            // Fetch live jackpots directly to ensure they are visible on load
             var jackpots = await Http.GetFromJsonAsync<List<JackpotDto>>("api/Game/jackpots");
             if (jackpots != null) {
                 var juicePot = jackpots.FirstOrDefault(j => j.Name.Contains("Juice", StringComparison.OrdinalIgnoreCase));
@@ -376,14 +387,9 @@
                          juiceMeter = state.JuiceMeter;
                          totalMultiplier = state.TotalMultiplier;
                          if (state.JuicePotValue > 50) juicePotValue = state.JuicePotValue;
-                         
-                         // Only overwrite if it's a valid progressive value
                          if (state.LifetimeExplosions > 0) lifetimeExplosions = state.LifetimeExplosions;
-                         
                          if (state.Grid != null && state.Grid.Length == 5) {
-                             for (int i = 0; i < 5; i++) {
-                                 if (state.Grid[i] != null) currentGrid[i] = state.Grid[i];
-                             }
+                             for (int i = 0; i < 5; i++) if (state.Grid[i] != null) currentGrid[i] = state.Grid[i];
                          }
                      }
                 }
@@ -401,34 +407,22 @@
     private void SetSpeed(int speed) => animationSpeed = speed;
 
     private async Task ToggleAutoSpin() {
-        if (isAutoSpinning) {
-            isAutoSpinning = false;
-        } else {
-            isAutoSpinning = true;
-            if (!isSpinning) await OnSpin();
-        }
+        if (isAutoSpinning) isAutoSpinning = false;
+        else { isAutoSpinning = true; if (!isSpinning) await OnSpin(); }
     }
 
     private async Task UpdateGridSequential(int[][] newGrid, List<int>? columns = null) {
         if (newGrid == null) return;
         var cols = (columns ?? Enumerable.Range(0, 6).ToList()).OrderBy(c => c).ToList();
-
         int delay = animationSpeed switch { 1 => 100, 2 => 50, _ => 5 };
-
         foreach (int c in cols) {
             bool colChanged = false;
             for (int r = 0; r < 5; r++) {
                 if (currentGrid.Length > r && currentGrid[r] != null && newGrid.Length > r && newGrid[r] != null && currentGrid[r][c] != newGrid[r][c]) {
-                    fallingCells[r, c] = true;
-                    currentGrid[r][c] = newGrid[r][c];
-                    colChanged = true;
+                    fallingCells[r, c] = true; currentGrid[r][c] = newGrid[r][c]; colChanged = true;
                 } else fallingCells[r, c] = false;
             }
-            if (colChanged) {
-                StateHasChanged();
-                await Audio.PlayClick();
-                if (animationSpeed < 3) await Task.Delay(delay);
-            }
+            if (colChanged) { StateHasChanged(); await Audio.PlayClick(); if (animationSpeed < 3) await Task.Delay(delay); }
         }
         for (int r = 0; r < 5; r++) for (int c = 0; c < 6; c++) fallingCells[r, c] = false;
         StateHasChanged();
@@ -441,146 +435,62 @@
 
     private async Task OnSpin() {
         if (isSpinning || sessionId == null) return;
-        
         do {
-            isSpinning = true; showWinDisplay = false;
-            lastWin = 0; juiceMeter = 0; totalMultiplier = 1;
+            isSpinning = true; showWinDisplay = false; lastWin = 0; juiceMeter = 0; totalMultiplier = 1;
             explodingCells.Clear(); megaFruit = null; isMeltdownActive = false;
 
             var betAmount = creditsBet * denomination;
-            if (balance < betAmount) { 
-                Snackbar.Add("Insufficient Balance", Severity.Warning); 
-                isSpinning = false; isAutoSpinning = false; 
-                break; 
-            }
+            if (balance < betAmount) { Snackbar.Add("Insufficient Balance", Severity.Warning); isSpinning = false; isAutoSpinning = false; break; }
 
-            await Audio.Init();
-            balance -= betAmount;
+            await Audio.Init(); balance -= betAmount;
             LayoutService.DeductOptimisticBalance(betAmount);
-            LayoutService.SetBalanceUpdateSuppression(true); 
-            StateHasChanged();
+            LayoutService.SetBalanceUpdateSuppression(true); StateHasChanged();
 
             try {
                 await Audio.PlaySpin();
                 var result = await GameService.PlaceBet("fruitblast", sessionId.Value, betAmount, new { Denomination = denomination });
                 var fullState = JsonSerializer.Deserialize<FruitBlastState>(result.RandomResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                
                 if (fullState != null) {
                     floatingWins.Clear();
-                    if (fullState.History?.Any() == true) {
-                        await UpdateGridSequential(fullState.History.First().GridBefore);
-                    }
+                    if (fullState.History?.Any() == true) await UpdateGridSequential(fullState.History.First().GridBefore);
                     if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 400 : 200);
-
                     if (fullState.History != null) {
                         foreach (var step in fullState.History) {
                             explodingCells = step.WinningClusters ?? new();
-                            if (step.Explosions != null) {
-                                explodingCells.AddRange(step.Explosions.SelectMany(e => e.Affected ?? new List<GridPoint>()));
-                                isShaking = true;
-                            }
-                            
+                            if (step.Explosions != null) { explodingCells.AddRange(step.Explosions.SelectMany(e => e.Affected ?? new List<GridPoint>())); isShaking = true; }
                             if (step.MegaFruit != null) megaFruit = step.MegaFruit;
-                            if (step.MeltdownActive) {
-                                isMeltdownActive = true;
-                                await Audio.PlayBonus(); 
-                                StateHasChanged();
-                                if (animationSpeed < 3) await Task.Delay(2000);
-                                else {
-                                    // Jackpot hit during auto-spin: Stop
-                                    isAutoSpinning = false;
-                                }
-                            }
-
+                            if (step.MeltdownActive) { isMeltdownActive = true; await Audio.PlayBonus(); StateHasChanged(); if (animationSpeed < 3) await Task.Delay(2000); else isAutoSpinning = false; }
                             if (explodingCells.Any()) {
                                 if (!isShaking) await Audio.PlayBonus();
-                                if (step.WinAmount > 0) {
-                                    floatingWins.Add(new FloatingWin { Amount = step.WinAmount, X = 450, Y = 350 });
-                                    _ = Task.Delay(2000).ContinueWith(_ => { floatingWins.RemoveAll(x => true); InvokeAsync(StateHasChanged); });
-                                }
-                                StateHasChanged();
-                                if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 800 : 400); 
-                                isShaking = false;
+                                if (step.WinAmount > 0) { floatingWins.Add(new FloatingWin { Amount = step.WinAmount, X = 450, Y = 350 }); _ = Task.Delay(2000).ContinueWith(_ => { floatingWins.RemoveAll(x => true); InvokeAsync(StateHasChanged); }); }
+                                StateHasChanged(); if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 800 : 400); isShaking = false;
                             }
-                            
-                            foreach(var p in explodingCells) {
-                                if (currentGrid.Length > p.R && currentGrid[p.R] != null) currentGrid[p.R][p.C] = 0;
-                            }
-                            explodingCells.Clear();
-                            
-                            juicePotValue = fullState.JuicePotValue;
-                            lifetimeExplosions = fullState.LifetimeExplosions;
-
+                            foreach(var p in explodingCells) if (currentGrid.Length > p.R && currentGrid[p.R] != null) currentGrid[p.R][p.C] = 0;
+                            explodingCells.Clear(); juicePotValue = fullState.JuicePotValue; lifetimeExplosions = fullState.LifetimeExplosions;
                             int targetJuice = step.JuiceMeterValue;
-                            if (juiceMeter < targetJuice) {
-                                for (int i = juiceMeter; i <= targetJuice; i++) {
-                                    juiceMeter = i; StateHasChanged();
-                                    if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 20 : 10);
-                                }
-                            }
-                            
-                            StateHasChanged();
-                            if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 500 : 200);
-
+                            if (juiceMeter < targetJuice) { for (int i = juiceMeter; i <= targetJuice; i++) { juiceMeter = i; StateHasChanged(); if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 20 : 10); } }
+                            StateHasChanged(); if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 500 : 200);
                             int nextIdx = fullState.History.IndexOf(step) + 1;
                             int[][] nextGrid = (nextIdx < fullState.History.Count) ? fullState.History[nextIdx].GridBefore : fullState.Grid;
-                            await UpdateGridSequential(nextGrid, step.AffectedColumns);
-                            if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 300 : 100);
+                            await UpdateGridSequential(nextGrid, step.AffectedColumns); if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 300 : 100);
                         }
                     }
-
                     await UpdateGridSequential(fullState.Grid);
-
-                    totalMultiplier = fullState.TotalMultiplier;
-                    lastWin = result.TotalWin;
-                    
+                    totalMultiplier = fullState.TotalMultiplier; lastWin = result.TotalWin;
                     if (lastWin > 0) {
-                        balance += lastWin; 
-                        LayoutService.AddOptimisticBalance(lastWin); 
-                        showWinDisplay = true;
+                        balance += lastWin; LayoutService.AddOptimisticBalance(lastWin); showWinDisplay = true;
                         if (lastWin >= betAmount * 10) Snackbar.Add($"NUCLEAR WIN: {lastWin:C2}!", Severity.Success);
-                        await Audio.PlayWin();
-                        StateHasChanged();
-                        
-                        var profile = await AuthService.GetMe();
-                        if (profile != null) {
-                            balance = profile.TotalBalance;
-                            LayoutService.NotifyMajorUpdate();
-                        }
-
-                        int winDelay = animationSpeed switch {
-                            3 => 600,
-                            2 => 1200,
-                            _ => 3000
-                        };
-                        
-                        // Small extra boost for truly massive wins
+                        await Audio.PlayWin(); StateHasChanged();
+                        var profile = await AuthService.GetMe(); if (profile != null) { balance = profile.TotalBalance; LayoutService.NotifyMajorUpdate(); }
+                        int winDelay = animationSpeed switch { 3 => 600, 2 => 1200, _ => 3000 };
                         if (lastWin > betAmount * 50 && animationSpeed < 3) winDelay += 1000;
-
-                        await Task.Delay(winDelay); 
-                        showWinDisplay = false;
+                        await Task.Delay(winDelay); showWinDisplay = false;
                     }
-
-                    var profileAfter = await AuthService.GetMe();
-                    if (profileAfter != null) {
-                        balance = profileAfter.TotalBalance;
-                        lifetimeExplosions = profileAfter.FruitBlastLifetimeExplosions;
-                        LayoutService.NotifyMajorUpdate();
-                    }
+                    var profileAfter = await AuthService.GetMe(); if (profileAfter != null) { balance = profileAfter.TotalBalance; lifetimeExplosions = profileAfter.FruitBlastLifetimeExplosions; LayoutService.NotifyMajorUpdate(); }
                 }
-            } catch (Exception ex) { 
-                Snackbar.Add(ex.Message, Severity.Error); 
-                isAutoSpinning = false;
-            }
-            finally { 
-                isSpinning = false; 
-                isMeltdownActive = false; 
-                LayoutService.SetBalanceUpdateSuppression(false);
-                StateHasChanged(); 
-            }
-
+            } catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); isAutoSpinning = false; }
+            finally { isSpinning = false; isMeltdownActive = false; LayoutService.SetBalanceUpdateSuppression(false); StateHasChanged(); }
             if (isAutoSpinning) await Task.Delay(animationSpeed == 1 ? 1000 : 500);
-
         } while (isAutoSpinning);
     }
 
