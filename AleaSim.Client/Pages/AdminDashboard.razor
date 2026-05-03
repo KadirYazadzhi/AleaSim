@@ -19,18 +19,22 @@
             <MudText Typo="Typo.h3" Class="text-gradient fw-black mb-1 dashboard-title">BACKOFFICE HUB</MudText>
             <MudText Typo="Typo.subtitle1" Class="mud-text-secondary d-none d-sm-block">Real-time System Monitoring</MudText>
         </div>
-        <div class="d-flex flex-wrap align-center gap-2 gap-md-4">
-             <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download" OnClick="ExportToCsv" Size="Size.Small" Class="flex-grow-1 flex-md-grow-0">EXPORT</MudButton>
-             <MudSelect T="string" Value="@_selectedPeriod" ValueChanged="OnPeriodChanged" Label="Period" Variant="Variant.Outlined" Dense="true" Class="bg-glass rounded-lg flex-grow-1 flex-md-grow-0" Style="min-width: 120px;">
+        <div class="header-controls-grid">
+             <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download" OnClick="ExportToCsv" Size="Size.Small" Class="control-item">EXPORT</MudButton>
+             
+             <MudSelect T="string" Value="@_selectedPeriod" ValueChanged="OnPeriodChanged" Label="Period" Variant="Variant.Outlined" Dense="true" Class="bg-glass rounded-lg control-item" Margin="Margin.Dense">
                  <MudSelectItem Value="@("Day")">Today</MudSelectItem>
                  <MudSelectItem Value="@("Week")">7 Days</MudSelectItem>
                  <MudSelectItem Value="@("Month")">30 Days</MudSelectItem>
              </MudSelect>
-             @if (RealTime.IsConnected) {
-                <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.LiveTv" Size="Size.Small" Class="fw-bold pulse-red">LIVE</MudChip>
-             } else {
-                <MudChip T="string" Color="Color.Default" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Pause" Size="Size.Small" Class="fw-bold">@RealTime.State.ToString().ToUpper()</MudChip>
-             }
+             
+             <div class="control-item chip-wrapper">
+                 @if (RealTime.IsConnected) {
+                    <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.LiveTv" Size="Size.Small" Class="fw-bold pulse-red ma-0 w-100">LIVE</MudChip>
+                 } else {
+                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Pause" Size="Size.Small" Class="fw-bold ma-0 w-100">@RealTime.State.ToString().ToUpper()</MudChip>
+                 }
+             </div>
         </div>
     </div>
 
@@ -237,9 +241,69 @@
 <style>
     .table-responsive { width: 100%; overflow-x: auto; }
     
+    .header-controls-grid {
+        display: flex;
+        align-items: stretch; /* Force same height */
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .header-controls-grid .control-item {
+        min-width: 100px;
+        height: 40px !important; /* Uniform Height */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Fix MudSelect internal height issues */
+    .header-controls-grid .mud-input-control {
+        margin-top: 0 !important;
+    }
+    .header-controls-grid .mud-input-outlined-with-label {
+        margin-top: 0 !important;
+    }
+    .header-controls-grid .mud-input-outlined {
+        height: 40px !important;
+    }
+    .header-controls-grid .mud-select-input {
+        margin-top: 0 !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    
+    .header-controls-grid .mud-input-slot {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        height: 100% !important;
+    }
+
+    /* Fix Chip vertical alignment */
+    .header-controls-grid .mud-chip {
+        height: 40px !important;
+        width: 100%;
+        margin: 0 !important;
+        justify-content: center;
+    }
+
     @@media (max-width: 600px) {
         .dashboard-title { font-size: 1.75rem !important; }
         .stat-value { font-size: 1.5rem !important; }
+        
+        .header-controls-grid {
+            width: 100%;
+            justify-content: center;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr; /* Perfect equal thirds */
+        }
+
+        .header-controls-grid .control-item {
+            width: 100% !important;
+            margin: 0 !important;
+        }
     }
     
     .fw-black { font-weight: 900; }
