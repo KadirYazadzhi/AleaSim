@@ -5,34 +5,35 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject LayoutService LayoutService
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 pb-16 animate-fade-in">
-    <div class="d-flex justify-space-between align-center mb-8">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-md-8 mt-4 pb-16 animate-fade-in">
+    <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-8 gap-4">
         <div>
-            <MudText Typo="Typo.h3" Class="fw-black text-gradient">VOUCHER ARMORY</MudText>
-            <MudText Typo="Typo.subtitle1" Class="opacity-60">Generate and track promotional credit codes.</MudText>
+            <MudText Typo="Typo.h3" Class="fw-black text-gradient voucher-title">VOUCHER ARMORY</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-60 d-none d-sm-block">Generate and track promotional credit codes.</MudText>
         </div>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="ToggleCreateForm" Class="py-3 px-6 rounded-lg fw-black">
-            @(showCreateForm ? "DISCARD" : "FORGE NEW VOUCHER")
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="ToggleCreateForm" Class="py-3 px-6 rounded-lg fw-black forge-btn-mobile">
+            @(showCreateForm ? "DISCARD" : (LayoutService.IsMobile ? "FORGE" : "FORGE NEW VOUCHER"))
         </MudButton>
     </div>
 
     @if (showCreateForm)
     {
-        <MudPaper Class="pa-8 rounded-xl mb-8 glass-card border-glow" Elevation="0">
+        <MudPaper Class="pa-md-8 pa-4 rounded-xl mb-8 glass-card border-glow" Elevation="0">
             <MudText Typo="Typo.h6" Class="fw-black mb-6">Forge New Promo Code</MudText>
-            <MudGrid>
-                <MudItem xs="12" md="4">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
                     <MudTextField @bind-Value="newVoucher.Code" Label="Voucher Code" Placeholder="e.g. ALPHA2026" Variant="Variant.Outlined" Class="bg-dark-transparent" />
                 </MudItem>
-                <MudItem xs="12" md="4">
-                    <MudNumericField @bind-Value="newVoucher.Amount" Label="Credit Value ($)" Variant="Variant.Outlined" Min="1" Adornment="Adornment.Start" AdornmentText="$" Class="bg-dark-transparent" />
+                <MudItem xs="6" sm="4">
+                    <MudNumericField @bind-Value="newVoucher.Amount" Label="Value ($)" Variant="Variant.Outlined" Min="1" Adornment="Adornment.Start" AdornmentText="$" Class="bg-dark-transparent" Margin="Margin.Dense" />
                 </MudItem>
-                <MudItem xs="12" md="4">
-                    <MudNumericField @bind-Value="newVoucher.MaxUses" Label="Total Redemption Limit" Variant="Variant.Outlined" Min="1" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.People" Class="bg-dark-transparent" />
+                <MudItem xs="6" sm="4">
+                    <MudNumericField @bind-Value="newVoucher.MaxUses" Label="Limit" Variant="Variant.Outlined" Min="1" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.People" Class="bg-dark-transparent" Margin="Margin.Dense" />
                 </MudItem>
-                <MudItem xs="12" Class="text-right">
-                    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" OnClick="SaveVoucher" Class="px-12 py-3 rounded-lg fw-black">ACTIVATE CODE</MudButton>
+                <MudItem xs="12" Class="text-md-right text-center pt-4">
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" OnClick="SaveVoucher" Class="px-12 py-3 rounded-lg fw-black w-100-mobile">ACTIVATE CODE</MudButton>
                 </MudItem>
             </MudGrid>
         </MudPaper>
@@ -112,6 +113,11 @@
 </MudContainer>
 
 <style>
+    @@media (max-width: 600px) {
+        .voucher-title { font-size: 1.75rem !important; }
+        .forge-btn-mobile { width: 100% !important; }
+        .w-100-mobile { width: 100% !important; }
+    }
     .fw-black { font-weight: 950; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
     .text-gradient { background: linear-gradient(135deg, var(--mud-palette-primary), var(--mud-palette-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }

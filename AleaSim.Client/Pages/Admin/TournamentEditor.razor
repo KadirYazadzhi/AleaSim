@@ -6,14 +6,28 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 pb-16">
-    <div class="d-flex justify-space-between align-center mb-8">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-md-8 mt-4 pb-16 animate-fade-in">
+    <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-8 gap-4">
         <div>
-            <MudText Typo="Typo.h3" Class="fw-black text-gradient">TOURNAMENT HQ</MudText>
-            <MudText Typo="Typo.subtitle1" Class="opacity-60">Design, schedule and fund community competitions.</MudText>
+            <MudText Typo="Typo.h3" Class="fw-black text-gradient tournament-title">TOURNAMENT HQ</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-60 d-none d-sm-block">Design, schedule and fund community competitions.</MudText>
         </div>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">CREATE TOURNAMENT</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog" Class="fw-black py-3 px-6 rounded-lg create-btn-mobile">CREATE</MudButton>
     </div>
+
+<style>
+    @@media (max-width: 600px) {
+        .tournament-title { font-size: 1.75rem !important; }
+        .create-btn-mobile { width: 100% !important; }
+    }
+    .text-gradient {
+        background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    @@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
 
     <MudGrid>
         @if (tournaments == null) {

@@ -5,14 +5,24 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 pb-16">
-    <div class="d-flex justify-space-between align-center mb-8">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-md-8 mt-4 pb-16 animate-fade-in">
+    <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-8 gap-4">
         <div>
-            <MudText Typo="Typo.h3" Class="fw-black text-error">SYSTEM EXCEPTIONS</MudText>
-            <MudText Typo="Typo.subtitle1" Class="opacity-60">Real-time database-logged application errors.</MudText>
+            <MudText Typo="Typo.h3" Class="fw-black text-error exceptions-title">SYSTEM EXCEPTIONS</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-60 d-none d-sm-block">Real-time database-logged application errors.</MudText>
         </div>
-        <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteSweep" OnClick="ClearErrors">PURGE ALL LOGS</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteSweep" OnClick="ClearErrors" Class="fw-black py-3 px-6 rounded-lg purge-btn-mobile">PURGE ALL</MudButton>
     </div>
+
+<style>
+    @@media (max-width: 600px) {
+        .exceptions-title { font-size: 1.75rem !important; }
+        .purge-btn-mobile { width: 100% !important; }
+    }
+    .fw-black { font-weight: 900; }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    @@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
 
     <MudPaper Class="pa-6 rounded-xl" Elevation="4">
         @if (errors == null) {
