@@ -14,86 +14,70 @@
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-16 animate-fade-in">
-    <div class="d-flex justify-space-between align-center mb-8">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-md-8 mt-4 mb-16 animate-fade-in">
+    <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-8 gap-4">
         <div>
-            <MudText Typo="Typo.h3" Class="text-gradient fw-black mb-2">SIMULATION CENTER</MudText>
-            <MudText Typo="Typo.subtitle1" Class="mud-text-secondary">Stress test game engines and verify mathematical integrity.</MudText>
+            <MudText Typo="Typo.h3" Class="text-gradient fw-black mb-1 sim-title">SIM CENTER</MudText>
+            <MudText Typo="Typo.subtitle1" Class="mud-text-secondary d-none d-sm-block">Stress test game engines and mathematical integrity.</MudText>
         </div>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.History" OnClick="RefreshHistory">Refresh History</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.History" OnClick="RefreshHistory" Size="Size.Small">Refresh History</MudButton>
     </div>
 
     <MudGrid>
         <!-- Simulation Control -->
         <MudItem xs="12" lg="4">
-            <div class="stats-card pa-8 rounded-xl h-100 relative overflow-hidden">
+            <div class="stats-card pa-md-8 pa-4 rounded-xl h-100 relative overflow-hidden">
                 <MudText Typo="Typo.h5" Class="fw-bold mb-6">New Simulation</MudText>
                 
                 <MudSelect T="string" @bind-Value="_request.GameType" Label="Game Engine" Variant="Variant.Outlined" Class="mb-4 glass-input" Disabled="@SimState.IsSimulationRunning">
-                    <MudSelectItem Value="@("Slot")">Clover Chase (Slot)</MudSelectItem>
-                    <MudSelectItem Value="@("FruitBlast")">Fruit Blast (Nuclear Slot)</MudSelectItem>
-                    <MudSelectItem Value="@("Roulette")">European Roulette</MudSelectItem>
-                    <MudSelectItem Value="@("Blackjack")">Classic Blackjack</MudSelectItem>
-                    <MudSelectItem Value="@("Baccarat")">Baccarat Royale</MudSelectItem>
-                    <MudSelectItem Value="@("Dice_Slider")">Dice (Slider Mode)</MudSelectItem>
-                    <MudSelectItem Value="@("Dice_Multi")">Dice (Multi-Numbers)</MudSelectItem>
+                    <MudSelectItem Value="@("Slot")">Clover Chase</MudSelectItem>
+                    <MudSelectItem Value="@("FruitBlast")">Fruit Blast</MudSelectItem>
+                    <MudSelectItem Value="@("Roulette")">Roulette</MudSelectItem>
+                    <MudSelectItem Value="@("Blackjack")">Blackjack</MudSelectItem>
+                    <MudSelectItem Value="@("Baccarat")">Baccarat</MudSelectItem>
+                    <MudSelectItem Value="@("Dice_Slider")">Dice (Slider)</MudSelectItem>
                 </MudSelect>
 
-                @if (_request.GameType == "Roulette")
-                {
-                    <MudSelect T="string" @bind-Value="_request.GameMode" Label="Roulette Profile" Variant="Variant.Outlined" Class="mb-4 glass-input" Disabled="@SimState.IsSimulationRunning">
-                        <MudSelectItem Value="@("Classic")">Classic (35:1)</MudSelectItem>
-                        <MudSelectItem Value="@("Extreme")">Extreme (29:1 + 500x)</MudSelectItem>
+                <div class="d-flex gap-2 mb-4">
+                    <MudNumericField T="decimal" @bind-Value="_request.BetAmount" Label="Bet" Variant="Variant.Outlined" Min="0.1m" Max="1000" Step="1" Format="C2" Class="flex-grow-1" Disabled="@SimState.IsSimulationRunning" Margin="Margin.Dense" />
+                    <MudSelect T="int" @bind-Value="_request.Iterations" Label="Rounds" Variant="Variant.Outlined" Class="flex-grow-1" Disabled="@SimState.IsSimulationRunning" Margin="Margin.Dense">
+                        <MudSelectItem Value="100">100</MudSelectItem>
+                        <MudSelectItem Value="1000">1K</MudSelectItem>
+                        <MudSelectItem Value="5000">5K</MudSelectItem>
+                        <MudSelectItem Value="10000">10K</MudSelectItem>
                     </MudSelect>
-                }
-
-                <MudNumericField T="decimal" @bind-Value="_request.BetAmount" Label="Bet Amount per round" Variant="Variant.Outlined" Min="0.1m" Max="1000" Step="1" Format="C2" Class="mb-4 glass-input" Disabled="@SimState.IsSimulationRunning" />
-
-                <MudSelect T="int" @bind-Value="_request.Iterations" Label="Iteration Count" Variant="Variant.Outlined" Class="mb-4 glass-input" Disabled="@SimState.IsSimulationRunning">
-                    <MudSelectItem Value="1">1 Round (Time Travel)</MudSelectItem>
-                    <MudSelectItem Value="100">100 Rounds (Sanity Check)</MudSelectItem>
-                    <MudSelectItem Value="1000">1,000 Rounds (Standard)</MudSelectItem>
-                    <MudSelectItem Value="5000">5,000 Rounds (Deep Analysis)</MudSelectItem>
-                    <MudSelectItem Value="10000">10,000 Rounds (Stress Test)</MudSelectItem>
-                </MudSelect>
-
-                <MudTextField @bind-Value="_request.ForcedSeed" Label="Forced Server Seed (Optional)" Variant="Variant.Outlined" HelperText="Leave blank for random. Used for 'Time Travel' testing." Class="mb-8 glass-input" Disabled="@SimState.IsSimulationRunning" />
+                </div>
 
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="RunSimulation" Disabled="@SimState.IsSimulationRunning" Size="Size.Large" Class="rounded-lg py-4 pulse-neon">
-                    @if (SimState.IsSimulationRunning) { <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/> <MudText Class="ms-2">PROCESSING...</MudText> }
-                    else { <MudText>LAUNCH SIMULATION</MudText> }
+                    @if (SimState.IsSimulationRunning) { <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/> <MudText Class="ms-2">BUSY</MudText> }
+                    else { <MudText>LAUNCH</MudText> }
                 </MudButton>
 
                 @if (SimState.IsSimulationRunning) {
                     <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="mt-4 rounded-xl" />
-                    <MudText Align="Align.Center" Typo="Typo.caption" Class="mt-2 d-block mud-text-secondary animate-pulse">
-                        Running @SimState.CurrentGameType analysis...
-                    </MudText>
                 }
             </div>
         </MudItem>
 
         <!-- Current/Last Result -->
         <MudItem xs="12" lg="8">
-            <div class="stats-card pa-8 rounded-xl h-100 relative">
+            <div class="stats-card pa-md-8 pa-4 rounded-xl h-100 relative">
                 @if (SimState.IsSimulationRunning)
                 {
-                    <div class="d-flex flex-column align-center justify-center h-100 pa-12">
-                        <div class="simulation-loader mb-8">
+                    <div class="d-flex flex-column align-center justify-center h-100 py-12">
+                        <div class="simulation-loader mb-4">
                             <div class="inner-circle"></div>
                             <div class="outer-glow"></div>
                         </div>
-                        <MudText Typo="Typo.h4" Class="fw-black mb-2">SIMULATION IN PROGRESS</MudText>
-                        <MudText Typo="Typo.body1" Class="mud-text-secondary mb-6">Running @SimState.ActiveRequest?.Iterations.ToString("N0") iterations for @SimState.CurrentGameType...</MudText>
-                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="rounded-pill" Style="width: 300px; height: 10px;" />
-                        <MudText Typo="Typo.caption" Class="mt-4 opacity-50">Started at @SimState.StartTime?.ToLocalTime().ToString("T")</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-black mb-1">IN PROGRESS</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Running @SimState.ActiveRequest?.Iterations.ToString("N0") iterations...</MudText>
                     </div>
                 }
                 else if (_lastReport == null)
                 {
-                    <div class="d-flex flex-column align-center justify-center h-100 opacity-50">
+                    <div class="d-flex flex-column align-center justify-center h-100 opacity-50 py-12">
                         <MudIcon Icon="@Icons.Material.Filled.Analytics" Size="Size.Large" Style="font-size: 5rem;" />
-                        <MudText Typo="Typo.h6">Select a game and launch to see results</MudText>
+                        <MudText>Ready for deployment</MudText>
                     </div>
                 }
                 else
@@ -101,46 +85,42 @@
                     <div class="d-flex justify-space-between align-start mb-6">
                         <div>
                             <MudText Typo="Typo.h5" Class="fw-black">@_lastReport.GameType ANALYSIS</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Calculated in @((_lastReport.ExecutionTimeMs / 1000.0).ToString("F2"))s</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Time: @((_lastReport.ExecutionTimeMs / 1000.0).ToString("F2"))s</MudText>
                         </div>
-                        <MudChip T="string" Color="@(GetRtpColor((double)_lastReport.ActualRTP))" Variant="Variant.Filled" Class="fw-bold">@_lastReport.ActualRTP.ToString("F2")% RTP</MudChip>
+                        <MudChip T="string" Color="@(GetRtpColor((double)_lastReport.ActualRTP))" Variant="Variant.Filled" Class="fw-bold">@_lastReport.ActualRTP.ToString("F1")% RTP</MudChip>
                     </div>
 
-                    <div class="d-flex gap-2 mb-6">
-                        <MudButton Variant="Variant.Outlined" Color="Color.Info" StartIcon="@Icons.Material.Filled.Download" OnClick="DownloadCsv" Size="Size.Small">DOWNLOAD CSV</MudButton>
-                    </div>
-
-                    <MudGrid>
+                    <MudGrid Class="mb-6">
                         <MudItem xs="12" sm="4">
-                            <div class="pa-4 glass-inner rounded-lg text-center">
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase">Total Bet</MudText>
-                                <MudText Typo="Typo.h6" Class="fw-bold">@_lastReport.TotalBet.ToString("C2")</MudText>
+                            <div class="pa-3 glass-inner rounded-lg text-center">
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase">Bet</MudText>
+                                <MudText Typo="Typo.body1" Class="fw-black">@_lastReport.TotalBet.ToString("C0")</MudText>
                             </div>
                         </MudItem>
                         <MudItem xs="12" sm="4">
-                            <div class="pa-4 glass-inner rounded-lg text-center">
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase">Total Win</MudText>
-                                <MudText Typo="Typo.h6" Class="fw-bold text-success">@_lastReport.TotalWin.ToString("C2")</MudText>
+                            <div class="pa-3 glass-inner rounded-lg text-center">
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase">Win</MudText>
+                                <MudText Typo="Typo.body1" Class="fw-black text-success">@_lastReport.TotalWin.ToString("C0")</MudText>
                             </div>
                         </MudItem>
                         <MudItem xs="12" sm="4">
-                            <div class="pa-4 glass-inner rounded-lg text-center">
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase">Max Win</MudText>
-                                <MudText Typo="Typo.h6" Class="fw-bold text-warning">@_lastReport.MaxWin.ToString("C2")</MudText>
+                            <div class="pa-3 glass-inner rounded-lg text-center">
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase">Max</MudText>
+                                <MudText Typo="Typo.body1" Class="fw-black text-warning">@_lastReport.MaxWin.ToString("C0")</MudText>
                             </div>
                         </MudItem>
                     </MudGrid>
 
-                    <div class="mt-8">
-                        <MudText Typo="Typo.subtitle2" Class="mb-4 fw-bold">Decision Distribution</MudText>
-                        <div style="height: 200px;">
+                    <div class="mt-4">
+                        <MudText Typo="Typo.caption" Class="mb-2 fw-bold d-block">DECISION ENGINE LOGIC</MudText>
+                        <div class="d-flex flex-column gap-2">
                              @foreach(var kv in _lastReport.DecisionDistribution) {
-                                 <div class="mb-3">
+                                 <div>
                                      <div class="d-flex justify-space-between mb-1">
-                                         <MudText Typo="Typo.caption">@kv.Key</MudText>
-                                         <MudText Typo="Typo.caption" Class="fw-bold">@kv.Value (@((kv.Value * 100.0 / _lastReport.TotalIterations).ToString("F1"))%)</MudText>
+                                         <MudText Typo="Typo.caption" Class="text-xs">@kv.Key</MudText>
+                                         <MudText Typo="Typo.caption" Class="fw-bold text-xs">@((kv.Value * 100.0 / _lastReport.TotalIterations).ToString("F0"))%</MudText>
                                      </div>
-                                     <MudProgressLinear Value="@(kv.Value * 100.0 / _lastReport.TotalIterations)" Color="@(GetDecisionColor(kv.Key))" Rounded="true" Size="Size.Medium" />
+                                     <MudProgressLinear Value="@(kv.Value * 100.0 / _lastReport.TotalIterations)" Color="@(GetDecisionColor(kv.Key))" Rounded="true" Size="Size.Small" />
                                  </div>
                              }
                         </div>
@@ -151,55 +131,48 @@
 
         <!-- History Table -->
         <MudItem xs="12">
-            <div class="stats-card pa-6 rounded-xl">
-                <MudText Typo="Typo.h6" Class="fw-bold mb-4">Simulation History</MudText>
-                <MudTable Items="@_historyItems" Dense="true" Hover="true" Elevation="0" Class="glass-table" RowsPerPage="10">
-                    <HeaderContent>
-                        <MudTh>Timestamp</MudTh>
-                        <MudTh>Game</MudTh>
-                        <MudTh>Rounds</MudTh>
-                        <MudTh>Total Bet</MudTh>
-                        <MudTh>Total Win</MudTh>
-                        <MudTh>Actual RTP</MudTh>
-                        <MudTh>Status</MudTh>
-                        <MudTh></MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd>@context.Log.Timestamp.ToLocalTime().ToString("g")</MudTd>
-                        <MudTd>
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@(GetGameColor(context.Report?.GameType))">
-                                @(context.Report?.GameType ?? "Unknown")
-                            </MudChip>
-                        </MudTd>
-                        <MudTd>@(context.Report?.TotalIterations ?? 0)</MudTd>
-                        <MudTd>@(context.Report?.TotalBet.ToString("C2") ?? "?")</MudTd>
-                        <MudTd>
-                             <MudText Color="Color.Success" Class="fw-bold">@(context.Report?.TotalWin.ToString("C2") ?? "?")</MudText>
-                        </MudTd>
-                        <MudTd>
-                            <MudText Color="@(GetRtpColor((double)(context.Report?.ActualRTP ?? 0)))" Class="fw-bold">
-                                @(context.Report?.ActualRTP.ToString("F2") ?? "0.00")%
-                            </MudText>
-                        </MudTd>
-                        <MudTd><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small"/></MudTd>
-                        <MudTd>
-                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" OnClick="@(() => ShowDetails(context))" />
-                        </MudTd>
-                    </RowTemplate>
-                    <NoRecordsContent>
-                        <MudText Typo="Typo.body2" Class="pa-4 mud-text-secondary">No simulation records found.</MudText>
-                    </NoRecordsContent>
-                    <PagerContent>
-                        <MudTablePager />
-                    </PagerContent>
-                </MudTable>
+            <div class="stats-card pa-md-6 pa-2 rounded-xl">
+                <MudText Typo="Typo.h6" Class="fw-bold mb-4 ml-2">History</MudText>
+                <div class="table-responsive">
+                    <MudTable Items="@_historyItems" Dense="true" Hover="true" Elevation="0" Class="bg-transparent" RowsPerPage="5">
+                        <HeaderContent>
+                            <MudTh>Date</MudTh>
+                            <MudTh>Game</MudTh>
+                            <MudTh>Iter</MudTh>
+                            <MudTh>RTP</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.Log.Timestamp.ToLocalTime().ToString("MM/dd HH:mm")</MudTd>
+                            <MudTd>@context.Report?.GameType</MudTd>
+                            <MudTd>@(context.Report?.TotalIterations)</MudTd>
+                            <MudTd>
+                                <MudText Color="@(GetRtpColor((double)(context.Report?.ActualRTP ?? 0)))" Class="fw-bold">
+                                    @(context.Report?.ActualRTP.ToString("F1"))%
+                                </MudText>
+                            </MudTd>
+                            <MudTd>
+                                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" OnClick="@(() => ShowDetails(context))" />
+                            </MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="new int[] {5, 10}" />
+                        </PagerContent>
+                    </MudTable>
+                </div>
             </div>
         </MudItem>
     </MudGrid>
 </MudContainer>
 
 <style>
-    .fw-black { font-weight: 900; }
+    .table-responsive { width: 100%; overflow-x: auto; }
+    
+    @@media (max-width: 600px) {
+        .sim-title { font-size: 1.75rem !important; }
+    }
+
+    .fw-black { font-weight: 950; }
     .fw-bold { font-weight: 700; }
     .text-gradient {
         background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary));
@@ -224,7 +197,7 @@
     @@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
     .simulation-loader {
-        position: relative; width: 100px; height: 100px;
+        position: relative; width: 64px; height: 64px;
     }
     .inner-circle {
         width: 100%; height: 100%; border: 4px solid var(--mud-palette-primary);
@@ -232,7 +205,7 @@
         animation: spin 1s linear infinite;
     }
     .outer-glow {
-        position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
+        position: absolute; top: -5px; left: -5px; right: -5px; bottom: -5px;
         border: 2px solid var(--mud-palette-primary); border-radius: 50%;
         opacity: 0.2; animation: pulse 2s ease-out infinite;
     }
@@ -292,46 +265,11 @@
         }
     }
 
-    private async Task DownloadCsv() {
-        if (_lastReport == null || !_lastReport.DetailedResults.Any()) return;
-        
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine("Round,Bet,Win,Decision,RTP_Cumulative");
-        
-        decimal runningBet = 0;
-        decimal runningWin = 0;
-        int i = 1;
-        
-        foreach (var r in _lastReport.DetailedResults) {
-            runningBet += r.BetAmount;
-            runningWin += r.WinAmount;
-            var rtp = runningBet > 0 ? (double)(runningWin / runningBet) * 100 : 0;
-            sb.AppendLine($"{i},{r.BetAmount},{r.WinAmount},{r.DecisionType},{rtp:F2}%");
-            i++;
-        }
-
-        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
-        var base64 = Convert.ToBase64String(bytes);
-        await JSRuntime.InvokeVoidAsync("aleaUtils.downloadFile", $"Simulation_{_lastReport.GameType}_{DateTime.Now:yyyyMMdd}.csv", "text/csv", base64);
-    }
-
     private Color GetRtpColor(double rtp) => rtp switch {
         > 100 => Color.Error,
         > 98 => Color.Warning,
         > 90 => Color.Success,
         _ => Color.Info
-    };
-
-    private Color GetGameColor(string? type) => type?.ToLower() switch {
-        "slot" => Color.Primary,
-        "fruitblast" => Color.Tertiary,
-        "blackjack" => Color.Secondary,
-        "roulette" => Color.Warning,
-        "baccarat" => Color.Info,
-        "dice_slider" => Color.Success,
-        "dice_multi" => Color.Success,
-        "dice" => Color.Success,
-        _ => Color.Default
     };
 
     private Color GetDecisionColor(string type) => type switch {
@@ -344,9 +282,7 @@
     private void ShowDetails(SimHistoryItem item) {
         if (item.Report != null) {
             _lastReport = item.Report;
-            Snackbar.Add("Report loaded to analysis view.", Severity.Info);
-        } else {
-            Snackbar.Add("Could not load detailed report.", Severity.Error);
+            Snackbar.Add("Report loaded", Severity.Info);
         }
     }
 

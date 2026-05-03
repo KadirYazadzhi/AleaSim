@@ -10,38 +10,40 @@
 <MudPopoverProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="0" Fixed="true" Color="Color.Transparent" Class="glass-appbar px-6 py-2">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => LayoutService.ToggleDrawer())" Class="mr-4" />
+    <MudAppBar Elevation="0" Fixed="true" Color="Color.Transparent" Class="glass-appbar px-md-6 px-2 py-2">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => LayoutService.ToggleDrawer())" Class="mr-md-4 mr-1" />
         
         <div class="d-flex align-center cursor-pointer" @onclick='@(() => Navigation.NavigateTo("/dashboard"))'>
-            <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" Color="Color.Error" Class="mr-2" />
-            <MudText Typo="Typo.h5" Class="text-gradient font-black tracking-wide">ALEASIM <span class="mud-text-secondary text-base font-normal">BACKOFFICE</span></MudText>
+            <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Medium" Color="Color.Error" Class="mr-2" />
+            <MudText Typo="Typo.h6" Class="text-gradient font-black tracking-wide admin-title-text">ALEASIM <span class="mud-text-secondary text-xs font-normal d-none d-sm-inline">BACKOFFICE</span></MudText>
         </div>
         
         <MudSpacer />
         
-        <div class="d-flex align-center gap-3">
+        <div class="d-flex align-center gap-md-3 gap-1">
              <MudIconButton Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
                             Color="Color.Inherit" 
-                            OnClick="@(async () => await LayoutService.ToggleDarkMode())" />
+                            OnClick="@(async () => await LayoutService.ToggleDarkMode())" 
+                            Size="Size.Small" />
              
-             <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ExitAdmin" StartIcon="@Icons.Material.Filled.ExitToApp" Class="rounded-lg border-2 fw-bold">Exit to Casino</MudButton>
+             <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ExitAdmin" StartIcon="@Icons.Material.Filled.ExitToApp" Class="rounded-lg border-2 fw-bold d-none d-md-inline-flex">Exit to Casino</MudButton>
+             <MudIconButton Icon="@Icons.Material.Filled.ExitToApp" Color="Color.Primary" OnClick="ExitAdmin" Class="d-md-none" Size="Size.Small" />
         </div>
     </MudAppBar>
 
     <MudDrawer @bind-Open="@LayoutService.IsDrawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0" Variant="DrawerVariant.Responsive" Class="sidebar-blur">
         <NavMenu />
-        <div class="mt-auto pa-6">
+        <div class="mt-auto pa-4 d-none d-md-block">
             <MudPaper Class="glass-panel pa-4 rounded-xl text-center">
-                 <MudText Typo="Typo.caption" Class="d-block mb-1 mud-text-secondary">System Load (CPU/RAM)</MudText>
+                 <MudText Typo="Typo.caption" Class="d-block mb-1 mud-text-secondary">System Load</MudText>
                  <MudProgressLinear Color="@GetLoadColor(_cpuLoad)" Value="@_cpuLoad" Class="mb-1 rounded-pill" Size="Size.Small" />
-                 <MudText Typo="Typo.caption" Class="fw-bold" Color="@GetLoadColor(_cpuLoad)">@_cpuLoad.ToString("F0")% - @(_ramUsageMb)MB</MudText>
+                 <MudText Typo="Typo.caption" Class="fw-bold" Color="@GetLoadColor(_cpuLoad)">@_cpuLoad.ToString("F0")%</MudText>
             </MudPaper>
         </div>
     </MudDrawer>
 
     <MudMainContent Class="pt-16 d-flex flex-column" Style="min-height: 100vh">
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="flex-grow-1 px-4 py-8">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="flex-grow-1 px-md-4 px-2 py-md-8 py-4">
             @Body
         </MudContainer>
     </MudMainContent>
@@ -77,6 +79,10 @@
     .font-black { font-weight: 900; }
     .fw-bold { font-weight: 700; }
     .tracking-wide { letter-spacing: 0.1em; }
+
+    @@media (max-width: 600px) {
+        .admin-title-text { font-size: 0.9rem !important; }
+    }
 </style>
 
 @code {

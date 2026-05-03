@@ -6,17 +6,17 @@
 @inject RealTimeClient RealTime
 @inject IAdminService AdminService
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 pb-16">
-    <div class="d-flex justify-space-between align-center mb-8">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-md-8 mt-4 pb-16">
+    <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-8 gap-4">
         <div>
-            <MudText Typo="Typo.h3" Class="fw-black mb-2">Platform Sentinel</MudText>
+            <MudText Typo="Typo.h3" Class="fw-black mb-1 monitor-title">Platform Sentinel</MudText>
             <div class="d-flex align-center gap-2">
                 <div class="live-pulse"></div>
-                <MudText Typo="Typo.subtitle1" Class="opacity-60 fw-bold">Live real-time activity stream and health metrics.</MudText>
+                <MudText Typo="Typo.subtitle1" Class="opacity-60 fw-bold d-none d-sm-block">Live activity stream and health metrics.</MudText>
             </div>
         </div>
-        <div class="d-flex gap-4">
-            <div class="status-box">
+        <div class="d-flex gap-2 gap-md-4 flex-wrap">
+            <div class="status-box flex-grow-1">
                 <MudText Typo="Typo.caption" Class="fw-black opacity-40">SIGNALR</MudText>
                 @if (RealTime.IsConnected) {
                     <MudText Typo="Typo.body2" Class="fw-black text-success">CONNECTED</MudText>
@@ -24,7 +24,7 @@
                     <MudText Typo="Typo.body2" Class="fw-black text-error">@RealTime.State.ToString().ToUpper()</MudText>
                 }
             </div>
-            <div class="status-box">
+            <div class="status-box flex-grow-1">
                 <MudText Typo="Typo.caption" Class="fw-black opacity-40">EVENTS/MIN</MudText>
                 <MudText Typo="Typo.body2" Class="fw-black">@eventsPerMinute</MudText>
             </div>
@@ -34,90 +34,91 @@
     <!-- Live Metrics Grid -->
     <MudGrid Class="mb-8">
         <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="pa-6 metric-card" Elevation="2">
-                <MudText Typo="Typo.caption" Class="fw-black opacity-40">SESSION VOLUME (LB)</MudText>
-                <MudText Typo="Typo.h4" Class="fw-black">@totalBets.ToString("C0")</MudText>
-                <MudProgressLinear Color="Color.Primary" Value="75" Class="mt-2" />
+            <MudPaper Class="pa-md-6 pa-4 metric-card" Elevation="2">
+                <MudText Typo="Typo.caption" Class="fw-black opacity-40">SESSION VOLUME</MudText>
+                <MudText Typo="Typo.h4" Class="fw-black stat-value">@totalBets.ToString("C0")</MudText>
+                <MudProgressLinear Color="Color.Primary" Value="75" Class="mt-2" Size="Size.Small" />
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="pa-6 metric-card" Elevation="2">
-                <MudText Typo="Typo.caption" Class="fw-black opacity-40">PAYOUTS (LB)</MudText>
-                <MudText Typo="Typo.h4" Class="fw-black text-warning">@totalWins.ToString("C0")</MudText>
-                <MudProgressLinear Color="Color.Warning" Value="60" Class="mt-2" />
+            <MudPaper Class="pa-md-6 pa-4 metric-card" Elevation="2">
+                <MudText Typo="Typo.caption" Class="fw-black opacity-40">PAYOUTS</MudText>
+                <MudText Typo="Typo.h4" Class="fw-black stat-value text-warning">@totalWins.ToString("C0")</MudText>
+                <MudProgressLinear Color="Color.Warning" Value="60" Class="mt-2" Size="Size.Small" />
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="pa-6 metric-card" Elevation="2">
-                <MudText Typo="Typo.caption" Class="fw-black opacity-40">GGR (NET HOUSE)</MudText>
-                <MudText Typo="Typo.h4" Class='@($"fw-black {(totalBets - totalWins >= 0 ? "text-success" : "text-error")}")'>@((totalBets - totalWins).ToString("C0"))</MudText>
-                <MudProgressLinear Color="Color.Success" Value="100" Class="mt-2" />
+            <MudPaper Class="pa-md-6 pa-4 metric-card" Elevation="2">
+                <MudText Typo="Typo.caption" Class="fw-black opacity-40">GGR (NET)</MudText>
+                <MudText Typo="Typo.h4" Class='@($"fw-black stat-value {(totalBets - totalWins >= 0 ? "text-success" : "text-error")}")'>@((totalBets - totalWins).ToString("C0"))</MudText>
+                <MudProgressLinear Color="Color.Success" Value="100" Class="mt-2" Size="Size.Small" />
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="pa-6 metric-card" Elevation="2">
-                <MudText Typo="Typo.caption" Class="fw-black opacity-40">ACTIVE PLAYERS</MudText>
-                <MudText Typo="Typo.h4" Class="fw-black text-info">@activeUserCount</MudText>
-                <MudProgressLinear Color="Color.Info" Value="45" Class="mt-2" />
+            <MudPaper Class="pa-md-6 pa-4 metric-card" Elevation="2">
+                <MudText Typo="Typo.caption" Class="fw-black opacity-40">ACTIVE</MudText>
+                <MudText Typo="Typo.h4" Class="fw-black stat-value text-info">@activeUserCount</MudText>
+                <MudProgressLinear Color="Color.Info" Value="45" Class="mt-2" Size="Size.Small" />
             </MudPaper>
         </MudItem>
     </MudGrid>
 
     <!-- Main Live Table -->
-    <MudPaper Class="pa-8 rounded-xl overflow-hidden" Elevation="4">
-        <div class="d-flex justify-space-between align-center mb-6">
-            <div class="d-flex align-center gap-4">
-                <MudText Typo="Typo.h5" Class="fw-black">Activity Pipeline</MudText>
-                <MudSwitch T="bool" @bind-Value="showOnlyBigWins" Color="Color.Warning" Label="Only Big Wins" Class="ml-4" />
-                <MudNumericField T="decimal" @bind-Value="minBetFilter" Label="Min Bet ($)" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 120px;" />
+    <MudPaper Class="pa-md-8 pa-4 rounded-xl overflow-hidden" Elevation="4">
+        <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-6 gap-4">
+            <div class="d-flex flex-wrap align-center gap-4">
+                <MudText Typo="Typo.h5" Class="fw-black">Pipeline</MudText>
+                <MudSwitch T="bool" @bind-Value="showOnlyBigWins" Color="Color.Warning" Label="Big Wins" Class="ml-md-4" Size="Size.Small" />
+                <MudNumericField T="decimal" @bind-Value="minBetFilter" Label="Min Bet ($)" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 100px;" />
             </div>
-            <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.ClearAll" OnClick="() => events.Clear()">Clear Stream</MudButton>
+            <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.ClearAll" OnClick="() => events.Clear()" Size="Size.Small">Clear</MudButton>
         </div>
 
-        <MudTable Items="@FilteredEvents" Hover="true" Dense="true" Elevation="0" Class="modern-monitor-table" FixedHeader="true" Height="600px">
-            <HeaderContent>
-                <MudTh>TIME</MudTh>
-                <MudTh>CONTEXT</MudTh>
-                <MudTh>PAYLOAD</MudTh>
-                <MudTh Style="text-align: right;">IMPACT</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Time">
-                    <MudText Typo="Typo.caption" Class="font-mono opacity-60">@context.Timestamp.ToString("HH:mm:ss.fff")</MudText>
-                </MudTd>
-                <MudTd DataLabel="Type">
-                    <MudChip T="string" Color="@GetColor(context.Type)" Size="Size.Small" Variant="Variant.Filled" Class="fw-black text-xs">@context.Type.ToUpper()</MudChip>
-                </MudTd>
-                <MudTd DataLabel="Details">
-                    <div class="payload-box">@context.Data</div>
-                </MudTd>
-                <MudTd DataLabel="Impact" Style="text-align: right;">
-                    @if (context.Data.Contains("Win")) {
-                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Warning" Size="Size.Small" />
-                    } else {
-                        <MudIcon Icon="@Icons.Material.Filled.TrendingFlat" Class="opacity-20" Size="Size.Small" />
-                    }
-                </MudTd>
-            </RowTemplate>
-            <NoRecordsContent>
-                <div class="pa-12 d-flex flex-column align-center justify-center text-center opacity-20">
-                    <MudIcon Icon="@Icons.Material.Filled.Radar" Style="font-size: 6rem;" />
-                    <MudText Typo="Typo.h5" Class="fw-black">SCANNING NETWORK...</MudText>
-                    <MudText>Waiting for first event from the game engine.</MudText>
-                </div>
-            </NoRecordsContent>
-        </MudTable>
+        <div class="table-responsive">
+            <MudTable Items="@FilteredEvents" Hover="true" Dense="true" Elevation="0" Class="modern-monitor-table" FixedHeader="true" Height="600px">
+                <HeaderContent>
+                    <MudTh>TIME</MudTh>
+                    <MudTh>CONTEXT</MudTh>
+                    <MudTh>PAYLOAD</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Time">
+                        <MudText Typo="Typo.caption" Class="font-mono opacity-60">@context.Timestamp.ToString("HH:mm:ss")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Type">
+                        <MudChip T="string" Color="@GetColor(context.Type)" Size="Size.Small" Variant="Variant.Filled" Class="fw-black text-xs">@context.Type.ToUpper()</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Details">
+                        <div class="payload-box">@context.Data</div>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <div class="pa-12 d-flex flex-column align-center justify-center text-center opacity-20">
+                        <MudIcon Icon="@Icons.Material.Filled.Radar" Style="font-size: 6rem;" />
+                        <MudText Typo="Typo.h5" Class="fw-black">SCANNING...</MudText>
+                    </div>
+                </NoRecordsContent>
+            </MudTable>
+        </div>
     </MudPaper>
 </MudContainer>
 
 <style>
+    .table-responsive { width: 100%; overflow-x: auto; }
+    
+    @@media (max-width: 600px) {
+        .monitor-title { font-size: 1.75rem !important; }
+        .stat-value { font-size: 1.5rem !important; }
+        .payload-box { max-width: 200px !important; font-size: 0.75rem !important; }
+    }
+
     .fw-black { font-weight: 950; }
     .fw-bold { font-weight: 700; }
     .opacity-60 { opacity: 0.6; }
     .opacity-40 { opacity: 0.4; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
 
-    .status-box { padding: 8px 16px; background: var(--mud-palette-background-grey); border-radius: 12px; text-align: center; min-width: 100px; }
+    .status-box { padding: 8px 16px; background: var(--mud-palette-background-grey); border-radius: 12px; text-align: center; min-width: 80px; }
     .metric-card { border-radius: 20px; border: 1px solid var(--mud-palette-divider); }
 
     .live-pulse {
@@ -127,7 +128,7 @@
     }
 
     .modern-monitor-table .mud-table-head .mud-th { font-weight: 900; font-size: 0.7rem; letter-spacing: 1px; color: var(--mud-palette-text-secondary); }
-    .modern-monitor-table .mud-table-body .mud-td { padding: 12px 16px; border-bottom: 1px solid var(--mud-palette-divider); }
+    .modern-monitor-table .mud-table-body .mud-td { padding: 8px 12px; border-bottom: 1px solid var(--mud-palette-divider); }
 
     .payload-box { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--mud-palette-primary); background: rgba(var(--mud-palette-primary-rgb), 0.05); padding: 4px 12px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 600px; }
 
@@ -159,7 +160,6 @@
         RealTime.OnAdminEventReceived += OnAdminEvent;
         RealTime.OnBigWinReceived += OnBigWin;
 
-        // Load Initial Stats for Day
         try {
             var stats = await AdminService.GetDashboardStats("Day");
             totalBets = stats.TotalBets;
@@ -167,7 +167,6 @@
             activeUserCount = stats.ActivePlayerCount;
         } catch { }
         
-        // Background update for EPM (Events Per Minute)
         _ = Task.Run(async () => {
             while (!_cts.Token.IsCancellationRequested) {
                 var oneMinuteAgo = DateTime.Now.AddMinutes(-1);
@@ -177,7 +176,6 @@
             }
         });
 
-        // Wait for connection if needed
         _ = Task.Run(async () => {
             int retries = 0;
             while (!RealTime.IsConnected && retries < 15) {
@@ -208,13 +206,12 @@
     }
 
     private void OnBigWin(BigWinEventArgs args) {
-        AddEvent("BigWin", $"🏆 {args.Username} hit {args.Amount:C} on {args.GameName}!", 0); // Bet amount is unknown here, default to 0 for BigWin to pass filter
+        AddEvent("BigWin", $"🏆 {args.Username} hit {args.Amount:C} on {args.GameName}!", 0); 
     }
 
     private void AddEvent(string type, string data, decimal bet) {
         events.Insert(0, new StreamEvent(DateTime.Now, type, data, bet));
-        if (events.Count > 200) events.RemoveAt(200); // Increased buffer for better EPM accuracy
-        
+        if (events.Count > 200) events.RemoveAt(200); 
         InvokeAsync(StateHasChanged);
     }
 
@@ -234,5 +231,5 @@
         RealTime.OnBigWinReceived -= OnBigWin;
     }
 
-    private record StreamEvent(DateTime Timestamp, string Type, string Data, decimal Bet);
+    public record StreamEvent(DateTime Timestamp, string Type, string Data, decimal Bet);
 }

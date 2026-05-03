@@ -13,65 +13,62 @@
 @inject LayoutService LayoutService
 @inject IJSRuntime JSRuntime
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-16 animate-fade-in">
-    <div class="d-flex justify-space-between align-center mb-8">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-md-8 mt-4 mb-16 animate-fade-in">
+    <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-8 gap-4">
         <div>
-            <MudText Typo="Typo.h3" Class="text-gradient fw-black mb-2">BACKOFFICE HUB</MudText>
-            <MudText Typo="Typo.subtitle1" Class="mud-text-secondary">Real-time System Monitoring</MudText>
+            <MudText Typo="Typo.h3" Class="text-gradient fw-black mb-1 dashboard-title">BACKOFFICE HUB</MudText>
+            <MudText Typo="Typo.subtitle1" Class="mud-text-secondary d-none d-sm-block">Real-time System Monitoring</MudText>
         </div>
-        <div class="d-flex align-center gap-4">
-             <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download" OnClick="ExportToCsv" Size="Size.Small" Class="mr-2">EXPORT CSV</MudButton>
-             <MudSelect T="string" Value="@_selectedPeriod" ValueChanged="OnPeriodChanged" Label="Reporting Period" Variant="Variant.Outlined" Dense="true" Class="bg-glass rounded-lg" Style="width: 150px;">
+        <div class="d-flex flex-wrap align-center gap-2 gap-md-4">
+             <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download" OnClick="ExportToCsv" Size="Size.Small" Class="flex-grow-1 flex-md-grow-0">EXPORT</MudButton>
+             <MudSelect T="string" Value="@_selectedPeriod" ValueChanged="OnPeriodChanged" Label="Period" Variant="Variant.Outlined" Dense="true" Class="bg-glass rounded-lg flex-grow-1 flex-md-grow-0" Style="min-width: 120px;">
                  <MudSelectItem Value="@("Day")">Today</MudSelectItem>
-                 <MudSelectItem Value="@("Week")">Last 7 Days</MudSelectItem>
-                 <MudSelectItem Value="@("Month")">Last 30 Days</MudSelectItem>
+                 <MudSelectItem Value="@("Week")">7 Days</MudSelectItem>
+                 <MudSelectItem Value="@("Month")">30 Days</MudSelectItem>
              </MudSelect>
              @if (RealTime.IsConnected) {
-                <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.LiveTv" Class="fw-bold pulse-red">LIVE: CONNECTED</MudChip>
+                <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.LiveTv" Size="Size.Small" Class="fw-bold pulse-red">LIVE</MudChip>
              } else {
-                <MudChip T="string" Color="Color.Default" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Pause" Class="fw-bold">@RealTime.State.ToString().ToUpper()</MudChip>
+                <MudChip T="string" Color="Color.Default" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Pause" Size="Size.Small" Class="fw-bold">@RealTime.State.ToString().ToUpper()</MudChip>
              }
         </div>
     </div>
 
     <MudGrid Class="mb-8">
         <MudItem xs="12" sm="6" md="3">
-            <div class="dashboard-card pa-6 rounded-xl hover-scale h-100">
-                <div class="d-flex justify-space-between align-start mb-4">
-                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" />
-                     <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" Size="Size.Small" />
+            <div class="dashboard-card pa-md-6 pa-4 rounded-xl hover-scale h-100">
+                <div class="d-flex justify-space-between align-start mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Medium" />
                 </div>
-                <MudText Typo="Typo.h4" Class="fw-black mb-1" Color="Color.Success">@stats.Ggr.ToString("C2")</MudText>
-                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">EST. GGR (@_selectedPeriod)</MudText>
+                <MudText Typo="Typo.h4" Class="fw-black mb-1 stat-value" Color="Color.Success">@stats.Ggr.ToString("C0")</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">EST. GGR</MudText>
             </div>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <div class="dashboard-card pa-6 rounded-xl hover-scale h-100">
-                 <div class="d-flex justify-space-between align-start mb-4">
-                    <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Info" Size="Size.Large" />
-                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">+@(_selectedPeriod == "Day" ? "12%" : "5%")</MudChip>
+            <div class="dashboard-card pa-md-6 pa-4 rounded-xl hover-scale h-100">
+                 <div class="d-flex justify-space-between align-start mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Info" Size="Size.Medium" />
                 </div>
-                <MudText Typo="Typo.h4" Class="fw-black mb-1" Color="Color.Info">@stats.ActivePlayerCount</MudText>
-                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">Active Players (@_selectedPeriod)</MudText>
+                <MudText Typo="Typo.h4" Class="fw-black mb-1 stat-value" Color="Color.Info">@stats.ActivePlayerCount</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">Active Players</MudText>
             </div>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <div class="dashboard-card pa-6 rounded-xl hover-scale h-100">
-                 <div class="d-flex justify-space-between align-start mb-4">
-                    <MudIcon Icon="@Icons.Material.Filled.Percent" Color="Color.Warning" Size="Size.Large" />
-                     <MudIcon Icon="@Icons.Material.Filled.Functions" Color="Color.Warning" Size="Size.Small" />
+            <div class="dashboard-card pa-md-6 pa-4 rounded-xl hover-scale h-100">
+                 <div class="d-flex justify-space-between align-start mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Percent" Color="Color.Warning" Size="Size.Medium" />
                 </div>
-                <MudText Typo="Typo.h4" Class="fw-black mb-1" Color="Color.Warning">@stats.CurrentRtp.ToString("F2")%</MudText>
-                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">Average RTP (@_selectedPeriod)</MudText>
+                <MudText Typo="Typo.h4" Class="fw-black mb-1 stat-value" Color="Color.Warning">@stats.CurrentRtp.ToString("F1")%</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">Avg. RTP</MudText>
             </div>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-             <div class='@($"dashboard-card pa-6 rounded-xl hover-scale h-100 {(_emergencyStop ? "border-red" : "")}")'>
-                 <div class="d-flex justify-space-between align-start mb-4">
-                    <MudIcon Icon="@Icons.Material.Filled.PanTool" Color="@(_emergencyStop ? Color.Error : Color.Success)" Size="Size.Large" />
-                    <MudSwitch T="bool" Value="@_emergencyStop" ValueChanged="ToggleStopValue" Color="Color.Error" UncheckedColor="Color.Success" Class="ml-auto" />
+             <div class='@($"dashboard-card pa-md-6 pa-4 rounded-xl hover-scale h-100 {(_emergencyStop ? "border-red" : "")}")'>
+                 <div class="d-flex justify-space-between align-start mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.PanTool" Color="@(_emergencyStop ? Color.Error : Color.Success)" Size="Size.Medium" />
+                    <MudSwitch T="bool" Value="@_emergencyStop" ValueChanged="ToggleStopValue" Color="Color.Error" UncheckedColor="Color.Success" Class="ml-auto" Size="Size.Small" />
                 </div>
-                <MudText Typo="Typo.h5" Class="fw-black mb-1" Color="@(_emergencyStop ? Color.Error : Color.Success)">@(_emergencyStop ? "STOPPED" : "ACTIVE")</MudText>
+                <MudText Typo="Typo.h5" Class="fw-black mb-1 stat-value" Color="@(_emergencyStop ? Color.Error : Color.Success)">@(_emergencyStop ? "STOPPED" : "ACTIVE")</MudText>
                 <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">System Status</MudText>
             </div>
         </MudItem>
@@ -79,87 +76,85 @@
 
     <MudGrid Class="mb-8">
         <MudItem xs="12" md="6">
-            <MudPaper Class="pa-6 rounded-xl dashboard-card" Elevation="0">
-                <div class="d-flex justify-space-between align-center mb-6">
+            <MudPaper Class="pa-md-6 pa-4 rounded-xl dashboard-card" Elevation="0">
+                <div class="d-flex justify-space-between align-center mb-4">
                     <div>
                         <MudText Typo="Typo.h6" Class="fw-black">WAGER VOLUME</MudText>
-                        <MudText Typo="Typo.caption" Class="opacity-50">Total incoming bets (Last 24h)</MudText>
                     </div>
-                    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Info" />
                 </div>
-                @if (trendData.Any()) {
-                    <MudChart ChartType="ChartType.Line" 
-                              ChartSeries="@(new List<ChartSeries>() { new ChartSeries { Name = "Wagers ($)", Data = trendData.Select(t => (double)t.Bets).ToArray() } })" 
-                              XAxisLabels="@(trendData.Select(t => t.Label).ToArray())" 
-                              Width="100%" Height="250px" 
-                              ChartOptions="@(new ChartOptions { InterpolationOption = trendData.Count >= 4 ? InterpolationOption.NaturalSpline : InterpolationOption.Straight, YAxisTicks = 5 })" />
-                } else {
-                    <div class="d-flex justify-center align-center py-12 opacity-30"><MudText>Awaiting data...</MudText></div>
-                }
+                <div class="chart-container">
+                    @if (trendData.Any()) {
+                        <MudChart ChartType="ChartType.Line" 
+                                  ChartSeries="@(new List<ChartSeries>() { new ChartSeries { Name = "Wagers ($)", Data = trendData.Select(t => (double)t.Bets).ToArray() } })" 
+                                  XAxisLabels="@(trendData.Select(t => t.Label).ToArray())" 
+                                  Width="100%" Height="200px" 
+                                  ChartOptions="@(new ChartOptions { InterpolationOption = trendData.Count >= 4 ? InterpolationOption.NaturalSpline : InterpolationOption.Straight, YAxisTicks = 5 })" />
+                    } else {
+                        <div class="d-flex justify-center align-center py-12 opacity-30"><MudText>Awaiting data...</MudText></div>
+                    }
+                </div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" md="6">
-            <MudPaper Class="pa-6 rounded-xl dashboard-card" Elevation="0">
-                <div class="d-flex justify-space-between align-center mb-6">
+            <MudPaper Class="pa-md-6 pa-4 rounded-xl dashboard-card" Elevation="0">
+                <div class="d-flex justify-space-between align-center mb-4">
                     <div>
                         <MudText Typo="Typo.h6" Class="fw-black">PAYOUT VOLUME</MudText>
-                        <MudText Typo="Typo.caption" Class="opacity-50">Total winnings paid (Last 24h)</MudText>
                     </div>
-                    <MudIcon Icon="@Icons.Material.Filled.Payments" Color="Color.Success" />
                 </div>
-                @if (trendData.Any()) {
-                    <MudChart ChartType="ChartType.Line" 
-                              ChartSeries="@(new List<ChartSeries>() { new ChartSeries { Name = "Payouts ($)", Data = trendData.Select(t => (double)t.Wins).ToArray() } })" 
-                              XAxisLabels="@(trendData.Select(t => t.Label).ToArray())" 
-                              Width="100%" Height="250px" 
-                              ChartOptions="@(new ChartOptions { InterpolationOption = trendData.Count >= 4 ? InterpolationOption.NaturalSpline : InterpolationOption.Straight, YAxisTicks = 5 })" />
-                } else {
-                    <div class="d-flex justify-center align-center py-12 opacity-30"><MudText>Awaiting data...</MudText></div>
-                }
+                <div class="chart-container">
+                    @if (trendData.Any()) {
+                        <MudChart ChartType="ChartType.Line" 
+                                  ChartSeries="@(new List<ChartSeries>() { new ChartSeries { Name = "Payouts ($)", Data = trendData.Select(t => (double)t.Wins).ToArray() } })" 
+                                  XAxisLabels="@(trendData.Select(t => t.Label).ToArray())" 
+                                  Width="100%" Height="200px" 
+                                  ChartOptions="@(new ChartOptions { InterpolationOption = trendData.Count >= 4 ? InterpolationOption.NaturalSpline : InterpolationOption.Straight, YAxisTicks = 5 })" />
+                    } else {
+                        <div class="d-flex justify-center align-center py-12 opacity-30"><MudText>Awaiting data...</MudText></div>
+                    }
+                </div>
             </MudPaper>
         </MudItem>
     </MudGrid>
 
     <MudGrid Class="mb-8">
         <MudItem xs="12" md="8">
-            <MudPaper Class="pa-6 rounded-xl dashboard-card h-100" Elevation="0">
-                <MudText Typo="Typo.h6" Class="fw-bold mb-4">Game Performance Analytics</MudText>
-                <MudTable Items="@stats.GameStats" Hover="true" Dense="true" Elevation="0" Class="bg-transparent">
-                    <HeaderContent>
-                        <MudTh>Game</MudTh>
-                        <MudTh>Wagered</MudTh>
-                        <MudTh>Payout</MudTh>
-                        <MudTh>Max Win</MudTh>
-                        <MudTh>RTP</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd>@context.GameName</MudTd>
-                        <MudTd>@context.TotalWagered.ToString("C2")</MudTd>
-                        <MudTd>@context.TotalWon.ToString("C2")</MudTd>
-                        <MudTd>@context.MaxWin.ToString("C2")</MudTd>
-                        <MudTd>
-                            <MudText Color="@(context.Rtp > 100 ? Color.Error : (context.Rtp > 97 ? Color.Warning : Color.Success))" Class="fw-bold">
-                                @context.Rtp.ToString("F2")%
-                            </MudText>
-                        </MudTd>
-                    </RowTemplate>
-                </MudTable>
+            <MudPaper Class="pa-md-6 pa-4 rounded-xl dashboard-card h-100" Elevation="0">
+                <MudText Typo="Typo.h6" Class="fw-bold mb-4">Game Analytics</MudText>
+                <div class="table-responsive">
+                    <MudTable Items="@stats.GameStats" Hover="true" Dense="true" Elevation="0" Class="bg-transparent">
+                        <HeaderContent>
+                            <MudTh>Game</MudTh>
+                            <MudTh>Wagered</MudTh>
+                            <MudTh>RTP</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.GameName</MudTd>
+                            <MudTd>@context.TotalWagered.ToString("C0")</MudTd>
+                            <MudTd>
+                                <MudText Color="@(context.Rtp > 100 ? Color.Error : (context.Rtp > 97 ? Color.Warning : Color.Success))" Class="fw-bold">
+                                    @context.Rtp.ToString("F1")%
+                                </MudText>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudPaper Class="pa-6 rounded-xl dashboard-card h-100" Elevation="0">
-                <MudText Typo="Typo.h6" Class="fw-bold mb-4">Top Profit Players</MudText>
-                <MudList T="PlayerRankDto">
+            <MudPaper Class="pa-md-6 pa-4 rounded-xl dashboard-card h-100" Elevation="0">
+                <MudText Typo="Typo.h6" Class="fw-bold mb-4">Top Players</MudText>
+                <MudList T="PlayerRankDto" Dense="true">
                     @foreach (var player in stats.TopPlayers)
                     {
                         <MudListItem Class="px-0">
                             <div class="d-flex justify-space-between align-center">
                                 <div>
-                                    <MudText Typo="Typo.body1" Class="fw-bold">@player.Username</MudText>
-                                    <MudText Typo="Typo.caption" Class="opacity-60">Won: @player.TotalWon.ToString("C0")</MudText>
+                                    <MudText Typo="Typo.body2" Class="fw-bold">@player.Username</MudText>
+                                    <MudText Typo="Typo.caption" Class="opacity-60">Won @player.TotalWon.ToString("C0")</MudText>
                                 </div>
                                 <MudText Typo="Typo.body2" Color="@(player.Profit > 0 ? Color.Success : Color.Error)" Class="fw-black">
-                                    @(player.Profit > 0 ? "+" : "")@player.Profit.ToString("C2")
+                                    @(player.Profit > 0 ? "+" : "")@player.Profit.ToString("C0")
                                 </MudText>
                             </div>
                         </MudListItem>
@@ -171,9 +166,9 @@
     
     <MudGrid>
          <MudItem xs="12" md="8">
-            <div class="dashboard-card pa-6 rounded-xl" style="height: 400px; display: flex; flex-direction: column;">
+            <div class="dashboard-card pa-md-6 pa-4 rounded-xl" style="height: 400px; display: flex; flex-direction: column;">
                 <div class="d-flex justify-space-between align-center mb-4">
-                    <MudText Typo="Typo.h6" Class="fw-bold"><MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2"/>Live Event Feed</MudText>
+                    <MudText Typo="Typo.h6" Class="fw-bold"><MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2"/>Event Feed</MudText>
                     <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" OnClick="LoadStats" />
                 </div>
                 <div class="flex-grow-1 overflow-auto pr-2 custom-scroll">
@@ -188,9 +183,9 @@
                      {
                          @foreach (var log in _liveLogs)
                          {
-                             <div class="d-flex gap-4 py-3 border-b-glass animate-slide-in-left">
-                                 <MudText Typo="Typo.caption" Class="mud-text-secondary font-mono pt-1">@DateTime.Now.ToString("HH:mm:ss")</MudText>
-                                 <div>@((MarkupString)log)</div>
+                             <div class="d-flex gap-2 py-2 border-b-glass animate-slide-in-left">
+                                 <MudText Typo="Typo.caption" Class="mud-text-secondary font-mono pt-1 text-xs">@DateTime.Now.ToString("HH:mm")</MudText>
+                                 <div class="text-xs">@((MarkupString)log)</div>
                              </div>
                          }
                      }
@@ -199,66 +194,54 @@
         </MudItem>
         
         <MudItem xs="12" md="4">
-             <div class="dashboard-card pa-6 rounded-xl h-100">
-                <MudText Typo="Typo.h6" Class="fw-bold mb-6">Quick Actions</MudText>
-                <MudStack Spacing="3">
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Refresh" Class="rounded-lg py-3" OnClick="OnClearCache">Reset Cache</MudButton>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" FullWidth="true" StartIcon="@Icons.Material.Filled.NotificationsActive" Class="rounded-lg py-3" OnClick="OnSendAlert">Send Global Alert</MudButton>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Info" FullWidth="true" StartIcon="@Icons.Material.Filled.Backup" Class="rounded-lg py-3" OnClick="OnBackup">Backup Database</MudButton>
-                    <MudDivider Class="my-2" />
-                    <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" StartIcon="@Icons.Material.Filled.Block" Class="rounded-lg py-3" OnClick="OnBlockIp">Block IP Range</MudButton>
+             <div class="dashboard-card pa-md-6 pa-4 rounded-xl h-100">
+                <MudText Typo="Typo.h6" Class="fw-bold mb-4">Quick Actions</MudText>
+                <MudStack Spacing="2">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.Refresh" Class="rounded-lg py-2" OnClick="OnClearCache">Reset Cache</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" FullWidth="true" StartIcon="@Icons.Material.Filled.NotificationsActive" Class="rounded-lg py-2" OnClick="OnSendAlert">Broadcast Alert</MudButton>
+                    <MudDivider Class="my-1" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" StartIcon="@Icons.Material.Filled.Block" Class="rounded-lg py-2" OnClick="OnBlockIp">Block IP</MudButton>
                 </MudStack>
              </div>
         </MudItem>
     </MudGrid>
 
     <!-- Support Messages Section -->
-    <MudText Typo="Typo.h5" Class="fw-black mt-12 mb-6" Color="Color.Inherit">SUPPORT MESSAGES</MudText>
-    <MudPaper Class="pa-6 rounded-xl dashboard-card" Elevation="0">
-        @if (supportMessages == null)
-        {
-            <div class="d-flex justify-center pa-8">
-                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-            </div>
-        }
-        else if (!supportMessages.Any())
-        {
-            <div class="text-center pa-8 opacity-50">
-                <MudIcon Icon="@Icons.Material.Filled.MarkEmailRead" Size="Size.Large" Class="mb-2" />
-                <MudText>No pending support messages.</MudText>
-            </div>
-        }
-        else
-        {
-            <MudTable Items="@supportMessages" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Class="bg-transparent">
+    <MudText Typo="Typo.h5" Class="fw-black mt-12 mb-6" Color="Color.Inherit">SUPPORT</MudText>
+    <MudPaper Class="pa-md-6 pa-2 rounded-xl dashboard-card overflow-hidden" Elevation="0">
+        <div class="table-responsive">
+            <MudTable Items="@supportMessages" Hover="true" Breakpoint="Breakpoint.Xs" Elevation="0" Class="bg-transparent">
                 <HeaderContent>
                     <MudTh>Date</MudTh>
                     <MudTh>Sender</MudTh>
                     <MudTh>Subject</MudTh>
                     <MudTh>Status</MudTh>
-                    <MudTh>Actions</MudTh>
+                    <MudTh></MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Date">@context.CreatedAt.ToString("g")</MudTd>
-                    <MudTd DataLabel="Sender">
-                        <MudText Typo="Typo.body2">@context.SenderName</MudText>
-                        <MudText Typo="Typo.caption" Class="opacity-60">@context.SenderEmail</MudText>
-                    </MudTd>
-                    <MudTd DataLabel="Subject" Class="fw-bold">@context.Subject</MudTd>
+                    <MudTd DataLabel="Date">@context.CreatedAt.ToString("MM/dd")</MudTd>
+                    <MudTd DataLabel="Sender">@context.SenderName</MudTd>
+                    <MudTd DataLabel="Subject">@context.Subject</MudTd>
                     <MudTd DataLabel="Status">
-                        @if (context.IsRead) { <MudChip T="string" Size="Size.Small" Color="Color.Default">Read</MudChip> }
-                        else { <MudChip T="string" Size="Size.Small" Color="Color.Info">New</MudChip> }
+                        <MudChip T="string" Size="Size.Small" Color="@(context.IsRead ? Color.Default : Color.Info)">@(context.IsRead ? "READ" : "NEW")</MudChip>
                     </MudTd>
-                    <MudTd DataLabel="Actions">
-                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => ViewMessage(context)">View</MudButton>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Primary" OnClick="() => ViewMessage(context)" />
                     </MudTd>
                 </RowTemplate>
             </MudTable>
-        }
+        </div>
     </MudPaper>
 </MudContainer>
 
 <style>
+    .table-responsive { width: 100%; overflow-x: auto; }
+    
+    @@media (max-width: 600px) {
+        .dashboard-title { font-size: 1.75rem !important; }
+        .stat-value { font-size: 1.5rem !important; }
+    }
+    
     .fw-black { font-weight: 900; }
     .fw-bold { font-weight: 700; }
     

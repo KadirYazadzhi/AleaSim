@@ -20,7 +20,7 @@
     <!-- Header Section -->
     <div class="d-flex flex-column align-center mb-10 text-center">
         <MudIcon Icon="@Icons.Material.Filled.SettingsSuggest" Color="Color.Primary" Style="font-size: 4rem;" Class="mb-2" />
-        <MudText Typo="Typo.h2" Class="fw-black text-gradient uppercase tracking-tighter">Preferences</MudText>
+        <MudText Typo="Typo.h2" Class="fw-black text-gradient uppercase tracking-tighter settings-title">Preferences</MudText>
         <MudText Typo="Typo.subtitle1" Class="opacity-70">Tailor your AleaSim experience to your winning style.</MudText>
     </div>
 
@@ -188,13 +188,13 @@
                 <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-8 rounded-xl border-2">Set loss limits to ensure gaming stays fun.</MudAlert>
                 <MudGrid Spacing="6">
                     <MudItem xs="12" md="4">
-                        <MudNumericField @bind-Value="dailyLossLimit" Label="Daily Loss Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Class="custom-input" />
+                        <MudNumericField @bind-Value="dailyLossLimit" Label="Daily Loss Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Class="custom-input" Format="0.##" HideSpinButtons="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudNumericField @bind-Value="weeklyLossLimit" Label="Weekly Loss Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Class="custom-input" />
+                        <MudNumericField @bind-Value="weeklyLossLimit" Label="Weekly Loss Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Class="custom-input" Format="0.##" HideSpinButtons="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudNumericField @bind-Value="monthlyLossLimit" Label="Monthly Loss Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Class="custom-input" />
+                        <MudNumericField @bind-Value="monthlyLossLimit" Label="Monthly Loss Limit" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Class="custom-input" Format="0.##" HideSpinButtons="true" />
                     </MudItem>
                 </MudGrid>
 
@@ -329,6 +329,11 @@
     .settings-tabs-header .mud-tabs-tabbar-inner {
         background: transparent !important;
     }
+
+    @@media (max-width: 600px) {
+        .settings-title { font-size: 2.25rem !important; }
+        .settings-grid { grid-template-columns: 1fr; }
+    }
     
     .rounded-xxl { border-radius: 2rem; }
     .transition-all { transition: all 0.3s ease; }
@@ -375,7 +380,7 @@
                 is2faEnabled = profile.IsTwoFactorEnabled;
                 dailyLossLimit = profile.DailyLossLimit;
                 weeklyLossLimit = profile.WeeklyLossLimit;
-                monthlyLossLimit = profile.MonthlyLossLimit ?? 0;
+                monthlyLossLimit = profile.MonthlyLossLimit; // FIXED: Removed ?? 0 to prevent excessive decimal zeros
                 
                 var prefs = JsonSerializer.Deserialize<Dictionary<string, object>>(profile.PreferencesJson) ?? new();
                 turboMode = GetBool(prefs, "TurboMode");

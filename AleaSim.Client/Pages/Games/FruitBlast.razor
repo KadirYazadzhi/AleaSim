@@ -17,7 +17,7 @@
 @inject IAuthService AuthService
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-md-4 mt-2 px-md-4 px-1 main-game-wrapper">
-    <MudGrid Spacing="3" Class="desktop-grid-gap">
+    <MudGrid Spacing="3">
         <MudItem xs="12" lg="8" Class="game-main-column">
             <!-- Game Top Header (Jackpots) -->
             <div class="game-header-row d-flex align-center justify-space-between mb-md-6 mb-2 gap-md-6 gap-2">
@@ -29,7 +29,7 @@
                         <div>
                             <div class="d-flex align-center gap-1">
                                 <MudText Typo="Typo.caption" Class="pot-label-v4 ma-0 label-adaptive">JUICE RESERVOIR</MudText>
-                                <MudTooltip Text="Meltdown at 100 Juice!">
+                                <MudTooltip Text="Fill to 100 for Meltdown!">
                                     <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
                                 </MudTooltip>
                             </div>
@@ -50,7 +50,7 @@
                         <div class="cyber-fill-v4" style="width: @(Math.Min(100.0, (lifetimeExplosions * 100.0 / 5000.0)))%"></div>
                     </div>
                     <MudText Style="font-size: 0.7rem; font-weight: 900; opacity: 0.8;" Class="mt-1 text-center d-block extracted-text-adaptive">
-                        @lifetimeExplosions.ToString("N0") / 5K
+                        @lifetimeExplosions.ToString("N0") / 5,000 EXTRACTED
                     </MudText>
                 </div>
             </div>
@@ -179,13 +179,6 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="mt-md-4 mt-0 d-none d-md-flex flex-column gap-3">
-                    <div class="pa-3 rounded-lg border-l-4" style="border-left: 4px solid #ab47bc; background: rgba(171,71,188,0.05);">
-                        <MudText Typo="Typo.caption" Class="fw-black" Style="color: #ab47bc;">POT MELTDOWN</MudText>
-                        <MudText Typo="Typo.body2" Class="opacity-70">100 Strength drains the pot!</MudText>
-                    </div>
-                </div>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -197,32 +190,24 @@
 
     /* --- SPEED BUTTONS --- */
     .speed-btn-v4 { flex: 1; height: 40px; background: rgba(255,255,255,0.05); border: 1px solid var(--mud-palette-divider); border-radius: 8px; color: var(--mud-palette-text-secondary); font-weight: 900; font-size: 0.8rem; transition: all 0.2s; cursor: pointer; }
-    .speed-btn-v4:hover { background: rgba(255,255,255,0.1); }
     .speed-btn-v4.active { background: var(--mud-palette-primary); color: white; border-color: var(--mud-palette-primary); box-shadow: 0 0 15px rgba(var(--mud-palette-primary-rgb), 0.4); }
 
     /* --- HEADER V4 --- */
     .game-header-row { width: 100%; }
     .juice-pot-card-v4, .vitamin-card-v4 { flex: 1; position: relative; border-radius: 24px; padding: 24px; overflow: hidden; border: 3px solid transparent; min-height: 140px; }
-    
     .juice-pot-card-v4.dark { background: #1a0826; border-color: #e040fb; box-shadow: 0 15px 45px rgba(0,0,0,0.8); }
     .juice-pot-card-v4.light { background: #fdf4ff; border-color: #7b1fa2; box-shadow: 0 8px 20px rgba(123,31,162,0.1); }
-    
     .vitamin-card-v4.dark { background: #020617; border-color: #ffd740; box-shadow: 0 15px 45px rgba(0,0,0,0.6); }
     .vitamin-card-v4.light { background: #fffbeb; border-color: #b45309; box-shadow: 0 8px 20px rgba(180,83,9,0.1); }
-
     .pot-liquid-v4 { position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; background: linear-gradient(transparent, rgba(224, 64, 251, 0.2)); z-index: 1; }
-
     .pot-icon-v4 { font-size: 4rem; filter: drop-shadow(0 0 15px #ffeb3b); z-index: 2; }
     .pot-label-v4 { font-weight: 950; letter-spacing: 2px; font-size: 0.7rem !important; line-height: 0.7rem !important; display: inline-block; vertical-align: middle; }
     .vitamin-label-v4 { font-size: 0.7rem !important; line-height: 0.7rem !important; display: inline-block; vertical-align: middle; }
-    
     .info-icon-tweak { font-size: 0.7rem !important; opacity: 0.5; cursor: help; display: inline-block !important; vertical-align: middle; margin-left: 2px; }
     .dark .pot-label-v4 { color: #e040fb; } .light .pot-label-v4 { color: #7b1fa2; }
-    
     .pot-value-v4 { font-weight: 950; font-family: 'JetBrains Mono', monospace; font-size: 3rem !important; }
     .dark .pot-value-v4 { color: #ffeb3b; text-shadow: 0 0 20px rgba(255,235,59,0.6); }
     .light .pot-value-v4 { color: #4a148c; }
-
     .cyber-track-v4 { width: 100%; height: 24px; background: rgba(0,0,0,0.3); border-radius: 12px; overflow: hidden; border: 2px solid rgba(255,255,255,0.1); position: relative; }
     .dark .cyber-track-v4 { background: rgba(74, 20, 140, 0.2); border-color: #e040fb; box-shadow: 0 0 10px rgba(224, 64, 251, 0.2); }
     .cyber-fill-v4 { height: 100%; background: linear-gradient(90deg, #ffd740, #ff5252, #e040fb); transition: width 1s ease-out; box-shadow: 0 0 15px rgba(224, 64, 251, 0.4); }
@@ -231,7 +216,6 @@
     .game-main-paper { position: relative; border-radius: 40px; min-height: 720px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 10px solid var(--game-border); box-shadow: 0 0 60px var(--game-glow); overflow: hidden; }
     .game-main-paper.dark { background: radial-gradient(circle, #2a0845 0%, #000000 100%); }
     .game-main-paper.light { background: radial-gradient(circle, #f8fafc 0%, #e2e8f0 100%); }
-
     .info-btn-anchor { position: absolute; top: 25px; left: 25px; z-index: 100; }
 
     /* --- JUICE METER V4 --- */
@@ -263,16 +247,21 @@
     .win-header { font-size: 3rem; font-weight: 950; color: white; text-shadow: 0 0 20px #ab47bc; letter-spacing: 12px; margin-bottom: 20px; }
     .win-sum { font-size: 9rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 50px black, 0 0 30px #ffeb3b; line-height: 1; }
 
+    /* --- FLOATING WIN V4 --- */
+    .floating-win-v4 { position: absolute; font-size: 3.5rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 15px black, 0 0 10px #ffeb3b; z-index: 500; pointer-events: none; animation: floatUpV4 1.5s ease-out forwards; white-space: nowrap; }
+
     /* --- MOBILE OVERRIDES --- */
     @@media (max-width: 992px) {
         .main-game-wrapper { padding-bottom: 85px !important; }
-        .pot-card-adaptive, .vitamin-card-adaptive { min-height: 100px; padding: 12px; border-radius: 16px; }
+        .pot-card-adaptive, .vitamin-card-adaptive { min-height: 100px; padding: 12px; border-radius: 16px; border-width: 2px; }
         .icon-adaptive { font-size: 2.2rem; }
-        .label-adaptive { font-size: 0.55rem !important; }
+        .label-adaptive { font-size: 0.55rem !important; opacity: 0.8; }
         .value-adaptive { font-size: 1.4rem !important; }
-        .percent-adaptive { font-size: 0.8rem; }
+        .percent-adaptive { font-size: 0.8rem; font-weight: 900; }
         .track-adaptive { height: 12px; }
         .extracted-text-adaptive { font-size: 0.6rem !important; margin-top: 4px !important; }
+
+        .floating-win-v4 { font-size: 1.4rem !important; text-shadow: 0 0 5px black; }
 
         .paper-adaptive { border-width: 4px; border-radius: 12px; min-height: 420px; margin-left: -4px; margin-right: -4px; width: calc(100% + 8px); }
         .info-icon-adaptive { transform: scale(0.6); }
@@ -281,8 +270,6 @@
         .meter-adaptive { left: 10px; width: 30px; height: 320px; gap: 4px; }
         .track-inner-adaptive { width: 20px; }
         .value-label-adaptive { font-size: 0.6rem; }
-        .juice-marker-badge { font-size: 0.5rem; }
-        .juice-marker-badge.active { font-size: 0.7rem; }
 
         .grid-adaptive { margin-left: 50px; gap: 4px; }
         .row-adaptive { gap: 4px; }
@@ -343,10 +330,12 @@
     private List<GridPoint> explodingCells = new();
     private List<FloatingWin> floatingWins = new();
     private MegaFruit? megaFruit = null;
+    private bool isMobile = false;
 
     public class FloatingWin { public decimal Amount { get; set; } public int X { get; set; } public int Y { get; set; } }
 
     protected override async Task OnInitializedAsync() {
+        isMobile = LayoutService.IsMobile;
         for (int i = 0; i < 5; i++) {
             currentGrid[i] = new int[6];
             for (int j = 0; j < 6; j++) currentGrid[i][j] = new Random().Next(1, 8); 
@@ -462,7 +451,12 @@
                             if (step.MeltdownActive) { isMeltdownActive = true; await Audio.PlayBonus(); StateHasChanged(); if (animationSpeed < 3) await Task.Delay(2000); else isAutoSpinning = false; }
                             if (explodingCells.Any()) {
                                 if (!isShaking) await Audio.PlayBonus();
-                                if (step.WinAmount > 0) { floatingWins.Add(new FloatingWin { Amount = step.WinAmount, X = 450, Y = 350 }); _ = Task.Delay(2000).ContinueWith(_ => { floatingWins.RemoveAll(x => true); InvokeAsync(StateHasChanged); }); }
+                                if (step.WinAmount > 0) {
+                                    int winX = isMobile ? 180 : 450;
+                                    int winY = isMobile ? 180 : 350;
+                                    floatingWins.Add(new FloatingWin { Amount = step.WinAmount, X = winX, Y = winY });
+                                    _ = Task.Delay(2000).ContinueWith(_ => { floatingWins.RemoveAll(x => true); InvokeAsync(StateHasChanged); });
+                                }
                                 StateHasChanged(); if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 800 : 400); isShaking = false;
                             }
                             foreach(var p in explodingCells) if (currentGrid.Length > p.R && currentGrid[p.R] != null) currentGrid[p.R][p.C] = 0;

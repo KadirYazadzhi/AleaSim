@@ -12,44 +12,40 @@
 @inject RealTimeClient RealTime
 @inject HttpClient Http
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-16 animate-fade-in">
-    <div class="d-flex justify-space-between align-center mb-8">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-md-8 mt-4 mb-16 animate-fade-in">
+    <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-8 gap-4">
         <div>
-            <MudText Typo="Typo.h3" Class="fw-black mb-2 text-gradient">PLATFORM CONTROL CENTER</MudText>
-            <MudText Typo="Typo.subtitle1" Class="opacity-60">Architect the platform's economy, risk, and user progression.</MudText>
+            <MudText Typo="Typo.h3" Class="fw-black mb-1 settings-title text-gradient">CONTROL CENTER</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-60 d-none d-sm-block">Architect the platform's economy and risk.</MudText>
         </div>
-        <div class="d-flex gap-2">
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadAll" StartIcon="@Icons.Material.Filled.Refresh">Sync All</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAllChanges" StartIcon="@Icons.Material.Filled.Save">Deploy All Changes</MudButton>
+        <div class="d-flex gap-2 flex-wrap">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadAll" StartIcon="@Icons.Material.Filled.Refresh" Size="Size.Small" Class="flex-grow-1">Sync</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAllChanges" StartIcon="@Icons.Material.Filled.Save" Size="Size.Small" Class="flex-grow-1">Deploy</MudButton>
         </div>
     </div>
 
-    <MudTabs Elevation="4" Rounded="true" Color="Color.Primary" ApplyEffectsToContainer="true" PanelClass="pa-8 custom-settings-tabs" Class="rounded-xl overflow-hidden shadow-2xl">
+    <MudTabs Elevation="4" Rounded="true" Color="Color.Primary" ApplyEffectsToContainer="true" PanelClass="pa-md-8 pa-4 custom-settings-tabs" Class="rounded-xl overflow-hidden shadow-2xl">
         
         <!-- 1. RISK & GAME ENGINE -->
-        <MudTabPanel Text="RISK & ENGINE" Icon="@Icons.Material.Filled.SettingsInputComponent">
-            <MudGrid>
+        <MudTabPanel Text="RISK" Icon="@Icons.Material.Filled.SettingsInputComponent">
+            <MudGrid Spacing="4">
                 <MudItem xs="12" md="8">
                     <div class="settings-group-card">
                         <MudText Typo="Typo.h6" Class="fw-black mb-6">Mathematical Core</MudText>
                         <MudGrid Spacing="4">
                             <MudItem xs="12">
                                 <MudText Typo="Typo.subtitle2" Class="fw-bold mb-1">Global Target RTP</MudText>
-                                <MudText Typo="Typo.caption" Class="opacity-60 d-block mb-4">Base Return to Player percentage for all games.</MudText>
-                                <div class="d-flex align-center gap-6 pa-4 bg-grey-darken-4 rounded-lg">
+                                <div class="d-flex align-center gap-4 pa-4 bg-grey-darken-4 rounded-lg">
                                     <MudSlider T="decimal" @bind-Value="_targetRtp" Min="80" Max="105" Step="0.1m" Color="Color.Primary" />
-                                    <MudText Typo="Typo.h4" Class="fw-black text-primary" Style="min-width: 100px;">@_targetRtp.ToString("F1")%</MudText>
+                                    <MudText Typo="Typo.h5" Class="fw-black text-primary" Style="min-width: 70px;">@_targetRtp.ToString("F1")%</MudText>
                                 </div>
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudSelect T="string" @bind-Value="_volatilityMode" Label="Volatility Profile" Variant="Variant.Outlined" Class="modern-select">
-                                    <MudSelectItem Value="@("Low")">Low (Stable, Frequent small wins)</MudSelectItem>
-                                    <MudSelectItem Value="@("Medium")">Medium (Standard Casino Balance)</MudSelectItem>
-                                    <MudSelectItem Value="@("High")">High (Volatile, Huge Jackpots)</MudSelectItem>
+                                <MudSelect T="string" @bind-Value="_volatilityMode" Label="Volatility" Variant="Variant.Outlined">
+                                    <MudSelectItem Value="@("Low")">Low</MudSelectItem>
+                                    <MudSelectItem Value="@("Medium")">Medium</MudSelectItem>
+                                    <MudSelectItem Value="@("High")">High</MudSelectItem>
                                 </MudSelect>
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <MudNumericField @bind-Value="_maxWinMultiplier" Label="Max Win Cap (Multiplier)" Variant="Variant.Outlined" HelperText="e.g. 5000 means max win is 5000x bet" />
                             </MudItem>
                         </MudGrid>
                     </div>
@@ -57,307 +53,80 @@
 
                 <MudItem xs="12" md="4">
                     <div class="settings-group-card h-100 border-error-subtle">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-4 text-error">Emergency Kill-Switch</MudText>
-                        <MudText Typo="Typo.body2" Class="opacity-60 mb-6">Immediately halts all game servers and prevents new bets from being placed.</MudText>
+                        <MudText Typo="Typo.h6" Class="fw-black mb-4 text-error">Kill-Switch</MudText>
                         <div class='@($"emergency-box {(_emergencyStop ? "active" : "")}")'>
                             <MudSwitch @bind-Value="_emergencyStop" Color="Color.Error" UncheckedColor="Color.Success" Size="Size.Large" T="bool" />
-                            <MudText Typo="Typo.h5" Class="fw-black mt-2">@(_emergencyStop ? "PLATFORM HALTED" : "SYSTEM ONLINE")</MudText>
+                            <MudText Typo="Typo.h5" Class="fw-black mt-2">@(_emergencyStop ? "HALTED" : "ONLINE")</MudText>
                         </div>
                     </div>
                 </MudItem>
             </MudGrid>
         </MudTabPanel>
 
-        <!-- 2. ECONOMY & VAULT -->
-        <MudTabPanel Text="ECONOMY" Icon="@Icons.Material.Filled.AccountBalance">
-            <MudGrid Spacing="6">
-                <!-- Faucet Settings -->
+        <!-- 2. ECONOMY -->
+        <MudTabPanel Text="ECON" Icon="@Icons.Material.Filled.AccountBalance">
+            <MudGrid Spacing="4">
                 <MudItem xs="12" md="6">
                     <div class="settings-group-card">
-                        <div class="d-flex align-center gap-3 mb-6">
-                            <div class="icon-circle warning"><MudIcon Icon="@Icons.Material.Filled.VolunteerActivism" Size="Size.Small" /></div>
-                            <MudText Typo="Typo.h6" Class="fw-black">Bankruptcy Relief (Faucet)</MudText>
-                        </div>
-                        <MudStack Spacing="4">
-                            <MudNumericField @bind-Value="_faucetAmount" Label="Relief Amount ($)" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="$" />
-                            <MudNumericField @bind-Value="_faucetThreshold" Label="Trigger Threshold ($)" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="$" HelperText="User balance must be below this to claim" />
-                            <MudNumericField @bind-Value="_faucetCooldown" Label="Cooldown (Minutes)" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Timer" />
-                        </MudStack>
-                    </div>
-                </MudItem>
-
-                <!-- Rewards Settings -->
-                <MudItem xs="12" md="6">
-                    <div class="settings-group-card">
-                        <div class="d-flex align-center gap-3 mb-6">
-                            <div class="icon-circle info"><MudIcon Icon="@Icons.Material.Filled.Savings" Size="Size.Small" /></div>
-                            <MudText Typo="Typo.h6" Class="fw-black">Loyalty & Cashback</MudText>
-                        </div>
-                        <MudStack Spacing="4">
-                            <MudNumericField @bind-Value="_baseCashback" Label="Base Cashback (%)" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentText="%" />
-                            <MudNumericField @bind-Value="_referralCommission" Label="Referral Commission (%)" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentText="%" />
-                            <MudSwitch @bind-Value="_weeklyBenefitActive" Label="Weekly Benefit Module" Color="Color.Primary" T="bool" />
-                        </MudStack>
-                    </div>
-                </MudItem>
-            </MudGrid>
-        </MudTabPanel>
-
-        <!-- 3. PROGRESSION & RPG -->
-        <MudTabPanel Text="PROGRESSION" Icon="@Icons.Material.Filled.TrendingUp">
-            <MudGrid>
-                <MudItem xs="12" md="7">
-                    <div class="settings-group-card">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-6">XP & Leveling Curve</MudText>
-                        <MudGrid>
-                            <MudItem xs="12">
-                                <MudText Typo="Typo.subtitle2" Class="fw-bold mb-4">Global XP Multiplier</MudText>
-                                <div class="d-flex align-center gap-4 pa-4 bg-grey-darken-4 rounded-lg mb-6">
-                                    <MudSlider T="double" @bind-Value="_xpMultiplier" Min="0.1" Max="10" Step="0.1" Color="Color.Secondary" />
-                                    <MudText Typo="Typo.h4" Class="fw-black text-secondary" Style="min-width: 80px;">@_xpMultiplier.ToString("F1")x</MudText>
-                                </div>
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <MudNumericField @bind-Value="_baseLevelXp" Label="Base XP for Level 1" Variant="Variant.Outlined" />
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <MudNumericField @bind-Value="_xpScalingFactor" Label="Difficulty Scaling Factor" Variant="Variant.Outlined" Step="0.1m" />
-                            </MudItem>
-                        </MudGrid>
-                    </div>
-                </MudItem>
-                <MudItem xs="12" md="5">
-                    <div class="settings-group-card h-100">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-4">Skill Shop Balancing</MudText>
-                        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Configure the cost and impact of RPG skills.</MudAlert>
+                        <MudText Typo="Typo.h6" Class="fw-black mb-4">Relief (Faucet)</MudText>
                         <MudStack Spacing="3">
-                            <div class="pa-4 rounded-lg bg-surface border-1 border-solid border-divider">
-                                <MudText Typo="Typo.body2" Class="fw-bold">Skill Point Cost</MudText>
-                                <MudText Typo="Typo.caption" Class="opacity-60">1 Point per @(_xpMultiplier * 1000) XP</MudText>
-                            </div>
-                            <MudNumericField @bind-Value="_maxSkillLevel" Label="Max Skill Level Cap" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudNumericField @bind-Value="_faucetAmount" Label="Amount ($)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudNumericField @bind-Value="_faucetThreshold" Label="Threshold ($)" Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudStack>
                     </div>
                 </MudItem>
-            </MudGrid>
-        </MudTabPanel>
-
-        <!-- 4. CONTENT & CMS -->
-        <MudTabPanel Text="PLATFORM CONTENT" Icon="@Icons.Material.Filled.Web">
-            <MudGrid>
-                <MudItem xs="12" md="4">
-                    <div class="settings-group-card h-100">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-6">General Branding</MudText>
-                        <MudStack Spacing="4">
-                            <MudTextField @bind-Value="_siteTitle" Label="Platform Title" Variant="Variant.Outlined" />
-                            <MudTextField @bind-Value="_announcement" Label="Global Announcement" Variant="Variant.Outlined" Lines="3" />
-                            <MudSelect T="string" @bind-Value="_maintenanceMode" Label="Maintenance Status" Variant="Variant.Outlined">
-                                <MudSelectItem Value="@("Live")">Public (Live)</MudSelectItem>
-                                <MudSelectItem Value="@("StaffOnly")">Staff Only (Testing)</MudSelectItem>
-                                <MudSelectItem Value="@("Down")">Maintenance Page (Down)</MudSelectItem>
-                            </MudSelect>
-                        </MudStack>
-                    </div>
-                </MudItem>
-                <MudItem xs="12" md="8">
-                    <div class="settings-group-card">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Legal & Documentation</MudText>
-                        <MudTabs Elevation="0" Rounded="true" PanelClass="pa-4" Class="inner-tabs">
-                            @foreach (var key in new[] { "Content_Help", "Content_Terms", "Content_Privacy" })
-                            {
-                                <MudTabPanel Text="@key.Replace("Content_", "").ToUpper()">
-                                    <MudTextField T="string" Label="Markdown Content" 
-                                                 Value="@(GetSettingValue(key))" 
-                                                 ValueChanged="@(val => UpdateLocalSetting(key, val))"
-                                                 Variant="Variant.Outlined" Lines="12" AutoGrow="true" />
-                                </MudTabPanel>
-                            }
-                        </MudTabs>
-                    </div>
-                </MudItem>
-            </MudGrid>
-        </MudTabPanel>
-
-        <!-- 6. SOCIAL & TOURNAMENTS -->
-        <MudTabPanel Text="SOCIAL & TOURNAMENTS" Icon="@Icons.Material.Filled.Group">
-            <MudGrid>
-                <MudItem xs="12" md="6">
-                    <div class="settings-group-card h-100">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Chat & Social Rules</MudText>
-                        <MudStack Spacing="4">
-                            <MudSwitch @bind-Value="_chatEnabled" Label="Global Chat Enabled" Color="Color.Primary" T="bool" />
-                            <MudNumericField @bind-Value="_chatMinLevel" Label="Min Level to Chat" Variant="Variant.Outlined" />
-                            <MudTextField @bind-Value="_chatFilterWords" Label="Banned Words (comma separated)" Variant="Variant.Outlined" Lines="3" />
-                        </MudStack>
-                    </div>
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <div class="settings-group-card h-100">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Tournament Configuration</MudText>
-                        <MudStack Spacing="4">
-                            <MudNumericField @bind-Value="_tournamentPrizePool" Label="Total Monthly Prize Pool ($)" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="$" />
-                            <MudNumericField @bind-Value="_tournamentDurationDays" Label="Season Duration (Days)" Variant="Variant.Outlined" />
-                            <MudSwitch @bind-Value="_tournamentActive" Label="Active Tournament" Color="Color.Warning" T="bool" />
-                        </MudStack>
-                    </div>
-                </MudItem>
-            </MudGrid>
-        </MudTabPanel>
-
-        <!-- 5. SYSTEM INTEGRITY -->
-        <MudTabPanel Text="SYSTEM" Icon="@Icons.Material.Filled.Dns">
-            <MudGrid>
                 <MudItem xs="12" md="6">
                     <div class="settings-group-card">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Integrity Monitor</MudText>
-                        <div class="d-flex flex-column align-center py-8">
+                        <MudText Typo="Typo.h6" Class="fw-black mb-4">Cashback</MudText>
+                        <MudNumericField @bind-Value="_baseCashback" Label="Base (%)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <!-- 3. JACKPOTS -->
+        <MudTabPanel Text="POTS" Icon="@Icons.Material.Filled.Diamond">
+            <div class="settings-group-card">
+                <div class="table-responsive">
+                    <MudTable Items="@_jackpots" Hover="true" Dense="true" Elevation="0" Class="bg-transparent">
+                        <HeaderContent>
+                            <MudTh>TIER</MudTh>
+                            <MudTh>VALUE</MudTh>
+                            <MudTh>ACTION</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.Tier.ToUpper()</MudTd>
+                            <MudTd>@context.CurrentValue.ToString("C2")</MudTd>
+                            <MudTd>
+                                <MudIconButton Icon="@Icons.Material.Filled.FlashOn" Color="Color.Error" Size="Size.Small" OnClick="() => ForceJackpotDrop(context.Id)" />
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </div>
+            </div>
+        </MudTabPanel>
+
+        <!-- 4. SYSTEM -->
+        <MudTabPanel Text="SYS" Icon="@Icons.Material.Filled.Dns">
+            <MudGrid Spacing="4">
+                <MudItem xs="12" md="6">
+                    <div class="settings-group-card">
+                        <MudText Typo="Typo.h6" Class="fw-black mb-6 text-center">Integrity</MudText>
+                        <div class="d-flex flex-column align-center py-4">
                             <div class='@($"integrity-shield {(_integrityResult?.IsValid == true ? "secure" : "warning")}")'>
-                                <MudIcon Icon="@(_integrityResult?.IsValid == true ? Icons.Material.Filled.GppGood : Icons.Material.Filled.GppMaybe)" Style="font-size: 5rem;" />
+                                <MudIcon Icon="@(_integrityResult?.IsValid == true ? Icons.Material.Filled.GppGood : Icons.Material.Filled.GppMaybe)" Style="font-size: 3rem;" />
                             </div>
-                            <MudText Typo="Typo.h5" Class="fw-black mt-4">@(_integrityResult?.IsValid == true ? "AUDIT CHAIN SECURE" : "AWAITING SCAN")</MudText>
-                            <MudText Typo="Typo.caption" Class="opacity-60">Verification of all historical hash signatures.</MudText>
                         </div>
-                        <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Class="py-4 rounded-xl fw-black" OnClick="RunIntegrityCheck" Disabled="_verifyingIntegrity">
-                            @if (_verifyingIntegrity) {
-                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
-                                <MudText Class="ms-2">SCANNING...</MudText>
-                            } else {
-                                <MudText>INITIALIZE SYSTEM SCAN</MudText>
-                            }
-                        </MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Class="py-3 rounded-lg fw-black" OnClick="RunIntegrityCheck" Disabled="_verifyingIntegrity">SCAN</MudButton>
                     </div>
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <div class="settings-group-card h-100">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Cluster Maintenance</MudText>
-                        <MudList T="string" Class="bg-transparent">
-                            <MudListItem Icon="@Icons.Material.Filled.CleaningServices" IconColor="Color.Primary" OnClick="OnClearCache">
-                                <div class="d-flex flex-column">
-                                    <MudText Typo="Typo.body1" Class="fw-bold">Purge Server Cache</MudText>
-                                    <MudText Typo="Typo.caption" Class="opacity-60">Clears Redis and memory caches for all nodes.</MudText>
-                                </div>
-                            </MudListItem>
-                            <MudDivider Class="my-2 opacity-10" />
-                            <MudListItem Icon="@Icons.Material.Filled.RestartAlt" IconColor="Color.Warning" OnClick="OnRestartRng">
-                                <div class="d-flex flex-column">
-                                    <MudText Typo="Typo.body1" Class="fw-bold">Reseed RNG Engine</MudText>
-                                    <MudText Typo="Typo.caption" Class="opacity-60">Forces a re-initialization of the cryptographically secure RNG.</MudText>
-                                </div>
-                            </MudListItem>
-                            <MudDivider Class="my-2 opacity-10" />
-                            <MudListItem Icon="@Icons.Material.Filled.History" IconColor="Color.Info" OnClick='() => Snackbar.Add("Audit log export started...", Severity.Info)'>
-                                <div class="d-flex flex-column">
-                                    <MudText Typo="Typo.body1" Class="fw-bold">Export Audit Logs</MudText>
-                                    <MudText Typo="Typo.caption" Class="opacity-60">Generate a signed PDF report of platform activity.</MudText>
-                                </div>
-                            </MudListItem>
-                        </MudList>
-                    </div>
-                </MudItem>
-            </MudGrid>
-        </MudTabPanel>
-
-        <!-- 5. JACKPOT CONTROL -->
-        <MudTabPanel Text="JACKPOTS" Icon="@Icons.Material.Filled.Diamond">
-            <MudGrid>
-                <MudItem xs="12">
-                    <div class="settings-group-card">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Live Progressive Jackpots (Real-time)</MudText>
-                        <MudTable Items="@_jackpots" Hover="true" Dense="true" Elevation="0" Class="bg-transparent">
-                            <HeaderContent>
-                                <MudTh>TIER / NAME</MudTh>
-                                <MudTh>VALUE</MudTh>
-                                <MudTh>
-                                    MAPPING
-                                    <MudTooltip Text="GLOBAL: Collects from all games. LOCAL: Collects only from the mapped game.">
-                                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="ms-1" Style="opacity:0.5; font-size: 1rem;" />
-                                    </MudTooltip>
-                                </MudTh>
-                                <MudTh>MUST DROP AT</MudTh>
-                                <MudTh Style="text-align: right;">ACTION</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <MudTd>
-                                    <div class="d-flex align-center gap-2">
-                                        <div class='@($"tier-indicator {context.Tier.ToLower()}")'></div>
-                                        <div>
-                                            <MudText Typo="Typo.body2" Class="fw-black">@context.Tier.ToUpper()</MudText>
-                                            <MudText Typo="Typo.caption" Class="opacity-60">@context.Name</MudText>
-                                        </div>
-                                    </div>
-                                </MudTd>
-                                <MudTd>
-                                    <MudText Typo="Typo.body2" Class="fw-bold text-success animate-pulse-fast">@context.CurrentValue.ToString("C2")</MudText>
-                                </MudTd>
-                                <MudTd>
-                                    <MudTooltip Text="@(context.IsGlobal ? "This is a cross-platform prize pool collecting from every bet on the site." : $"This prize is exclusive to {GetGameName(context.GameId)} and grows only from its turnover.")">
-                                        <MudChip T="string" Size="Size.Small" Color="@(context.IsGlobal ? Color.Info : Color.Default)">
-                                            @(context.IsGlobal ? "GLOBAL" : GetGameName(context.GameId))
-                                        </MudChip>
-                                    </MudTooltip>
-                                </MudTd>
-                                <MudTd>
-                                    <MudText Typo="Typo.body2" Class="opacity-80">@(context.MustDropAt?.ToString("C0") ?? "∞")</MudText>
-                                </MudTd>
-                                <MudTd Style="text-align: right;">
-                                    <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="() => ForceJackpotDrop(context.Id)">FORCE DROP</MudButton>
-                                </MudTd>
-                            </RowTemplate>
-                        </MudTable>
-                    </div>
-                </MudItem>
-            </MudGrid>
-        </MudTabPanel>
-
-        <!-- 6. GAME MANAGEMENT -->
-        <MudTabPanel Text="GAMES" Icon="@Icons.Material.Filled.Casino">
-            <MudGrid>
-                <MudItem xs="12">
-                    <div class="settings-group-card">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Game Availability Control</MudText>
-                        <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Class="mb-4">Disabling a game will immediately disconnect all active players and refund their pending bets.</MudAlert>
-                        <MudList T="string" Class="bg-transparent">
-                            @foreach(var game in new[] { "Slot (Clover Chase)", "Roulette", "Blackjack", "Fruit Blast", "Dice" }) {
-                                <MudListItem>
-                                    <div class="d-flex justify-space-between align-center">
-                                        <div class="d-flex align-center gap-3">
-                                            <MudIcon Icon="@Icons.Material.Filled.Games" Color="Color.Primary" />
-                                            <MudText Typo="Typo.body1" Class="fw-bold">@game</MudText>
-                                        </div>
-                                        <MudSwitch T="bool" Value="true" Color="Color.Success" UncheckedColor="Color.Error" Label="ONLINE" />
-                                    </div>
-                                </MudListItem>
-                                <MudDivider Class="my-2 opacity-10" />
-                            }
-                        </MudList>
-                    </div>
-                </MudItem>
-            </MudGrid>
-        </MudTabPanel>
-
-        <!-- 7. PROMOTIONAL TOOLS -->
-        <MudTabPanel Text="PROMOTIONS" Icon="@Icons.Material.Filled.Campaign">
-            <MudGrid>
-                <MudItem xs="12" md="6">
-                    <div class="settings-group-card h-100">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Global Banner Announcement</MudText>
-                        <MudStack Spacing="4">
-                            <MudTextField T="string" Label="Banner Title" Variant="Variant.Outlined" />
-                            <MudTextField T="string" Label="Banner Message" Lines="3" Variant="Variant.Outlined" />
-                            <MudSelect T="string" Label="Severity/Color" Variant="Variant.Outlined">
-                                <MudSelectItem Value="@("Info")">Info (Blue)</MudSelectItem>
-                                <MudSelectItem Value="@("Success")">Success (Green)</MudSelectItem>
-                                <MudSelectItem Value="@("Warning")">Warning (Orange)</MudSelectItem>
-                                <MudSelectItem Value="@("Error")">Critical (Red)</MudSelectItem>
-                            </MudSelect>
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="py-3" OnClick='() => Snackbar.Add("Banner Broadcasted!", Severity.Success)'>BROADCAST BANNER</MudButton>
+                        <MudText Typo="Typo.h6" Class="fw-black mb-4">Maint</MudText>
+                        <MudStack Spacing="2">
+                            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CleaningServices" FullWidth="true" OnClick="OnClearCache" Size="Size.Small">Purge Cache</MudButton>
+                            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.RestartAlt" FullWidth="true" OnClick="OnRestartRng" Size="Size.Small">Reseed RNG</MudButton>
                         </MudStack>
-                    </div>
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <div class="settings-group-card h-100">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-6">Active Promotions</MudText>
-                        <MudText Typo="Typo.body2" Class="opacity-60 text-center py-12">No active promotions currently running.</MudText>
                     </div>
                 </MudItem>
             </MudGrid>
@@ -366,9 +135,15 @@
 </MudContainer>
 
 <style>
+    .table-responsive { width: 100%; overflow-x: auto; }
+    
+    @@media (max-width: 600px) {
+        .settings-title { font-size: 1.75rem !important; }
+        .settings-group-card { padding: 1.5rem !important; }
+    }
+
     .fw-black { font-weight: 950; }
     .fw-bold { font-weight: 700; }
-    .opacity-60 { opacity: 0.6; }
     .text-gradient { background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
     .custom-settings-tabs { background: var(--mud-palette-surface); }
@@ -380,72 +155,26 @@
     .emergency-box { padding: 24px; border-radius: 16px; border: 2px solid var(--mud-palette-success); background: rgba(var(--mud-palette-success-rgb), 0.05); color: var(--mud-palette-success); text-align: center; transition: all 0.3s; }
     .emergency-box.active { border-color: var(--mud-palette-error); background: rgba(var(--mud-palette-error-rgb), 0.1); color: var(--mud-palette-error); animation: pulse-error 2s infinite; }
 
-    .icon-circle { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-    .icon-circle.warning { background: rgba(var(--mud-palette-warning-rgb), 0.1); color: var(--mud-palette-warning); }
-    .icon-circle.info { background: rgba(var(--mud-palette-info-rgb), 0.1); color: var(--mud-palette-info); }
-
-    .inner-tabs .mud-tabs-tab { font-weight: 900; font-size: 0.75rem; }
-
-    .integrity-shield { width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 4px solid var(--mud-palette-divider); transition: all 0.5s; }
+    .integrity-shield { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid var(--mud-palette-divider); transition: all 0.5s; }
     .integrity-shield.secure { border-color: var(--mud-palette-success); color: var(--mud-palette-success); background: rgba(var(--mud-palette-success-rgb), 0.05); }
     .integrity-shield.warning { border-color: var(--mud-palette-warning); color: var(--mud-palette-warning); background: rgba(var(--mud-palette-warning-rgb), 0.05); }
 
-    .tier-indicator { width: 10px; height: 10px; border-radius: 50%; }
-    .tier-indicator.mini { background: #cd7f32; } /* Bronze */
-    .tier-indicator.minor { background: #b0bec5; } /* Silver/Grey */
-    .tier-indicator.major { background: #2196f3; } /* Blue */
-    .tier-indicator.mega { background: #ff9800; } /* Gold */
-    .tier-indicator.grand { background: #e91e63; } /* Pink/Vibrant */
-    .tier-indicator.tournament { background: #f43f5e; animation: pulse-red 2s infinite; }
-    .tier-indicator.special { background: #10b981; } /* Emerald */
-
-    @@keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(244, 63, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); } }
-    .animate-pulse-fast { animation: pulse-opacity 1s infinite; }
-    @@keyframes pulse-opacity { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
     @@keyframes pulse-error { 0% { box-shadow: 0 0 0 0 rgba(var(--mud-palette-error-rgb), 0.4); } 70% { box-shadow: 0 0 0 15px rgba(var(--mud-palette-error-rgb), 0); } 100% { box-shadow: 0 0 0 0 rgba(var(--mud-palette-error-rgb), 0); } }
 </style>
 
 @code {
-    // 1. Risk
     private decimal _targetRtp = 95.0m;
     private string _volatilityMode = "Medium";
-    private int _maxWinMultiplier = 5000;
     private bool _emergencyStop = false;
-
-    // 2. Economy
     private decimal _faucetAmount = 100.0m;
     private decimal _faucetThreshold = 10.0m;
-    private int _faucetCooldown = 60;
     private decimal _baseCashback = 10.0m;
-    private decimal _referralCommission = 5.0m;
-    private bool _weeklyBenefitActive = true;
-
-    // 3. Progression
-    private double _xpMultiplier = 1.0;
-    private int _baseLevelXp = 1000;
-    private decimal _xpScalingFactor = 1.2m;
-    private int _maxSkillLevel = 10;
-
-    // 4. Content
-    private string _siteTitle = "AleaSim Casino";
-    private string _announcement = "Welcome to the future of provably fair gaming!";
-    private string _maintenanceMode = "Live";
-
-    // 6. Social
-    private bool _chatEnabled = true;
-    private int _chatMinLevel = 1;
-    private string _chatFilterWords = "scam,hack,cheat";
-    private decimal _tournamentPrizePool = 15000m;
-    private int _tournamentDurationDays = 30;
-    private bool _tournamentActive = true;
-
     private bool _verifyingIntegrity = false;
     private IntegrityResponse? _integrityResult;
     private List<GlobalSettingDto> _globalSettings = new();
     private List<JackpotDto> _jackpots = new();
 
-    protected override async Task OnInitializedAsync()
-    {
+    protected override async Task OnInitializedAsync() {
         RealTime.OnJackpotUpdated += HandleJackpotUpdate;
         await LoadAll();
     }
@@ -457,13 +186,6 @@
             existing.MustDropAt = dto.MustDropAt;
             InvokeAsync(StateHasChanged);
         }
-    }
-
-    private string GetGameName(Guid? gameId) {
-        if (gameId == null) return "GLOBAL";
-        if (gameId == Guid.Parse("11111111-1111-1111-1111-111111111111")) return "CLOVER CHASE";
-        if (gameId == Guid.Parse("44444444-4444-4444-4444-444444444444")) return "FRUIT BLAST";
-        return "LOCAL";
     }
 
     private async Task LoadAll() {
@@ -481,7 +203,7 @@
     private async Task ForceJackpotDrop(Guid id) {
         var response = await Http.PostAsync($"api/Admin/jackpots/{id}/force-drop", null);
         if (response.IsSuccessStatusCode) {
-            Snackbar.Add("Jackpot drop triggered successfully!", Severity.Success);
+            Snackbar.Add("Jackpot dropped!", Severity.Success);
             await LoadJackpots();
         }
     }
@@ -489,77 +211,24 @@
     private async Task LoadGlobalSettings() {
         try {
             _globalSettings = await Http.GetFromJsonAsync<List<GlobalSettingDto>>("api/Admin/settings/global") ?? new();
-            
-            // Map to local variables for UI binding
             _faucetAmount = GetDecimalSetting("Economy_FaucetAmount", 100);
             _faucetThreshold = GetDecimalSetting("Economy_FaucetThreshold", 10);
-            _faucetCooldown = GetIntSetting("Economy_FaucetCooldown", 60);
             _baseCashback = GetDecimalSetting("Economy_CashbackPercent", 10);
-            _xpMultiplier = (double)GetDecimalSetting("Progression_XpMultiplier", 1.0m);
-            _baseLevelXp = GetIntSetting("Progression_BaseXp", 1000);
-            _siteTitle = GetStringSetting("Platform_Title", "AleaSim Casino");
-            _announcement = GetStringSetting("Platform_Announcement", "");
-
-            // Social
-            _chatEnabled = GetStringSetting("Social_ChatEnabled", "true") == "true";
-            _chatMinLevel = GetIntSetting("Social_ChatMinLevel", 1);
-            _chatFilterWords = GetStringSetting("Social_ChatFilterWords", "");
-            _tournamentPrizePool = GetDecimalSetting("Social_TournamentPrizePool", 15000m);
-            _tournamentActive = GetStringSetting("Social_TournamentActive", "true") == "true";
         } catch {}
     }
 
     private async Task SaveAllChanges() {
-        // Economy
         await SaveSetting("Economy_FaucetAmount", _faucetAmount.ToString());
         await SaveSetting("Economy_FaucetThreshold", _faucetThreshold.ToString());
-        await SaveSetting("Economy_FaucetCooldown", _faucetCooldown.ToString());
         await SaveSetting("Economy_CashbackPercent", _baseCashback.ToString());
-        
-        // Progression
-        await SaveSetting("Progression_XpMultiplier", _xpMultiplier.ToString());
-        await SaveSetting("Progression_BaseXp", _baseLevelXp.ToString());
-        
-        // Platform
-        await SaveSetting("Platform_Title", _siteTitle);
-        await SaveSetting("Platform_Announcement", _announcement);
-
-        // Social
-        await SaveSetting("Social_ChatEnabled", _chatEnabled.ToString().ToLower());
-        await SaveSetting("Social_ChatMinLevel", _chatMinLevel.ToString());
-        await SaveSetting("Social_ChatFilterWords", _chatFilterWords);
-        await SaveSetting("Social_TournamentPrizePool", _tournamentPrizePool.ToString());
-        await SaveSetting("Social_TournamentActive", _tournamentActive.ToString().ToLower());
-
-        // CMS Content
-        foreach (var key in new[] { "Content_Help", "Content_Terms", "Content_Privacy" }) {
-            var val = GetSettingValue(key);
-            if (!string.IsNullOrEmpty(val)) await SaveSetting(key, val);
-        }
-
-        // Core Risk (handled via direct API)
         await AdminService.UpdateRtp(_targetRtp);
         await AdminService.UpdateVolatility(_volatilityMode);
-        if (_emergencyStop != (await AdminService.GetDashboardStats()).IsEmergencyStopActive)
-            await AdminService.ToggleEmergencyStop(_emergencyStop);
-
-        Snackbar.Add("Platform configuration deployed successfully!", Severity.Success);
+        await AdminService.ToggleEmergencyStop(_emergencyStop);
+        Snackbar.Add("Deployed!", Severity.Success);
     }
 
     private decimal GetDecimalSetting(string key, decimal def) => decimal.TryParse(_globalSettings.FirstOrDefault(s => s.Key == key)?.Value, out var v) ? v : def;
-    private int GetIntSetting(string key, int def) => int.TryParse(_globalSettings.FirstOrDefault(s => s.Key == key)?.Value, out var v) ? v : def;
-    private string GetStringSetting(string key, string def) => _globalSettings.FirstOrDefault(s => s.Key == key)?.Value ?? def;
-    private string GetSettingValue(string key) => _globalSettings.FirstOrDefault(s => s.Key == key)?.Value ?? "";
-
-    private void UpdateLocalSetting(string key, string val) {
-        var s = _globalSettings.FirstOrDefault(x => x.Key == key);
-        if (s != null) s.Value = val;
-        else _globalSettings.Add(new GlobalSettingDto { Key = key, Value = val });
-    }
-
-    private async Task SaveSetting(string key, string value) {
-        await Http.PostAsJsonAsync("api/Admin/settings/update", new { Key = key, Value = value });
-    }
+    private async Task SaveSetting(string key, string value) { await Http.PostAsJsonAsync("api/Admin/settings/update", new { Key = key, Value = value }); }
 
     private async Task LoadCurrentPlatformStats() {
         try {
@@ -578,9 +247,6 @@
     private async Task OnClearCache() { await AdminService.TriggerAction("ClearCache"); Snackbar.Add("Cache Cleared", Severity.Success); }
     private async Task OnRestartRng() { await AdminService.TriggerAction("RestartRng"); Snackbar.Add("RNG Restarted", Severity.Warning); }
 
-    public void Dispose() {
-        RealTime.OnJackpotUpdated -= HandleJackpotUpdate;
-    }
-
+    public void Dispose() { RealTime.OnJackpotUpdated -= HandleJackpotUpdate; }
     public class GlobalSettingDto { public string Key { get; set; } = ""; public string Value { get; set; } = ""; }
 }
