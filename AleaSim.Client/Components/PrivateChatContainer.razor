@@ -63,13 +63,20 @@
     
     .bubble-avatar { border: 2px solid var(--mud-palette-surface); }
     
-    .bubble-content-wrapper { display: flex; flex-direction: column; max-width: 75%; }
+    .bubble-content-wrapper { display: flex; flex-direction: column; max-width: 85%; }
     .me .bubble-content-wrapper { align-items: flex-end; }
     
     .bubble-payload {
-        padding: 10px 14px;
+        padding: 8px 12px;
         position: relative;
         word-break: break-word;
+        font-size: 0.9rem;
+    }
+
+    @@media (max-width: 600px) {
+        .bubble-content-wrapper { max-width: 90%; }
+        .bubble-payload { padding: 6px 10px; font-size: 0.85rem; }
+        .chat-footer-input { padding: 8px !important; }
     }
     
     .others .bubble-payload {
