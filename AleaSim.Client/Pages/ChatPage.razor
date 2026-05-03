@@ -9,50 +9,43 @@
 @inject ISnackbar Snackbar
 @inject LayoutService LayoutService
 
-<div class='@($"chat-root-v2 {(isMobile && !showSidebar ? "mobile-chat-active" : "")}")'>
-    <!-- Sidebar: Conversations -->
-    <aside class='@($"chat-sidebar-v2 {(isMobile && !showSidebar ? "hidden" : "")}")'>
-        <div class="chat-header-v2 px-6">
+<div class='@($"chat-atomic-wrapper {(showSidebar ? "state-list" : "state-chat")}")'>
+    <!-- LEFT PANE: CONVERSATION DIRECTORY -->
+    <aside class="chat-pane-sidebar">
+        <div class="chat-ui-header px-6">
             <MudText Typo="Typo.h5" Class="fw-black text-gradient">MESSAGES</MudText>
         </div>
-        
         <div class="sidebar-scroll custom-scroll">
             <div class="section-label px-6 py-4">NETWORKS</div>
-            
-            <div class='@($"conversation-item {(activeChatType == "Global" ? "active" : "")}")' @onclick='() => SelectChat("Global")'>
-                <div class="item-icon global"><MudIcon Icon="@Icons.Material.Filled.Public" /></div>
-                <div class="item-details">
-                    <span class="item-name">Global Chat</span>
-                    <span class="item-preview">Live community stream</span>
+            <div class='@($"conv-item {(activeChatType == "Global" ? "active" : "")}")' @onclick='() => SelectChat("Global")'>
+                <div class="conv-icon global"><MudIcon Icon="@Icons.Material.Filled.Public" /></div>
+                <div class="conv-details">
+                    <span class="conv-name">Global Chat</span>
+                    <span class="conv-preview">Live stream</span>
                 </div>
             </div>
-
-            <div class="section-label px-6 py-4">DIRECT</div>
             
+            <div class="section-label px-6 py-4">DIRECT MESSAGES</div>
             <AuthorizeView Roles="Admin">
                 <Authorized>
-                    @if (isLoadingPlayers) {
-                        <div class="d-flex justify-center pa-4"><MudProgressCircular Size="Size.Small" Indeterminate="true" /></div>
-                    }
-                    @foreach (var user in activeConversations)
-                    {
-                        <div class='@($"conversation-item {(activeChatType == "Private" && selectedUserId == user.Id ? "active" : "")}")' 
+                    @foreach (var user in activeConversations) {
+                        <div class='@($"conv-item {(activeChatType == "Private" && selectedUserId == user.Id ? "active" : "")}")' 
                              @onclick='() => SelectPrivateChat(user.Id, user.Username)'>
                             <MudAvatar Size="Size.Small"><MudImage Src='@($"https://api.dicebear.com/7.x/bottts/svg?seed={user.Username}")'/></MudAvatar>
-                            <div class="item-details">
-                                <span class="item-name">@user.Username</span>
-                                <span class="item-preview">Private Message</span>
+                            <div class="conv-details">
+                                <span class="conv-name">@user.Username</span>
+                                <span class="conv-preview">Private</span>
                             </div>
                         </div>
                     }
                 </Authorized>
                 <NotAuthorized>
-                    <div class='@($"conversation-item {(activeChatType == "Private" && selectedUserId == adminGuid ? "active" : "")}")' 
+                    <div class='@($"conv-item {(activeChatType == "Private" && selectedUserId == adminGuid ? "active" : "")}")' 
                          @onclick="SelectSupportChat">
-                        <div class="item-icon support"><MudIcon Icon="@Icons.Material.Filled.SupportAgent" /></div>
-                        <div class="item-details">
-                            <span class="item-name">Support Admin</span>
-                            <span class="item-preview">Official Helpdesk</span>
+                        <div class="conv-icon support"><MudIcon Icon="@Icons.Material.Filled.SupportAgent" /></div>
+                        <div class="conv-details">
+                            <span class="conv-name">System Admin</span>
+                            <span class="conv-preview">Official Support</span>
                         </div>
                     </div>
                 </NotAuthorized>
@@ -60,41 +53,36 @@
         </div>
     </aside>
 
-    <!-- Main: Active Conversation -->
-    <main class='@($"chat-main-v2 {(isMobile && showSidebar ? "hidden" : "")}")'>
-        <header class="chat-header-v2 px-4 px-md-8 justify-space-between">
-            <div class="d-flex align-center gap-3 overflow-hidden">
-                @if (isMobile) {
-                    <MudIconButton Icon="@Icons.Material.Filled.ArrowBackIosNew" OnClick="BackToSidebar" Size="Size.Small" Color="Color.Inherit" Class="mr-1" />
-                }
+    <!-- RIGHT PANE: ACTIVE CONVERSATION -->
+    <main class="chat-pane-main">
+        <header class="chat-ui-header px-4 px-md-8">
+            <div class="d-flex align-center gap-3 w-100 overflow-hidden">
+                <button class="mobile-back-btn mr-1" @onclick="BackToList">
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowBackIosNew" Size="Size.Small" />
+                </button>
                 
                 @if (activeChatType == "Private") {
-                    <MudAvatar Size="Size.Medium" Class="header-avatar"><MudImage Src='@($"https://api.dicebear.com/7.x/bottts/svg?seed={selectedUserName}")'/></MudAvatar>
+                    <MudAvatar Size="Size.Medium" Class="head-avatar"><MudImage Src='@($"https://api.dicebear.com/7.x/bottts/svg?seed={selectedUserName}")'/></MudAvatar>
                 } else {
-                    <div class="header-icon-small d-none d-sm-flex"><MudIcon Icon="@Icons.Material.Filled.Public" /></div>
+                    <div class="head-icon-box"><MudIcon Icon="@Icons.Material.Filled.Public" Size="Size.Small" /></div>
                 }
                 
-                <div class="overflow-hidden">
-                    <MudText Typo="Typo.h6" Class="fw-black text-truncate" Style="max-width: 200px;">@activeChatTitle.ToUpper()</MudText>
+                <div class="text-truncate">
+                    <MudText Typo="Typo.h6" Class="fw-black text-truncate">@activeChatTitle.ToUpper()</MudText>
                     <div class="d-flex align-center gap-1">
-                        <div class="status-dot"></div>
-                        <MudText Typo="Typo.caption" Class="opacity-50">Active Now</MudText>
+                        <div class="dot-online"></div>
+                        <MudText Typo="Typo.caption" Class="opacity-50">Active</MudText>
                     </div>
                 </div>
-            </div>
-            
-            <div class="d-flex gap-1">
-                <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small" Color="Color.Inherit" Class="opacity-40" />
+                <MudSpacer />
+                <MudIconButton Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Color="Color.Inherit" Class="opacity-40" />
             </div>
         </header>
 
-        <div class="chat-viewport-v2">
-            @if (activeChatType == "Global")
-            {
+        <div class="chat-viewport-v4">
+            @if (activeChatType == "Global") {
                 <ChatWidget />
-            }
-            else if (activeChatType == "Private" && selectedUserId != null)
-            {
+            } else if (activeChatType == "Private" && selectedUserId != null) {
                 <PrivateChatContainer OtherUserId="@selectedUserId.Value" OtherUserName="@selectedUserName" />
             }
         </div>
@@ -102,27 +90,34 @@
 </div>
 
 <style>
-    .chat-root-v2 {
+    /* DESKTOP ARCHITECTURE */
+    .chat-atomic-wrapper {
         display: flex;
         width: 100%;
         height: calc(100vh - 64px);
-        background: var(--mud-palette-background);
+        background: var(--mud-palette-surface);
         position: relative;
-        overflow: hidden;
     }
 
-    /* Sidebar - Conversations List */
-    .chat-sidebar-v2 {
+    .chat-pane-sidebar {
         width: 360px;
-        background: var(--mud-palette-surface);
         border-right: 1px solid var(--mud-palette-divider);
         display: flex;
         flex-direction: column;
         flex-shrink: 0;
+        z-index: 10;
     }
-    
-    .chat-header-v2 {
-        height: 72px;
+
+    .chat-pane-main {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--mud-palette-background-grey);
+        min-width: 0;
+    }
+
+    .chat-ui-header {
+        height: 80px;
         display: flex;
         align-items: center;
         border-bottom: 1px solid var(--mud-palette-divider);
@@ -130,69 +125,64 @@
         flex-shrink: 0;
     }
 
+    .chat-viewport-v4 { flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; }
     .sidebar-scroll { flex-grow: 1; overflow-y: auto; }
+    .mobile-back-btn { display: none; background: none; border: none; color: inherit; cursor: pointer; padding: 8px; }
+
+    .conv-item { display: flex; align-items: center; gap: 16px; padding: 12px 24px; margin: 4px 12px; border-radius: 12px; cursor: pointer; transition: 0.2s; }
+    .conv-item:hover { background: var(--mud-palette-action-default-hover); }
+    .conv-item.active { background: var(--mud-palette-primary); color: white; }
+    
+    .conv-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .conv-icon.global { background: rgba(124, 58, 237, 0.1); color: var(--mud-palette-primary); }
+    .conv-icon.support { background: rgba(236, 72, 153, 0.1); color: var(--mud-palette-secondary); }
+    .active .conv-icon { background: rgba(255,255,255,0.2); color: white; }
+    
+    .conv-details { display: flex; flex-direction: column; overflow: hidden; }
+    .conv-name { font-weight: 800; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .conv-preview { font-size: 0.75rem; color: var(--mud-palette-text-secondary); opacity: 0.7; }
+    .active .conv-preview { color: white; opacity: 0.8; }
+    
+    .head-icon-box { width: 40px; height: 40px; background: var(--mud-palette-action-default-hover); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .dot-online { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 8px #4ade80; }
     .section-label { font-size: 0.65rem; font-weight: 900; letter-spacing: 2px; color: var(--mud-palette-text-secondary); opacity: 0.6; }
 
-    .conversation-item {
-        display: flex; align-items: center; gap: 16px;
-        padding: 12px 24px; margin: 4px 12px; border-radius: 12px;
-        cursor: pointer; transition: all 0.2s;
-    }
-    .conversation-item:hover { background: var(--mud-palette-action-default-hover); }
-    .conversation-item.active { background: var(--mud-palette-primary); color: white; }
-    .conversation-item.active .item-preview { color: rgba(255,255,255,0.7); }
-
-    .item-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .item-icon.global { background: rgba(124, 58, 237, 0.1); color: var(--mud-palette-primary); }
-    .item-icon.support { background: rgba(236, 72, 153, 0.1); color: var(--mud-palette-secondary); }
-    .active .item-icon { background: rgba(255,255,255,0.2); color: white; }
-
-    .item-details { display: flex; flex-direction: column; overflow: hidden; }
-    .item-name { font-weight: 800; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .item-preview { font-size: 0.75rem; color: var(--mud-palette-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    /* Main Area - Conversation Content */
-    .chat-main-v2 {
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-        background: var(--mud-palette-background-grey);
-        position: relative;
-    }
-
-    .chat-viewport-v2 { flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; }
-    .header-icon-small { width: 36px; height: 36px; background: var(--mud-palette-action-default-hover); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 8px #4ade80; }
-
-    /* --- MOBILE REVOLUTION --- */
+    /* MOBILE REVOLUTION (INSTAGRAM MODE) */
     @@media (max-width: 960px) {
-        .chat-root-v2 {
-            height: calc(100vh - 56px); /* Adaptive height for mobile header */
-        }
-        
-        .chat-sidebar-v2 {
-            width: 100%;
-            border-right: none;
-        }
-
-        .chat-sidebar-v2.hidden { display: none !important; }
-        .chat-main-v2.hidden { display: none !important; }
-
-        .chat-main-v2 {
-            width: 100%;
-            height: 100%;
+        .chat-atomic-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1400; /* Over navbar */
+            background: var(--mud-palette-surface);
         }
 
-        .chat-header-v2 { height: 60px; }
-        .conversation-item { padding: 12px 16px; margin: 4px 8px; }
-        .header-avatar { width: 32px !important; height: 32px !important; }
+        .chat-pane-sidebar, .chat-pane-main {
+            width: 100% !important;
+            height: 100% !important;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* State: List View */
+        .state-list .chat-pane-sidebar { transform: translateX(0); z-index: 20; }
+        .state-list .chat-pane-main { transform: translateX(100%); z-index: 10; }
+
+        /* State: Chat View */
+        .state-chat .chat-pane-sidebar { transform: translateX(-100%); z-index: 10; }
+        .state-chat .chat-pane-main { transform: translateX(0); z-index: 20; }
+
+        .mobile-back-btn { display: block; }
+        .chat-ui-header { height: 60px; }
+        .conv-item { padding: 12px 16px; margin: 4px 8px; }
+        .head-avatar { width: 32px !important; height: 32px !important; }
     }
 
-    .text-gradient {
-        background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
+    .text-gradient { background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .fw-black { font-weight: 950; }
     .custom-scroll::-webkit-scrollbar { width: 4px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: var(--mud-palette-divider); border-radius: 10px; }
@@ -207,11 +197,10 @@
     private List<UserSummary> activeConversations = new();
     private bool isLoadingPlayers = false;
     
+    // THE MASTER TOGGLE
     private bool showSidebar = true;
-    private bool isMobile = false;
 
     protected override async Task OnInitializedAsync() {
-        isMobile = LayoutService.IsMobile;
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.IsInRole("Admin")) {
             await LoadActiveConversations();
@@ -220,23 +209,23 @@
 
     private void SelectChat(string type) {
         activeChatType = type;
-        if (type == "Global") {
-            activeChatTitle = "Global Community";
-            selectedUserId = null;
-        }
-        if (isMobile) showSidebar = false;
+        activeChatTitle = type == "Global" ? "Global Community" : selectedUserName;
+        if (type == "Global") selectedUserId = null;
+        showSidebar = false;
+        StateHasChanged();
     }
 
     private void SelectPrivateChat(Guid id, string name) {
         activeChatType = "Private";
         selectedUserId = id;
         selectedUserName = name;
-        activeChatTitle = $"{name}";
-        if (isMobile) showSidebar = false;
+        activeChatTitle = name;
+        showSidebar = false;
+        StateHasChanged();
     }
 
     private void SelectSupportChat() => SelectPrivateChat(adminGuid, "System Admin");
-    private void BackToSidebar() => showSidebar = true;
+    private void BackToList() => showSidebar = true;
 
     private async Task LoadActiveConversations() {
         isLoadingPlayers = true;
