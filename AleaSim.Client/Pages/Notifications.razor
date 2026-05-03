@@ -1,0 +1,140 @@
+@page "/notifications"
+@using AleaSim.Client.Services
+@using AleaSim.Client.Components
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject NotificationService NotifService
+@inject LayoutService LayoutService
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8 mb-16 animate-fade-in">
+    <div class="d-flex flex-column align-center mb-8 text-center">
+        <MudIcon Icon="@Icons.Material.Filled.NotificationsActive" Color="Color.Primary" Style="font-size: 4rem;" Class="mb-2" />
+        <MudText Typo="Typo.h2" Class="fw-black text-gradient uppercase tracking-tighter notif-title">Notifications</MudText>
+        <MudText Typo="Typo.subtitle1" Class="opacity-70">Stay updated with your latest wins, bonuses and system alerts.</MudText>
+    </div>
+
+    <div class="d-flex justify-end mb-4">
+        <MudButton StartIcon="@Icons.Material.Filled.DoneAll" Color="Color.Primary" OnClick="MarkAllAsRead" Disabled="!NotifService.History.Any(x => !x.IsRead)">
+            Mark all as read
+        </MudButton>
+    </div>
+
+    <MudPaper Class="pa-2 rounded-xl glass-panel-v2" Elevation="0">
+        @if (!NotifService.History.Any())
+        {
+            <div class="d-flex flex-column align-center justify-center py-16 opacity-30">
+                <MudIcon Icon="@Icons.Material.Filled.NotificationsNone" Style="font-size: 5rem;" />
+                <MudText Typo="Typo.h6">No notifications yet</MudText>
+            </div>
+        }
+        else
+        {
+            <MudList T="NotificationItem" Clickable="true">
+                @foreach (var notif in NotifService.History.OrderByDescending(n => n.Timestamp))
+                {
+                    <MudListItem Class='@($"pa-4 mb-2 rounded-lg notif-item {(notif.IsRead ? "read" : "unread")}")' OnClick="() => notif.IsRead = true">
+                        <div class="d-flex align-center gap-4">
+                            <div class='@($"notif-icon-circle {GetColorClass(notif.Type)}")'>
+                                <MudIcon Icon="@GetIcon(notif.Type)" Size="Size.Medium" />
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-space-between align-center mb-1">
+                                    <MudText Typo="Typo.subtitle1" Class="fw-bold">@notif.Title</MudText>
+                                    <MudText Typo="Typo.caption" Class="opacity-50">@GetTimeAgo(notif.Timestamp)</MudText>
+                                </div>
+                                <MudText Typo="Typo.body2" Class="opacity-80">@notif.Message</MudText>
+                            </div>
+                            @if (!notif.IsRead)
+                            {
+                                <div class="unread-dot"></div>
+                            }
+                        </div>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+    </MudPaper>
+</MudContainer>
+
+<style>
+    .glass-panel-v2 {
+        background: rgba(var(--mud-palette-surface-rgb), 0.5);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--mud-palette-divider);
+    }
+
+    .notif-item {
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+    .notif-item.unread {
+        background: rgba(var(--mud-palette-primary-rgb), 0.05);
+        border-color: rgba(var(--mud-palette-primary-rgb), 0.1);
+    }
+    .notif-item:hover {
+        transform: translateX(5px);
+        background: rgba(var(--mud-palette-primary-rgb), 0.08);
+    }
+
+    .notif-icon-circle {
+        width: 48px; height: 48px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+    .notif-bg-info { background: rgba(33, 150, 243, 0.1); color: #2196f3; }
+    .notif-bg-success { background: rgba(76, 175, 80, 0.1); color: #4caf50; }
+    .notif-bg-warning { background: rgba(255, 152, 0, 0.1); color: #ff9800; }
+    .notif-bg-error { background: rgba(244, 67, 54, 0.1); color: #f44336; }
+
+    .unread-dot {
+        width: 10px; height: 10px;
+        background: var(--mud-palette-primary);
+        border-radius: 50%;
+        box-shadow: 0 0 10px var(--mud-palette-primary);
+    }
+
+    @@media (max-width: 600px) {
+        .notif-title { font-size: 2.25rem !important; }
+    }
+
+    .text-gradient {
+        background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .fw-black { font-weight: 950; }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+@code {
+    private void MarkAllAsRead() {
+        foreach (var n in NotifService.History) n.IsRead = true;
+        StateHasChanged();
+    }
+
+    private string GetColorClass(string type) => type.ToLower() switch {
+        "success" or "win" => "notif-bg-success",
+        "warning" => "notif-bg-warning",
+        "error" => "notif-bg-error",
+        _ => "notif-bg-info"
+    };
+
+    private string GetIcon(string type) => type.ToLower() switch {
+        "win" => Icons.Material.Filled.EmojiEvents,
+        "success" => Icons.Material.Filled.CheckCircle,
+        "warning" => Icons.Material.Filled.Warning,
+        "error" => Icons.Material.Filled.Error,
+        "bonus" => Icons.Material.Filled.Redeem,
+        _ => Icons.Material.Filled.Info
+    };
+
+    private string GetTimeAgo(DateTime dt) {
+        var span = DateTime.Now - dt;
+        if (span.TotalMinutes < 1) return "just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+        return dt.ToShortDateString();
+    }
+}
