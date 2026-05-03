@@ -150,13 +150,11 @@
     /* MOBILE REVOLUTION (INSTAGRAM MODE) */
     @@media (max-width: 960px) {
         .chat-atomic-wrapper {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 1400; /* Over navbar */
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 56px); /* Adjusted for mobile navbar */
             background: var(--mud-palette-surface);
+            overflow: hidden;
         }
 
         .chat-pane-sidebar, .chat-pane-main {
@@ -169,12 +167,12 @@
         }
 
         /* State: List View */
-        .state-list .chat-pane-sidebar { transform: translateX(0); z-index: 20; }
-        .state-list .chat-pane-main { transform: translateX(100%); z-index: 10; }
+        .state-list .chat-pane-sidebar { transform: translateX(0); }
+        .state-list .chat-pane-main { transform: translateX(100%); }
 
         /* State: Chat View */
-        .state-chat .chat-pane-sidebar { transform: translateX(-100%); z-index: 10; }
-        .state-chat .chat-pane-main { transform: translateX(0); z-index: 20; }
+        .state-chat .chat-pane-sidebar { transform: translateX(-100%); }
+        .state-chat .chat-pane-main { transform: translateX(0); }
 
         .mobile-back-btn { display: block; }
         .chat-ui-header { height: 60px; }
