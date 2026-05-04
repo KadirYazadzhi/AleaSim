@@ -1,28 +1,28 @@
-# 🤖 Automation & System Reliability
+# 🤖 Automation & Perpetual Systems (v2.0)
 
-AleaSim relies on a series of specialized background workers to maintain platform integrity, process promotions, and optimize data storage.
+AleaSim utilizes an advanced automation layer to maintain platform integrity, manage competitive seasons, and ensure financial data survival.
 
 ---
 
-## 1. The Tournament Engine (`TournamentPayoutWorker`)
-*   **Cycle:** Monthly. Checks for finalization every hour.
-*   **Finalization Date:** Strictly on the **1st of every month**.
-*   **Ranking:** ROI-based (`((Wins-Bets)/Bets) * 100`) calculated across the entire month's wagering volume.
-*   **Prize Pool:** Base $25,000 + 1% of total platform wagering volume for that month.
-*   **Idempotency:** Uses a database-backed execution flag (`TournamentPaid_YYYY_MM`) within a SQL transaction to guarantee Top 10 winners are paid exactly once.
+## 1. Perpetual Tournament Engine
+The system operates on an autonomous monthly cycle.
+*   **Auto-Rotation:** At **00:00 UTC on the 1st of every month**, the system finalizes the current season (e.g., Season 1) and instantly initializes the next (Season 2).
+*   **Idempotent Payouts:** Uses a unique `referenceId` for each winner (e.g., `TOURN_S1_RANK1`). If a server crashes during payout and restarts, the system attempts to pay again, but the **Vault rejects duplicate IDs**, ensuring zero double-spending.
+*   **Rollover Logic:** If a season ends with zero participants, the prize pool automatically rolls over to the next season to maintain user interest.
 
-## 2. Security & Compliance (`SentinelWorker`)
-*   **Financial Reconciliation:** Every 10 minutes, the worker verifies that `Sum(Transactions) == CurrentBalance` for all users. Discrepancies are logged as "Critical Anomaly" alerts.
-*   **Old Data Cleanup:** 
-    *   **RTP Statistics:** Records older than 30 days are purged to keep performance high.
-    *   **Audit Logs:** Logs older than 90 days are archived/deleted.
-*   **Presence Tracking:** Periodically sweeps Redis to ensure "Online" counts reflect real connections.
+## 2. Infrastructure Resilience (WAL)
+Critical financial logging is prioritized for maximum safety.
+*   **Write-Ahead Log (WAL):** High-priority events like `JACKPOT_WIN`, `WITHDRAWAL`, and `DEPOSIT` are written **synchronously** to the SQL ledger.
+*   **Disaster Recovery:** In the event of a total server blackout, the WAL ensures that no pending jackpot win is lost, even if the application buffer was not yet flushed.
 
-## 3. Distributed Infrastructure
-*   **Redis Locks:** All critical operations (Betting, Claiming Jackpots, Faucet) use distributed locks to prevent "Double Spend" or concurrent request abuse in a clustered environment.
-*   **Graceful Fallback:** If the Redis cluster is unreachable, all services automatically fall back to local `IMemoryCache` and `InMemoryLocks` to maintain uptime.
+## 3. Security Sentinel (`SentinelWorker`)
+*   **Ledger Reconciliation:** Every 10 minutes, this background process verifies the equation: `SUM(All Transactions) == Current User Balance`. Any discrepancy triggers an account freeze and admin alert.
+*   **Chain Validation:** Scans the audit ledger for broken hash links, detecting any unauthorized manual database modifications.
 
-## 4. Financial Workers
-*   **`RaffleWorker`:** Randomly distributes prize drops to **ACTIVE** players (must have bet in the last 3 minutes).
-*   **`DailyBonusWorker`:** Resets the "Daily Spin" eligibility at 00:00 UTC and calculates daily retention cashback stats.
-*   **`AuditWriterWorker`:** An asynchronous batch-writer that flushes the `IAuditBuffer` queue to the database every 5 seconds or 100 logs, optimizing disk throughput.
+## 4. Distributed Clustered Operations
+*   **Redis Redlock:** Ensures that critical operations (e.g., claiming a jackpot) are mutually exclusive across multiple server nodes.
+*   **Graceful Degression:** If the Redis cluster is unreachable, the automation layer falls back to local memory and persistent SQL flags to maintain availability.
+
+## 5. Automated Promotional Layer
+*   **`RaffleWorker`:** Randomly awards "Lucky Drops" to users who have been active within the last 3 minutes.
+*   **`QuestService`:** Continuously tracks "Spin Count" and "Win Amount" goals, automatically crediting rewards via SignalR the moment a threshold is crossed.

@@ -79,7 +79,7 @@
                     <MudText Typo="Typo.caption" Class="opacity-70 fw-bold">BALANCE</MudText>
                     <MudText Typo="Typo.body1" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
                 </div>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 spin-controls-row">
                     <MudNumericField @bind-Value="chipValue" Label="Chip" Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" />
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSpin" Disabled="@(isSpinning || !currentBets.Any())" 
                                Class="rounded-lg fw-black px-6" Style="height: 40px;">SPIN</MudButton>
@@ -206,6 +206,12 @@
         .zero { width: 100% !important; height: 30px !important; margin-bottom: 4px; }
         .outside-grid-mobile { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-top: 8px; }
         .outside-grid-mobile .cell { height: 35px !important; }
+        .spin-controls-row {
+            display: flex !important;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+        }
         .mode-btn-mobile { padding: 10px; text-align: center; font-size: 0.8rem; font-weight: 900; background: rgba(255,255,255,0.05); border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
     }
 </style>

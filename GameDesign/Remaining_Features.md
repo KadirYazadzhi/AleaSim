@@ -1,29 +1,15 @@
-# Future Features & System Enhancements
+# Future Frontiers: Experimental System Enhancements
 
-## 1. 🧠 The Brain 2.0 (Engagement & Humanization)
-*   **Personalized Quests (Daily Missions):**
-    *   Implementing a `QuestService` to track objectives (e.g., "Hit 50 Clovers").
-    *   Rewards: Bonus cash or Free Spins upon completion.
-*   **Dynamic Difficulty (Flow State):**
-    *   Adjusting volatility based on play speed (`AvgSpinInterval`).
-    *   Fast play -> Higher volatility. Slow play -> More frequent small wins.
-*   **Smart Near Misses:**
-    *   Analyzing player's favorite symbols to tailor "Near Miss" events specifically to them.
+With the core industrial platform now complete, development focuses on deep AI integration and decentralized transparency.
 
-## 2. 💸 The Meta Game (Social & Financial)
-*   **Live Leaderboards:**
-    *   "Highest Win (Hourly)", "Most Spins (Daily)".
-    *   Implementation: Redis sorted sets updated via SignalR.
-*   **Must Drop Jackpots:**
-    *   Jackpots guaranteed to trigger before a certain value (e.g., $500).
-    *   Creates urgency and FOMO.
-*   **Global Big Win Notifications:**
-    *   Broadcasting >100x wins to all connected clients to validate payouts.
+## 1. 🧠 The Brain 3.0 (Predictive Analytics)
+*   **Churn Prediction Model:** Using machine learning to predict when a player is about to stop playing based on spin deceleration and betting pattern shifts.
+*   **Smart Social Notifications:** AI-triggered chat messages to re-engage players who have been inactive for specific periods.
 
-## 3. 🛠️ Operational Excellence (Admin & Stability)
-*   **Simulation Mode (Time Travel):**
-    *   Running 1M spins in seconds to verify RTP and math models.
-*   **Real-Time RTP Dashboard:**
-    *   Live graphs of House Edge vs Player Wins.
-*   **Shadow Mode:**
-    *   Running new Brain algorithms in the background to test decisions without affecting real money.
+## 2. 💸 Next-Gen Financials
+*   **Decentralized Reveal:** Automated publishing of ServerSeed hashes to a public ledger (e.g., blockchain) at the end of each hour for absolute transparency.
+*   **Must Drop Sub-Jackpots:** Individual game-level jackpots with extremely tight drop windows ($50 - $100 range) to keep local volatility high.
+
+## 3. 🛠️ Operational Scale
+*   **Multi-Region Deployment:** Expanding k3s clusters to multiple geographical zones with SignalR cross-region synchronization.
+*   **Shadow Mode A/B Testing:** Simultaneously running two different Brain algorithms on split traffic to compare retention metrics without manual operator bias.

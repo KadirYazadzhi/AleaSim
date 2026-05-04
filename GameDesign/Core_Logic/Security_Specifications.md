@@ -1,49 +1,47 @@
-# 🛡️ Security & Infrastructure Specifications
+# 🛡️ Security & Infrastructure Specifications (v2.0)
 
-AleaSim is designed with a "Security First" mindset, implementing advanced protections against common gambling platform attack vectors.
-
----
-
-## 1. Authentication & Session Security
-
-### HttpOnly Cookie Architecture
-*   **Protection:** The `RefreshToken` is stored in a strictly **HttpOnly, Secure, SameSite=Strict** cookie.
-*   **Defense:** This prevents all JavaScript-based (XSS) attempts to steal session tokens.
-
-### Token Zombie Prevention
-*   **Logic:** Every API request validates the token's `jti` (unique ID) against the `UserSession` table.
-*   **Real-time Revocation:** If a session is terminated by an admin or the user logs out, all associated access tokens become invalid within 2 minutes (cached) or immediately (DB).
+AleaSim is designed with a "Bulletproof" architecture, implementing industrial-strength protections against common gambling platform attack vectors.
 
 ---
 
-## 2. Transaction Integrity
+## 1. Session & API Security
 
-### Atomic Operations
-*   **No Race Conditions:** Balance deductions and win credits are performed using raw SQL atomic increments.
-*   **Distributed Locking:** Every wallet operation is wrapped in a Redis-based lock (`wallet_{userId}`). This prevents "Double Spending" where a user attempts multiple parallel bets.
+### HttpOnly Cookie Shield
+The `RefreshToken` is strictly stored in an **HttpOnly, Secure, SameSite=Strict** cookie. This prevents XSS attacks from stealing session identifiers, making token theft via JavaScript impossible.
 
-### Faucet Security
-*   **Throttling:** Max 1 claim per hour.
-*   **Multi-layer Check:** Combined Redis rate-limit + Database history check + Distributed locking.
-
----
-
-## 3. Cryptographic Trust (Provably Fair)
-
-### The HMAC Chain
-1.  **Commitment:** Server generates a `ServerSeed` and shows the user its `SHA256 Hash`.
-2.  **Entropy:** User provides a `ClientSeed`.
-3.  **Reveal:** Once the session ends, the `ServerSeed` is revealed.
-4.  **Proof:** Result = `First8Bytes(HMAC-SHA256(ServerSeed, ClientSeed + Nonce))`.
+### API Rate Limiting (DDoS & Bot Shield)
+Integrated using the official ASP.NET Core `RateLimiter`:
+*   **Global Limit:** 100 requests per 10 seconds per IP (prevents volumetric DDoS).
+*   **Financial Limit:** 10 requests per 5 seconds per User (prevents bot-based balance draining or "button spamming").
 
 ---
 
-## 4. Platform Hardening
+## 2. Transactional Integrity
 
-### DoS Protection
-*   **Payload Limit:** 1MB maximum JSON request size.
-*   **Rate Limiting:** IP-based throttling for Login (10/min), Register (5/hour), and Support (10/hr).
+### Distributed Multi-Node Locking
+Uses the **Redlock** algorithm via Redis to manage global state. 
+*   **Wallet Guard:** Every bet or win operation locks the key `wallet_{userId}` for 5-10 seconds. This prevents "Double Spending" where a user attempts to place multiple parallel bets across different browser tabs or server nodes.
+*   **Idempotent Settlements:** Every transaction uses a `referenceId` (UUID). The `VaultService` checks this ID against the ledger before processing, ensuring no transaction is ever applied twice.
 
-### Database Resilience
-*   **Auto-Migrations:** The system automatically applies SQL migrations upon startup, ensuring the schema is always up-to-date.
-*   **Snapshotting:** Background services perform daily cleanup of old statistics to prevent database bloat.
+### Atomic SQL Ledger
+Balance updates and statistical increments never use "Read-Modify-Write." Instead, they use raw SQL atomic increments (`UPDATE ... SET Balance = Balance + @win`) to guarantee 100% precision even under extreme load.
+
+---
+
+## 3. Cryptographic Trust (Hybrid RNG)
+
+AleaSim uses a dual-engine RNG system to ensure Provable Fairness and regulatory compliance:
+
+| Mode | Algorithm | Context |
+| :--- | :--- | :--- |
+| **Provably Fair** | HMAC-SHA256 | Used for standard spins where ServerSeed + ClientSeed are provided. |
+| **Certified Crypto** | RandomNumberGenerator | Fallback used when seeds are missing to provide hardware-backed entropy. |
+
+---
+
+## 4. Infrastructure Resilience (WAL)
+
+The system implement **Write-Ahead Logging (WAL)** for high-priority financial data.
+*   **WAL Bypass:** Critical events like `JACKPOT_WIN`, `WITHDRAWAL`, and `DEPOSIT` bypass the internal background buffer.
+*   **Synchronous Persistence:** These events are written immediately and synchronously to the SQL database. 
+*   **Safe Recovery:** In case of a sudden power loss or server crash, the system can fully reconstruct the last state of any critical win, ensuring no player loses their prize.
