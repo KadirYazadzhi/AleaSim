@@ -81,22 +81,25 @@ window.slotEngine = {
         window.slotEngine.reelLayer.mask = window.slotEngine.mask;
         window.slotEngine.reelLayer.addChild(window.slotEngine.mask);
 
-        const symbolFiles = {
-            1: 'cherries.png', 2: 'lemon.png', 3: 'orange.png', 4: 'plum.png',
-            5: 'grape.png', 6: 'watermelon.png', 7: 'apple.png', 8: 'clover.png',
-            9: 'bell.png', 10: 'star.png', 11: 'coin.png', 12: 'seven.png'
-        };
-
-        for (const [id, file] of Object.entries(symbolFiles)) {
-            PIXI.Assets.add(`sym${id}`, `images/slots/${file}`);
-        }
-
         try {
-            window.slotEngine.textures = await PIXI.Assets.load(Object.keys(symbolFiles).map(id => `sym${id}`));
+            // LOAD ATLAS INSTEAD OF INDIVIDUAL FILES
+            const sheet = await PIXI.Assets.load('images/slots/sprites.json');
+            
+            // Map frame names to our ID system
+            const mapping = {
+                1: 'cherries', 2: 'lemon', 3: 'orange', 4: 'plum',
+                5: 'grape', 6: 'watermelon', 7: 'apple', 8: 'clover',
+                9: 'bell', 10: 'star', 11: 'coin', 12: 'seven'
+            };
+
+            for (const [id, name] of Object.entries(mapping)) {
+                window.slotEngine.textures[`sym${id}`] = sheet.textures[name];
+            }
+
             window.slotEngine.buildGrid();
             window.slotEngine.resize();
             window.addEventListener('resize', () => window.slotEngine.resize());
-        } catch (e) { console.error("Asset Load Fail", e); }
+        } catch (e) { console.error("Atlas Load Fail", e); }
     },
 
     resize: () => {
