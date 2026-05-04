@@ -94,7 +94,8 @@
                                     var isSymbolFalling = fallingCells[row, col];
                                     var isMega = megaFruit != null && row >= megaFruit.TopLeft.R && row < megaFruit.TopLeft.R + 3 && col >= megaFruit.TopLeft.C && col < megaFruit.TopLeft.C + 3;
                                     
-                                    <div class="grid-cell-v4 cell-adaptive @(symbol == 0 ? "empty" : "") @(isSymbolFalling ? "falling-anim" : "") @(isExplodingFlag ? "exploding" : "") @(isMega ? "mega-fruit-part" : "")">
+                                    <div class="grid-cell-v4 cell-adaptive @(symbol == 0 ? "empty" : "") @(isSymbolFalling ? "falling-anim" : "") @(isExplodingFlag ? "exploding" : "") @(isMega ? "mega-fruit-part" : "")" 
+                                         style="transform: translateZ(0); will-change: transform, opacity;">
                                         @if (symbol > 0 && (!isMega || (row == megaFruit!.TopLeft.R && col == megaFruit!.TopLeft.C)))
                                         {
                                             <span class="symbol-icon-v4 @(isMega ? "mega-symbol" : "") symbol-adaptive">@GetSymbolEmoji(symbol)</span>
@@ -462,8 +463,16 @@
                             foreach(var p in explodingCells) if (currentGrid.Length > p.R && currentGrid[p.R] != null) currentGrid[p.R][p.C] = 0;
                             explodingCells.Clear(); juicePotValue = fullState.JuicePotValue; lifetimeExplosions = fullState.LifetimeExplosions;
                             int targetJuice = step.JuiceMeterValue;
-                            if (juiceMeter < targetJuice) { for (int i = juiceMeter; i <= targetJuice; i++) { juiceMeter = i; StateHasChanged(); if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 20 : 10); } }
-                            StateHasChanged(); if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 500 : 200);
+                            if (juiceMeter < targetJuice) { 
+                                if (animationSpeed < 3) {
+                                    int stepSize = isMobile ? 5 : 1; 
+                                    for (int i = juiceMeter; i <= targetJuice; i += stepSize) { 
+                                        juiceMeter = i; StateHasChanged(); 
+                                        await Task.Delay(animationSpeed == 1 ? 20 : 10); 
+                                    } 
+                                }
+                                juiceMeter = targetJuice; StateHasChanged();
+                            }
                             int nextIdx = fullState.History.IndexOf(step) + 1;
                             int[][] nextGrid = (nextIdx < fullState.History.Count) ? fullState.History[nextIdx].GridBefore : fullState.Grid;
                             await UpdateGridSequential(nextGrid, step.AffectedColumns); if (animationSpeed < 3) await Task.Delay(animationSpeed == 1 ? 300 : 100);

@@ -58,7 +58,7 @@ namespace AleaSim.Persistence.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("a7df386c-8f12-4cf5-a01a-5fe92a88dff7"),
+                            Id = new Guid("fc77ae7b-8205-4577-ab79-9619f830f402"),
                             Category = "General",
                             ConditionType = "TotalBets",
                             ConditionValue = 1m,
@@ -69,7 +69,7 @@ namespace AleaSim.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("91759d86-7df0-4112-b7d5-5c552e374cb1"),
+                            Id = new Guid("9326ce25-e5fc-494d-9226-595fa6f5d9eb"),
                             Category = "General",
                             ConditionType = "TotalWagered",
                             ConditionValue = 5000m,
@@ -80,7 +80,7 @@ namespace AleaSim.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("df78193b-f041-4dbc-b8cd-c951fdb7bbbe"),
+                            Id = new Guid("909a4d1b-275b-417e-aacc-c4afa2a54e24"),
                             Category = "General",
                             ConditionType = "TotalWagered",
                             ConditionValue = 50000m,
@@ -91,7 +91,7 @@ namespace AleaSim.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("44a4c45e-acdc-4d7c-9123-0178fd012822"),
+                            Id = new Guid("d5ad5c23-2437-4335-877f-a49a02747f6e"),
                             Category = "General",
                             ConditionType = "MaxMultiplier",
                             ConditionValue = 100m,
@@ -102,7 +102,7 @@ namespace AleaSim.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("2c9ed706-29cb-434f-b15d-88c91fc25120"),
+                            Id = new Guid("57ed17a2-2c8e-49e9-905b-d9022bfabe76"),
                             Category = "General",
                             ConditionType = "LevelReached",
                             ConditionValue = 10m,
@@ -493,42 +493,42 @@ namespace AleaSim.Persistence.Migrations
                         {
                             Key = "GlobalTargetRtp",
                             Description = "Target RTP percentage for the system",
-                            LastUpdated = new DateTime(2026, 4, 11, 18, 2, 7, 355, DateTimeKind.Utc).AddTicks(260),
+                            LastUpdated = new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3129),
                             Value = "95.0"
                         },
                         new
                         {
                             Key = "EmergencyStop",
                             Description = "Master switch to pause all games",
-                            LastUpdated = new DateTime(2026, 4, 11, 18, 2, 7, 355, DateTimeKind.Utc).AddTicks(262),
+                            LastUpdated = new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3130),
                             Value = "false"
                         },
                         new
                         {
                             Key = "VolatilityMode",
                             Description = "Global volatility profile (Low, Standard, High)",
-                            LastUpdated = new DateTime(2026, 4, 11, 18, 2, 7, 355, DateTimeKind.Utc).AddTicks(263),
+                            LastUpdated = new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3131),
                             Value = "Standard"
                         },
                         new
                         {
                             Key = "Content_Help",
                             Description = "Help Page Introduction Content",
-                            LastUpdated = new DateTime(2026, 4, 11, 18, 2, 7, 355, DateTimeKind.Utc).AddTicks(264),
+                            LastUpdated = new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3133),
                             Value = "Welcome to AleaSim Help Center. Use the expansion panels below to find answers."
                         },
                         new
                         {
                             Key = "Content_Terms",
                             Description = "Terms of Service Content",
-                            LastUpdated = new DateTime(2026, 4, 11, 18, 2, 7, 355, DateTimeKind.Utc).AddTicks(265),
+                            LastUpdated = new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3134),
                             Value = "By using AleaSim, you agree to our terms of service..."
                         },
                         new
                         {
                             Key = "Content_Privacy",
                             Description = "Privacy Policy Content",
-                            LastUpdated = new DateTime(2026, 4, 11, 18, 2, 7, 355, DateTimeKind.Utc).AddTicks(266),
+                            LastUpdated = new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3135),
                             Value = "We value your privacy. Your data is encrypted..."
                         });
                 });
@@ -711,7 +711,7 @@ namespace AleaSim.Persistence.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("472f5fea-a5d4-40c6-91bd-2a56e0e866ac"),
+                            Id = new Guid("cf426720-5966-4284-a6d3-9486454be464"),
                             Description = "Complete 50 spins on any slot",
                             GoalType = "SpinCount",
                             IsActive = true,
@@ -721,7 +721,7 @@ namespace AleaSim.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("4feca67d-f018-4ce6-a022-6620d413229b"),
+                            Id = new Guid("864b0b6b-ebb0-446e-8820-caf0370903bd"),
                             Description = "Wager a total of $1,000",
                             GoalType = "TotalWager",
                             IsActive = true,
@@ -731,7 +731,7 @@ namespace AleaSim.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("5e8f010a-b9c8-48df-abbb-66ace205e5b5"),
+                            Id = new Guid("c3952dc6-37d3-437d-b360-7ad33d4530cc"),
                             Description = "Win a total of $500",
                             GoalType = "WinAmount",
                             IsActive = true,

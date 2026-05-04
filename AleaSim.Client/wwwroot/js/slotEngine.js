@@ -41,13 +41,18 @@ window.slotEngine = {
         if (!el) return;
         el.innerHTML = '';
 
+        // Optimization: Limit resolution on mobile to prevent GPU bottleneck
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const maxResolution = isMobile ? Math.min(window.devicePixelRatio, 2) : window.devicePixelRatio;
+
         window.slotEngine.app = new PIXI.Application({
             width: window.slotEngine.internalWidth,
             height: window.slotEngine.internalHeight,
             backgroundAlpha: 0,
-            antialias: !lowGraphics,
-            resolution: window.devicePixelRatio || 1,
-            autoDensity: true
+            antialias: !isMobile && !lowGraphics, // Disable antialias on mobile for speed
+            resolution: maxResolution || 1,
+            autoDensity: true,
+            powerPreference: 'high-performance'
         });
         el.appendChild(window.slotEngine.app.view);
 
@@ -179,13 +184,20 @@ window.slotEngine = {
 
     syncStickyBells: (bells, stickyCoords) => {
         const newSticky = [];
-        bells.forEach(b => { newSticky.push({ r: b.Pos.R, c: b.Pos.C, id: 9, value: b.Value, type: b.Type }); });
+        const stickyMap = Array(5).fill(0).map(() => Array(4).fill(false));
+
+        bells.forEach(b => { 
+            newSticky.push({ r: b.Pos.R, c: b.Pos.C, id: 9, value: b.Value, type: b.Type }); 
+            if (b.Pos.C < 5 && b.Pos.R < 4) stickyMap[b.Pos.C][b.Pos.R] = true;
+        });
         stickyCoords.forEach(p => {
             if (!newSticky.find(s => s.r === p.R && s.c === p.C)) {
                 newSticky.push({ r: p.R, c: p.C, id: 9 });
             }
+            if (p.C < 5 && p.R < 4) stickyMap[p.C][p.R] = true;
         });
         window.slotEngine.stickyBells = newSticky;
+        window.slotEngine.stickyMap = stickyMap;
         window.slotEngine.updateStickyBellsVisuals(false); 
     },
 
@@ -229,7 +241,7 @@ window.slotEngine = {
     update: (delta) => {
         if (!window.slotEngine.running) return;
         let activeReels = 0;
-        const { reels, symbolSize, textures, stickyBells } = window.slotEngine;
+        const { reels, symbolSize, textures, stickyMap } = window.slotEngine;
 
         reels.forEach((reel, i) => {
             if (reel.isStopped) return;
@@ -237,15 +249,13 @@ window.slotEngine = {
             reel.symbols.forEach(s => { 
                 s.sprite.y += reel.speed * delta; 
                 
-                // --- PRO FIX: HIDE SYMBOLS BEHIND STICKY BELLS ---
-                // Calculate which row the current moving symbol is overlapping
+                // --- OPTIMIZED: HIDE SYMBOLS BEHIND STICKY BELLS ---
                 const row = Math.round(s.sprite.y / symbolSize);
-                const isSticky = stickyBells.some(sb => sb.c === i && sb.r === row);
+                const isSticky = stickyMap && stickyMap[i] && stickyMap[i][row];
                 
                 if (isSticky) {
-                    s.sprite.alpha = 0; // Symbol becomes invisible as it goes "under" the bell
+                    s.sprite.alpha = 0; 
                 } else {
-                    // Restore alpha only if within grid bounds
                     if (s.sprite.y < -symbolSize/2 || s.sprite.y > (4 * symbolSize - symbolSize/2)) {
                         s.sprite.alpha = 0;
                     } else {

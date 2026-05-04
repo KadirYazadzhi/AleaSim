@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AleaSim.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialFinal : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -44,7 +45,9 @@ namespace AleaSim.Persistence.Migrations
                 name: "AuditLogs",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Sequence = table.Column<int>(type: "int", nullable: false),
                     Timestamp = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     EventType = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -115,7 +118,7 @@ namespace AleaSim.Persistence.Migrations
                     RoundNumber = table.Column<int>(type: "int", nullable: false),
                     InputData = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    RandomResult = table.Column<string>(type: "longtext", nullable: false)
+                    RandomResult = table.Column<string>(type: "json", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     TotalBetAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     TotalWinAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
@@ -123,7 +126,7 @@ namespace AleaSim.Persistence.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     TargetWinAmount = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
                     DirectiveId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
-                    ShadowBrainResult = table.Column<string>(type: "longtext", nullable: false)
+                    ShadowBrainResult = table.Column<string>(type: "json", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     ServerSeed = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -284,6 +287,51 @@ namespace AleaSim.Persistence.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "SystemErrors",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Message = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    StackTrace = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Source = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Path = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    UserId = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SystemErrors", x => x.Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "Tournaments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Name = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Description = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    StartDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    PrizePool = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    GameTypesJson = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Tournaments", x => x.Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "TournamentWinners",
                 columns: table => new
                 {
@@ -355,6 +403,9 @@ namespace AleaSim.Persistence.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     PreferencesJson = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
+                    ReferralCode = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ReferredById = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
                     RefreshToken = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     RefreshTokenExpiry = table.Column<DateTime>(type: "datetime(6)", nullable: true)
@@ -462,7 +513,9 @@ namespace AleaSim.Persistence.Migrations
                     ServerSeedHash = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     GameState = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    TotalWagered = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    TotalWon = table.Column<decimal>(type: "decimal(65,30)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -489,7 +542,7 @@ namespace AleaSim.Persistence.Migrations
                     NetDeposit = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     WeeklyWagered = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
                     MonthlyWagered = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
-                    ActualRtp = table.Column<double>(type: "double", nullable: false),
+                    ActualRtp = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
                     ShadowBalance = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
                     CurrentSessionRtp = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     LossStreak = table.Column<int>(type: "int", nullable: false),
@@ -501,6 +554,7 @@ namespace AleaSim.Persistence.Migrations
                     LuckyCloverLevel = table.Column<int>(type: "int", nullable: false),
                     CashbackLevel = table.Column<int>(type: "int", nullable: false),
                     XpBoostLevel = table.Column<int>(type: "int", nullable: false),
+                    FruitBlastLifetimeExplosions = table.Column<int>(type: "int", nullable: false),
                     LastUpdate = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
@@ -524,7 +578,8 @@ namespace AleaSim.Persistence.Migrations
                     TournamentDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     TotalWagered = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
                     TotalPayout = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
-                    RoundCount = table.Column<int>(type: "int", nullable: false)
+                    RoundCount = table.Column<int>(type: "int", nullable: false),
+                    MaxMultiplier = table.Column<decimal>(type: "decimal(65,30)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -596,11 +651,11 @@ namespace AleaSim.Persistence.Migrations
                 columns: new[] { "Id", "Category", "ConditionType", "ConditionValue", "Description", "Icon", "Name", "RewardAmount" },
                 values: new object[,]
                 {
-                    { new Guid("22aa7380-e596-43bf-9e58-e1db17cc52bb"), "General", "TotalWagered", 5000m, "Wager more than $5,000 total", "💎", "High Roller", 0m },
-                    { new Guid("37b67d61-c310-45eb-b133-7e43e1c847d5"), "General", "LevelReached", 10m, "Reach Level 10", "🎖️", "Veteran", 0m },
-                    { new Guid("593880d2-d2f0-485f-84e3-198f6dbed3b5"), "General", "MaxMultiplier", 100m, "Hit a win over 100x multiplier", "⭐", "Lucky Star", 0m },
-                    { new Guid("e54c597b-1189-444c-8ee6-5187fad2e8d7"), "General", "TotalBets", 1m, "Place your first bet", "🎯", "First Blood", 0m },
-                    { new Guid("f1de42a9-d3c1-4def-a93e-576e3a961b3d"), "General", "TotalWagered", 50000m, "Wager more than $50,000 total", "🐋", "The Whale", 0m }
+                    { new Guid("57ed17a2-2c8e-49e9-905b-d9022bfabe76"), "General", "LevelReached", 10m, "Reach Level 10", "🎖️", "Veteran", 0m },
+                    { new Guid("909a4d1b-275b-417e-aacc-c4afa2a54e24"), "General", "TotalWagered", 50000m, "Wager more than $50,000 total", "🐋", "The Whale", 0m },
+                    { new Guid("9326ce25-e5fc-494d-9226-595fa6f5d9eb"), "General", "TotalWagered", 5000m, "Wager more than $5,000 total", "💎", "High Roller", 0m },
+                    { new Guid("d5ad5c23-2437-4335-877f-a49a02747f6e"), "General", "MaxMultiplier", 100m, "Hit a win over 100x multiplier", "⭐", "Lucky Star", 0m },
+                    { new Guid("fc77ae7b-8205-4577-ab79-9619f830f402"), "General", "TotalBets", 1m, "Place your first bet", "🎯", "First Blood", 0m }
                 });
 
             migrationBuilder.InsertData(
@@ -611,6 +666,7 @@ namespace AleaSim.Persistence.Migrations
                     { new Guid("11111111-1111-1111-1111-111111111111"), null, true, 1000m, 0.1m, "Clover Chase", 0m, "AleaSim Originals", 0.965m, "slot" },
                     { new Guid("22222222-2222-2222-2222-222222222222"), null, true, 1000m, 0.1m, "Roulette Royale", 0m, "AleaSim Originals", 0.973m, "roulette" },
                     { new Guid("33333333-3333-3333-3333-333333333333"), null, true, 1000m, 0.1m, "Blackjack High", 0m, "AleaSim Originals", 0.992m, "blackjack" },
+                    { new Guid("44444444-4444-4444-4444-444444444444"), null, true, 1000m, 0.1m, "Fruit Blast", 0m, "AleaSim Originals", 0.960m, "fruitblast" },
                     { new Guid("77777777-7777-7777-7777-777777777777"), null, true, 1000m, 0.1m, "Neon Dice", 0m, "AleaSim Originals", 0.990m, "dice" }
                 });
 
@@ -619,12 +675,12 @@ namespace AleaSim.Persistence.Migrations
                 columns: new[] { "Key", "Description", "LastUpdated", "Value" },
                 values: new object[,]
                 {
-                    { "Content_Help", "Help Page Introduction Content", new DateTime(2026, 3, 12, 19, 24, 41, 177, DateTimeKind.Utc).AddTicks(6708), "Welcome to AleaSim Help Center. Use the expansion panels below to find answers." },
-                    { "Content_Privacy", "Privacy Policy Content", new DateTime(2026, 3, 12, 19, 24, 41, 177, DateTimeKind.Utc).AddTicks(6711), "We value your privacy. Your data is encrypted..." },
-                    { "Content_Terms", "Terms of Service Content", new DateTime(2026, 3, 12, 19, 24, 41, 177, DateTimeKind.Utc).AddTicks(6709), "By using AleaSim, you agree to our terms of service..." },
-                    { "EmergencyStop", "Master switch to pause all games", new DateTime(2026, 3, 12, 19, 24, 41, 177, DateTimeKind.Utc).AddTicks(6705), "false" },
-                    { "GlobalTargetRtp", "Target RTP percentage for the system", new DateTime(2026, 3, 12, 19, 24, 41, 177, DateTimeKind.Utc).AddTicks(6703), "95.0" },
-                    { "VolatilityMode", "Global volatility profile (Low, Standard, High)", new DateTime(2026, 3, 12, 19, 24, 41, 177, DateTimeKind.Utc).AddTicks(6707), "Standard" }
+                    { "Content_Help", "Help Page Introduction Content", new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3133), "Welcome to AleaSim Help Center. Use the expansion panels below to find answers." },
+                    { "Content_Privacy", "Privacy Policy Content", new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3135), "We value your privacy. Your data is encrypted..." },
+                    { "Content_Terms", "Terms of Service Content", new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3134), "By using AleaSim, you agree to our terms of service..." },
+                    { "EmergencyStop", "Master switch to pause all games", new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3130), "false" },
+                    { "GlobalTargetRtp", "Target RTP percentage for the system", new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3129), "95.0" },
+                    { "VolatilityMode", "Global volatility profile (Low, Standard, High)", new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3131), "Standard" }
                 });
 
             migrationBuilder.InsertData(
@@ -632,10 +688,15 @@ namespace AleaSim.Persistence.Migrations
                 columns: new[] { "Id", "Description", "GoalType", "IsActive", "RewardAmount", "TargetValue", "Title" },
                 values: new object[,]
                 {
-                    { new Guid("23e39603-f644-4de3-b3bc-7a109c40862c"), "Win a total of $500", "WinAmount", true, 25m, 500m, "Big Win Hunter" },
-                    { new Guid("5ce1bf67-8bf1-4898-808b-5dd1428ad465"), "Complete 50 spins on any slot", "SpinCount", true, 10m, 50m, "Daily Spinner" },
-                    { new Guid("a56f526b-d91b-41dc-a483-d68ed8887029"), "Wager a total of $1,000", "TotalWager", true, 50m, 1000m, "High Stakes" }
+                    { new Guid("864b0b6b-ebb0-446e-8820-caf0370903bd"), "Wager a total of $1,000", "TotalWager", true, 50m, 1000m, "High Stakes" },
+                    { new Guid("c3952dc6-37d3-437d-b360-7ad33d4530cc"), "Win a total of $500", "WinAmount", true, 25m, 500m, "Big Win Hunter" },
+                    { new Guid("cf426720-5966-4284-a6d3-9486454be464"), "Complete 50 spins on any slot", "SpinCount", true, 10m, 50m, "Daily Spinner" }
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditLogs_EventType",
+                table: "AuditLogs",
+                column: "EventType");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AuditLogs_Hash",
@@ -776,7 +837,13 @@ namespace AleaSim.Persistence.Migrations
                 name: "SupportMessages");
 
             migrationBuilder.DropTable(
+                name: "SystemErrors");
+
+            migrationBuilder.DropTable(
                 name: "TournamentEntries");
+
+            migrationBuilder.DropTable(
+                name: "Tournaments");
 
             migrationBuilder.DropTable(
                 name: "TournamentWinners");

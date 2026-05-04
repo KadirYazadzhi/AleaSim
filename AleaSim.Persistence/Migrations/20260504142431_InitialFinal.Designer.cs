@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AleaSim.Persistence.Migrations
 {
     [DbContext(typeof(AleaSimDbContext))]
-    [Migration("20260312192441_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260504142431_InitialFinal")]
+    partial class InitialFinal
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -61,7 +61,7 @@ namespace AleaSim.Persistence.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("e54c597b-1189-444c-8ee6-5187fad2e8d7"),
+                            Id = new Guid("fc77ae7b-8205-4577-ab79-9619f830f402"),
                             Category = "General",
                             ConditionType = "TotalBets",
                             ConditionValue = 1m,
@@ -72,7 +72,7 @@ namespace AleaSim.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("22aa7380-e596-43bf-9e58-e1db17cc52bb"),
+                            Id = new Guid("9326ce25-e5fc-494d-9226-595fa6f5d9eb"),
                             Category = "General",
                             ConditionType = "TotalWagered",
                             ConditionValue = 5000m,
@@ -83,7 +83,7 @@ namespace AleaSim.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("f1de42a9-d3c1-4def-a93e-576e3a961b3d"),
+                            Id = new Guid("909a4d1b-275b-417e-aacc-c4afa2a54e24"),
                             Category = "General",
                             ConditionType = "TotalWagered",
                             ConditionValue = 50000m,
@@ -94,7 +94,7 @@ namespace AleaSim.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("593880d2-d2f0-485f-84e3-198f6dbed3b5"),
+                            Id = new Guid("d5ad5c23-2437-4335-877f-a49a02747f6e"),
                             Category = "General",
                             ConditionType = "MaxMultiplier",
                             ConditionValue = 100m,
@@ -105,7 +105,7 @@ namespace AleaSim.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("37b67d61-c310-45eb-b133-7e43e1c847d5"),
+                            Id = new Guid("57ed17a2-2c8e-49e9-905b-d9022bfabe76"),
                             Category = "General",
                             ConditionType = "LevelReached",
                             ConditionValue = 10m,
@@ -118,9 +118,9 @@ namespace AleaSim.Persistence.Migrations
 
             modelBuilder.Entity("AleaSim.Domain.Entities.AuditEvent", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -143,6 +143,9 @@ namespace AleaSim.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<int>("Sequence")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("datetime(6)");
 
@@ -151,6 +154,8 @@ namespace AleaSim.Persistence.Migrations
                         .HasColumnType("varchar(255)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EventType");
 
                     b.HasIndex("Hash")
                         .IsUnique();
@@ -318,6 +323,18 @@ namespace AleaSim.Persistence.Migrations
                         },
                         new
                         {
+                            Id = new Guid("44444444-4444-4444-4444-444444444444"),
+                            IsActive = true,
+                            MaxBet = 1000m,
+                            MinBet = 0.1m,
+                            Name = "Fruit Blast",
+                            PoolBalance = 0m,
+                            Provider = "AleaSim Originals",
+                            TargetRTP = 0.960m,
+                            Type = "fruitblast"
+                        },
+                        new
+                        {
                             Id = new Guid("77777777-7777-7777-7777-777777777777"),
                             IsActive = true,
                             MaxBet = 1000m,
@@ -362,7 +379,7 @@ namespace AleaSim.Persistence.Migrations
 
                     b.Property<string>("RandomResult")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("json");
 
                     b.Property<int>("RoundNumber")
                         .HasColumnType("int");
@@ -377,7 +394,7 @@ namespace AleaSim.Persistence.Migrations
 
                     b.Property<string>("ShadowBrainResult")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("json");
 
                     b.Property<decimal>("TargetWinAmount")
                         .HasColumnType("decimal(65,30)");
@@ -436,6 +453,12 @@ namespace AleaSim.Persistence.Migrations
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<decimal>("TotalWagered")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal>("TotalWon")
+                        .HasColumnType("decimal(65,30)");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("char(36)");
 
@@ -473,42 +496,42 @@ namespace AleaSim.Persistence.Migrations
                         {
                             Key = "GlobalTargetRtp",
                             Description = "Target RTP percentage for the system",
-                            LastUpdated = new DateTime(2026, 3, 12, 19, 24, 41, 177, DateTimeKind.Utc).AddTicks(6703),
+                            LastUpdated = new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3129),
                             Value = "95.0"
                         },
                         new
                         {
                             Key = "EmergencyStop",
                             Description = "Master switch to pause all games",
-                            LastUpdated = new DateTime(2026, 3, 12, 19, 24, 41, 177, DateTimeKind.Utc).AddTicks(6705),
+                            LastUpdated = new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3130),
                             Value = "false"
                         },
                         new
                         {
                             Key = "VolatilityMode",
                             Description = "Global volatility profile (Low, Standard, High)",
-                            LastUpdated = new DateTime(2026, 3, 12, 19, 24, 41, 177, DateTimeKind.Utc).AddTicks(6707),
+                            LastUpdated = new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3131),
                             Value = "Standard"
                         },
                         new
                         {
                             Key = "Content_Help",
                             Description = "Help Page Introduction Content",
-                            LastUpdated = new DateTime(2026, 3, 12, 19, 24, 41, 177, DateTimeKind.Utc).AddTicks(6708),
+                            LastUpdated = new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3133),
                             Value = "Welcome to AleaSim Help Center. Use the expansion panels below to find answers."
                         },
                         new
                         {
                             Key = "Content_Terms",
                             Description = "Terms of Service Content",
-                            LastUpdated = new DateTime(2026, 3, 12, 19, 24, 41, 177, DateTimeKind.Utc).AddTicks(6709),
+                            LastUpdated = new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3134),
                             Value = "By using AleaSim, you agree to our terms of service..."
                         },
                         new
                         {
                             Key = "Content_Privacy",
                             Description = "Privacy Policy Content",
-                            LastUpdated = new DateTime(2026, 3, 12, 19, 24, 41, 177, DateTimeKind.Utc).AddTicks(6711),
+                            LastUpdated = new DateTime(2026, 5, 4, 14, 24, 30, 551, DateTimeKind.Utc).AddTicks(3135),
                             Value = "We value your privacy. Your data is encrypted..."
                         });
                 });
@@ -585,8 +608,8 @@ namespace AleaSim.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<double>("ActualRtp")
-                        .HasColumnType("double");
+                    b.Property<decimal>("ActualRtp")
+                        .HasColumnType("decimal(65,30)");
 
                     b.Property<double>("AvgSpinInterval")
                         .HasColumnType("double");
@@ -599,6 +622,9 @@ namespace AleaSim.Persistence.Migrations
 
                     b.Property<decimal>("CurrentSessionRtp")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("FruitBlastLifetimeExplosions")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("LastSpinTimestamp")
                         .HasColumnType("datetime(6)");
@@ -688,7 +714,7 @@ namespace AleaSim.Persistence.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("5ce1bf67-8bf1-4898-808b-5dd1428ad465"),
+                            Id = new Guid("cf426720-5966-4284-a6d3-9486454be464"),
                             Description = "Complete 50 spins on any slot",
                             GoalType = "SpinCount",
                             IsActive = true,
@@ -698,7 +724,7 @@ namespace AleaSim.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("a56f526b-d91b-41dc-a483-d68ed8887029"),
+                            Id = new Guid("864b0b6b-ebb0-446e-8820-caf0370903bd"),
                             Description = "Wager a total of $1,000",
                             GoalType = "TotalWager",
                             IsActive = true,
@@ -708,7 +734,7 @@ namespace AleaSim.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("23e39603-f644-4de3-b3bc-7a109c40862c"),
+                            Id = new Guid("c3952dc6-37d3-437d-b360-7ad33d4530cc"),
                             Description = "Win a total of $500",
                             GoalType = "WinAmount",
                             IsActive = true,
@@ -789,11 +815,82 @@ namespace AleaSim.Persistence.Migrations
                     b.ToTable("SupportMessages");
                 });
 
+            modelBuilder.Entity("AleaSim.Domain.Entities.SystemError", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("StackTrace")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SystemErrors");
+                });
+
+            modelBuilder.Entity("AleaSim.Domain.Entities.Tournament", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("GameTypesJson")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("PrizePool")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Tournaments");
+                });
+
             modelBuilder.Entity("AleaSim.Domain.Entities.TournamentEntry", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
+
+                    b.Property<decimal>("MaxMultiplier")
+                        .HasColumnType("decimal(65,30)");
 
                     b.Property<int>("RoundCount")
                         .HasColumnType("int");
@@ -946,6 +1043,13 @@ namespace AleaSim.Persistence.Migrations
                     b.Property<string>("PreferencesJson")
                         .IsRequired()
                         .HasColumnType("longtext");
+
+                    b.Property<string>("ReferralCode")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid?>("ReferredById")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("RefreshToken")
                         .HasColumnType("longtext");
