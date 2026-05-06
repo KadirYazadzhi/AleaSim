@@ -141,6 +141,12 @@
                                 </MudText>
                             </MudTd>
                         </RowTemplate>
+                        <NoRecordsContent>
+                            <div class="d-flex flex-column align-center py-8 opacity-50">
+                                <MudIcon Icon="@Icons.Material.Filled.Insights" Size="Size.Large" Class="mb-2" />
+                                <MudText Typo="Typo.body2">No game data recorded for this period.</MudText>
+                            </div>
+                        </NoRecordsContent>
                     </MudTable>
                 </div>
             </MudPaper>
@@ -149,19 +155,29 @@
             <MudPaper Class="pa-md-6 pa-4 rounded-xl dashboard-card h-100" Elevation="0">
                 <MudText Typo="Typo.h6" Class="fw-bold mb-4">Top Players</MudText>
                 <MudList T="PlayerRankDto" Dense="true">
-                    @foreach (var player in stats.TopPlayers)
+                    @if (stats.TopPlayers == null || !stats.TopPlayers.Any())
                     {
-                        <MudListItem Class="px-0">
-                            <div class="d-flex justify-space-between align-center">
-                                <div>
-                                    <MudText Typo="Typo.body2" Class="fw-bold">@player.Username</MudText>
-                                    <MudText Typo="Typo.caption" Class="opacity-60">Won @player.TotalWon.ToString("C0")</MudText>
+                        <div class="d-flex flex-column align-center py-12 opacity-50">
+                            <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Large" Class="mb-2" />
+                            <MudText Typo="Typo.body2">No active players found.</MudText>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var player in stats.TopPlayers)
+                        {
+                            <MudListItem Class="px-0">
+                                <div class="d-flex justify-space-between align-center">
+                                    <div>
+                                        <MudText Typo="Typo.body2" Class="fw-bold">@player.Username</MudText>
+                                        <MudText Typo="Typo.caption" Class="opacity-60">Won @player.TotalWon.ToString("C0")</MudText>
+                                    </div>
+                                    <MudText Typo="Typo.body2" Color="@(player.Profit > 0 ? Color.Success : Color.Error)" Class="fw-black">
+                                        @(player.Profit > 0 ? "+" : "")@player.Profit.ToString("C0")
+                                    </MudText>
                                 </div>
-                                <MudText Typo="Typo.body2" Color="@(player.Profit > 0 ? Color.Success : Color.Error)" Class="fw-black">
-                                    @(player.Profit > 0 ? "+" : "")@player.Profit.ToString("C0")
-                                </MudText>
-                            </div>
-                        </MudListItem>
+                            </MudListItem>
+                        }
                     }
                 </MudList>
             </MudPaper>
@@ -233,6 +249,13 @@
                         <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Primary" OnClick="() => ViewMessage(context)" />
                     </MudTd>
                 </RowTemplate>
+                <NoRecordsContent>
+                    <div class="d-flex flex-column align-center py-12 opacity-50">
+                        <MudIcon Icon="@Icons.Material.Filled.MarkEmailRead" Size="Size.Large" Class="mb-2" />
+                        <MudText Typo="Typo.body1" Class="fw-bold">All clear!</MudText>
+                        <MudText Typo="Typo.body2">No support tickets at the moment.</MudText>
+                    </div>
+                </NoRecordsContent>
             </MudTable>
         </div>
     </MudPaper>
