@@ -143,24 +143,42 @@ window.slotEngine = {
         const data = JSON.parse(resultJson);
         const grid = data.Grid;
         const currentlyInFeature = data.IsBonusActive || data.IsRespinActive;
-        const wasInFeature = window.slotEngine.isBonusActive || window.slotEngine.isRespinActive;
-
+        
         window.slotEngine.wasInBonus = window.slotEngine.isBonusActive;
 
-        // PRO FIX: If we have old sticky bells and we are NOT in a feature anymore, 
-        // "release" them back to the reels so they can spin away naturally.
-        if (window.slotEngine.stickyBells.length > 0 && !currentlyInFeature) {
-            window.slotEngine.stickyBells.forEach(sb => {
-                const reel = window.slotEngine.reels[sb.c];
-                if (reel && reel.symbols[sb.r]) {
-                    reel.symbols[sb.r].sprite.texture = window.slotEngine.textures[`sym9`];
-                    reel.symbols[sb.r].sprite.alpha = 1;
-                }
-            });
-            window.slotEngine.stickyBells = [];
-            window.slotEngine.stickyLayer.removeChildren();
-            window.slotEngine.stickyMap = Array(5).fill(0).map(() => Array(4).fill(false));
-        }
+        // --- SMART RELEASE LOGIC ---
+        // 1. Create a map of what SHOULD be sticky after this spin
+        const nextStickyMap = Array(5).fill(0).map(() => Array(4).fill(false));
+        const nextBells = data.BonusBells || [];
+        const nextStickyCoords = data.StickyBells || [];
+        
+        nextBells.forEach(b => { if (b.Pos.C < 5 && b.Pos.R < 4) nextStickyMap[b.Pos.C][b.Pos.R] = true; });
+        nextStickyCoords.forEach(p => { if (p.C < 5 && p.R < 4) nextStickyMap[p.C][p.R] = true; });
+
+        // 2. Identify bells that are currently stuck but NOT in the next state (Expired)
+        const bellsToRelease = window.slotEngine.stickyBells.filter(sb => !nextStickyMap[sb.c][sb.r]);
+        
+        // 3. Release them back to the reels so they spin away
+        bellsToRelease.forEach(sb => {
+            const reel = window.slotEngine.reels[sb.c];
+            if (reel && reel.symbols[sb.r]) {
+                reel.symbols[sb.r].sprite.texture = window.slotEngine.textures[`sym9`];
+                reel.symbols[sb.r].sprite.alpha = 1;
+            }
+        });
+
+        // 4. Keep only the bells that are still sticky
+        window.slotEngine.stickyBells = window.slotEngine.stickyBells.filter(sb => nextStickyMap[sb.c][sb.r]);
+        
+        // 5. Update the stickyMap to only hide symbols under STILL STUCK bells
+        const currentStickyMap = Array(5).fill(0).map(() => Array(4).fill(false));
+        window.slotEngine.stickyBells.forEach(sb => { currentStickyMap[sb.c][sb.r] = true; });
+        window.slotEngine.stickyMap = currentStickyMap;
+
+        // 6. Refresh visuals for the remaining stuck bells
+        window.slotEngine.updateStickyBellsVisuals(window.slotEngine.wasInBonus);
+
+        // --- END OF SMART RELEASE ---
 
         window.slotEngine.running = true;
         window.slotEngine.isRevealing = false; 
@@ -170,7 +188,7 @@ window.slotEngine = {
         window.slotEngine.isRespinActive = data.IsRespinActive; 
         window.slotEngine.lastWinningLines = data.WinningLines || [];
         
-        // Store for end of spin sync
+        // Store for end of spin sync (New bells will be added here)
         window.slotEngine.pendingBells = data.BonusBells || [];
         window.slotEngine.pendingStickyCoords = data.StickyBells || [];
 
