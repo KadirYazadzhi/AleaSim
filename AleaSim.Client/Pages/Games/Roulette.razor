@@ -64,10 +64,14 @@
                             }
                         </div>
                         <div class="outside-grid-mobile">
-                            <div @key='"outside-red"' class='@($"cell red {GetCursorClass("color", "red")}")' @onmousedown='() => HandleMouseDown("color", "red")'>RED</div>
-                            <div @key='"outside-black"' class='@($"cell black {GetCursorClass("color", "black")}")' @onmousedown='() => HandleMouseDown("color", "black")'>BLK</div>
-                            <div @key='"outside-even"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' @onmousedown='() => HandleMouseDown("evenodd", "even")'>EVN</div>
-                            <div @key='"outside-odd"' class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' @onmousedown='() => HandleMouseDown("evenodd", "odd")'>ODD</div>
+                            <div class="outside-row">
+                                <div @key='"outside-red"' class='@($"cell red {GetCursorClass("color", "red")}")' @onmousedown='() => HandleMouseDown("color", "red")'>RED</div>
+                                <div @key='"outside-black"' class='@($"cell black {GetCursorClass("color", "black")}")' @onmousedown='() => HandleMouseDown("color", "black")'>BLK</div>
+                            </div>
+                            <div class="outside-row">
+                                <div @key='"outside-even"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' @onmousedown='() => HandleMouseDown("evenodd", "even")'>EVN</div>
+                                <div @key='"outside-odd"' class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' @onmousedown='() => HandleMouseDown("evenodd", "odd")'>ODD</div>
+                            </div>
                         </div>
                     </div>
                 </MudPaper>
@@ -204,8 +208,9 @@
         .pile { display: flex; flex-direction: column; gap: 3px; flex: 1; }
         .cell { height: 34px !important; font-size: 1rem !important; border-radius: 4px; }
         .zero { width: 100% !important; height: 30px !important; margin-bottom: 4px; }
-        .outside-grid-mobile { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-top: 8px; }
-        .outside-grid-mobile .cell { height: 35px !important; }
+        .outside-grid-mobile { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+        .outside-row { display: flex; width: 100%; gap: 4px; }
+        .outside-row .cell { flex: 1; height: 35px !important; }
         .spin-controls-row {
             display: flex !important;
             flex-direction: row;
