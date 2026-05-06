@@ -215,6 +215,8 @@ public class LayoutService
 
     private async Task SyncSettingsWithBackend() {
         try {
+            if (!await _localStorage.ContainKeyAsync("authToken")) return;
+
             var prefs = new System.Collections.Generic.Dictionary<string, string> {
                 { "Skin", CurrentSkin },
                 { "DarkMode", IsDarkMode.ToString() }
