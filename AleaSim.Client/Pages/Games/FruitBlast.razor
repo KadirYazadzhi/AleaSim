@@ -186,8 +186,14 @@
 </MudContainer>
 
 <style>
-    :root { --game-border: #4a148c; --game-glow: rgba(74, 20, 140, 0.4); --juice-color: #ab47bc; }
-    .game-light { --game-border: #7b1fa2; --game-glow: rgba(123, 31, 162, 0.2); --juice-color: #7b1fa2; }
+    :root { 
+        --game-border: #4a148c; 
+        --game-glow: rgba(74, 20, 140, 0.4); 
+        --juice-color: #ab47bc;
+        --cell-size: 95px;
+        --cell-gap: 14px;
+        --symbol-size: 3.8rem;
+    }
 
     /* --- SPEED BUTTONS --- */
     .speed-btn-v4 { flex: 1; height: 40px; background: rgba(255,255,255,0.05); border: 1px solid var(--mud-palette-divider); border-radius: 8px; color: var(--mud-palette-text-secondary); font-weight: 900; font-size: 0.8rem; transition: all 0.2s; cursor: pointer; }
@@ -231,28 +237,34 @@
     .juice-value-v4 { font-weight: 950; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #00ffff; margin-bottom: 5px; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
 
     /* --- GRID V4 --- */
-    .fruit-grid-container-v4 { display: flex; flex-direction: column; gap: 14px; position: relative; margin-left: 80px; z-index: 5; }
-    .grid-row-v4 { display: flex; gap: 14px; }
-    .grid-cell-v4 { width: 95px; height: 95px; border-radius: 20px; display: flex; justify-content: center; align-items: center; position: relative; }
+    .fruit-grid-container-v4 { display: flex; flex-direction: column; gap: var(--cell-gap); position: relative; margin-left: 80px; z-index: 5; transition: all 0.3s ease; }
+    .grid-row-v4 { display: flex; gap: var(--cell-gap); }
+    .grid-cell-v4 { width: var(--cell-size); height: var(--cell-size); border-radius: 20px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; }
     .dark .grid-cell-v4 { background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.05); box-shadow: inset 0 0 15px rgba(0,0,0,0.3); }
     .light .grid-cell-v4 { background: rgba(0,0,0,0.03); border: 2px solid rgba(0,0,0,0.08); }
-    .symbol-icon-v4 { font-size: 3.8rem; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4)); display: inline-block; }
+    .symbol-icon-v4 { font-size: var(--symbol-size); filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4)); display: inline-block; transition: transform 0.1s; }
 
-    /* --- WIN OVERLAY --- */
-    .giant-win-overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 2000; pointer-events: none; opacity: 0; transition: opacity 0.4s; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); }
-    .giant-win-overlay.visible { display: flex; opacity: 1; pointer-events: auto; }
-    .giant-win-overlay.compact-win { background: transparent; backdrop-filter: none; top: auto; bottom: 80px; height: 160px; }
-    .compact-win .win-content { transform: scale(0.6) !important; background: rgba(0,0,0,0.6); padding: 20px 60px; border-radius: 30px; border: 2px solid #ffeb3b; }
-    .win-content { text-align: center; transform: scale(0.5); transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    .visible .win-content { transform: scale(1.5); }
-    .win-header { font-size: 3rem; font-weight: 950; color: white; text-shadow: 0 0 20px #ab47bc; letter-spacing: 12px; margin-bottom: 20px; }
-    .win-sum { font-size: 9rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 50px black, 0 0 30px #ffeb3b; line-height: 1; }
-
-    /* --- FLOATING WIN V4 --- */
-    .floating-win-v4 { position: absolute; font-size: 3.5rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 15px black, 0 0 10px #ffeb3b; z-index: 500; pointer-events: none; animation: floatUpV4 1.5s ease-out forwards; white-space: nowrap; }
+    /* --- TABLET BREAKPOINT (MEDIUM SCREENS) --- */
+    @media (max-width: 1200px) {
+        :root {
+            --cell-size: 70px;
+            --cell-gap: 8px;
+            --symbol-size: 2.8rem;
+        }
+        .game-main-paper { min-height: 550px; border-width: 6px; }
+        .juice-meter-sidebar { height: 380px; left: 20px; }
+        .fruit-grid-container-v4 { margin-left: 50px; }
+        .pot-value-v4 { font-size: 2.2rem !important; }
+        .pot-icon-v4 { font-size: 3rem; }
+    }
 
     /* --- MOBILE OVERRIDES --- */
-    @@media (max-width: 992px) {
+    @media (max-width: 768px) {
+        :root {
+            --cell-size: 48px;
+            --cell-gap: 4px;
+            --symbol-size: 1.8rem;
+        }
         .main-game-wrapper { padding-bottom: 85px !important; }
         .pot-card-adaptive, .vitamin-card-adaptive { min-height: 100px; padding: 12px; border-radius: 16px; border-width: 2px; }
         .icon-adaptive { font-size: 2.2rem; }
@@ -272,10 +284,7 @@
         .track-inner-adaptive { width: 20px; }
         .value-label-adaptive { font-size: 0.6rem; }
 
-        .grid-adaptive { margin-left: 50px; gap: 4px; }
-        .row-adaptive { gap: 4px; }
-        .cell-adaptive { width: 48px; height: 48px; border-radius: 8px; border-width: 1px; }
-        .symbol-adaptive { font-size: 2rem; }
+        .grid-adaptive { margin-left: 50px; }
         
         .mult-adaptive { width: 50px; height: 50px; top: 10px; right: 10px; border-width: 2px; }
         .mult-adaptive .badge-label { font-size: 0.4rem; }
@@ -298,16 +307,27 @@
     }
 
     /* --- ANIMATIONS --- */
-    .falling-anim .symbol-icon-v4 { animation: fallInV4 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
-    @@keyframes fallInV4 { 0% { transform: translateY(-600px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-    .exploding .symbol-icon-v4 { animation: explodeV4 0.5s ease-out forwards; z-index: 50; }
-    @@keyframes explodeV4 { 0% { transform: scale(1); } 50% { transform: scale(1.8) rotate(45deg); opacity: 1; filter: brightness(2); } 100% { transform: scale(0); opacity: 0; } }
-    .shake-grid { animation: shakeV4 0.4s ease-in-out; }
-    @@keyframes shakeV4 { 0%, 100% { transform: translate(0,0); } 20%, 60% { transform: translate(-8px, 0); } 40%, 80% { transform: translate(8px, 0); } }
-    @@keyframes bounceV4 { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-    .floating-win-v4 { position: absolute; font-size: 3.5rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 15px black, 0 0 10px #ffeb3b; z-index: 500; pointer-events: none; animation: floatUpV4 1.5s ease-out forwards; white-space: nowrap; }
-    @@keyframes floatUpV4 { 0% { transform: translate(-50%, 0); opacity: 1; } 100% { transform: translate(-50%, -150px); opacity: 0; } }
-    @@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+    .falling-anim .symbol-icon-v4 { 
+        animation: fallInV4 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; 
+        will-change: transform;
+    }
+    @keyframes fallInV4 { 
+        0% { transform: translateY(-300%); opacity: 0; } 
+        100% { transform: translateY(0); opacity: 1; } 
+    }
+    
+    .exploding .symbol-icon-v4 { 
+        animation: explodeV4 0.4s ease-out forwards; 
+        z-index: 50; 
+        will-change: transform, opacity;
+    }
+    @keyframes explodeV4 { 0% { transform: scale(1); } 50% { transform: scale(1.5) rotate(15deg); opacity: 1; filter: brightness(1.5); } 100% { transform: scale(0); opacity: 0; } }
+    
+    .shake-grid { animation: shakeV4 0.3s ease-in-out; }
+    @keyframes shakeV4 { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-4px, 0); } 75% { transform: translate(4px, 0); } }
+    
+    .floating-win-v4 { position: absolute; font-size: 3.5rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 15px black, 0 0 10px #ffeb3b; z-index: 500; pointer-events: none; animation: floatUpV4 1.2s ease-out forwards; white-space: nowrap; }
+    @keyframes floatUpV4 { 0% { transform: translate(-50%, 0); opacity: 1; } 100% { transform: translate(-50%, -100px); opacity: 0; } }
 </style>
 
 @code {
@@ -404,18 +424,38 @@
     private async Task UpdateGridSequential(int[][] newGrid, List<int>? columns = null) {
         if (newGrid == null) return;
         var cols = (columns ?? Enumerable.Range(0, 6).ToList()).OrderBy(c => c).ToList();
-        int delay = animationSpeed switch { 1 => 100, 2 => 50, _ => 5 };
+        int delay = animationSpeed switch { 1 => 100, 2 => 60, _ => 0 };
+        
+        bool anyChanged = false;
         foreach (int c in cols) {
             bool colChanged = false;
             for (int r = 0; r < 5; r++) {
                 if (currentGrid.Length > r && currentGrid[r] != null && newGrid.Length > r && newGrid[r] != null && currentGrid[r][c] != newGrid[r][c]) {
-                    fallingCells[r, c] = true; currentGrid[r][c] = newGrid[r][c]; colChanged = true;
-                } else fallingCells[r, c] = false;
+                    fallingCells[r, c] = true; 
+                    currentGrid[r][c] = newGrid[r][c]; 
+                    colChanged = true;
+                    anyChanged = true;
+                } else {
+                    fallingCells[r, c] = false;
+                }
             }
-            if (colChanged) { StateHasChanged(); await Audio.PlayClick(); if (animationSpeed < 3) await Task.Delay(delay); }
+            
+            if (colChanged && animationSpeed < 3) { 
+                StateHasChanged(); 
+                await Audio.PlayClick(); 
+                await Task.Delay(delay); 
+            }
         }
-        for (int r = 0; r < 5; r++) for (int c = 0; c < 6; c++) fallingCells[r, c] = false;
-        StateHasChanged();
+        
+        if (animationSpeed >= 3 || anyChanged) {
+            StateHasChanged();
+        }
+
+        // Clean up falling state after a short delay to allow animation to finish
+        _ = Task.Delay(600).ContinueWith(_ => {
+            for (int r = 0; r < 5; r++) for (int c = 0; c < 6; c++) fallingCells[r, c] = false;
+            InvokeAsync(StateHasChanged);
+        });
     }
 
     private async Task OpenRules() {
