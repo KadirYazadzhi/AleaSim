@@ -57,12 +57,6 @@
 </MudContainer>
 
 <style>
-    .glass-panel-v2 {
-        background: rgba(var(--mud-palette-surface-rgb), 0.5);
-        backdrop-filter: blur(12px);
-        border: 1px solid var(--mud-palette-divider);
-    }
-
     .notif-item {
         transition: all 0.2s ease;
         border: 1px solid transparent;
@@ -134,6 +128,11 @@
         var span = DateTime.Now - dt;
         if (span.TotalMinutes < 1) return "just now";
         if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+        return dt.ToShortDateString();
+    }
+}
+TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
         if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
         return dt.ToShortDateString();
     }

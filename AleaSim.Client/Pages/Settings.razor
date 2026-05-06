@@ -270,13 +270,6 @@
         -webkit-text-fill-color: transparent;
     }
 
-    .glass-panel {
-        background: @(LayoutService.IsDarkMode ? "rgba(25, 30, 50, 0.6)" : "rgba(255, 255, 255, 0.8)");
-        backdrop-filter: blur(15px);
-        border: 1px solid @(LayoutService.IsDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)");
-        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-    }
-
     .settings-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
