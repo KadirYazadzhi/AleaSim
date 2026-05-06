@@ -153,6 +153,7 @@ window.slotEngine = {
         if (!currentlyInFeature && !wasInFeature && !window.slotEngine.isRevealing) {
             window.slotEngine.stickyBells = [];
             window.slotEngine.stickyLayer.removeChildren();
+            window.slotEngine.stickyMap = Array(5).fill(0).map(() => Array(4).fill(false));
         }
 
         window.slotEngine.running = true;
@@ -163,9 +164,9 @@ window.slotEngine = {
         window.slotEngine.isRespinActive = data.IsRespinActive; 
         window.slotEngine.lastWinningLines = data.WinningLines || [];
         
-        if (currentlyInFeature) {
-            window.slotEngine.syncStickyBells(data.BonusBells || [], data.StickyBells || []);
-        }
+        // Store for end of spin sync
+        window.slotEngine.pendingBells = data.BonusBells || [];
+        window.slotEngine.pendingStickyCoords = data.StickyBells || [];
 
         const finalSymbols = [];
         for(let c=0; c < 5; c++) {
@@ -296,6 +297,14 @@ window.slotEngine = {
 
         if (activeReels === 0) {
             window.slotEngine.running = false;
+
+            // Sync all bells now that the spin has stopped
+            if (window.slotEngine.pendingBells?.length > 0 || window.slotEngine.pendingStickyCoords?.length > 0) {
+                window.slotEngine.syncStickyBells(window.slotEngine.pendingBells || [], window.slotEngine.pendingStickyCoords || []);
+                window.slotEngine.pendingBells = [];
+                window.slotEngine.pendingStickyCoords = [];
+            }
+
             if (window.slotEngine.lastWinningLines?.length > 0) window.slotEngine.drawWinLines(window.slotEngine.lastWinningLines);
             
             if (window.slotEngine.wasInBonus === true && window.slotEngine.isBonusActive === false && window.slotEngine.stickyBells.some(b => b.value !== undefined) && !window.slotEngine.isRevealing) {
