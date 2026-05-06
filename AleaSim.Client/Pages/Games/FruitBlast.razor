@@ -245,7 +245,7 @@
     .symbol-icon-v4 { font-size: var(--symbol-size); filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4)); display: inline-block; transition: transform 0.1s; }
 
     /* --- TABLET BREAKPOINT (MEDIUM SCREENS) --- */
-    @media (max-width: 1200px) {
+    @@media (max-width: 1200px) {
         :root {
             --cell-size: 70px;
             --cell-gap: 8px;
@@ -259,7 +259,7 @@
     }
 
     /* --- MOBILE OVERRIDES --- */
-    @media (max-width: 768px) {
+    @@media (max-width: 768px) {
         :root {
             --cell-size: 48px;
             --cell-gap: 4px;
@@ -311,7 +311,7 @@
         animation: fallInV4 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; 
         will-change: transform;
     }
-    @keyframes fallInV4 { 
+    @@keyframes fallInV4 { 
         0% { transform: translateY(-300%); opacity: 0; } 
         100% { transform: translateY(0); opacity: 1; } 
     }
@@ -321,13 +321,13 @@
         z-index: 50; 
         will-change: transform, opacity;
     }
-    @keyframes explodeV4 { 0% { transform: scale(1); } 50% { transform: scale(1.5) rotate(15deg); opacity: 1; filter: brightness(1.5); } 100% { transform: scale(0); opacity: 0; } }
+    @@keyframes explodeV4 { 0% { transform: scale(1); } 50% { transform: scale(1.5) rotate(15deg); opacity: 1; filter: brightness(1.5); } 100% { transform: scale(0); opacity: 0; } }
     
     .shake-grid { animation: shakeV4 0.3s ease-in-out; }
-    @keyframes shakeV4 { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-4px, 0); } 75% { transform: translate(4px, 0); } }
+    @@keyframes shakeV4 { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-4px, 0); } 75% { transform: translate(4px, 0); } }
     
     .floating-win-v4 { position: absolute; font-size: 3.5rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 15px black, 0 0 10px #ffeb3b; z-index: 500; pointer-events: none; animation: floatUpV4 1.2s ease-out forwards; white-space: nowrap; }
-    @keyframes floatUpV4 { 0% { transform: translate(-50%, 0); opacity: 1; } 100% { transform: translate(-50%, -100px); opacity: 0; } }
+    @@keyframes floatUpV4 { 0% { transform: translate(-50%, 0); opacity: 1; } 100% { transform: translate(-50%, -100px); opacity: 0; } }
 </style>
 
 @code {
