@@ -67,11 +67,28 @@ html, body {
 
 /* Modern Glass Panel */
 .glass-panel {
-    background: var(--mud-palette-drawer-background);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid var(--mud-palette-divider) !important;
+    background-color: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
     border-radius: 24px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+[data-theme='dark'] .glass-panel {
+    background-color: rgba(30, 41, 59, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Fix for forms inside glass panels */
+.glass-panel .mud-input-control, 
+.glass-panel .mud-input-slot {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+.glass-panel .mud-input-outlined-border {
+    border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Modern Buttons */
