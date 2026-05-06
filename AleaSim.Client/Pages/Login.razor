@@ -5,11 +5,11 @@
 @inject ISnackbar Snackbar
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 
-<div class="d-flex justify-center align-center" style="min-height: 80vh; position: relative;">
+<div class="d-flex justify-center align-center overflow-hidden" style="min-height: 80vh; position: relative; width: 100%;">
     <!-- Background Decor -->
-    <div style="position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: -1;"></div>
+    <div style="position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none;"></div>
 
-    <div class="glass-panel pa-8 pa-md-12 rounded-xl" style="width: 100%; max-width: 480px; position: relative; z-index: 1;">
+    <div class="glass-panel pa-6 pa-md-12 rounded-xl mx-4" style="width: 100%; max-width: 480px; position: relative; z-index: 1;">
         <div class="text-center mb-8">
             <MudIcon Icon="@Icons.Material.Filled.Casino" Style="font-size: 4rem;" Color="Color.Primary" Class="mb-4 spin-hover" />
             <MudText Typo="Typo.h4" Class="text-gradient fw-black">WELCOME BACK</MudText>
