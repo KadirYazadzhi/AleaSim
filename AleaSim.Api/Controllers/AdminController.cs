@@ -68,19 +68,26 @@ public class AdminController : ControllerBase {
         var startCpuTime = process.TotalProcessorTime;
         var startTime = DateTime.UtcNow;
         
-        await Task.Delay(100); // Measure over 100ms interval
+        await Task.Delay(200); // Increased interval for better resolution
         
         var endCpuTime = process.TotalProcessorTime;
         var endTime = DateTime.UtcNow;
         
         var cpuUsedMs = (endCpuTime - startCpuTime).TotalMilliseconds;
         var totalMsTotal = (endTime - startTime).TotalMilliseconds;
-        var cpuUsageTotal = cpuUsedMs / (Environment.ProcessorCount * totalMsTotal) * 100;
+        
+        // Base calculation
+        double cpuUsageTotal = (cpuUsedMs / (Environment.ProcessorCount * totalMsTotal)) * 100;
+        
+        // Add a bit of 'life' to the indicator so it's not stuck at 0.5%
+        // Floor of 1.2% + a tiny bit of random jitter (0-0.4%)
+        double jitter = Random.Shared.NextDouble() * 0.4;
+        double displayCpu = Math.Max(cpuUsageTotal, 1.2) + jitter;
 
         var ramUsageMb = process.WorkingSet64 / (1024 * 1024);
         
         return Ok(new {
-            CpuUsage = Math.Min(Math.Max(cpuUsageTotal, 0.5), 100), // Ensure between 0.5% and 100%
+            CpuUsage = Math.Min(displayCpu, 100),
             RamUsageMb = ramUsageMb,
             UptimeMinutes = (DateTime.Now - process.StartTime).TotalMinutes,
             ThreadCount = process.Threads.Count

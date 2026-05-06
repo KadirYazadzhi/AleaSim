@@ -37,11 +37,10 @@
             <MudPaper Class="glass-panel pa-4 rounded-xl text-center">
                  <MudText Typo="Typo.caption" Class="d-block mb-1 mud-text-secondary">System Load</MudText>
                  <MudProgressLinear Color="@GetLoadColor(_cpuLoad)" Value="@_cpuLoad" Class="mb-1 rounded-pill" Size="Size.Small" />
-                 <MudText Typo="Typo.caption" Class="fw-bold" Color="@GetLoadColor(_cpuLoad)">@_cpuLoad.ToString("F0")%</MudText>
-            </MudPaper>
-        </div>
-    </MudDrawer>
-
+                 <MudText Typo="Typo.caption" Class="fw-bold" Color="@GetLoadColor(_cpuLoad)">@_cpuLoad.ToString("F1")%</MudText>
+                 </MudPaper>
+                 </div>
+                 </MudDrawer>
     <MudMainContent Class="pt-16 d-flex flex-column" Style="min-height: 100vh">
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="flex-grow-1 px-md-4 px-2 py-md-8 py-4">
             @Body
@@ -95,7 +94,7 @@
     {
         await LayoutService.InitializeAsync();
         LayoutService.OnMajorUpdate += StateHasChanged;
-        _statsTimer = new System.Threading.Timer(async _ => await RefreshStats(), null, 0, 10000);
+        _statsTimer = new System.Threading.Timer(async _ => await RefreshStats(), null, 0, 5000);
     }
 
     private async Task RefreshStats() {
