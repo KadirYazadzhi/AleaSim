@@ -244,6 +244,18 @@
     .light .grid-cell-v4 { background: rgba(0,0,0,0.03); border: 2px solid rgba(0,0,0,0.08); }
     .symbol-icon-v4 { font-size: var(--symbol-size); filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4)); display: inline-block; transition: transform 0.1s; }
 
+    /* --- WIN OVERLAY --- */
+    .giant-win-overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 2000; pointer-events: none; opacity: 0; transition: opacity 0.4s; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); }
+    .giant-win-overlay.visible { display: flex !important; opacity: 1; pointer-events: auto; }
+    .giant-win-overlay:not(.visible) { display: none !important; }
+    
+    .giant-win-overlay.compact-win { background: transparent; backdrop-filter: none; top: auto; bottom: 80px; height: 160px; }
+    .compact-win .win-content { transform: scale(0.6) !important; background: rgba(0,0,0,0.6); padding: 20px 60px; border-radius: 30px; border: 2px solid #ffeb3b; }
+    .win-content { text-align: center; transform: scale(0.5); transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .visible .win-content { transform: scale(1.5); }
+    .win-header { font-size: 3rem; font-weight: 950; color: white; text-shadow: 0 0 20px #ab47bc; letter-spacing: 12px; margin-bottom: 20px; }
+    .win-sum { font-size: 9rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 50px black, 0 0 30px #ffeb3b; line-height: 1; }
+
     /* --- TABLET BREAKPOINT (MEDIUM SCREENS) --- */
     @@media (max-width: 1200px) {
         :root {
