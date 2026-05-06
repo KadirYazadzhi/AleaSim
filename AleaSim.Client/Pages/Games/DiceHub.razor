@@ -224,7 +224,16 @@
     .result-display.spinning { animation: pulse 0.2s infinite; }
 
     .dice-grid {
-        display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.5rem; width: 100%; max-width: 500px;
+        display: grid; 
+        grid-template-columns: repeat(5, 1fr); 
+        grid-template-rows: repeat(2, 1fr);
+        gap: 0.75rem; 
+        width: 100%; 
+        max-width: 500px;
+    }
+    
+    @@media (max-width: 600px) {
+        .dice-grid { gap: 0.4rem; }
     }
 
     .roll-history-item {
