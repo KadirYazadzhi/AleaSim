@@ -147,10 +147,16 @@ window.slotEngine = {
 
         window.slotEngine.wasInBonus = window.slotEngine.isBonusActive;
 
-        // PRO FIX: Clear only if we are starting a spin from a non-feature state 
-        // AND we are not starting a new feature now. 
-        // If wasInFeature was true, this spin is the final respin/bonus spin.
-        if (!currentlyInFeature && !wasInFeature && !window.slotEngine.isRevealing) {
+        // PRO FIX: If we have old sticky bells and we are NOT in a feature anymore, 
+        // "release" them back to the reels so they can spin away naturally.
+        if (window.slotEngine.stickyBells.length > 0 && !currentlyInFeature) {
+            window.slotEngine.stickyBells.forEach(sb => {
+                const reel = window.slotEngine.reels[sb.c];
+                if (reel && reel.symbols[sb.r]) {
+                    reel.symbols[sb.r].sprite.texture = window.slotEngine.textures[`sym9`];
+                    reel.symbols[sb.r].sprite.alpha = 1;
+                }
+            });
             window.slotEngine.stickyBells = [];
             window.slotEngine.stickyLayer.removeChildren();
             window.slotEngine.stickyMap = Array(5).fill(0).map(() => Array(4).fill(false));
