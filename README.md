@@ -50,55 +50,75 @@ AleaSim models a complete casino ecosystem with strict financial guarantees, det
 ---
 
 ## 🖼️ Visual Experience (Real Screens)
-> Всеки екран по-долу съществува в системата и може да бъде скрийншотнат. Можеш да замениш placeholder изображенията с реални кадри.
+> Всеки екран по-долу съществува в системата и може да бъде скрийншотнат. Замени placeholder изображенията с реални кадри.
 
-### 🏛️ Player Hub / Dashboard
-Общ преглед на баланси, ниво, активни бонуси и навигация.
-![Player Hub Screenshot](docs/images/dashboard.png)
+### 🏠 Lobby (Начална страница)
+Екранът за избор на игри и навигация към слот/рулетка/блекджек.
+![Lobby Screenshot](docs/images/lobby-home.png)
 
-### 🧭 Game Lobby
-Екранът за избор на игри, филтри и навигация към слот/рулетка/блекджек.
-![Game Lobby Screenshot](docs/images/game-lobby.png)
+### 👤 Profile
+Профил на играча, настройки и персонализация.
+![Profile Screenshot](docs/images/profile.png)
 
-### 💰 Wallet & Transactions
-История на транзакции, бонуси и реални средства.
-![Wallet Screenshot](docs/images/wallet-transactions.png)
+### 💰 Wallet
+Баланс, бонуси и управление на средствата.
+![Wallet Screenshot](docs/images/wallet.png)
 
-### 🧩 Quests & Levels (RPG)
-Система за задачи, напредък и отключвания.
-![Quests Screenshot](docs/images/quests.png)
+### 🧾 Bet History
+История на залози и резултати.
+![Bet History Screenshot](docs/images/bet-history.png)
 
-### 🍀 CloverChase Slot
+### 🏆 Leaderboard
+Класации, топ играчи и ранкинги.
+![Leaderboard Screenshot](docs/images/leaderboard.png)
+
+### 🎰 Slot #1 (CloverChase)
 5x4 слот с бонуси и специални механики.
 ![CloverChase Screenshot](docs/images/cloverchase-gameplay.png)
 
-### 🍹 Fruit Blast Reactor
+### 🎰 Slot #2 (Fruit Blast Reactor)
 Каскадна игра с експлозии и кластер печалби.
 ![Fruit Blast Screenshot](docs/images/fruit-blast.png)
 
-### 🎡 Roulette Royale
-Европейска рулетка с динамични множители.
-![Roulette Screenshot](docs/images/roulette-gameplay.png)
+### 🎲 Dice Game #1
+Първа игра със зарове.
+![Dice Game 1 Screenshot](docs/images/dice-game-1.png)
 
-### ♠️ Tactical Blackjack
+### 🎲 Dice Game #2
+Втора игра със зарове.
+![Dice Game 2 Screenshot](docs/images/dice-game-2.png)
+
+### 🂡 Baccarat
+Бакарaт маса и интерфейс.
+![Baccarat Screenshot](docs/images/baccarat.png)
+
+### ♠️ Blackjack
 Стандартни правила, мулти-ръце, застраховка.
 ![Blackjack Screenshot](docs/images/blackjack-gameplay.png)
 
-### 💬 Global Chat & Direct Messages
-Реално време – канали и директни съобщения.
-![Chat Screenshot](docs/images/chat-view.png)
+### 🛡️ Admin: Dashboard
+Основен админ екран с обобщение и KPI.
+![Admin Dashboard Screenshot](docs/images/admin-dashboard.png)
 
-### 🔔 Notifications & Activity Feed
-Победи, бонуси, системни съобщения и история.
-![Notifications Screenshot](docs/images/notifications.png)
+### 🛡️ Admin: Users
+Управление на потребители и роли.
+![Admin Users Screenshot](docs/images/admin-users.png)
 
-### 📱 Mobile UI
-Мобилен изглед и навигация.
-![Mobile Screenshot](docs/images/mobile-view.png)
+### 🛡️ Admin: Transactions
+Финансови събития и логове.
+![Admin Transactions Screenshot](docs/images/admin-transactions.png)
 
-### 🛡️ Platform Sentinel (Admin Monitor)
-Админ панел за следене на залози, печалби и аларми.
-![Admin Monitor Screenshot](docs/images/admin-panel.png)
+### 🛡️ Admin: Games & RTP
+Конфигурация на игри и RTP настройки.
+![Admin Games Screenshot](docs/images/admin-games.png)
+
+### 🛡️ Admin: Risk / Alerts
+Сигнали, аларми и мониторинг.
+![Admin Alerts Screenshot](docs/images/admin-alerts.png)
+
+### 🛡️ Admin: Audit Stream
+Пълен поток от събития (audit log).
+![Admin Audit Screenshot](docs/images/admin-audit.png)
 
 ---
 
