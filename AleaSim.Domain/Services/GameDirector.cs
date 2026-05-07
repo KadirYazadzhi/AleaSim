@@ -3,6 +3,7 @@ using AleaSim.Domain.Enums;
 using AleaSim.Domain.Interfaces;
 using AleaSim.Shared.Models;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AleaSim.Domain.Services;
 
@@ -23,6 +24,7 @@ public class GameDirector : IGameDirector {
     private readonly IRealTimeService _realTime;
     private readonly IAchievementService _achievementService;
     private readonly IBackgroundTaskQueue _taskQueue;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public GameDirector(
         Func<string, IGame> gameResolver, 
@@ -32,7 +34,8 @@ public class GameDirector : IGameDirector {
         ILeaderboardService leaderboardService,
         IRealTimeService realTime,
         IAchievementService achievementService,
-        IBackgroundTaskQueue taskQueue) 
+        IBackgroundTaskQueue taskQueue,
+        IServiceScopeFactory scopeFactory) 
     {
         _gameResolver = gameResolver;
         _repo = repo;
@@ -42,6 +45,7 @@ public class GameDirector : IGameDirector {
         _realTime = realTime;
         _achievementService = achievementService;
         _taskQueue = taskQueue;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task<object?> GetCurrentState(string gameType, Guid sessionId) {
@@ -156,7 +160,7 @@ public class GameDirector : IGameDirector {
         var freshProfile = user != null ? _repo.GetPlayerProfile(user.Id) : null;
 
         // BROADCAST TO ADMINS (SignalR Group: Admins)
-        _ = _realTime.NotifyAdminFeed(new AdminRoundEvent {
+        await _realTime.NotifyAdminFeed(new AdminRoundEvent {
             Timestamp = DateTime.UtcNow,
             Username = user?.Username ?? "Unknown",
             Game = gameType,
@@ -174,9 +178,13 @@ public class GameDirector : IGameDirector {
         });
 
         // ASYNC ACHIEVEMENT CHECK (Issue 2)
-        await _taskQueue.QueueBackgroundWorkItemAsync(ct => {
-            _achievementService.CheckAchievements(userId, _repo, _realTime);
-            return ValueTask.CompletedTask;
+        await _taskQueue.QueueBackgroundWorkItemAsync(async ct => {
+            using var scope = _scopeFactory.CreateScope();
+            var repo = scope.ServiceProvider.GetRequiredService<IGameRepository>();
+            var achievements = scope.ServiceProvider.GetRequiredService<IAchievementService>();
+            var realTime = scope.ServiceProvider.GetRequiredService<IRealTimeService>();
+            
+            await achievements.CheckAchievements(userId, repo, realTime);
         });
 
         return round;
