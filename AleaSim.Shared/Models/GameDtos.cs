@@ -28,11 +28,10 @@ public class StartSessionResponse {
 }
 
 public class PlaceBetRequest {
-    [Range(0.01, 1000000, ErrorMessage = "Bet amount must be between 0.01 and 1,000,000.")]
+    [Range(0, 1000000, ErrorMessage = "Bet amount must be between 0 and 1,000,000.")]
     public decimal Amount { get; set; }
-    public object? BetData { get; set; } 
+    public object? BetData { get; set; }
 }
-
 public class PlaceBetResponse {
     public Guid RoundId { get; set; }
     public decimal TotalWin { get; set; }
@@ -73,11 +72,10 @@ public class GameActionResponse {
 public class RouletteBetDto {
     public string Type { get; set; } = string.Empty; // "number", "color", "evenodd"
     public string Value { get; set; } = string.Empty; // "17", "red", "even"
-    
-    [Range(0.01, 1000000, ErrorMessage = "Bet amount must be positive.")]
+
+    [Range(0, 1000000, ErrorMessage = "Bet amount must be between 0 and 1,000,000.")]
     public decimal Amount { get; set; }
 }
-
 public class GameRoundDto {
     public Guid Id { get; set; }
     public string GameName { get; set; } = string.Empty;
