@@ -101,19 +101,73 @@
     else
     {
         <!-- 2. DESKTOP VIEW: Full Original Layout -->
-        <MudGrid>
+        <MudGrid Spacing="1">
             <MudItem xs="12" lg="9">
-                <MudPaper Class="pa-4 d-flex justify-center align-center overflow-hidden desktop-wheel-card" 
-                          Style="background: radial-gradient(circle, #1a4a1a 0%, #0a2a0a 100%); border: 8px solid #3d2b1f; border-radius: 24px; box-shadow: 0 0 40px rgba(0,0,0,0.9); position: relative;">
-                    <!-- SHARED ID -->
-                    <div id="roulette-pro-container" style="width: 600px; height: 500px;"></div>
-                    @if (winningNumber.HasValue && !isSpinning) {
-                        <div class="result-overlay-pro animate-fade-in">
-                            <MudText Typo="Typo.h3" Style='@($"font-weight: 900; color: {(winningNumber == 0 ? "#4caf50" : (GetNumberColor(winningNumber.Value) == "red" ? "#ff5252" : "#ffffff"))};")'>@winningNumber</MudText>
-                            <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.6);">Winning Number</MudText>
+                <div class="d-flex gap-3 h-100 align-stretch">
+                    <!-- WHEEL AREA (50%) -->
+                    <MudPaper Class="pa-2 d-flex justify-center align-center overflow-hidden desktop-wheel-card flex-1" 
+                              Style="background: radial-gradient(circle, #1a4a1a 0%, #0a2a0a 100%); border: 6px solid #3d2b1f; border-radius: 16px; box-shadow: 0 0 25px rgba(0,0,0,0.8); position: relative; min-height: 400px;">
+                        <!-- SHARED ID -->
+                        <div id="roulette-pro-container" style="width: 420px; height: 380px;"></div>
+                        @if (winningNumber.HasValue && !isSpinning) {
+                            <div class="result-overlay-pro animate-fade-in">
+                                <MudText Typo="Typo.h3" Style='@($"font-weight: 900; color: {(winningNumber == 0 ? "#4caf50" : (GetNumberColor(winningNumber.Value) == "red" ? "#ff5252" : "#ffffff"))};")'>@winningNumber</MudText>
+                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.6);">Winning Number</MudText>
+                            </div>
+                        }
+                    </MudPaper>
+
+                    <!-- STATS DASHBOARD (50%) -->
+                    <MudPaper Class="pa-4 glass-panel flex-1" Style="border-radius: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 400px; background: rgba(0,0,0,0.4);">
+                        <div class="d-flex justify-space-between align-center border-b border-solid border-white opacity-20 pb-2 mb-1">
+                            <MudText Typo="Typo.subtitle1" Class="fw-black text-warning">ROULETTE TRACKER</MudText>
+                            <MudText Typo="Typo.caption" Class="opacity-50">Last 100 Rounds</MudText>
                         </div>
-                    }
-                </MudPaper>
+                        
+                        <div class="stats-scroll-area flex-grow-1 d-flex flex-column gap-4">
+                            <!-- HOT NUMBERS -->
+                            <div class="stat-group">
+                                <MudText Typo="Typo.caption" Class="text-danger fw-bold mb-2 d-block">🔥 HOT NUMBERS (TOP 5)</MudText>
+                                <div class="d-flex gap-4">
+                                    @foreach (var hot in hotNumbers.Take(5)) {
+                                        <div class="stat-v3-item">
+                                            <div class='@($"stat-v3-circle {GetNumberColor(hot.Number)}")'>@hot.Number</div>
+                                            <span class="stat-v3-label">@hot.Count hits</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- COLD NUMBERS -->
+                            <div class="stat-group">
+                                <MudText Typo="Typo.caption" Class="text-info fw-bold mb-2 d-block">❄️ COLD NUMBERS (RARE)</MudText>
+                                <div class="d-flex gap-4">
+                                    @foreach (var cold in coldNumbers.Take(5)) {
+                                        <div class="stat-v3-item">
+                                            <div class='@($"stat-v3-circle {GetNumberColor(cold.Number)}")'>@cold.Number</div>
+                                            <span class="stat-v3-label">@cold.Count spins</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- RECENT -->
+                            <div class="stat-group">
+                                <MudText Typo="Typo.caption" Class="opacity-60 fw-bold mb-2 d-block">🕘 RECENT RESULTS</MudText>
+                                <div class="d-flex gap-3 flex-wrap">
+                                    @foreach (var num in historyNumbers.Take(10)) {
+                                        <div class='@($"stat-v3-circle mini {GetNumberColor(num)}")'>@num</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto d-flex justify-space-between align-center pa-2 rounded bg-black opacity-60">
+                             <MudText Typo="Typo.caption" Style="font-family: monospace;">SESSION: @(sessionId?.ToString().Substring(0,8).ToUpper() ?? "...")</MudText>
+                             <MudText Typo="Typo.caption" Class="text-success fw-bold">LAST WIN: @lastWinAmount.ToString("C2")</MudText>
+                        </div>
+                    </MudPaper>
+                </div>
             </MudItem>
 
             <MudItem xs="12" lg="3">
@@ -135,11 +189,11 @@
 
             <MudItem xs="12" lg="9">
                 <MudPaper Class="pa-4" Style="background: #004d00; border: 10px solid #3d2b1f; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
-                    <div class="roulette-table" @onmouseup='() => isMouseDown = false'>
+                    <div class="roulette-table-v3" @onmouseup='() => isMouseDown = false'>
                         <div @key='"cell-0"' class='@($"cell zero {GetCursorClass("number", "0")} {(currentLuckyNumbers.ContainsKey(0) ? "lucky-cell lightning-flash" : "")}")' @onmousedown='() => HandleMouseDown("number", "0")' @onmouseenter='() => HandleMouseEnter("number", "0")'>
                             0 @GetBetBadge("number", "0") @GetLuckyBadge(0)
                         </div>                                
-                        <div class="numbers-grid">
+                        <div class="numbers-grid-v3">
                             @for (int i = 1; i <= 36; i++) {
                                 var num = i;
                                 <div @key='"cell-" + num' class='@($"cell {GetNumberColor(num)} {GetCursorClass("number", num.ToString())} {(currentLuckyNumbers.ContainsKey(num) ? "lucky-cell lightning-flash" : "")}")' @onmousedown='() => HandleMouseDown("number", num.ToString())' @onmouseenter='() => HandleMouseEnter("number", num.ToString())'>
@@ -147,7 +201,7 @@
                                 </div>
                             }
                         </div>
-                        <div class="outside-bets">
+                        <div class="outside-bets-v3">
                             <div @key='"outside-red"' class='@($"cell red {GetCursorClass("color", "red")}")' @onmousedown='() => HandleMouseDown("color", "red")' @onmouseenter='() => HandleMouseEnter("color", "red")'>RED @GetBetBadge("color", "red")</div>
                             <div @key='"outside-black"' class='@($"cell black {GetCursorClass("color", "black")}")' @onmousedown='() => HandleMouseDown("color", "black")' @onmouseenter='() => HandleMouseEnter("color", "black")'>BLACK @GetBetBadge("color", "black")</div>
                             <div @key='"outside-even"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' @onmousedown='() => HandleMouseDown("evenodd", "even")' @onmouseenter='() => HandleMouseEnter("evenodd", "even")'>EVEN @GetBetBadge("evenodd", "even")</div>
@@ -179,35 +233,73 @@
 </MudContainer>
 
 <style>
-    /* DESKTOP STYLES */
-    .roulette-table { display: flex; flex-direction: row; color: white; user-select: none; }
-    .zero { width: 60px; display: flex; align-items: center; justify-content: center; background: #008000; border: 1px solid white; cursor: pointer; position: relative; }
-    .numbers-grid { display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(3, 1fr); flex-grow: 1; grid-auto-flow: column; }
-    .cell { height: 60px; border: 1px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; font-weight: bold; }
-    .red { background: #b30000; } .black { background: #1a1a1a; } .even, .odd { background: #004d00; width: 100px; }
-    .outside-bets { display: flex; flex-direction: column; }
-    .bet-badge { position: absolute; top: -5px; right: -5px; background: #ffD700; color: black; border-radius: 50%; width: 24px; height: 24px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border: 2px solid white; font-weight: 900; z-index: 5; }
-    .lucky-cell { border: 2px solid #ff9800 !important; box-shadow: 0 0 15px #ff9800; background: rgba(255, 152, 0, 0.3) !important; }
+    /* DESKTOP STYLES (v3 Precision Alignment) */
+    .roulette-table-v3 { 
+        display: flex; 
+        height: 220px; /* Fixed height container */
+        gap: 8px; 
+        color: white; 
+        user-select: none; 
+    }
+    .roulette-table-v3 .zero { 
+        width: 70px; 
+        height: 100%; 
+        background: #008000; 
+        border: 1px solid white; 
+        border-radius: 6px; 
+        display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative;
+    }
+    .numbers-grid-v3 { 
+        display: grid; 
+        grid-template-columns: repeat(12, 1fr); 
+        grid-template-rows: repeat(3, 1fr); 
+        gap: 8px 6px; /* 8px vertical gap pushes them down to align */
+        flex-grow: 1; 
+    }
+    .outside-bets-v3 { 
+        display: flex; 
+        flex-direction: column; 
+        width: 120px; 
+        gap: 6px; 
+    }
+    .numbers-grid-v3 .cell, .outside-bets-v3 .cell { 
+        height: 100%; 
+        border: 1px solid rgba(255,255,255,0.3); 
+        border-radius: 4px;
+        display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; font-weight: bold;
+    }
+
+    /* STATS V3 STYLES */
+    .stat-v3-circle {
+        width: 40px; height: 40px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 900; font-size: 1rem; border: 2px solid rgba(255,255,255,0.4);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    }
+    .stat-v3-circle.mini { width: 30px; height: 30px; font-size: 0.8rem; border-width: 1px; }
+    .stat-v3-circle.red { background: linear-gradient(145deg, #ff5252, #b30000); }
+    .stat-v3-circle.black { background: linear-gradient(145deg, #424242, #1a1a1a); }
+    .stat-v3-circle.zero { background: linear-gradient(145deg, #66bb6a, #004d00); }
+    .stat-v3-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .stat-v3-label { font-size: 0.6rem; font-weight: 800; opacity: 0.8; color: #ff9800; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .bet-badge { position: absolute; top: -5px; right: -5px; background: #ffD700; color: black; border-radius: 50%; width: 22px; height: 22px; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; border: 2px solid white; font-weight: 900; z-index: 5; }
+    .lucky-cell { border: 2px solid #ff9800 !important; box-shadow: 0 0 15px #ff9800; background: rgba(255, 152, 0, 0.2) !important; }
     .lightning-flash { animation: lightning-strike 0.5s ease-out infinite alternate; }
-    @@keyframes lightning-strike { 0% { filter: brightness(1); } 100% { filter: brightness(1.8); } }
-    .result-overlay-pro { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.85); padding: 15px 25px; border-radius: 16px; border: 2px solid #d4af37; text-align: center; }
-    .mode-rect-card { padding: 20px; border-radius: 12px; cursor: pointer; background: rgba(255,255,255,0.05); text-align: center; font-weight: 900; border: 2px solid transparent; }
-    .active-classic { border-color: var(--mud-palette-primary) !important; background: rgba(124, 58, 237, 0.2) !important; }
-    .active-extreme { border-color: var(--mud-palette-warning) !important; background: rgba(255, 152, 0, 0.2) !important; }
+    @@keyframes lightning-strike { 0% { filter: brightness(1); } 100% { filter: brightness(1.6); } }
+    .result-overlay-pro { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.85); padding: 12px 20px; border-radius: 12px; border: 2px solid #d4af37; text-align: center; }
+    .mode-rect-card { padding: 18px; border-radius: 12px; cursor: pointer; background: rgba(255,255,255,0.05); text-align: center; font-weight: 900; border: 2px solid transparent; }
+    .active-classic { border-color: var(--mud-palette-primary) !important; background: rgba(124, 58, 237, 0.1) !important; }
+    .active-extreme { border-color: var(--mud-palette-warning) !important; background: rgba(255, 152, 0, 0.1) !important; }
 
     .lucky-badge { 
         position: absolute; 
-        top: 0; left: 0; width: 100%; height: 100%; 
-        display: flex; align-items: center; justify-content: center; 
-        background: rgba(255, 215, 0, 0.5); 
-        color: #fff; font-size: 1.4rem; font-weight: 950; 
-        text-shadow: 0 0 15px #000, 0 0 5px #000; z-index: 10; 
-        pointer-events: none;
-        border: 2px solid #fff;
-        box-sizing: border-box;
-        animation: lucky-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        bottom: 2px; right: 2px; 
+        background: #ff9800; 
+        color: #000; font-size: 0.65rem; font-weight: 950; 
+        padding: 1px 4px; border-radius: 4px; border: 1px solid #fff;
+        z-index: 10; pointer-events: none;
     }
-    @@keyframes lucky-pop { 0% { transform: scale(0) rotate(-20deg); opacity: 0; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
 
     /* MOBILE PiP SYSTEM */
     @@media (max-width: 960px) {
@@ -250,6 +342,38 @@
     private string selectedMode = "Classic";
     private Dictionary<int, int> currentLuckyNumbers = new();
     private bool _wheelExpanded = false;
+
+    // STATS TRACKING
+    private List<int> historyNumbers = new();
+    private List<NumberStat> hotNumbers = new();
+    private List<NumberStat> coldNumbers = new();
+    private decimal lastWinAmount = 0;
+
+    public class NumberStat { public int Number { get; set; } public int Count { get; set; } }
+
+    private async Task RefreshStats() {
+        try {
+            var allHistory = await Http.GetFromJsonAsync<List<GameHistoryDto>>("api/Game/public-history");
+            var rouletteRounds = allHistory?.Where(h => h.GameName == "Roulette").Take(100).ToList() ?? new();
+            
+            historyNumbers = rouletteRounds.Select(r => {
+                try {
+                    var data = JsonSerializer.Deserialize<RouletteResult>(r.FullResultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    return data?.Number ?? -1;
+                } catch { return -1; }
+            }).Where(n => n != -1).ToList();
+
+            // Calculate Hot/Cold
+            var counts = historyNumbers.GroupBy(n => n).Select(g => new NumberStat { Number = g.Key, Count = g.Count() }).ToList();
+            hotNumbers = counts.OrderByDescending(c => c.Count).Take(5).ToList();
+            
+            // Cold = Numbers not in recent history, or least frequent
+            var neverHit = Enumerable.Range(0, 37).Where(n => !historyNumbers.Contains(n)).Select(n => new NumberStat { Number = n, Count = 0 }).ToList();
+            coldNumbers = neverHit.Concat(counts.OrderBy(c => c.Count)).Take(5).ToList();
+            
+            StateHasChanged();
+        } catch { }
+    }
 
     // Draggable Logic
     private double _wheelX = 250; 
@@ -300,6 +424,16 @@
     protected override async Task OnInitializedAsync() {
         await Audio.Init();
         await LoadInitialData();
+        
+        RealTime.OnGameUpdateReceived += async (data) => {
+            try {
+                var json = data.ToString();
+                var update = JsonSerializer.Deserialize<Dictionary<string, object>>(json ?? "{}");
+                if (update != null && update.ContainsKey("Game") && update["Game"].ToString() == "Roulette") {
+                    await RefreshStats();
+                }
+            } catch { }
+        };
     }
 
     private async Task LoadInitialData() {
@@ -313,6 +447,7 @@
                 if (prefs.TryGetValue("TurboMode", out var turbo)) turboMode = turbo.ToString()?.ToLower() == "true";
                 if (prefs.TryGetValue("LowGraphics", out var low)) lowGraphics = low.ToString()?.ToLower() == "true";
             }
+            await RefreshStats();
         } catch { }
     }
 
@@ -354,6 +489,8 @@
             }
             await Task.Delay(turboMode ? 1500 : 5500);
             winningNumber = resultData?.Number;
+            lastWinAmount = result.TotalWin;
+
             if (result.TotalWin > 0) {
                 string winMsg = (resultData?.Multiplier > 0) ? $"LIGHTNING WIN! {resultData.Multiplier}x! Total: {result.TotalWin:C2}" : $"WINNER! {winningNumber} paid {result.TotalWin:C2}";
                 Snackbar.Add(winMsg, resultData?.Multiplier > 0 ? Severity.Warning : Severity.Success);
@@ -362,6 +499,7 @@
             var user = await AuthService.GetMe();
             if (user != null) balance = user.TotalBalance;
             currentBets.Clear();
+            await RefreshStats();
         } catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { isSpinning = false; layoutService.SetBalanceUpdateSuppression(false); StateHasChanged(); }
     }
