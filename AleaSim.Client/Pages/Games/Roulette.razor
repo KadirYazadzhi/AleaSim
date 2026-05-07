@@ -13,7 +13,7 @@
 @inject LayoutService layoutService
 @inject IJSRuntime JSRuntime
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-2 mt-md-4" Style="padding-top: 10px; position: relative;">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-2 mt-md-4" Style="padding-top: 10px; position: relative;" @onmouseup='() => isMouseDown = false'>
     
     @if (layoutService.IsMobile)
     {
@@ -46,18 +46,18 @@
             <!-- Table (Top) -->
             <div class="roulette-board-container">
                 <MudPaper Class="pa-1" Style="background: #004d00; border: 4px solid #3d2b1f; border-radius: 10px;">
-                    <div class="roulette-table mobile-vertical">
+                    <div class="roulette-table mobile-vertical" @onmouseup='() => isMouseDown = false'>
                         <div @key='"cell-0"' class='@($"cell zero {GetCursorClass("number", "0")} {(currentLuckyNumbers.ContainsKey(0) ? "lucky-cell lightning-flash" : "")}")' 
-                             @onmousedown='() => HandleMouseDown("number", "0")' @onmousedown:stopPropagation>
-                            0 @GetBetBadge("number", "0")
+                             @onmousedown='() => HandleMouseDown("number", "0")' @onmouseenter='() => HandleMouseEnter("number", "0")' @onmousedown:stopPropagation>
+                            0 @GetBetBadge("number", "0") @GetLuckyBadge(0)
                         </div>                                
                         <div class="mobile-piles-container">
                             @foreach (var pile in new[] { Enumerable.Range(1, 12), Enumerable.Range(13, 12), Enumerable.Range(25, 12) }) {
                                 <div class="pile">
                                     @foreach (int i in pile) {
                                         <div @key='"cell-" + i' class='@($"cell {GetNumberColor(i)} {GetCursorClass("number", i.ToString())} {(currentLuckyNumbers.ContainsKey(i) ? "lucky-cell lightning-flash" : "")}")' 
-                                             @onmousedown='() => HandleMouseDown("number", i.ToString())'>
-                                            @i @GetBetBadge("number", i.ToString())
+                                             @onmousedown='() => HandleMouseDown("number", i.ToString())' @onmouseenter='() => HandleMouseEnter("number", i.ToString())'>
+                                            @i @GetBetBadge("number", i.ToString()) @GetLuckyBadge(i)
                                         </div>
                                     }
                                 </div>
@@ -65,12 +65,12 @@
                         </div>
                         <div class="outside-grid-mobile">
                             <div class="outside-row">
-                                <div @key='"outside-red"' class='@($"cell red {GetCursorClass("color", "red")}")' @onmousedown='() => HandleMouseDown("color", "red")'>RED</div>
-                                <div @key='"outside-black"' class='@($"cell black {GetCursorClass("color", "black")}")' @onmousedown='() => HandleMouseDown("color", "black")'>BLK</div>
+                                <div @key='"outside-red"' class='@($"cell red {GetCursorClass("color", "red")}")' @onmousedown='() => HandleMouseDown("color", "red")' @onmouseenter='() => HandleMouseEnter("color", "red")'>RED @GetBetBadge("color", "red")</div>
+                                <div @key='"outside-black"' class='@($"cell black {GetCursorClass("color", "black")}")' @onmousedown='() => HandleMouseDown("color", "black")' @onmouseenter='() => HandleMouseEnter("color", "black")'>BLK @GetBetBadge("color", "black")</div>
                             </div>
                             <div class="outside-row">
-                                <div @key='"outside-even"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' @onmousedown='() => HandleMouseDown("evenodd", "even")'>EVN</div>
-                                <div @key='"outside-odd"' class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' @onmousedown='() => HandleMouseDown("evenodd", "odd")'>ODD</div>
+                                <div @key='"outside-even"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' @onmousedown='() => HandleMouseDown("evenodd", "even")' @onmouseenter='() => HandleMouseEnter("evenodd", "even")'>EVN @GetBetBadge("evenodd", "even")</div>
+                                <div @key='"outside-odd"' class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' @onmousedown='() => HandleMouseDown("evenodd", "odd")' @onmouseenter='() => HandleMouseEnter("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
                             </div>
                         </div>
                     </div>
@@ -135,19 +135,23 @@
 
             <MudItem xs="12" lg="9">
                 <MudPaper Class="pa-4" Style="background: #004d00; border: 10px solid #3d2b1f; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
-                    <div class="roulette-table">
-                        <div @key='"cell-0"' class='@($"cell zero {GetCursorClass("number", "0")} {(currentLuckyNumbers.ContainsKey(0) ? "lucky-cell lightning-flash" : "")}")' @onmousedown='() => HandleMouseDown("number", "0")'>0 @GetBetBadge("number", "0")</div>                                
+                    <div class="roulette-table" @onmouseup='() => isMouseDown = false'>
+                        <div @key='"cell-0"' class='@($"cell zero {GetCursorClass("number", "0")} {(currentLuckyNumbers.ContainsKey(0) ? "lucky-cell lightning-flash" : "")}")' @onmousedown='() => HandleMouseDown("number", "0")' @onmouseenter='() => HandleMouseEnter("number", "0")'>
+                            0 @GetBetBadge("number", "0") @GetLuckyBadge(0)
+                        </div>                                
                         <div class="numbers-grid">
                             @for (int i = 1; i <= 36; i++) {
                                 var num = i;
-                                <div @key='"cell-" + num' class='@($"cell {GetNumberColor(num)} {GetCursorClass("number", num.ToString())} {(currentLuckyNumbers.ContainsKey(num) ? "lucky-cell lightning-flash" : "")}")' @onmousedown='() => HandleMouseDown("number", num.ToString())' @onmouseenter='() => HandleMouseEnter("number", num.ToString())'>@num @GetBetBadge("number", num.ToString())</div>
+                                <div @key='"cell-" + num' class='@($"cell {GetNumberColor(num)} {GetCursorClass("number", num.ToString())} {(currentLuckyNumbers.ContainsKey(num) ? "lucky-cell lightning-flash" : "")}")' @onmousedown='() => HandleMouseDown("number", num.ToString())' @onmouseenter='() => HandleMouseEnter("number", num.ToString())'>
+                                    @num @GetBetBadge("number", num.ToString()) @GetLuckyBadge(num)
+                                </div>
                             }
                         </div>
                         <div class="outside-bets">
-                            <div @key='"outside-red"' class='@($"cell red {GetCursorClass("color", "red")}")' @onmousedown='() => HandleMouseDown("color", "red")'>RED</div>
-                            <div @key='"outside-black"' class='@($"cell black {GetCursorClass("color", "black")}")' @onmousedown='() => HandleMouseDown("color", "black")'>BLACK</div>
-                            <div @key='"outside-even"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' @onmousedown='() => HandleMouseDown("evenodd", "even")'>EVEN</div>
-                            <div @key='"outside-odd"' class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' @onmousedown='() => HandleMouseDown("evenodd", "odd")'>ODD</div>
+                            <div @key='"outside-red"' class='@($"cell red {GetCursorClass("color", "red")}")' @onmousedown='() => HandleMouseDown("color", "red")' @onmouseenter='() => HandleMouseEnter("color", "red")'>RED @GetBetBadge("color", "red")</div>
+                            <div @key='"outside-black"' class='@($"cell black {GetCursorClass("color", "black")}")' @onmousedown='() => HandleMouseDown("color", "black")' @onmouseenter='() => HandleMouseEnter("color", "black")'>BLACK @GetBetBadge("color", "black")</div>
+                            <div @key='"outside-even"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' @onmousedown='() => HandleMouseDown("evenodd", "even")' @onmouseenter='() => HandleMouseEnter("evenodd", "even")'>EVEN @GetBetBadge("evenodd", "even")</div>
+                            <div @key='"outside-odd"' class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' @onmousedown='() => HandleMouseDown("evenodd", "odd")' @onmouseenter='() => HandleMouseEnter("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
                         </div>
                     </div>
                 </MudPaper>
@@ -183,13 +187,27 @@
     .red { background: #b30000; } .black { background: #1a1a1a; } .even, .odd { background: #004d00; width: 100px; }
     .outside-bets { display: flex; flex-direction: column; }
     .bet-badge { position: absolute; top: -5px; right: -5px; background: #ffD700; color: black; border-radius: 50%; width: 24px; height: 24px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border: 2px solid white; font-weight: 900; z-index: 5; }
-    .lucky-cell { border: 2px solid #ff9800 !important; background: rgba(255, 152, 0, 0.2) !important; }
+    .lucky-cell { border: 2px solid #ff9800 !important; box-shadow: 0 0 15px #ff9800; background: rgba(255, 152, 0, 0.3) !important; }
     .lightning-flash { animation: lightning-strike 0.5s ease-out infinite alternate; }
     @@keyframes lightning-strike { 0% { filter: brightness(1); } 100% { filter: brightness(1.8); } }
     .result-overlay-pro { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.85); padding: 15px 25px; border-radius: 16px; border: 2px solid #d4af37; text-align: center; }
     .mode-rect-card { padding: 20px; border-radius: 12px; cursor: pointer; background: rgba(255,255,255,0.05); text-align: center; font-weight: 900; border: 2px solid transparent; }
     .active-classic { border-color: var(--mud-palette-primary) !important; background: rgba(124, 58, 237, 0.2) !important; }
     .active-extreme { border-color: var(--mud-palette-warning) !important; background: rgba(255, 152, 0, 0.2) !important; }
+
+    .lucky-badge { 
+        position: absolute; 
+        top: 0; left: 0; width: 100%; height: 100%; 
+        display: flex; align-items: center; justify-content: center; 
+        background: rgba(255, 215, 0, 0.5); 
+        color: #fff; font-size: 1.4rem; font-weight: 950; 
+        text-shadow: 0 0 15px #000, 0 0 5px #000; z-index: 10; 
+        pointer-events: none;
+        border: 2px solid #fff;
+        box-sizing: border-box;
+        animation: lucky-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @@keyframes lucky-pop { 0% { transform: scale(0) rotate(-20deg); opacity: 0; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
 
     /* MOBILE PiP SYSTEM */
     @@media (max-width: 960px) {
