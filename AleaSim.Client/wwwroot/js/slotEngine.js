@@ -142,23 +142,20 @@ window.slotEngine = {
         
         const data = JSON.parse(resultJson);
         const grid = data.Grid;
-        const currentlyInFeature = data.IsBonusActive || data.IsRespinActive;
-        const wasInFeature = window.slotEngine.isBonusActive || window.slotEngine.isRespinActive;
+        const isNewFeatureSpin = data.IsBonusActive || data.IsRespinActive;
         
         window.slotEngine.wasInBonus = window.slotEngine.isBonusActive;
 
-        // --- DEFINITIVE RELEASE LOGIC ---
-        // We only release bells when starting a brand new NORMAL spin
-        if (!currentlyInFeature && !wasInFeature) {
+        // --- SIMPLIFIED DEFINITIVE RELEASE ---
+        // If this spin is NOT a feature spin, but we have leftover bells, release them.
+        if (!isNewFeatureSpin && window.slotEngine.stickyBells.length > 0) {
             window.slotEngine.stickyBells.forEach(sb => {
                 const reel = window.slotEngine.reels[sb.c];
                 if (reel && reel.symbols[sb.r]) {
-                    // "Stamp" the bell onto the reel before it moves
                     reel.symbols[sb.r].sprite.texture = window.slotEngine.textures[`sym9`];
                     reel.symbols[sb.r].sprite.alpha = 1;
                 }
             });
-            // Clear the sticky layer immediately so only the "stamped" reel symbols move
             window.slotEngine.stickyLayer.removeChildren();
             window.slotEngine.stickyBells = [];
             window.slotEngine.stickyMap = Array(5).fill(0).map(() => Array(4).fill(false));
