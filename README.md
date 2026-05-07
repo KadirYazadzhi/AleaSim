@@ -50,93 +50,93 @@ AleaSim models a complete casino ecosystem with strict financial guarantees, det
 ---
 
 ## 🖼️ Visual Experience (Real Screens)
-> Снимките са разделени по тип потребител. Замени placeholder изображенията с реални кадри от системата.
+> Screenshots are grouped by audience. Replace the placeholders with real captures from the system.
 
 ### 👥 Player Experience (All Users)
 
-#### 🏠 Lobby (Начална страница)
-Екранът за избор на игри и навигация.
+#### 🏠 Lobby (Home)
+The main lobby used for game selection and navigation.
 ![Lobby Screenshot](docs/images/lobby-home.png)
 
 #### 👤 Profile
-Профил на играча, настройки и персонализация.
+Player profile, settings, and personalization.
 ![Profile Screenshot](docs/images/profile.png)
 
 #### 💰 Wallet
-Баланс, бонуси и управление на средствата.
+Balances, bonuses, and funds management.
 ![Wallet Screenshot](docs/images/wallet.png)
 
 #### 🧾 Bet History
-История на залози и резултати.
+Bet history and outcomes.
 ![Bet History Screenshot](docs/images/bet-history.png)
 
 #### 🏆 Leaderboard
-Класации, топ играчи и ранкинги.
+Rankings and top players.
 ![Leaderboard Screenshot](docs/images/leaderboard.png)
 
 #### 🎰 Slot #1 (CloverChase)
-5x4 слот с бонуси и специални механики.
+5x4 slot with bonus mechanics.
 ![CloverChase Screenshot](docs/images/cloverchase-gameplay.png)
 
 #### 🎰 Slot #2 (Fruit Blast Reactor)
-Каскадна игра с експлозии и кластер печалби.
+Cascading slot with blast mechanics.
 ![Fruit Blast Screenshot](docs/images/fruit-blast.png)
 
 #### 🎡 Roulette Royale
-Европейска рулетка (classic режим).
+Classic European roulette mode.
 ![Roulette Royale Screenshot](docs/images/roulette-royale.png)
 
 #### 🎡 Extreme Roulette
-Разширен режим с допълнителни множители.
+Advanced roulette mode with extra multipliers.
 ![Extreme Roulette Screenshot](docs/images/roulette-extreme.png)
 
 #### 🎲 Dice Game #1 (Neon Dice)
-Първа игра със зарове.
+Dice game: Neon Dice mode.
 ![Neon Dice Screenshot](docs/images/dice-neon.png)
 
 #### 🎲 Dice Game #2 (Crazy Dice)
-Втора игра със зарове.
+Dice game: Crazy Dice mode.
 ![Crazy Dice Screenshot](docs/images/dice-crazy.png)
 
 #### 🂡 Baccarat
-Бакарaт маса и интерфейс.
+Baccarat table and gameplay UI.
 ![Baccarat Screenshot](docs/images/baccarat.png)
 
 #### ♠️ Blackjack
-Стандартни правила, мулти-ръце, застраховка.
+Multi-hand blackjack with insurance.
 ![Blackjack Screenshot](docs/images/blackjack-gameplay.png)
 
 ### 🛡️ Admin Experience (Admin Only)
-> Добави реални кадри от админ панела. Ако нямаш всички, започни от най-важните екрани.
+> Add real captures from the admin panel. If you don't have all of them yet, start with the most important screens.
 
 #### 🛡️ Admin Overview
-Основен админ екран с обобщение и KPI.
+Admin overview with KPIs and system status.
 ![Admin Overview Screenshot](docs/images/admin-overview.png)
 
 #### 📺 Live Monitor
-Жив мониторинг на залози, печалби и събития.
+Live monitoring of bets, wins, and events.
 ![Admin Live Monitor Screenshot](docs/images/admin-live-monitor.png)
 
 #### 👥 Player Manager
-Управление на потребители, баланси и роли.
+User management, balances, and roles.
 ![Admin Player Manager Screenshot](docs/images/admin-players.png)
 
 #### 🧾 Audit Logs
-Логове на системни и финансови събития.
+System and financial audit logs.
 ![Admin Audit Logs Screenshot](docs/images/admin-audit.png)
 
 #### ⚠️ System Errors
-Мониторинг на грешки и проблеми.
+Error monitoring and incidents.
 ![Admin System Errors Screenshot](docs/images/admin-errors.png)
 
 #### ⚙️ Platform Settings
-Глобални настройки на платформата.
+Global platform configuration.
 ![Admin Settings Screenshot](docs/images/admin-settings.png)
 
 ---
 
 ## 🧭 Diagrams & Schematics
-Добави диаграми, които отговарят на реалната архитектура и могат да бъдат генерирани от проекта.
+Add diagrams that reflect the real architecture and can be generated from the project.
 
 ### 🏛️ Trinity Architecture (Vault / Brain / Engines)
 ![Trinity Architecture Diagram](docs/images/diagram-trinity-architecture.png)
