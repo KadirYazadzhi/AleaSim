@@ -20,7 +20,8 @@
 
 ## 📌 Table of Contents
 - [Project Overview](#-project-overview)
-- [Visual Experience](#-visual-experience)
+- [Visual Experience (Real Screens)](#-visual-experience-real-screens)
+- [Diagrams & Schematics](#-diagrams--schematics)
 - [Core Engineering Pillars](#-core-engineering-pillars)
 - [Behavioral AI & Retention Mechanics](#-behavioral-ai--retention-mechanics)
 - [Game Catalog](#-game-catalog)
@@ -48,48 +49,73 @@ AleaSim models a complete casino ecosystem with strict financial guarantees, det
 
 ---
 
-## 🖼️ Visual Experience
+## 🖼️ Visual Experience (Real Screens)
+> Всеки екран по-долу съществува в системата и може да бъде скрийншотнат. Можеш да замениш placeholder изображенията с реални кадри.
 
-### 🏛️ The Player Hub
-The central command where players manage their wallets, track RPG levels, and explore the ecosystem.
-![Dashboard Screenshot](docs/images/dashboard.png)
+### 🏛️ Player Hub / Dashboard
+Общ преглед на баланси, ниво, активни бонуси и навигация.
+![Player Hub Screenshot](docs/images/dashboard.png)
+
+### 🧭 Game Lobby
+Екранът за избор на игри, филтри и навигация към слот/рулетка/блекджек.
+![Game Lobby Screenshot](docs/images/game-lobby.png)
+
+### 💰 Wallet & Transactions
+История на транзакции, бонуси и реални средства.
+![Wallet Screenshot](docs/images/wallet-transactions.png)
+
+### 🧩 Quests & Levels (RPG)
+Система за задачи, напредък и отключвания.
+![Quests Screenshot](docs/images/quests.png)
 
 ### 🍀 CloverChase Slot
-A professional 5x4 video slot with Sticky Wilds, Mystery Nudges, and a layered Bell Bonus system.
-![Slot Screenshot](docs/images/cloverchase-gameplay.png)
+5x4 слот с бонуси и специални механики.
+![CloverChase Screenshot](docs/images/cloverchase-gameplay.png)
 
 ### 🍹 Fruit Blast Reactor
-A cascading/avalanche slot with cluster pays, TNT explosions, and the high-volatility Juice Pot Meltdown.
-![FruitBlast Screenshot](docs/images/fruit-blast.png)
+Каскадна игра с експлозии и кластер печалби.
+![Fruit Blast Screenshot](docs/images/fruit-blast.png)
 
 ### 🎡 Roulette Royale
-A high-fidelity European Roulette experience with dynamic lucky numbers and real-time multiplier injection.
+Европейска рулетка с динамични множители.
 ![Roulette Screenshot](docs/images/roulette-gameplay.png)
 
 ### ♠️ Tactical Blackjack
-Standard Vegas rules with multi-hand support, insurance, and Brain-optimized dealer logic.
+Стандартни правила, мулти-ръце, застраховка.
 ![Blackjack Screenshot](docs/images/blackjack-gameplay.png)
 
-### 📱 Native Mobile UI
-A complete "Mobile-First" overhaul. Games expand to screen edges, and the chat system uses an Instagram-style navigation flow.
-![Mobile View Screenshot](docs/images/mobile-view.png)
-
-### 💬 Social & Comms
-A fully responsive, real-time communication suite with global channels and encrypted-style private direct messages.
+### 💬 Global Chat & Direct Messages
+Реално време – канали и директни съобщения.
 ![Chat Screenshot](docs/images/chat-view.png)
 
-### 🛡️ Platform Sentinel (Live Monitoring)
-An industrial-grade admin monitor providing a real-time stream of every bet, win, and system audit across the infrastructure.
+### 🔔 Notifications & Activity Feed
+Победи, бонуси, системни съобщения и история.
+![Notifications Screenshot](docs/images/notifications.png)
+
+### 📱 Mobile UI
+Мобилен изглед и навигация.
+![Mobile Screenshot](docs/images/mobile-view.png)
+
+### 🛡️ Platform Sentinel (Admin Monitor)
+Админ панел за следене на залози, печалби и аларми.
 ![Admin Monitor Screenshot](docs/images/admin-panel.png)
 
-### 🧪 Additional Visual Slots (Placeholders)
-Use these placeholders to add more screenshots without overloading the page:
-- ![Economy & Wallets](docs/images/economy-wallets.png)
-- ![Achievement & RPG](docs/images/achievements.png)
-- ![Quest System](docs/images/quests.png)
-- ![Game Lobby](docs/images/game-lobby.png)
-- ![Progressive Jackpots](docs/images/jackpots.png)
-- ![Admin Audit Stream](docs/images/audit-stream.png)
+---
+
+## 🧭 Diagrams & Schematics
+Добави диаграми, които отговарят на реалната архитектура и могат да бъдат генерирани от проекта.
+
+### 🏛️ Trinity Architecture (Vault / Brain / Engines)
+![Trinity Architecture Diagram](docs/images/diagram-trinity-architecture.png)
+
+### 🔁 Bet Lifecycle / Event Flow
+![Bet Lifecycle Diagram](docs/images/diagram-bet-lifecycle.png)
+
+### 🗄️ Database Schema (Core Tables)
+![Database Schema Diagram](docs/images/diagram-database-schema.png)
+
+### ☁️ Deployment & Infrastructure
+![Deployment Diagram](docs/images/diagram-deployment.png)
 
 ---
 
