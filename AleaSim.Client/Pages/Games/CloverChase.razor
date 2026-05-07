@@ -404,7 +404,9 @@
                 StateHasChanged();
                 if (gameState.IsGambleActive && isAutoSpinning) await CollectWin(); 
             } catch (Exception ex) { 
-                Snackbar.Add(ex.Message, Severity.Error); isAutoSpinning = false;
+                Snackbar.Add(ex.Message, Severity.Error); 
+                isAutoSpinning = false;
+                isSpinning = false;
             }
             finally { LayoutService.SetBalanceUpdateSuppression(false); StateHasChanged(); }
             if (isAutoSpinning) await Task.Delay(animationSpeed == 1 ? 1000 : 200);

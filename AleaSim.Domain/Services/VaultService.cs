@@ -38,10 +38,12 @@ public class VaultService : IVaultService {
         _logger.LogDebug($"ProcessBetAsync START: userId={userId}, amount={amount}");
         
         // SECURITY: Validate decimal input (reject special values, not range)
-        if (!ValidationHelper.IsValidDecimal(amount) || amount <= 0) {
+        if (!ValidationHelper.IsValidDecimal(amount) || amount < 0) {
             _logger.LogWarning($"Invalid bet amount: {amount}");
             return false; // Reject gracefully
         }
+
+        if (amount == 0) return true; // Free spin / Bonus step
         
         // SECURITY: Hard cap at absolute maximum (prevent overflow attacks)
         if (amount > GameConstants.MAX_BET) {
