@@ -19,7 +19,7 @@
         </MudButton>
     </div>
 
-    <MudPaper Class="pa-2 rounded-xl glass-panel-v2" Elevation="0">
+    <MudPaper Class="pa-2 rounded-xl glass-panel" Elevation="0">
         @if (!NotifService.History.Any())
         {
             <div class="d-flex flex-column align-center justify-center py-16 opacity-30">
@@ -29,7 +29,7 @@
         }
         else
         {
-            <MudList T="NotificationItem" Clickable="true">
+            <MudList T="NotificationItem">
                 @foreach (var notif in NotifService.History.OrderByDescending(n => n.Timestamp))
                 {
                     <MudListItem Class='@($"pa-4 mb-2 rounded-lg notif-item {(notif.IsRead ? "read" : "unread")}")' OnClick="() => notif.IsRead = true">
@@ -128,11 +128,6 @@
         var span = DateTime.Now - dt;
         if (span.TotalMinutes < 1) return "just now";
         if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
-        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
-        return dt.ToShortDateString();
-    }
-}
-TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
         if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
         return dt.ToShortDateString();
     }

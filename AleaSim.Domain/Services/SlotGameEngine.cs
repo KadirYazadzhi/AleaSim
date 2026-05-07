@@ -296,7 +296,7 @@ public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile p
                 InitializeBonusGrid(state, ss, cs, off, cfg);
             } else { 
                 state.IsRespinActive = false; 
-                state.StickyBells.Clear(); 
+                // Removed: state.StickyBells.Clear(); - Let the next standard round handle reset
             }
         }
         return coins;

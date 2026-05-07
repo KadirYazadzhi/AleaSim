@@ -116,6 +116,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
 
             var user = repo.GetUser(session.UserId);
             bool isSimUser = user?.Username?.StartsWith("Sim_") ?? false;
+            bool isExcludedFromJackpot = isSimUser || user?.Role == Role.Admin;
 
             FillGrid(state.Grid, session, baseNonce, directive, config);
 
@@ -151,8 +152,8 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     state.LifetimeExplosions += explodedCount;
                     if (playerProfile != null) playerProfile.FruitBlastLifetimeExplosions += explodedCount;
 
-                    // Update Juice Reservoir Contribution (0.1% per exploded fruit) - EXCLUDE SIMS
-                    if (!isSimUser) {
+                    // Update Juice Reservoir Contribution (0.1% per exploded fruit) - EXCLUDE SIMS & ADMINS
+                    if (!isExcludedFromJackpot) {
                         decimal contribution = bet.Amount * 0.001m * explodedCount;
                         juiceReservoir.CurrentValue += contribution;
                         state.JuicePotValue = juiceReservoir.CurrentValue;
@@ -173,7 +174,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
                         state.LifetimeExplosions += affectedCount;
                         if (playerProfile != null) playerProfile.FruitBlastLifetimeExplosions += affectedCount;
 
-                        if (!isSimUser) {
+                        if (!isExcludedFromJackpot) {
                             decimal contribution = bet.Amount * 0.001m * affectedCount;
                             juiceReservoir.CurrentValue += contribution;
                             state.JuicePotValue = juiceReservoir.CurrentValue;
@@ -193,10 +194,10 @@ public class FruitBlastGameEngine : BaseGameEngine {
                     meltdownAwarded = true;
                     
                     // Add Juice Reservoir to win - EXCLUDE SIMS FROM DRAINING POT
-                    if (!isSimUser) {
+                    if (!isExcludedFromJackpot) {
                         state.CurrentRoundWin += juiceReservoir.CurrentValue;
-                        // Reset Juice Reservoir to seed value (500 as per seeder)
-                        juiceReservoir.CurrentValue = 500.0m;
+                        // Reset Juice Reservoir to seed value (1000 as per user request)
+                        juiceReservoir.CurrentValue = 1000.0m;
                     }
                     
                     // Trigger Meltdown transformation
@@ -253,7 +254,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
             }
 
             // Jackpot Trigger Check (for Global and potentially other game jackpots)
-            if (!isSimUser) {
+            if (!isExcludedFromJackpot) {
                 var jackpotResult = await JackpotService.CheckJackpotTrigger(session.GameId, session.ServerSeed, session.ClientSeed, roundNum, repo).ConfigureAwait(false);
                 if (jackpotResult.Triggered) {
                     totalWin += jackpotResult.WinAmount;

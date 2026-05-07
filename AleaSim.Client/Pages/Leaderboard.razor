@@ -10,7 +10,7 @@
             <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Large" Color="Color.Warning" />
         </div>
         <div>
-            <MudText Typo="Typo.h3" Class="fw-black">Tournament Arena</MudText>
+            <MudText Typo="Typo.h3" Class="fw-black leaderboard-title">Tournament Arena</MudText>
             <MudText Typo="Typo.subtitle1" Class="opacity-60">Season @(currentSeason) - The battle for the ultimate prize pool.</MudText>
         </div>
     </div>
@@ -210,6 +210,10 @@
     .champion-card { padding: 24px; border-radius: 20px; background: var(--mud-palette-surface); border: 1px solid var(--mud-palette-divider); position: relative; overflow: hidden; }
     .champ-glow { position: absolute; inset: 0; background: radial-gradient(circle at top right, rgba(255,215,0,0.05), transparent 70%); }
     .uppercase { text-transform: uppercase; }
+
+    @@media (max-width: 400px) {
+        .leaderboard-title { font-size: 1.75rem !important; }
+    }
 </style>
 
 @code {

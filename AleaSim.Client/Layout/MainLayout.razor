@@ -136,12 +136,22 @@
                 </div>
             </Authorized>
             <NotAuthorized>
-                <div class="d-flex gap-3">
+                <div class="d-flex align-center gap-2 gap-md-3">
                     <MudIconButton Icon="@(LayoutService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
                                    Color="Color.Inherit" 
                                    OnClick="@(async () => await LayoutService.ToggleDarkMode())" />
-                    <MudButton Href="/login" Variant="Variant.Outlined" Class="secondary-btn rounded-lg px-6" Style="font-weight: bold;">Login</MudButton>
-                    <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Primary" Class="rounded-lg px-6 fw-bold glow-effect">Register</MudButton>
+                    
+                    <!-- Desktop Buttons -->
+                    <div class="d-none d-sm-flex gap-2">
+                        <MudButton Href="/login" Variant="Variant.Outlined" Class="secondary-btn rounded-lg px-6" Style="font-weight: bold;">Login</MudButton>
+                        <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Primary" Class="rounded-lg px-6 fw-bold glow-effect">Register</MudButton>
+                    </div>
+
+                    <!-- Mobile Icons -->
+                    <div class="d-flex d-sm-none gap-1">
+                        <MudIconButton Icon="@Icons.Material.Filled.Login" Href="/login" Color="Color.Inherit" />
+                        <MudIconButton Icon="@Icons.Material.Filled.PersonAdd" Href="/register" Color="Color.Primary" Variant="Variant.Filled" Class="rounded-lg" />
+                    </div>
                 </div>
             </NotAuthorized>
         </AuthorizeView>

@@ -34,10 +34,10 @@
             <MudItem xs="12" Class="text-center pa-12"><MudProgressCircular Indeterminate="true" Color="Color.Primary" /></MudItem>
         } else if (!tournaments.Any()) {
             <MudItem xs="12">
-                <div class="d-flex flex-column align-center justify-center py-16 opacity-20 border-dashed rounded-xl" style="border: 3px dashed var(--mud-palette-divider);">
+                <div class="d-flex flex-column align-center justify-center py-16 opacity-20 border-dashed rounded-xl px-4 text-center" style="border: 3px dashed var(--mud-palette-divider);">
                     <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Style="font-size: 8rem;" Class="mb-4" />
-                    <MudText Typo="Typo.h5" Class="fw-black uppercase">The Arena is Empty</MudText>
-                    <MudText>Click "CREATE TOURNAMENT" to launch your first community competition.</MudText>
+                    <MudText Typo="Typo.h5" Class="fw-black uppercase" Align="Align.Center">The Arena is Empty</MudText>
+                    <MudText Align="Align.Center">Click "CREATE TOURNAMENT" to launch your first community competition.</MudText>
                 </div>
             </MudItem>
         } else {

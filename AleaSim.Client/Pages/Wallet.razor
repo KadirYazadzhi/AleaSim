@@ -183,7 +183,10 @@
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
 
-    .bg-wallet-icon { position: absolute; right: -20px; top: -20px; font-size: 15rem !important; opacity: 0.03; transform: rotate(15deg); }
+    .bg-wallet-icon { position: absolute; right: -20px; top: -20px; font-size: 8rem !important; opacity: 0.03; transform: rotate(15deg); }
+    @@media (min-width: 960px) {
+        .bg-wallet-icon { font-size: 15rem !important; }
+    }
 
     .action-icon-box { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
     .action-icon-box.warning { background: rgba(var(--mud-palette-warning-rgb), 0.1); color: var(--mud-palette-warning); }

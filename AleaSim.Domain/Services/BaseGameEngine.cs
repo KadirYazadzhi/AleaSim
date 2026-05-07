@@ -71,7 +71,8 @@ public abstract class BaseGameEngine : IGame {
                         repo.UpdateSession(session);
                         
                         var user = repo.GetUser(session.UserId);
-                        isExcluded = user?.Username.StartsWith("Sim_") == true || user?.Role == Role.Admin;
+                        isExcluded = user?.Username.StartsWith("Sim_") == true; // Only exclude simulation users from financial reporting/jackpots
+                        bool isAdmin = user?.Role == Role.Admin;
 
                         await BrainService.UpdateProfileAsync(session.UserId, amount, 0, repo);
                         tx.Commit();
@@ -97,7 +98,13 @@ public abstract class BaseGameEngine : IGame {
                         // These are performed outside the main transaction to prevent pool exhaustion
                         // but still sequential to avoid DB concurrency issues on the same repo context
                         await PromotionService.ProcessBetActivity(currentUserId, amount, repo);
-                        await JackpotService.Contribute(session.GameId, amount, repo);
+                        
+                        // Jackpots should still exclude Admins to avoid polluting real player pools
+                        var user = repo.GetUser(currentUserId);
+                        if (user?.Role != Role.Admin) {
+                            await JackpotService.Contribute(session.GameId, amount, repo);
+                        }
+                        
                         await questService.GenerateDailyQuests(currentUserId, repo);
                         await questService.UpdateProgressAsync(currentUserId, "SpinCount", 1, repo, RealTimeService, VaultService);
                         await levelService.AddExperience(currentUserId, amount, repo, RealTimeService);

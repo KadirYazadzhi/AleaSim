@@ -503,7 +503,7 @@ public class EfGameRepository : IGameRepository {
             _context.Jackpots.AddRange(
                 new Jackpot { Id = majorId, Name = "Clover Major", Tier = JackpotTier.Major, CurrentValue = 2500, ContributionRate = 0.005m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = null, LastUpdated = DateTime.UtcNow },
                 new Jackpot { Id = megaId, Name = "Clover Mega", Tier = JackpotTier.Mega, CurrentValue = 10000, ContributionRate = 0.002m, IsGlobal = false, GameId = cloverChaseId, MustDropAt = null, LastUpdated = DateTime.UtcNow },
-                new Jackpot { Id = juiceId, Name = "Juice Reservoir", Tier = JackpotTier.Special, CurrentValue = 500, ContributionRate = 0.005m, IsGlobal = false, GameId = fruitBlastId, MustDropAt = null, LastUpdated = DateTime.UtcNow },
+                new Jackpot { Id = juiceId, Name = "Juice Reservoir", Tier = JackpotTier.Special, CurrentValue = 1000, ContributionRate = 0.005m, IsGlobal = false, GameId = fruitBlastId, MustDropAt = null, LastUpdated = DateTime.UtcNow },
                 new Jackpot { Id = tournamentId, Name = "Season Tournament", Tier = JackpotTier.Tournament, CurrentValue = 25000, ContributionRate = 0.001m, IsGlobal = true, MustDropAt = null, LastUpdated = DateTime.UtcNow }
             );
             _context.SaveChanges();
@@ -524,7 +524,7 @@ public class EfGameRepository : IGameRepository {
                 GameId = gameId,
                 Name = "Local Jackpot",
                 Tier = JackpotTier.Grand,
-                CurrentValue = 500m,
+                CurrentValue = 1000m,
                 ContributionRate = 0.005m,
                 IsGlobal = false,
                 MustDropAt = 1000m,

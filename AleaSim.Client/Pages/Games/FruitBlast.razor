@@ -256,6 +256,21 @@
     .win-header { font-size: 3rem; font-weight: 950; color: white; text-shadow: 0 0 20px #ab47bc; letter-spacing: 12px; margin-bottom: 20px; }
     .win-sum { font-size: 9rem; font-weight: 950; color: #ffeb3b; text-shadow: 0 0 50px black, 0 0 30px #ffeb3b; line-height: 1; }
 
+    /* --- MEDIUM DESKTOP (1200px - 1450px) --- */
+    @@media (max-width: 1450px) {
+        :root {
+            --cell-size: 82px;
+            --cell-gap: 10px;
+            --symbol-size: 3.2rem;
+        }
+        .game-main-paper { min-height: 650px; border-width: 8px; }
+        .juice-meter-sidebar { height: 420px; left: 30px; }
+        .fruit-grid-container-v4 { margin-left: 70px; }
+        .pot-value-v4 { font-size: 2.5rem !important; }
+        .win-header { font-size: 2.2rem; letter-spacing: 8px; }
+        .win-sum { font-size: 7rem; }
+    }
+
     /* --- TABLET BREAKPOINT (MEDIUM SCREENS) --- */
     @@media (max-width: 1200px) {
         :root {

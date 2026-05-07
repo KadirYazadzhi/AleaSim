@@ -35,9 +35,10 @@
 
                 <div class="win-light @(lastWin > 0 ? "active" : "")"></div>
                 
-                @if ((gameState.IsRespinActive && !isSpinning) || (isSpinning && wasInRespin)) {
+                @if (gameState.IsRespinActive || (isSpinning && wasInRespin)) {
                     <div class="overlay-text respin-counter" style="top: 20px;">
                         @{
+                            // During spin, show the starting count. After spin, show the resulting count.
                             var displayRespins = isSpinning ? gameState.RespinLives : gameState.RespinLives;
                             if (displayRespins > 3) displayRespins = 3;
                         }
@@ -65,7 +66,7 @@
                 </div>
                 
                 <div class="d-flex gap-md-4 gap-1">
-                    @if ((gameState.IsBonusActive && !isSpinning) || (isSpinning && wasInBonus)) {
+                    @if (gameState.IsBonusActive || (isSpinning && wasInBonus)) {
                         <div class="feature-badge bonus badge-adaptive">
                             @{
                                 var displayBonus = isSpinning ? gameState.BonusLives : gameState.BonusLives;
@@ -378,6 +379,10 @@
                 if (gridData != null) {
                     bool bonusJustStarted = !gameState.IsBonusActive && gridData.IsBonusActive;
                     
+                    // Store CURRENT state before buffering the NEXT one
+                    wasInRespin = gameState.IsRespinActive;
+                    wasInBonus = gameState.IsBonusActive;
+
                     // Buffer everything for later
                     nextIsBonusBuffer = gridData.IsBonusActive;
                     nextIsRespinBuffer = gridData.IsRespinActive;

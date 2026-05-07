@@ -13,7 +13,9 @@
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 pb-12">
     <div class="d-flex align-center gap-4 mb-8">
-        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" Color="Color.Primary" Style="font-size: 3rem;" />
+        <div class="profile-header-icon">
+            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" Color="Color.Primary" />
+        </div>
         <div>
             <MudText Typo="Typo.h3" Class="fw-black">Account Dashboard</MudText>
             <MudText Typo="Typo.subtitle1" Class="opacity-60">Manage your progression, skills and view deep analytics.</MudText>
@@ -358,6 +360,11 @@
     .opacity-10 { opacity: 0.1; }
     .p-relative { position: relative; }
 
+    .profile-header-icon {
+        width: 64px; height: 64px; background: rgba(var(--mud-palette-primary-rgb), 0.1);
+        border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    }
+
     /* IDENTITY CARD */
     .profile-identity-card {
         border-radius: 24px;
@@ -377,7 +384,11 @@
     .avatar-edit-fab { position: absolute; bottom: 0; right: 0; background: var(--mud-palette-surface) !important; border: 1px solid var(--mud-palette-divider); }
     .player-title-badge { background: rgba(var(--mud-palette-warning-rgb), 0.1); color: var(--mud-palette-warning); padding: 4px 12px; border-radius: 8px; font-weight: 900; font-size: 0.75rem; text-transform: uppercase; display: flex; align-items: center; letter-spacing: 1px; }
     .xp-bar { box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
-    .bg-tier-icon { position: absolute; right: -20px; bottom: -20px; font-size: 12rem !important; opacity: 0.03; transform: rotate(-15deg); }
+    
+    .bg-tier-icon { position: absolute; right: -20px; bottom: -20px; font-size: 8rem !important; opacity: 0.03; transform: rotate(-15deg); }
+    @@media (min-width: 960px) {
+        .bg-tier-icon { font-size: 12rem !important; }
+    }
 
     /* WALLET & SKILLS */
     .wallet-card, .skill-shop-card, .stat-mini-card { border-radius: 20px; }
@@ -394,8 +405,17 @@
 
     /* ACHIEVEMENTS */
     .trophy-room-card { border-radius: 32px; background: rgba(var(--mud-palette-surface-rgb), 0.5); border: 1px solid rgba(var(--mud-palette-warning-rgb), 0.2); }
-    .trophy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px; }
-    .trophy-item { position: relative; height: 140px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--mud-palette-background-grey); border: 1px solid var(--mud-palette-divider); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .trophy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 12px; }
+    
+    @@media (min-width: 600px) {
+        .trophy-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px; }
+    }
+
+    .trophy-item { position: relative; height: 110px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--mud-palette-background-grey); border: 1px solid var(--mud-palette-divider); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    
+    @@media (min-width: 600px) {
+        .trophy-item { height: 140px; border-radius: 20px; }
+    }
     .trophy-item.unlocked { border-color: rgba(var(--mud-palette-warning-rgb), 0.3); cursor: pointer; }
     .trophy-item.unlocked:hover { transform: translateY(-8px) scale(1.05); box-shadow: 0 15px 30px rgba(0,0,0,0.2); background: rgba(var(--mud-palette-warning-rgb), 0.05); }
     .trophy-item.unlocked .trophy-glow { position: absolute; inset: 0; border-radius: 20px; background: radial-gradient(circle at center, rgba(255,215,0,0.1) 0%, transparent 70%); }
