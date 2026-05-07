@@ -19,6 +19,7 @@ window.slotEngine = {
     isBonusActive: false,
     isRespinActive: false,
     wasInBonus: false, 
+    wasInFeatureDuringSpin: false,
     isRevealing: false, 
     stickyBells: [],
     dotNetRef: null,
@@ -41,7 +42,6 @@ window.slotEngine = {
         if (!el) return;
         el.innerHTML = '';
 
-        // Optimization: Limit resolution on mobile to prevent GPU bottleneck
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         const maxResolution = isMobile ? Math.min(window.devicePixelRatio, 2) : window.devicePixelRatio;
 
@@ -49,7 +49,7 @@ window.slotEngine = {
             width: window.slotEngine.internalWidth,
             height: window.slotEngine.internalHeight,
             backgroundAlpha: 0,
-            antialias: !isMobile && !lowGraphics, // Disable antialias on mobile for speed
+            antialias: !isMobile && !lowGraphics,
             resolution: maxResolution || 1,
             autoDensity: true,
             powerPreference: 'high-performance'
@@ -82,20 +82,15 @@ window.slotEngine = {
         window.slotEngine.reelLayer.addChild(window.slotEngine.mask);
 
         try {
-            // LOAD ATLAS INSTEAD OF INDIVIDUAL FILES
             const sheet = await PIXI.Assets.load('images/slots/sprites.json');
-            
-            // Map frame names to our ID system
             const mapping = {
                 1: 'cherries', 2: 'lemon', 3: 'orange', 4: 'plum',
                 5: 'grape', 6: 'watermelon', 7: 'apple', 8: 'clover',
                 9: 'bell', 10: 'star', 11: 'coin', 12: 'seven'
             };
-
             for (const [id, name] of Object.entries(mapping)) {
                 window.slotEngine.textures[`sym${id}`] = sheet.textures[name];
             }
-
             window.slotEngine.buildGrid();
             window.slotEngine.resize();
             window.addEventListener('resize', () => window.slotEngine.resize());
@@ -143,18 +138,14 @@ window.slotEngine = {
         const data = JSON.parse(resultJson);
         const grid = data.Grid;
         
-        // --- IMPROVED RELEASE LOGIC ---
-        // 'currentlyInFeature' holds the state BEFORE we apply the new data.
-        const currentlyInFeature = window.slotEngine.isBonusActive || window.slotEngine.isRespinActive;
-        // 'startingNewFeature' is what the server says about the spin we just triggered.
+        const wasInFeature = window.slotEngine.isBonusActive || window.slotEngine.isRespinActive;
         const startingNewFeature = data.IsBonusActive || data.IsRespinActive;
 
-        // Release sticky symbols if the NEW round is not a feature round
-        if (!startingNewFeature && window.slotEngine.stickyBells.length > 0) {
+        // --- RELEASE LOGIC: Only on a fresh normal spin AFTER feature reveal ---
+        if (!startingNewFeature && !wasInFeature && window.slotEngine.stickyBells.length > 0) {
             window.slotEngine.stickyBells.forEach(sb => {
                 const reel = window.slotEngine.reels[sb.c];
                 if (reel && reel.symbols[sb.r]) {
-                    // Stamp onto reel
                     reel.symbols[sb.r].sprite.texture = window.slotEngine.textures[`sym9`];
                     reel.symbols[sb.r].sprite.alpha = 1;
                 }
@@ -168,13 +159,21 @@ window.slotEngine = {
         window.slotEngine.isRevealing = false; 
         window.slotEngine.clearWinLines();
         
-        // NOW update the engine state with the new data
+        // Store states for the current spin duration
+        window.slotEngine.wasInFeatureDuringSpin = wasInFeature;
         window.slotEngine.wasInBonus = window.slotEngine.isBonusActive;
         window.slotEngine.isBonusActive = data.IsBonusActive;
         window.slotEngine.isRespinActive = data.IsRespinActive; 
-        window.slotEngine.lastWinningLines = data.WinningLines || [];
+
+        // --- PRE-SYNC STICKY MAP ---
+        // Hide reel symbols for bells that are ALREADY sticky from previous rounds
+        const map = Array(5).fill(0).map(() => Array(4).fill(false));
+        window.slotEngine.stickyBells.forEach(sb => {
+            if (sb.c < 5 && sb.r < 4) map[sb.c][sb.r] = true;
+        });
+        window.slotEngine.stickyMap = map;
         
-        // Store for end of spin sync
+        window.slotEngine.lastWinningLines = data.WinningLines || [];
         window.slotEngine.pendingBells = data.BonusBells || [];
         window.slotEngine.pendingStickyCoords = data.StickyBells || [];
 
@@ -199,20 +198,28 @@ window.slotEngine = {
     syncStickyBells: (bells, stickyCoords) => {
         const newSticky = [];
         const stickyMap = Array(5).fill(0).map(() => Array(4).fill(false));
+        const processed = new Set();
 
         bells.forEach(b => { 
+            const key = `${b.Pos.C},${b.Pos.R}`;
             newSticky.push({ r: b.Pos.R, c: b.Pos.C, id: 9, value: b.Value, type: b.Type }); 
-            if (b.Pos.C < 5 && b.Pos.R < 4) stickyMap[b.Pos.C][b.Pos.R] = true;
+            if (b.Pos.C < 5 && b.Pos.R < 4) {
+                stickyMap[b.Pos.C][b.Pos.R] = true;
+                processed.add(key);
+            }
         });
         stickyCoords.forEach(p => {
-            if (!newSticky.find(s => s.r === p.R && s.c === p.C)) {
+            const key = `${p.C},${p.R}`;
+            if (!processed.has(key)) {
                 newSticky.push({ r: p.R, c: p.C, id: 9 });
+                if (p.C < 5 && p.R < 4) stickyMap[p.C][p.R] = true;
+                processed.add(key);
             }
-            if (p.C < 5 && p.R < 4) stickyMap[p.C][p.R] = true;
         });
         window.slotEngine.stickyBells = newSticky;
         window.slotEngine.stickyMap = stickyMap;
-        window.slotEngine.updateStickyBellsVisuals(window.slotEngine.isBonusActive || window.slotEngine.isRespinActive); 
+        const showLabels = window.slotEngine.isBonusActive || window.slotEngine.isRespinActive || window.slotEngine.wasInFeatureDuringSpin;
+        window.slotEngine.updateStickyBellsVisuals(showLabels); 
     },
 
     updateStickyBellsVisuals: (showLabels = false) => {
@@ -263,9 +270,10 @@ window.slotEngine = {
             reel.symbols.forEach(s => { 
                 s.sprite.y += reel.speed * delta; 
                 
-                // --- OPTIMIZED: HIDE SYMBOLS BEHIND STICKY BELLS ---
+                // --- HIDE REEL SYMBOLS BEHIND STICKY BELLS ---
                 const row = Math.round(s.sprite.y / symbolSize);
-                const isSticky = stickyMap && stickyMap[i] && stickyMap[i][row];
+                const isFeatureActive = window.slotEngine.isBonusActive || window.slotEngine.isRespinActive || window.slotEngine.wasInFeatureDuringSpin;
+                const isSticky = isFeatureActive && stickyMap && stickyMap[i] && stickyMap[i][row];
                 
                 if (isSticky) {
                     s.sprite.alpha = 0; 
@@ -296,7 +304,8 @@ window.slotEngine = {
                         s.sprite.alpha = 0.5;
                     } else {
                         s.sprite.texture = textures[`sym${tid}`];
-                        const isSticky = window.slotEngine.stickyBells.find(sb => sb.c === i && sb.r === idx);
+                        const isFeatureActive = window.slotEngine.isBonusActive || window.slotEngine.isRespinActive || window.slotEngine.wasInFeatureDuringSpin;
+                        const isSticky = isFeatureActive && window.slotEngine.stickyBells.find(sb => sb.c === i && sb.r === idx);
                         s.sprite.alpha = isSticky ? 0 : 1;
                     }
                 });
@@ -308,8 +317,7 @@ window.slotEngine = {
         if (activeReels === 0) {
             window.slotEngine.running = false;
 
-            // Sync all bells now that the spin has stopped
-            const currentlyInFeature = window.slotEngine.isBonusActive || window.slotEngine.isRespinActive;
+            const currentlyInFeature = window.slotEngine.isBonusActive || window.slotEngine.isRespinActive || window.slotEngine.wasInFeatureDuringSpin;
             if (currentlyInFeature || window.slotEngine.pendingBells?.length > 0) {
                 window.slotEngine.syncStickyBells(window.slotEngine.pendingBells || [], window.slotEngine.pendingStickyCoords || []);
                 window.slotEngine.pendingBells = [];
@@ -331,46 +339,32 @@ window.slotEngine = {
     revealBonusValues: async () => {
         window.slotEngine.isRevealing = true;
         const { stickyLayer, dotNetRef } = window.slotEngine;
-        
-        // Filter sprites once to avoid index issues
         const sprites = stickyLayer.children.filter(c => c instanceof PIXI.Sprite);
-        
         for (let i = 0; i < sprites.length; i++) {
             const child = sprites[i];
             const label = child.getChildByName("valueLabel");
-            
-            // Extract value for real-time accumulation
             const textValue = label ? label.text : "";
             let amount = 0;
             if (textValue.startsWith("$")) {
                 amount = parseFloat(textValue.substring(1).replace(/,/g, ''));
             }
-
             if (label && window.gsap) {
                 if (window.aleaAudio?.play) window.aleaAudio.play('click');
                 label.visible = true;
-                
-                // POP ANIMATION
                 gsap.fromTo(label.scale, { x: 0, y: 0 }, { x: 1, y: 1, duration: 0.4, ease: "back.out(1.7)" });
                 gsap.to(child.scale, { x: 1.2, y: 1.2, duration: 0.15, yoyo: true, repeat: 1 });
-                
-                // Add a glow effect on reveal
                 const glow = new PIXI.Graphics();
                 glow.beginFill(0xffffff, 0.4);
                 glow.drawCircle(child.x + child.width/2, child.y + child.height/2, child.width/2);
                 glow.endFill();
                 window.slotEngine.stickyLayer.addChildAt(glow, 0);
                 gsap.to(glow, { alpha: 0, width: child.width*1.5, height: child.height*1.5, duration: 0.5, onComplete: () => glow.destroy() });
-
-                // REAL-TIME WIN ACCUMULATION
                 if (amount > 0 && dotNetRef) {
                     dotNetRef.invokeMethodAsync('OnBellRevealed', amount);
                 }
-
                 await new Promise(r => setTimeout(r, 400));
             }
         }
-        
         setTimeout(() => {
             if (window.slotEngine.dotNetRef) {
                 window.slotEngine.dotNetRef.invokeMethodAsync('OnAnimationFinished');
