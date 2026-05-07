@@ -149,10 +149,8 @@ window.slotEngine = {
         // 'startingNewFeature' is what the server says about the spin we just triggered.
         const startingNewFeature = data.IsBonusActive || data.IsRespinActive;
 
-        // We ONLY release (stamp to reels) if we were NOT in a feature 
-        // AND we are NOT starting a new one. 
-        // This handles the transition from "End of Bonus" to "New Normal Game".
-        if (!currentlyInFeature && !startingNewFeature && window.slotEngine.stickyBells.length > 0) {
+        // Release sticky symbols if the NEW round is not a feature round
+        if (!startingNewFeature && window.slotEngine.stickyBells.length > 0) {
             window.slotEngine.stickyBells.forEach(sb => {
                 const reel = window.slotEngine.reels[sb.c];
                 if (reel && reel.symbols[sb.r]) {
@@ -161,7 +159,6 @@ window.slotEngine = {
                     reel.symbols[sb.r].sprite.alpha = 1;
                 }
             });
-            // Clear sticky layer and map so the stamped symbols can be seen and spin away
             window.slotEngine.stickyLayer.removeChildren();
             window.slotEngine.stickyBells = [];
             window.slotEngine.stickyMap = Array(5).fill(0).map(() => Array(4).fill(false));

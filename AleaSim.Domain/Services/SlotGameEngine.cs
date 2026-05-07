@@ -284,11 +284,22 @@ public override async Task<GameRound> ResolveRound(Guid sessionId, SpinProfile p
         if (newBells > 0) {
             state.IsRespinActive = true; 
             state.RespinLives = 3; 
+            
+            // NEW: Immediate bonus trigger check if we reached 5+ bells
+            if (state.StickyBells.Count >= 5) {
+                state.IsBonusActive = true; 
+                state.BonusLives = 3; 
+                state.IsRespinActive = false;
+                InitializeBonusGrid(state, ss, cs, off, cfg);
+                return coins;
+            }
         } else if (state.IsRespinActive) {
             state.RespinLives--;
         }
 
         if (state.IsRespinActive && state.RespinLives <= 0) {
+            // This is still here for cases where 5+ bells were reached on the very last respin
+            // but the above check handles immediate transition.
             if (state.StickyBells.Count >= 5) { 
                 state.IsBonusActive = true; 
                 state.BonusLives = 3; 
