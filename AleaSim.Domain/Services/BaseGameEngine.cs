@@ -107,6 +107,7 @@ public abstract class BaseGameEngine : IGame {
                         
                         await questService.GenerateDailyQuests(currentUserId, repo);
                         await questService.UpdateProgressAsync(currentUserId, "SpinCount", 1, repo, RealTimeService, VaultService);
+                        await questService.UpdateProgressAsync(currentUserId, "TotalWager", amount, repo, RealTimeService, VaultService);
                         await levelService.AddExperience(currentUserId, amount, repo, RealTimeService);
                     }
                 }

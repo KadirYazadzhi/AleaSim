@@ -99,7 +99,6 @@ public class DiceGameEngine : BaseGameEngine {
                 session.TotalWon += winAmount;
             }
             
-            await questService.UpdateProgressAsync(session.UserId, "SpinCount", 1, repo, RealTimeService, VaultService);
             await BrainService.UpdateProfileAsync(session.UserId, lastBet.Amount, winAmount, repo);
 
             int roundCount = repo.GetRoundCount(sessionId);

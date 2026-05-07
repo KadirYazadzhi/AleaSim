@@ -161,13 +161,6 @@ public class GameController : BaseApiController {
 
             var round = await _gameDirector.PlayRound(gameType, userId, sessionId, request.Amount, request.BetData ?? new { });
 
-            // Update Quests sequentially to prevent DbContext threading issues
-            await _questService.UpdateProgressAsync(userId, "SpinCount", 1, _repo, _realTime, _vaultService);
-            await _questService.UpdateProgressAsync(userId, "TotalWager", request.Amount, _repo, _realTime, _vaultService);
-            if (round.TotalWinAmount > 0) {
-                await _questService.UpdateProgressAsync(userId, "WinAmount", round.TotalWinAmount, _repo, _realTime, _vaultService);
-            }
-
             var session = _repo.GetSession(sessionId);
             var profile = session != null ? _repo.GetPlayerProfile(session.UserId) : null;
 

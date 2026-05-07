@@ -250,6 +250,7 @@ public class FruitBlastGameEngine : BaseGameEngine {
             if (totalWin > 0) {
                 repo.UpdateGamePoolBalance(_gameId, -totalWin);
                 await VaultService.ProcessWinAsync(session.UserId, totalWin, repo, roundId).ConfigureAwait(false);
+                await questService.UpdateProgressAsync(session.UserId, "WinAmount", totalWin, repo, RealTimeService, VaultService).ConfigureAwait(false);
                 session.TotalWon += totalWin;
             }
 
