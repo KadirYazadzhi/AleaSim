@@ -32,7 +32,7 @@
     <MudGrid Spacing="2">
         <!-- Control Panel -->
         <MudItem xs="12" md="5" lg="4">
-            <MudPaper Class="glass-panel pa-4 pa-md-6 rounded-xl d-flex flex-column" Style="height: 100%;" Elevation="0">
+            <MudPaper Class="glass-panel pa-4 pa-md-6 rounded-xl d-flex flex-column" Style="min-height: 520px; height: 100%;" Elevation="0">
                 <div class="d-flex flex-row flex-md-column gap-2 align-items-center align-items-md-stretch mb-4 mb-md-0">
                     <MudNumericField @bind-Value="betAmount" 
                                      Label='@(LayoutService.IsMobile ? null : "Bet Amount")' 
@@ -85,6 +85,18 @@
                             </div>
                         }
                     </div>
+
+                    <div class="pa-2 pa-md-4 rounded-lg bg-dark-transparent mb-4 mb-md-6">
+                        <MudText Typo="Typo.caption" Class="text-xs d-block mb-2">MULTI-DICE INFO</MudText>
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.caption" Class="text-xs">SELECTED</MudText>
+                            <MudText Typo="Typo.caption" Class="fw-bold text-xs">@selectedMultiNumbers.Count / 6</MudText>
+                        </div>
+                        <div class="d-flex justify-space-between mt-1">
+                            <MudText Typo="Typo.caption" Class="text-xs">DICE ROLLED</MudText>
+                            <MudText Typo="Typo.caption" Class="fw-bold text-xs">10</MudText>
+                        </div>
+                    </div>
                 }
 
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" 
@@ -95,6 +107,20 @@
 
                 <div class="flex-grow-1"></div>
 
+                <div class="pa-3 rounded-lg border-dashed border-2 mud-border-primary opacity-80 mb-4">
+                    <MudText Typo="Typo.caption" Class="fw-bold d-block mb-1">SESSION STATS</MudText>
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.caption" Class="text-xs">WAGERED</MudText>
+                        <MudText Typo="Typo.caption" Class="text-xs fw-bold">$@totalWagered.ToString("F2")</MudText>
+                    </div>
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.caption" Class="text-xs">PROFIT</MudText>
+                        <MudText Typo="Typo.caption" Color="@(totalProfit >= 0 ? Color.Success : Color.Error)" Class="text-xs fw-bold">
+                            @(totalProfit >= 0 ? "+" : "")$@totalProfit.ToString("F2")
+                        </MudText>
+                    </div>
+                </div>
+
                 <div class="d-flex justify-space-between align-center mt-2">
                     <MudSwitch @bind-Value="autoBet" Label="AUTO" Color="Color.Secondary" Size="Size.Small" />
                     <MudText Typo="Typo.caption" Class="opacity-50 d-md-none">XP: @(betAmount * 10)</MudText>
@@ -104,7 +130,7 @@
 
         <!-- Visual Area -->
         <MudItem xs="12" md="7" lg="8">
-            <MudPaper Class="glass-panel pa-6 pa-md-12 rounded-xl d-flex flex-column align-center justify-center position-relative overflow-hidden" Style="min-height: 250px; height: 100%;" Elevation="0">
+            <MudPaper Class="glass-panel pa-6 pa-md-12 rounded-xl d-flex flex-column align-center justify-center position-relative overflow-hidden" Style="min-height: 520px; height: 100%;" Elevation="0">
                 
                 @if (selectedMode == "Slider") {
                     <!-- Cyber Slider Visual -->
@@ -120,7 +146,7 @@
                         </div>
                     </div>
 
-                    <div class='@($"result-display {(lastResultWasWin ? "win" : "loss")} {(isSpinning ? "spinning" : "")}")'>
+                    <div class='@($"result-display {(lastResultWasWin ? "win" : "loss")} {(isSpinning ? "spinning" : "")}")' style="min-height: 80px;">
                         <MudText Typo="Typo.h3" Class="fw-black d-md-none">@(currentRoll.ToString("F2"))</MudText>
                         <MudText Typo="Typo.h1" Class="fw-black d-none d-md-block">@(currentRoll.ToString("F2"))</MudText>
                     </div>
@@ -141,12 +167,14 @@
                         }
                     </div>
                     
-                    @if (lastMultiHits > 0) {
-                        <div class="mt-4 mt-md-8 text-center animate-bounce-subtle">
-                            <MudText Typo="Typo.h5" Color="Color.Success" Class="fw-black d-md-none">@lastMultiHits HITS! (x@(lastMultiplier.ToString("F2")))</MudText>
-                            <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black d-none d-md-block">@lastMultiHits HITS! (x@(lastMultiplier.ToString("F2")))</MudText>
-                        </div>
-                    }
+                    <div class="mt-4 mt-md-8 text-center animate-bounce-subtle" style="min-height: 60px; display: flex; align-items: center; justify-content: center;">
+                        @if (lastMultiHits > 0) {
+                            <div>
+                                <MudText Typo="Typo.h5" Color="Color.Success" Class="fw-black d-md-none">@lastMultiHits HITS! (x@(lastMultiplier.ToString("F2")))</MudText>
+                                <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black d-none d-md-block">@lastMultiHits HITS! (x@(lastMultiplier.ToString("F2")))</MudText>
+                            </div>
+                        }
+                    </div>
                 }
 
                 <!-- Decor -->
@@ -299,6 +327,9 @@
     private bool autoBet = false;
     private List<(string Label, bool Win)> recentRolls = new();
 
+    private decimal totalWagered = 0;
+    private decimal totalProfit = 0;
+
     private decimal WinChance => isRollOver ? (100 - sliderTarget) : sliderTarget;
     private decimal PayoutMultiplier => WinChance > 0 ? Math.Round(99m / WinChance, 4) : 0;
 
@@ -349,6 +380,10 @@
                 
                 lastResultWasWin = result.IsWin;
                 lastMultiplier = result.PayoutMultiplier;
+                
+                totalWagered += betAmount;
+                totalProfit += (result.PayoutAmount - betAmount);
+
                 recentRolls.Insert(0, (historyLabel, result.IsWin));
                 if (recentRolls.Count > 10) recentRolls.RemoveAt(10);
 
