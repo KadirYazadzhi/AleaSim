@@ -110,11 +110,11 @@
                         <div id="roulette-pro-container" style="width: 600px; height: 480px;"></div>
                         @if (winningNumber.HasValue && !isSpinning) {
                             <div class="result-overlay-pro animate-fade-in">
-                                <MudText Typo="Typo.h2" Style='@($"font-weight: 950; color: {(winningNumber == 0 ? "#4caf50" : (GetNumberColor(winningNumber.Value) == "red" ? "#ff5252" : "#ffffff"))};")'>@winningNumber</MudText>
-                                <MudText Typo="Typo.h6" Style="color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 2px;">Winning Number</MudText>
+                                <MudText Typo="Typo.h4" Style='@($"font-weight: 950; color: {(winningNumber == 0 ? "#4caf50" : (GetNumberColor(winningNumber.Value) == "red" ? "#ff5252" : "#ffffff"))};")'>@winningNumber</MudText>
+                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 1px; font-weight: 800; display: block; margin-top: -4px;">Winning Number</MudText>
                             </div>
                         }
-                    </MudPaper>
+                        </MudPaper>
 
                     <!-- STATS DASHBOARD (50%) -->
                     <MudPaper Class="pa-6 glass-panel-premium flex-1 stats-dashboard-premium" Style="border-radius: 24px; display: flex; flex-direction: column; gap: 15px; height: 500px;">
@@ -249,7 +249,13 @@
     .lucky-cell { border: 3.5px solid #ff9800 !important; box-shadow: 0 0 25px #ff9800; background: rgba(255, 152, 0, 0.3) !important; }
     .lightning-flash { animation: lightning-strike 0.5s ease-out infinite alternate; }
     @@keyframes lightning-strike { 0% { filter: brightness(1); } 100% { filter: brightness(1.8); } }
-    .result-overlay-pro { position: absolute; top: 30px; right: 30px; background: rgba(0,0,0,0.9); padding: 25px 45px; border-radius: 24px; border: 4px solid #d4af37; text-align: center; z-index: 20; box-shadow: 0 0 40px rgba(212, 175, 55, 0.5); }
+    .result-overlay-pro { 
+        position: absolute; top: 20px; right: 20px; 
+        background: rgba(0,0,0,0.85); padding: 12px 24px; 
+        border-radius: 16px; border: 2px solid #d4af37; 
+        text-align: center; z-index: 20; 
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5); 
+    }
     .mode-rect-card { padding: 20px; border-radius: 12px; cursor: pointer; background: rgba(255,255,255,0.05); text-align: center; font-weight: 900; border: 2px solid transparent; }
     .active-classic { border-color: var(--mud-palette-primary) !important; background: rgba(124, 58, 237, 0.2) !important; box-shadow: 0 0 25px rgba(124, 58, 237, 0.35); }
     .active-extreme { border-color: var(--mud-palette-warning) !important; background: rgba(255, 152, 0, 0.2) !important; box-shadow: 0 0 25px rgba(255, 152, 0, 0.35); }
