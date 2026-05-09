@@ -2,12 +2,10 @@
 @using AleaSim.Client.Services
 @inject RealTimeClient RealTime
 @inject HttpClient Http
-@inject ISnackbar Snackbar
 @inject IJSRuntime JS
-@inject AuthenticationStateProvider AuthStateProvider
 @implements IDisposable
 
-<div class="chat-main-container d-flex flex-column h-100 flex-grow-1">
+<div class="chat-main-container d-flex flex-column h-100">
     <div class="chat-messages-viewport flex-grow-1 custom-scroll pa-4" id="chat-box">
         @if (!messages.Any() && !isLoading)
         {
@@ -18,7 +16,9 @@
         }
         @foreach (var msg in messages)
         {
-            bool isMe = string.Equals(msg.SenderUsername, currentUsername, StringComparison.OrdinalIgnoreCase);
+            bool isMe = (msg.SenderId != Guid.Empty && msg.SenderId == CurrentUserId) || 
+                        (!string.IsNullOrEmpty(msg.SenderUsername) && string.Equals(msg.SenderUsername, CurrentUsername, StringComparison.OrdinalIgnoreCase));
+            
             <div class='@($"chat-bubble-row mb-4 animate-fade-in {(isMe ? "me" : "others")}")'>
                 @if (!isMe)
                 {
@@ -63,112 +63,135 @@
     .chat-main-container { background: transparent; }
     .chat-messages-viewport { overflow-y: auto; overflow-x: hidden; }
     
-    .chat-bubble-row { display: flex; align-items: flex-end; gap: 8px; width: 100%; }
-    .chat-bubble-row.me { flex-direction: row; justify-content: flex-end; }
+    .chat-bubble-row { display: flex; align-items: flex-end; gap: 12px; width: 100%; position: relative; }
+    .chat-bubble-row.me { flex-direction: row-reverse; }
+    .chat-bubble-row.others { justify-content: flex-start; }
     
-    .bubble-avatar { border: 2px solid var(--mud-palette-surface); }
+    .bubble-avatar { border: 2px solid var(--mud-palette-surface); flex-shrink: 0; }
     
-    .bubble-content-wrapper { display: flex; flex-direction: column; max-width: 85%; }
-    .me .bubble-content-wrapper { align-items: flex-end; }
+    .bubble-content-wrapper { display: flex; flex-direction: column; max-width: 75%; }
+    .me .bubble-content-wrapper { align-items: flex-end; margin-right: 12px; }
+    .others .bubble-content-wrapper { align-items: flex-start; }
     
-    .bubble-username { font-weight: 800; color: var(--mud-palette-primary); margin-left: 12px; margin-bottom: 2px; font-size: 0.7rem; }
+    .bubble-username { font-weight: 800; color: var(--mud-palette-primary); margin-left: 4px; margin-bottom: 2px; font-size: 0.7rem; }
     
     .bubble-payload {
-        padding: 8px 12px;
+        padding: 10px 16px;
         position: relative;
         word-break: break-word;
-        font-size: 0.9rem;
+        font-size: 0.95rem;
+        transition: all 0.2s;
     }
 
-    @@media (max-width: 600px) {
-        .bubble-content-wrapper { max-width: 90%; }
-        .bubble-payload { padding: 6px 10px; font-size: 0.85rem; }
-        .chat-footer-input { padding: 8px !important; }
-    }
-    
     .others .bubble-payload {
-        background: var(--mud-palette-surface);
+        background: rgba(var(--mud-palette-surface-rgb), 0.8);
         border: 1px solid var(--mud-palette-divider);
-        border-radius: 18px 18px 18px 4px;
+        border-radius: 20px 20px 20px 4px;
         color: var(--mud-palette-text-primary);
+        backdrop-filter: blur(10px);
     }
     
     .me .bubble-payload {
-        background: var(--mud-palette-primary);
-        border-radius: 18px 18px 4px 18px;
+        background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%);
+        border-radius: 20px 20px 4px 20px;
         color: white;
+        box-shadow: 0 4px 15px rgba(var(--mud-palette-primary-rgb), 0.3);
     }
     
-    .bubble-time { font-size: 0.6rem; opacity: 0.6; display: block; margin-top: 4px; text-align: right; }
-    .me .bubble-time { color: rgba(255,255,255,0.8); }
+    .bubble-time { font-size: 0.65rem; opacity: 0.6; display: block; margin-top: 4px; text-align: right; }
+    .me .bubble-time { color: rgba(255,255,255,0.8); text-align: left; }
 
     .input-glass-wrap {
-        background: var(--mud-palette-background-grey);
+        background: rgba(var(--mud-palette-surface-rgb), 0.5);
         border: 1px solid var(--mud-palette-divider);
         border-radius: 30px;
         transition: all 0.3s ease;
+        backdrop-filter: blur(15px);
     }
     .input-glass-wrap:focus-within {
         border-color: var(--mud-palette-primary);
-        box-shadow: 0 0 15px rgba(124, 58, 237, 0.2);
+        background: rgba(var(--mud-palette-surface-rgb), 0.8);
+        box-shadow: 0 0 20px rgba(var(--mud-palette-primary-rgb), 0.2);
     }
     
     .send-fab {
         background: var(--mud-palette-primary) !important;
         color: white !important;
-        width: 40px; height: 40px;
+        width: 44px; height: 44px;
     }
     .send-fab:disabled { background: var(--mud-palette-action-disabled) !important; }
 
-    .custom-scroll::-webkit-scrollbar { width: 4px; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: var(--mud-palette-divider); border-radius: 10px; }
     
     .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-    @@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 
 @code {
+    [Parameter] public Guid CurrentUserId { get; set; }
+    [Parameter] public string CurrentUsername { get; set; } = "";
+
     private List<ChatMessageDto> messages = new();
     private string newMessage = "";
-    private string currentUsername = "";
     private bool isLoading = true;
 
     protected override async Task OnInitializedAsync() {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        currentUsername = authState.User.Identity?.Name ?? "";
-
         RealTime.OnChatMessageReceived += HandleGlobalMessage;
         await LoadHistory();
     }
 
     private async Task LoadHistory() {
         try {
-            var history = await Http.GetFromJsonAsync<List<ChatMessage>>("api/Chat/global");
+            var history = await Http.GetFromJsonAsync<List<ChatMessageDto>>("api/Chat/global");
             if (history != null) {
-                messages = history.Select(m => new ChatMessageDto {
-                    SenderUsername = m.SenderUsername,
-                    SenderAvatarUrl = m.SenderAvatarUrl,
-                    Message = m.Message,
-                    Timestamp = m.Timestamp
-                }).ToList();
-                _ = ScrollToBottom();
+                messages = history;
             }
         } catch { }
         finally { isLoading = false; }
     }
 
     private void HandleGlobalMessage(string user, string msg, DateTime time, string avatar) {
+        // Avoid duplicates if we already added it optimistically
+        if (messages.Any(m => m.Message == msg && m.SenderUsername == user && Math.Abs((m.Timestamp - time).TotalSeconds) < 2)) {
+            return;
+        }
+
         messages.Add(new ChatMessageDto {
             SenderUsername = user,
             Message = msg,
             Timestamp = time,
-            SenderAvatarUrl = avatar
+            SenderAvatarUrl = avatar,
+            SenderId = Guid.Empty // Global chat uses usernames for identification
         });
-        if (messages.Count > 100) messages.RemoveAt(0);
         InvokeAsync(async () => {
             StateHasChanged();
             await ScrollToBottom();
         });
+    }
+
+    private async Task SendMessage() {
+        if (string.IsNullOrWhiteSpace(newMessage)) return;
+        var msgText = newMessage;
+        newMessage = "";
+        
+        // Optimistic update for immediate feedback
+        messages.Add(new ChatMessageDto {
+            SenderUsername = CurrentUsername,
+            SenderId = CurrentUserId,
+            Message = msgText,
+            Timestamp = DateTime.UtcNow,
+            SenderAvatarUrl = "https://api.dicebear.com/7.x/bottts/svg?seed=" + CurrentUsername
+        });
+        
+        StateHasChanged();
+        await ScrollToBottom();
+        
+        await RealTime.SendChatMessage(msgText);
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e) {
+        if (e.Key == "Enter") _ = SendMessage();
     }
 
     private async Task ScrollToBottom() {
@@ -176,27 +199,7 @@
         await JS.InvokeVoidAsync("aleaChat.scrollToBottom", "chat-box");
     }
 
-    private async Task SendMessage() {
-        if (string.IsNullOrWhiteSpace(newMessage)) return;
-        var msg = newMessage;
-        newMessage = "";
-        await RealTime.SendChatMessage(msg);
-    }
-
-    private void HandleKeyDown(KeyboardEventArgs e) {
-        if (e.Key == "Enter") {
-            _ = SendMessage();
-        }
-    }
-
     public void Dispose() {
         RealTime.OnChatMessageReceived -= HandleGlobalMessage;
-    }
-
-    public class ChatMessage {
-        public string SenderUsername { get; set; } = "";
-        public string SenderAvatarUrl { get; set; } = "";
-        public string Message { get; set; } = "";
-        public DateTime Timestamp { get; set; }
     }
 }
