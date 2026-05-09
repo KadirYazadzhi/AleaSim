@@ -382,7 +382,7 @@
                 lastMultiplier = result.PayoutMultiplier;
                 
                 totalWagered += betAmount;
-                totalProfit += (result.PayoutAmount - betAmount);
+                totalProfit += (betAmount * result.PayoutMultiplier) - betAmount;
 
                 recentRolls.Insert(0, (historyLabel, result.IsWin));
                 if (recentRolls.Count > 10) recentRolls.RemoveAt(10);

@@ -7,28 +7,87 @@ window.roulettePro = {
     numbers: [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26],
     
     init: (containerId) => {
-        const el = document.getElementById(containerId);
-        if (!el) return;
-        el.innerHTML = '';
+        console.log("RoulettePro: Init requested for ID: " + containerId);
+        let attempts = 0;
+        const maxAttempts = 30;
 
-        const width = el.clientWidth || 600;
-        const height = el.clientHeight || 500;
+        const doInit = () => {
+            const el = document.getElementById(containerId);
+            if (!el) {
+                if (attempts < maxAttempts) {
+                    attempts++;
+                    setTimeout(doInit, 100);
+                }
+                return;
+            }
 
-        window.roulettePro.app = new PIXI.Application({
-            width: width,
-            height: height,
-            backgroundColor: 0x000000,
-            backgroundAlpha: 0,
-            antialias: true,
-            resolution: window.devicePixelRatio || 1
-        });
-        el.appendChild(window.roulettePro.app.view);
-        window.roulettePro.setup(width, height);
+            if (window.roulettePro.app) {
+                try {
+                    window.roulettePro.app.destroy(true, { children: true, texture: true, baseTexture: true });
+                } catch (e) { }
+                window.roulettePro.app = null;
+            }
+
+            el.innerHTML = '';
+            let width = el.clientWidth || el.offsetWidth || 300;
+            let height = el.clientHeight || el.offsetHeight || 300;
+
+            if (containerId.includes('mobile') && !document.getElementById(containerId).closest('.expanded')) {
+                if (width > 200) width = 120;
+                if (height > 200) height = 120;
+            }
+
+            window.roulettePro.app = new PIXI.Application({
+                width: width,
+                height: height,
+                backgroundColor: 0x000000,
+                backgroundAlpha: 0,
+                antialias: true,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true
+            });
+            
+            el.appendChild(window.roulettePro.app.view);
+            window.roulettePro.setup(width, height);
+
+            // Dynamic Resize Listener
+            window.removeEventListener('resize', window.roulettePro.onResize);
+            window.roulettePro.activeContainerId = containerId;
+            window.roulettePro.onResize = () => {
+                const container = document.getElementById(window.roulettePro.activeContainerId);
+                if (!container || !window.roulettePro.app) return;
+                
+                let w = container.clientWidth || container.offsetWidth;
+                let h = container.clientHeight || container.offsetHeight;
+                
+                if (window.roulettePro.activeContainerId.includes('mobile') && !container.closest('.expanded')) {
+                    if (w > 200) w = 120;
+                    if (h > 200) h = 120;
+                }
+
+                if (w > 0 && h > 0) {
+                    window.roulettePro.app.renderer.resize(w, h);
+                    window.roulettePro.setup(w, h);
+                }
+            };
+            window.addEventListener('resize', window.roulettePro.onResize);
+        };
+
+        doInit();
     },
+    activeContainerId: null,
+    onResize: null,
 
     setup: (width, height) => {
         const self = window.roulettePro;
         const { app, numbers } = self;
+        
+        // Clear previous state to prevent stacking
+        app.stage.removeChildren();
+        if (self.rotationHandler) {
+            app.ticker.remove(self.rotationHandler);
+        }
+
         const centerX = width / 2;
         const centerY = height / 2;
         
@@ -110,10 +169,12 @@ window.roulettePro = {
         root.addChild(ball);
         self.ball = ball;
 
-        app.ticker.add(() => {
+        self.rotationHandler = () => {
             if (!self.spinning) disk.rotation += 0.005;
-        });
+        };
+        app.ticker.add(self.rotationHandler);
     },
+    rotationHandler: null,
 
     spin: (targetNumber) => {
         const self = window.roulettePro;

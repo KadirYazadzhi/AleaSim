@@ -17,224 +17,215 @@
     
     @if (layoutService.IsMobile)
     {
-        <!-- 1. MOBILE VIEW: PiP Wheel and Vertical Flow -->
-        <div class='@($"mobile-pip-container {(_wheelExpanded ? "expanded" : "pip")}")' 
-             style='@(_wheelExpanded ? "" : $"left: {_wheelX}px; top: {_wheelY}px;")'
-             @onpointerdown="OnPointerDown" @onpointermove="OnPointerMove" @onpointerup="OnPointerUp" @onpointerleave="OnPointerUp">
-            
-            <MudPaper Class="pa-1 wheel-paper" 
-                      Style='@($"background: radial-gradient(circle, #1a4a1a 0%, #0a2a0a 100%); border: 3px solid #3d2b1f; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); cursor: {(_isDragging ? "grabbing" : "pointer")};")'
+        <!-- 1. MOBILE VIEW -->
+        <div @key='"mob-root-v6"' class="roulette-mobile-container">
+            <div @key='"mob-pip-v6"' class='@($"mobile-pip-container {(_wheelExpanded ? "expanded" : "pip")}")' 
+                 style='@(_wheelExpanded ? "" : $"left: {_wheelX}px; top: {_wheelY}px;")'
+                 @onpointerdown="OnPointerDown" @onpointermove="OnPointerMove" @onpointerup="OnPointerUp" @onpointerleave="OnPointerUp">
+                
+                <MudPaper Class="pa-1 wheel-paper" 
+                          Style='@($"background: radial-gradient(circle, #1a4a1a 0%, #0a2a0a 100%); border: 3px solid #3d2b1f; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); cursor: {(_isDragging ? "grabbing" : "pointer")}; position: relative;")'
                       @onclick="ToggleWheelSize">
-                
-                <!-- SINGLE ID FOR BOTH MODES -->
-                <div id="roulette-pro-container" class="canvas-container-pip"></div>
-                
-                @if (winningNumber.HasValue && !isSpinning) {
-                    <div class="result-badge-mini">
-                        <MudText Typo="Typo.h6" Style='@($"font-weight: 900; color: {(winningNumber == 0 ? "#4caf50" : (GetNumberColor(winningNumber.Value) == "red" ? "#ff5252" : "#ffffff"))};")'>
-                            @winningNumber
-                        </MudText>
-                    </div>
-                }
-                @if (!_wheelExpanded) {
-                    <div class="pip-hint"><MudIcon Icon="@Icons.Material.Filled.ZoomOutMap" Size="Size.Small" /></div>
-                }
-            </MudPaper>
-        </div>
-
-        <div class="mobile-stack-layout">
-            <!-- Table (Top) -->
-            <div class="roulette-board-container">
-                <MudPaper Class="pa-1" Style="background: #004d00; border: 4px solid #3d2b1f; border-radius: 10px;">
-                    <div class="roulette-table-mobile mobile-vertical" @onmouseup='() => isMouseDown = false'>
-                        <div @key='"cell-0"' class='@($"cell zero {GetCursorClass("number", "0")} {(currentLuckyNumbers.ContainsKey(0) ? "lucky-cell lightning-flash" : "")}")' 
-                             @onmousedown='() => HandleMouseDown("number", "0")' @onmouseenter='() => HandleMouseEnter("number", "0")' @onmousedown:stopPropagation>
-                            0 @GetBetBadge("number", "0") @GetLuckyBadge(0)
-                        </div>                                
-                        <div class="mobile-piles-container">
-                            @foreach (var pile in new[] { Enumerable.Range(1, 12), Enumerable.Range(13, 12), Enumerable.Range(25, 12) }) {
-                                <div class="pile">
-                                    @foreach (int i in pile) {
-                                        <div @key='"cell-" + i' class='@($"cell {GetNumberColor(i)} {GetCursorClass("number", i.ToString())} {(currentLuckyNumbers.ContainsKey(i) ? "lucky-cell lightning-flash" : "")}")' 
-                                             @onmousedown='() => HandleMouseDown("number", i.ToString())' @onmouseenter='() => HandleMouseEnter("number", i.ToString())'>
-                                            @i @GetBetBadge("number", i.ToString()) @GetLuckyBadge(i)
-                                        </div>
-                                    }
-                                </div>
-                            }
+                    
+                    <div id="roulette-pro-container-mobile" style="width: 100%; height: 100%; min-width: 110px; min-height: 110px; display: block;"></div>
+                    
+                    @if (winningNumber.HasValue && !isSpinning) {
+                        <div class="result-badge-mini">
+                            <MudText Typo="Typo.h6" Style='@($"font-weight: 900; color: {(winningNumber == 0 ? "#4caf50" : (GetNumberColor(winningNumber.Value) == "red" ? "#ff5252" : "#ffffff"))};")'>
+                                @winningNumber
+                            </MudText>
                         </div>
-                        <div class="outside-grid-mobile">
-                            <div class="outside-row">
-                                <div @key='"outside-red"' class='@($"cell red {GetCursorClass("color", "red")}")' @onmousedown='() => HandleMouseDown("color", "red")' @onmouseenter='() => HandleMouseEnter("color", "red")'>RED @GetBetBadge("color", "red")</div>
-                                <div @key='"outside-black"' class='@($"cell black {GetCursorClass("color", "black")}")' @onmousedown='() => HandleMouseDown("color", "black")' @onmouseenter='() => HandleMouseEnter("color", "black")'>BLK @GetBetBadge("color", "black")</div>
-                            </div>
-                            <div class="outside-row">
-                                <div @key='"outside-even"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' @onmousedown='() => HandleMouseDown("evenodd", "even")' @onmouseenter='() => HandleMouseEnter("evenodd", "even")'>EVN @GetBetBadge("evenodd", "even")</div>
-                                <div @key='"outside-odd"' class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' @onmousedown='() => HandleMouseDown("evenodd", "odd")' @onmouseenter='() => HandleMouseEnter("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
-                            </div>
-                        </div>
+                    }
+                    <div class="pip-zoom-icon">
+                        <MudIcon Icon="@(_wheelExpanded ? Icons.Material.Filled.ZoomIn : Icons.Material.Filled.ZoomOutMap)" Size="Size.Small" />
                     </div>
                 </MudPaper>
             </div>
 
-            <!-- Controls (Middle) -->
-            <MudPaper Class="pa-2 glass-panel mt-2">
-                <div class="d-flex justify-space-between align-center px-2 mb-2">
-                    <MudText Typo="Typo.caption" Class="opacity-70 fw-bold">BALANCE</MudText>
-                    <MudText Typo="Typo.body1" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
+            <div class="mobile-stack-layout">
+                <div class="roulette-board-container">
+                    <MudPaper Class="pa-1" Style="background: #004d00; border: 4px solid #3d2b1f; border-radius: 10px;">
+                        <div class="roulette-table-mobile mobile-vertical" @onmouseup='() => isMouseDown = false'>
+                            <div @key='"c0-m-v6"' class='@($"cell zero {GetCursorClass("number", "0")} {(currentLuckyNumbers.ContainsKey(0) ? "lucky-cell lightning-flash" : "")}")' 
+                                 @onmousedown='() => HandleMouseDown("number", "0")' @onmouseenter='() => HandleMouseEnter("number", "0")' @onmousedown:stopPropagation>
+                                0 @GetBetBadge("number", "0") @GetLuckyBadge(0)
+                            </div>                                
+                            <div class="mobile-grid-4-col">
+                                @for (int i = 1; i <= 36; i++) {
+                                    var num = i;
+                                    <div @key='"cm-v6-" + num' class='@($"cell {GetNumberColor(num)} {GetCursorClass("number", num.ToString())} {(currentLuckyNumbers.ContainsKey(num) ? "lucky-cell lightning-flash" : "")}")' 
+                                         @onmousedown='() => HandleMouseDown("number", num.ToString())' @onmouseenter='() => HandleMouseEnter("number", num.ToString())'>
+                                        @num @GetBetBadge("number", num.ToString()) @GetLuckyBadge(num)
+                                    </div>
+                                }
+                            </div>
+                            <div class="outside-grid-mobile">
+                                <div class="outside-row">
+                                    <div @key='"orm-v6"' class='@($"cell red {GetCursorClass("color", "red")}")' @onmousedown='() => HandleMouseDown("color", "red")' @onmouseenter='() => HandleMouseEnter("color", "red")'>RED @GetBetBadge("color", "red")</div>
+                                    <div @key='"obm-v6"' class='@($"cell black {GetCursorClass("color", "black")}")' @onmousedown='() => HandleMouseDown("color", "black")' @onmouseenter='() => HandleMouseEnter("color", "black")'>BLK @GetBetBadge("color", "black")</div>
+                                </div>
+                                <div class="outside-row">
+                                    <div @key='"oem-v6"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' @onmousedown='() => HandleMouseDown("evenodd", "even")' @onmouseenter='() => HandleMouseEnter("evenodd", "even")'>EVN @GetBetBadge("evenodd", "even")</div>
+                                    <div @key='"oom-v6"' class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' @onmousedown='() => HandleMouseDown("evenodd", "odd")' @onmouseenter='() => HandleMouseEnter("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </MudPaper>
                 </div>
-                <div class="d-flex gap-2 spin-controls-row">
-                    <MudNumericField @bind-Value="chipValue" Label="Chip" Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" />
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSpin" Disabled="@(isSpinning || !currentBets.Any())" 
-                               Class="rounded-lg fw-black px-6" Style="height: 40px;">SPIN</MudButton>
-                </div>
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ClearBets" Disabled="isSpinning" Size="Size.Small" FullWidth="true" Class="mt-2">CLEAR</MudButton>
-            </MudPaper>
 
-            <!-- Profile (Bottom) -->
-            <div class="pa-2 rounded-xl glass-panel d-flex gap-2 border border-solid var(--mud-palette-divider) mt-2">
-                 <div class='@($"mode-btn-mobile {(selectedMode == "Classic" ? "active-classic" : "")} flex-grow-1")' @onclick='@(() => SetMode("Classic"))'>CLASSIC</div>
-                 <div class='@($"mode-btn-mobile {(selectedMode == "Extreme" ? "active-extreme" : "")} flex-grow-1")' @onclick='@(() => SetMode("Extreme"))'>EXTREME</div>
+                <MudPaper Class="pa-2 glass-panel mt-2">
+                    <div class="d-flex justify-space-between align-center px-2 mb-2">
+                        <MudText Typo="Typo.caption" Class="opacity-70 fw-bold">BALANCE</MudText>
+                        <MudText Typo="Typo.body1" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
+                    </div>
+                    <div class="d-flex gap-2 spin-controls-row">
+                        <MudNumericField @bind-Value="chipValue" Label="Chip" Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" />
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSpin" Disabled="@(isSpinning || !currentBets.Any())" 
+                                   Class="rounded-lg fw-black px-6" Style="height: 40px;">SPIN</MudButton>
+                    </div>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ClearBets" Disabled="isSpinning" Size="Size.Small" FullWidth="true" Class="mt-2">CLEAR</MudButton>
+                </MudPaper>
+
+                <div class="pa-2 rounded-xl glass-panel d-flex gap-2 border border-solid var(--mud-palette-divider) mt-2">
+                     <div class='@($"mode-btn-mobile {(selectedMode == "Classic" ? "active-classic" : "")} flex-grow-1")' @onclick='@(() => SetMode("Classic"))'>CLASSIC</div>
+                     <div class='@($"mode-btn-mobile {(selectedMode == "Extreme" ? "active-extreme" : "")} flex-grow-1")' @onclick='@(() => SetMode("Extreme"))'>EXTREME</div>
+                </div>
             </div>
         </div>
     }
     else
     {
         <!-- 2. DESKTOP VIEW -->
-        <MudGrid Spacing="3" Class="desktop-main-grid">
-            <MudItem xs="12" lg="9">
-                <div class="d-flex gap-4 h-100">
-                    <!-- WHEEL AREA (50%) -->
-                    <MudPaper Class="pa-4 d-flex justify-center align-center overflow-hidden desktop-wheel-card flex-1" 
-                              Style="background: radial-gradient(circle, #1a4a1a 0%, #0a2a0a 100%); border: 10px solid #3d2b1f; border-radius: 24px; box-shadow: 0 15px 40px rgba(0,0,0,0.9); position: relative; height: 500px;">
-                        <div id="roulette-pro-container" style="width: 600px; height: 480px;"></div>
-                        @if (winningNumber.HasValue && !isSpinning) {
-                            <div class="result-overlay-pro animate-fade-in">
-                                <MudText Typo="Typo.h4" Style='@($"font-weight: 950; color: {(winningNumber == 0 ? "#4caf50" : (GetNumberColor(winningNumber.Value) == "red" ? "#ff5252" : "#ffffff"))};")'>@winningNumber</MudText>
-                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 1px; font-weight: 800; display: block; margin-top: -4px;">Winning Number</MudText>
-                            </div>
-                        }
+        <div @key='"dt-root-v6"'>
+            <MudGrid Spacing="3" Class="desktop-main-grid">
+                <MudItem xs="12" lg="9">
+                    <div class="d-flex gap-4 h-100 desktop-top-row" style="min-height: 500px;">
+                        <!-- WHEEL AREA (Fluid 50%) -->
+                        <MudPaper Class="pa-4 d-flex justify-center align-center overflow-hidden desktop-wheel-card" 
+                                  Style="background: radial-gradient(circle, #1a4a1a 0%, #0a2a0a 100%); border: 10px solid #3d2b1f; border-radius: 24px; box-shadow: 0 15px 40px rgba(0,0,0,0.9); position: relative; height: 500px; flex: 1 1 50%; min-width: 0;">
+                            <div id="roulette-pro-container-desktop" style="width: 100%; height: 100%;"></div>
+                            @if (winningNumber.HasValue && !isSpinning) {
+                                <div class="result-overlay-pro animate-fade-in">
+                                    <MudText Typo="Typo.h4" Style='@($"font-weight: 950; color: {(winningNumber == 0 ? "#4caf50" : (GetNumberColor(winningNumber.Value) == "red" ? "#ff5252" : "#ffffff"))};")'>@winningNumber</MudText>
+                                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 1px; font-weight: 800; display: block; margin-top: -4px;">Winning Number</MudText>
+                                </div>
+                            }
                         </MudPaper>
 
-                    <!-- STATS DASHBOARD (50%) -->
-                    <MudPaper Class="pa-6 glass-panel-premium flex-1 stats-dashboard-premium" Style="border-radius: 24px; display: flex; flex-direction: column; gap: 15px; height: 500px;">
-                        <div class="d-flex justify-space-between align-center border-b-2 border-solid border-white opacity-20 pb-3">
-                            <div class="d-flex align-center">
-                                <div class="stats-live-indicator mr-3"></div>
-                                <MudText Typo="Typo.h5" Class="fw-black text-warning" Style="letter-spacing: 1px;">LIVE TRACKER</MudText>
+                        <!-- STATS DASHBOARD (Fluid 50%) -->
+                        <MudPaper Class="pa-6 glass-panel-premium stats-dashboard-premium" Style="border-radius: 24px; display: flex; flex-direction: column; gap: 15px; height: 500px; flex: 1 1 50%; min-width: 0;">
+                            <div class="d-flex justify-space-between align-center border-b border-solid border-white opacity-20 pb-3">
+                                <div class="d-flex align-center">
+                                    <div class="stats-live-indicator mr-3"></div>
+                                    <MudText Typo="Typo.subtitle1" Class="fw-black text-warning">LIVE TRACKER</MudText>
+                                </div>
+                                <MudChip T="string" Color="Color.Info" Variant="Variant.Text" Size="Size.Small">LAST 100 ROUNDS</MudChip>
                             </div>
-                            <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small" Style="font-weight: 900;">100 ROUNDS</MudChip>
+                            
+                            <div class="stats-content-v5 flex-grow-1 d-flex flex-column gap-3 py-1">
+                                <div class="stat-group-v5">
+                                    <MudText Typo="Typo.overline" Class="text-danger fw-black mb-1 d-block">🔥 HOT NUMBERS</MudText>
+                                    <div class="d-flex gap-4">
+                                        @foreach (var hot in hotNumbers.Take(5)) {
+                                            <div class="stat-v5-item" @key='"hot-dt-" + hot.Number'>
+                                                <div class='@($"stat-v5-circle {GetNumberColor(hot.Number)}")'>@hot.Number</div>
+                                                <span class="stat-v5-label">@hot.Count HITS</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="stat-group-v5">
+                                    <MudText Typo="Typo.overline" Class="text-info fw-black mb-1 d-block">❄️ COLD NUMBERS</MudText>
+                                    <div class="d-flex gap-4">
+                                        @foreach (var cold in coldNumbers.Take(5)) {
+                                            <div class="stat-v5-item" @key='"cold-dt-" + cold.Number'>
+                                                <div class='@($"stat-v5-circle {GetNumberColor(cold.Number)}")'>@cold.Number</div>
+                                                <span class="stat-v5-label">@cold.Count SPINS</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <MudSpacer />
+
+                                <div class="stat-group-v5">
+                                    <MudText Typo="Typo.overline" Class="opacity-50 fw-black mb-1 d-block">🕘 RECENT HISTORY</MudText>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        @foreach (var num in historyNumbers.Take(12)) {
+                                            <div class='@($"stat-v5-circle mini {GetNumberColor(num)}")' @key='"hist-" + num + Guid.NewGuid()'>@num</div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-space-between align-center pa-2 rounded-lg stats-info-bar">
+                                    <MudText Typo="Typo.caption" Class="fw-bold opacity-60">ID: #@(sessionId?.ToString().Substring(0,10).ToUpper() ?? "...")</MudText>
+                                    <MudText Typo="Typo.caption" Class="fw-black text-success">LAST WIN: @lastWinAmount.ToString("C2")</MudText>
+                                </div>
+                            </div>
+                        </MudPaper>
+                    </div>
+                </MudItem>
+
+                <MudItem xs="12" lg="3">
+                    <MudPaper Class="pa-6 d-flex flex-column gap-4 h-100 glass-panel-premium" Style="border-radius: 28px; height: 500px !important; overflow: hidden;">
+                        <div class="pa-4 rounded-xl border border-solid var(--mud-palette-divider) balance-card" style='@($"background: {(layoutService.IsDarkMode ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.6)")};")'>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary fw-bold">BALANCE</MudText>
+                            <MudText Typo="Typo.h4" Class="balance-text" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
                         </div>
-                        
-                        <div class="stats-content-v5 flex-grow-1 d-flex flex-column gap-3 py-1">
-                            <!-- 1. HOT NUMBERS -->
-                            <div class="stat-group-v5">
-                                <MudText Typo="Typo.overline" Class="text-danger fw-black mb-1 d-block">🔥 HOT NUMBERS</MudText>
-                                <div class="d-flex gap-4">
-                                    @foreach (var hot in hotNumbers.Take(5)) {
-                                        <div class="stat-v5-item">
-                                            <div class='@($"stat-v5-circle {GetNumberColor(hot.Number)}")'>@hot.Number</div>
-                                            <span class="stat-v5-label">@hot.Count HITS</span>
-                                        </div>
-                                    }
-                                </div>
+                        <MudNumericField @bind-Value="chipValue" Label="Chip Value" Variant="Variant.Outlined" Min="1" Max="1000" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AddCard" />
+                        <div class="pa-4 rounded-xl border border-solid var(--mud-palette-divider) balance-card" style='@($"background: {(layoutService.IsDarkMode ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.6)")};")'>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary fw-bold">TOTAL WAGER</MudText>
+                            <MudText Typo="Typo.h5" Class="wager-text fw-bold" Color="Color.Primary">@currentBets.Sum(x => x.Amount).ToString("C2")</MudText>
+                        </div>
+                        <MudSpacer />
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="OnSpin" Disabled="@(isSpinning || !currentBets.Any())" Class="rounded-xl pulse-neon" Style="height: 80px; font-size: 1.3rem; font-weight: 900;">SPIN</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ClearBets" Disabled="isSpinning" Class="rounded-lg border-2">CLEAR ALL</MudButton>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" lg="9">
+                    <MudPaper Class="pa-4" Style="background: #004d00; border: 10px solid #3d2b1f; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.7);">
+                        <div class="roulette-table-desktop" @onmouseup='() => isMouseDown = false'>
+                            <div @key='"c0-dt-final"' class='@($"cell zero {GetCursorClass("number", "0")} {(currentLuckyNumbers.ContainsKey(0) ? "lucky-cell lightning-flash" : "")}")' @onmousedown='() => HandleMouseDown("number", "0")' @onmouseenter='() => HandleMouseEnter("number", "0")'>
+                                0 @GetBetBadge("number", "0") @GetLuckyBadge(0)
+                            </div>                                
+                            <div class="numbers-grid-desktop">
+                                @for (int i = 1; i <= 36; i++) {
+                                    var num = i;
+                                    <div @key='"cm-dt-final-" + num' class='@($"cell {GetNumberColor(num)} {GetCursorClass("number", num.ToString())} {(currentLuckyNumbers.ContainsKey(num) ? "lucky-cell lightning-flash" : "")}")' @onmousedown='() => HandleMouseDown("number", num.ToString())' @onmouseenter='() => HandleMouseEnter("number", num.ToString())'>
+                                        @num @GetBetBadge("number", num.ToString()) @GetLuckyBadge(num)
+                                    </div>
+                                }
                             </div>
-
-                            <!-- 2. COLD NUMBERS -->
-                            <div class="stat-group-v5">
-                                <MudText Typo="Typo.overline" Class="text-info fw-black mb-1 d-block">❄️ COLD NUMBERS</MudText>
-                                <div class="d-flex gap-4">
-                                    @foreach (var cold in coldNumbers.Take(5)) {
-                                        <div class="stat-v5-item">
-                                            <div class='@($"stat-v5-circle {GetNumberColor(cold.Number)}")'>@cold.Number</div>
-                                            <span class="stat-v5-label">@cold.Count SPINS</span>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-
-                            <!-- GAP -->
-                            <MudSpacer />
-
-                            <!-- 3. RECENT HISTORY -->
-                            <div class="stat-group-v5">
-                                <MudText Typo="Typo.overline" Class="opacity-50 fw-black mb-1 d-block">🕘 RECENT HISTORY</MudText>
-                                <div class="d-flex gap-2 flex-wrap">
-                                    @foreach (var num in historyNumbers.Take(12)) {
-                                        <div class='@($"stat-v5-circle mini {GetNumberColor(num)}")'>@num</div>
-                                    }
-                                </div>
-                            </div>
-
-                            <!-- 4. SESSION INFO BAR -->
-                            <div class="d-flex justify-space-between align-center pa-2 rounded-lg stats-info-bar">
-                                <MudText Typo="Typo.caption" Class="fw-bold opacity-60">ID: #@(sessionId?.ToString().Substring(0,10).ToUpper() ?? "...")</MudText>
-                                <MudText Typo="Typo.caption" Class="fw-black text-success">LAST WIN: @lastWinAmount.ToString("C2")</MudText>
+                            <div class="outside-bets-desktop">
+                                <div @key='"or-dt-final"' class='@($"cell red {GetCursorClass("color", "red")}")' @onmousedown='() => HandleMouseDown("color", "red")' @onmouseenter='() => HandleMouseEnter("color", "red")'>RED @GetBetBadge("color", "red")</div>
+                                <div @key='"ob-dt-final"' class='@($"cell black {GetCursorClass("color", "black")}")' @onmousedown='() => HandleMouseDown("color", "black")' @onmouseenter='() => HandleMouseEnter("color", "black")'>BLACK @GetBetBadge("color", "black")</div>
+                                <div @key='"oe-dt-final"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' @onmousedown='() => HandleMouseDown("evenodd", "even")' @onmouseenter='() => HandleMouseEnter("evenodd", "even")'>EVEN @GetBetBadge("evenodd", "even")</div>
+                                <div @key='"oo-dt-final"' class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' @onmousedown='() => HandleMouseDown("evenodd", "odd")' @onmouseenter='() => HandleMouseEnter("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
                             </div>
                         </div>
                     </MudPaper>
-                </div>
-            </MudItem>
+                </MudItem>
 
-            <MudItem xs="12" lg="3">
-                <MudPaper Class="pa-6 d-flex flex-column gap-4 h-100 glass-panel-premium" Style="border-radius: 28px; height: 500px !important;">
-                    <div class="pa-4 rounded-xl border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.6)")};")'>
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary fw-bold">BALANCE</MudText>
-                        <MudText Typo="Typo.h4" Style="color: #4caf50; font-weight: 900;">@balance.ToString("C2")</MudText>
-                    </div>
-                    <MudNumericField @bind-Value="chipValue" Label="Chip Value" Variant="Variant.Outlined" Min="1" Max="1000" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AddCard" />
-                    <div class="pa-4 rounded-xl border border-solid var(--mud-palette-divider)" style='@($"background: {(layoutService.IsDarkMode ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.6)")};")'>
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary fw-bold">TOTAL WAGER</MudText>
-                        <MudText Typo="Typo.h5" Class="fw-bold" Color="Color.Primary">@currentBets.Sum(x => x.Amount).ToString("C2")</MudText>
-                    </div>
-                    <MudSpacer />
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="OnSpin" Disabled="@(isSpinning || !currentBets.Any())" Class="rounded-xl pulse-neon" Style="height: 100px; font-size: 1.5rem; font-weight: 900;">SPIN</MudButton>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ClearBets" Disabled="isSpinning" Class="rounded-lg border-2">CLEAR ALL</MudButton>
-                </MudPaper>
-            </MudItem>
-
-            <MudItem xs="12" lg="9">
-                <MudPaper Class="pa-4" Style="background: #004d00; border: 10px solid #3d2b1f; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.7);">
-                    <div class="roulette-table-desktop" @onmouseup='() => isMouseDown = false'>
-                        <div @key='"cell-0"' class='@($"cell zero {GetCursorClass("number", "0")} {(currentLuckyNumbers.ContainsKey(0) ? "lucky-cell lightning-flash" : "")}")' @onmousedown='() => HandleMouseDown("number", "0")' @onmouseenter='() => HandleMouseEnter("number", "0")'>
-                            0 @GetBetBadge("number", "0") @GetLuckyBadge(0)
-                        </div>                                
-                        <div class="numbers-grid-desktop">
-                            @for (int i = 1; i <= 36; i++) {
-                                var num = i;
-                                <div @key='"cell-" + num' class='@($"cell {GetNumberColor(num)} {GetCursorClass("number", num.ToString())} {(currentLuckyNumbers.ContainsKey(num) ? "lucky-cell lightning-flash" : "")}")' @onmousedown='() => HandleMouseDown("number", num.ToString())' @onmouseenter='() => HandleMouseEnter("number", num.ToString())'>
-                                    @num @GetBetBadge("number", num.ToString()) @GetLuckyBadge(num)
-                                </div>
-                            }
-                        </div>
-                        <div class="outside-bets-desktop">
-                            <div @key='"outside-red"' class='@($"cell red {GetCursorClass("color", "red")}")' @onmousedown='() => HandleMouseDown("color", "red")' @onmouseenter='() => HandleMouseEnter("color", "red")'>RED @GetBetBadge("color", "red")</div>
-                            <div @key='"outside-black"' class='@($"cell black {GetCursorClass("color", "black")}")' @onmousedown='() => HandleMouseDown("color", "black")' @onmouseenter='() => HandleMouseEnter("color", "black")'>BLACK @GetBetBadge("color", "black")</div>
-                            <div @key='"outside-even"' class='@($"cell even {GetCursorClass("evenodd", "even")}")' @onmousedown='() => HandleMouseDown("evenodd", "even")' @onmouseenter='() => HandleMouseEnter("evenodd", "even")'>EVEN @GetBetBadge("evenodd", "even")</div>
-                            <div @key='"outside-odd"' class='@($"cell odd {GetCursorClass("evenodd", "odd")}")' @onmousedown='() => HandleMouseDown("evenodd", "odd")' @onmouseenter='() => HandleMouseEnter("evenodd", "odd")'>ODD @GetBetBadge("evenodd", "odd")</div>
-                        </div>
-                    </div>
-                </MudPaper>
-            </MudItem>
-
-            <MudItem xs="12" lg="3">
-                 <div class="pa-4 rounded-xl glass-panel h-100 d-flex flex-column gap-3 border border-solid var(--mud-palette-divider)">
-                     <MudText Typo="Typo.subtitle2" Class="fw-bold d-flex align-center">
-                         <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small" Class="mr-2" Color="Color.Primary" /> Game Profile
-                     </MudText>
-                     <MudDivider />
-                     <div class='@($"mode-rect-card {(selectedMode == "Classic" ? "active-classic" : "")}")' @onclick='() => SetMode("Classic")'>CLASSIC</div>
-                     <div class='@($"mode-rect-card {(selectedMode == "Extreme" ? "active-extreme" : "")}")' @onclick='@(() => SetMode("Extreme"))'>EXTREME</div>
-                     
-                     <div class="mt-auto pa-2 border-t border-solid var(--mud-palette-divider)">
-                         <MudText Typo="Typo.caption" Class='@($"fw-bold d-flex align-center justify-center {(selectedMode == "Extreme" ? "text-warning" : "text-info")}")'>
-                             <MudIcon Icon="@(selectedMode == "Extreme" ? Icons.Material.Filled.AutoAwesome : Icons.Material.Filled.Info)" Size="Size.Small" Class="mr-1" />
-                             @(selectedMode == "Extreme" ? "EXTREME ACTIVE" : "CLASSIC ACTIVE")
+                <MudItem xs="12" lg="3">
+                     <div class="pa-4 rounded-xl glass-panel h-100 d-flex flex-column gap-3 border border-solid var(--mud-palette-divider)">
+                         <MudText Typo="Typo.h6" Class="fw-black d-flex align-center" Style="font-size: 1.1rem; letter-spacing: 0.5px;">
+                             <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Medium" Class="mr-2" Color="Color.Primary" /> Game Profile
                          </MudText>
+                         <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 0 -16px;"></div>
+                         <div class='@($"mode-rect-card {(selectedMode == "Classic" ? "active-classic" : "")} py-4")' @onclick='() => SetMode("Classic")'>CLASSIC</div>
+                         <div class='@($"mode-rect-card {(selectedMode == "Extreme" ? "active-extreme" : "")} py-4")' @onclick='@(() => SetMode("Extreme"))'>EXTREME</div>
+
+                         <div class="mt-auto pa-1 border-t border-solid var(--mud-palette-divider)">                             <MudText Typo="Typo.caption" Class='@($"fw-bold d-flex align-center justify-center {(selectedMode == "Extreme" ? "text-warning" : "text-info")}")' Style="font-size: 0.7rem;">
+                                 <MudIcon Icon="@(selectedMode == "Extreme" ? Icons.Material.Filled.AutoAwesome : Icons.Material.Filled.Info)" Size="Size.Small" Class="mr-1" />
+                                 @(selectedMode == "Extreme" ? "EXTREME ACTIVE" : "CLASSIC ACTIVE")
+                             </MudText>
+                         </div>
                      </div>
-                 </div>
-            </MudItem>
-        </MudGrid>
+                </MudItem>
+            </MudGrid>
+        </div>
     }
 </MudContainer>
 
@@ -245,82 +236,80 @@
     .red { background: linear-gradient(180deg, #d32f2f 0%, #b71c1c 100%); } 
     .black { background: linear-gradient(180deg, #424242 0%, #1a1a1a 100%); } 
     .even, .odd { background: linear-gradient(180deg, #2e7d32 0%, #1b5e20 100%); }
-    .bet-badge { position: absolute; top: -10px; right: -10px; background: #ffD700; color: black; border-radius: 50%; width: 28px; height: 28px; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; border: 2.5px solid white; font-weight: 950; z-index: 5; box-shadow: 0 4px 10px rgba(0,0,0,0.6); }
-    .lucky-cell { border: 3.5px solid #ff9800 !important; box-shadow: 0 0 25px #ff9800; background: rgba(255, 152, 0, 0.3) !important; }
+    .bet-badge { position: absolute; top: -10px; right: -10px; background: #ffD700; color: black; border-radius: 50%; width: 22px; height: 22px; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; border: 2.5px solid white; font-weight: 950; z-index: 5; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    .lucky-cell { border: 3px solid #ff9800 !important; box-shadow: 0 0 20px #ff9800; background: rgba(255, 152, 0, 0.3) !important; }
     .lightning-flash { animation: lightning-strike 0.5s ease-out infinite alternate; }
     @@keyframes lightning-strike { 0% { filter: brightness(1); } 100% { filter: brightness(1.8); } }
-    .result-overlay-pro { 
-        position: absolute; top: 20px; right: 20px; 
-        background: rgba(0,0,0,0.85); padding: 12px 24px; 
-        border-radius: 16px; border: 2px solid #d4af37; 
-        text-align: center; z-index: 20; 
-        box-shadow: 0 8px 32px rgba(0,0,0,0.5); 
-    }
-    .mode-rect-card { padding: 20px; border-radius: 12px; cursor: pointer; background: rgba(255,255,255,0.05); text-align: center; font-weight: 900; border: 2px solid transparent; }
-    .active-classic { border-color: var(--mud-palette-primary) !important; background: rgba(124, 58, 237, 0.2) !important; box-shadow: 0 0 25px rgba(124, 58, 237, 0.35); }
-    .active-extreme { border-color: var(--mud-palette-warning) !important; background: rgba(255, 152, 0, 0.2) !important; box-shadow: 0 0 25px rgba(255, 152, 0, 0.35); }
-    
-    .lucky-badge { 
-        position: absolute; 
-        bottom: 2px; right: 2px; 
-        background: #ff9800; 
-        color: #000; font-size: 0.65rem; font-weight: 950; 
-        padding: 1px 4px; border-radius: 4px; border: 1px solid #fff; 
-        z-index: 10; pointer-events: none; 
-        box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        line-height: 1;
-        animation: lucky-pulse 2s infinite;
-    }
+    .result-overlay-pro { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.85); padding: 12px 24px; border-radius: 16px; border: 2px solid #d4af37; text-align: center; z-index: 20; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+    .mode-rect-card { border-radius: 12px; cursor: pointer; background: rgba(255,255,255,0.05); text-align: center; font-weight: 900; border: 2px solid transparent; transition: all 0.2s; }
+    .active-classic { border-color: var(--mud-palette-primary) !important; background: rgba(124, 58, 237, 0.2) !important; }
+    .active-extreme { border-color: var(--mud-palette-warning) !important; background: rgba(255, 152, 0, 0.2) !important; }
+    .lucky-badge { position: absolute; bottom: 2px; right: 2px; background: #ff9800; color: #000; font-size: 0.65rem; font-weight: 950; padding: 1px 4px; border-radius: 4px; border: 1px solid #fff; z-index: 10; pointer-events: none; box-shadow: 0 2px 4px rgba(0,0,0,0.5); line-height: 1; animation: lucky-pulse 2s infinite; }
     @@keyframes lucky-pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-    /* 2. DESKTOP SPECIFIC (Premium Table) */
+    /* 2. DESKTOP SPECIFIC */
     @@media (min-width: 961px) {
         .roulette-table-desktop { display: flex; height: 280px; gap: 12px; }
-        .roulette-table-desktop .zero { width: 100px; height: 100%; background: #008000; border: 3px solid white; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; font-size: 1.8rem; }
+        .roulette-table-desktop .zero { width: 100px; height: 100%; background: #008000; border: 3px solid white; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; font-size: 1.8rem; flex-shrink: 0; }
         .numbers-grid-desktop { display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(3, 1fr); gap: 15px 12px; flex-grow: 1; }
-        .outside-bets-desktop { display: flex; flex-direction: column; width: 180px; gap: 12px; }
+        .outside-bets-desktop { display: flex; flex-direction: column; width: 180px; gap: 12px; flex-shrink: 0; }
         .numbers-grid-desktop .cell, .outside-bets-desktop .cell { height: 100%; border-radius: 10px; font-size: 1.3rem; }
         
-        .glass-panel { backdrop-filter: blur(10px); background: rgba(255,255,255,0.05); }
-        .glass-panel-premium { backdrop-filter: blur(20px); background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .stats-info-bar { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); }
-        .stats-live-indicator { width: 14px; height: 14px; background: #ff5252; border-radius: 50%; box-shadow: 0 0 15px #ff5252; animation: pulse-red 2s infinite; }
-        @@keyframes pulse-red { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+        /* 1600px Scaling Fix */
+        @@media (max-width: 1600px) {
+            .roulette-table-desktop .zero { width: 60px; font-size: 1.2rem; }
+            .outside-bets-desktop { width: 120px; }
+            .numbers-grid-desktop .cell, .outside-bets-desktop .cell { font-size: 1.0rem; border-radius: 6px; }
+            .numbers-grid-desktop { gap: 8px 6px; }
+            .roulette-table-desktop { gap: 6px; }
+            .balance-text { font-size: 1.4rem !important; }
+            .wager-text { font-size: 1.1rem !important; }
+            .balance-card { padding: 6px !important; }
+            .desktop-top-row { gap: 10px !important; }
+        }
+
+        .glass-panel-premium { backdrop-filter: blur(15px); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); }
+        .stats-info-bar { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
+        .stats-live-indicator { width: 14px; height: 14px; background: #ff5252; border-radius: 50%; box-shadow: 0 0 10px #ff5252; animation: pulse-red 2s infinite; }
+        @@keyframes pulse-red { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
     }
 
     /* 3. STATS V5 STYLES */
-    .stat-v5-circle { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 950; font-size: 1.1rem; border: 3px solid rgba(255,255,255,0.4); box-shadow: 0 6px 15px rgba(0,0,0,0.6); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    .stat-v5-circle:hover { transform: scale(1.1) rotate(5deg); }
+    .stat-v5-circle { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 950; font-size: 1.1rem; border: 3px solid rgba(255,255,255,0.4); box-shadow: 0 6px 12px rgba(0,0,0,0.5); }
     .stat-v5-circle.mini { width: 34px; height: 34px; font-size: 0.9rem; border-width: 2px; }
-    .stat-v5-circle.red { background: linear-gradient(145deg, #ff5252, #b30000); color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-    .stat-v5-circle.black { background: linear-gradient(145deg, #424242, #1a1a1a); color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-    .stat-v5-circle.zero { background: linear-gradient(145deg, #66bb6a, #004d00); color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+    .stat-v5-circle.red { background: linear-gradient(145deg, #ff5252, #b30000); color: white; }
+    .stat-v5-circle.black { background: linear-gradient(145deg, #424242, #1a1a1a); color: white; }
+    .stat-v5-circle.zero { background: linear-gradient(145deg, #66bb6a, #004d00); color: white; }
     .stat-v5-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .stat-v5-label { font-size: 0.6rem; font-weight: 900; opacity: 1; color: #ff9800; text-transform: uppercase; letter-spacing: 1px; }
+    .stat-v5-label { font-size: 0.6rem; font-weight: 900; opacity: 0.9; color: #ff9800; text-transform: uppercase; letter-spacing: 1px; }
 
-    /* 4. MOBILE SYSTEM (FIXED & RESTORED) */
+    /* 4. MOBILE SYSTEM */
     @@media (max-width: 960px) {
-        .mobile-pip-container { position: fixed; z-index: 2000; touch-action: none; display: block !important; visibility: visible !important; }
+        .mobile-pip-container { position: fixed; z-index: 2000; touch-action: none; display: block !important; }
         .mobile-pip-container.expanded { position: fixed; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; background: rgba(0,0,0,0.92); display: flex !important; align-items: center; justify-content: center; transform: none !important; }
-        .pip .wheel-paper { width: 130px; height: 130px; }
-        .expanded .wheel-paper { width: 340px; height: 340px; }
-        .canvas-container-pip canvas { width: 100% !important; height: 100% !important; display: block; border-radius: 8px; }
-        .pip .canvas-container-pip { width: 120px; height: 120px; }
-        .expanded .canvas-container-pip { width: 320px; height: 320px; }
-        .pip-hint { position: absolute; bottom: 8px; right: 8px; font-size: 0.8rem; color: #fff; opacity: 0.8; }
-        .result-badge-mini { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); padding: 8px 16px; border-radius: 12px; z-index: 10; border: 2px solid #d4af37; }
+        
+        .pip .wheel-paper { width: 130px !important; height: 130px !important; position: relative; }
+        .expanded .wheel-paper { width: 340px !important; height: 340px !important; position: relative; }
+        
+        #roulette-pro-container-mobile { width: 100% !important; height: 100% !important; display: block !important; position: relative; overflow: hidden; }
+        #roulette-pro-container-mobile canvas { width: 100% !important; height: 100% !important; display: block !important; border-radius: 8px; }
 
-        .roulette-table-mobile { display: flex; flex-direction: column; gap: 12px; }
-        .mobile-vertical { display: flex; flex-direction: column; gap: 10px; }
-        .mobile-piles-container { display: flex; flex-direction: row; justify-content: space-between; gap: 15px; }
-        .pile { display: flex; flex-direction: column; gap: 6px; flex: 1; }
-        .cell { height: 44px !important; font-size: 1.2rem !important; border-radius: 8px; }
-        .zero { width: 100% !important; height: 40px !important; margin-bottom: 6px; background: #008000; border: 2px solid white; border-radius: 8px; display: flex; align-items: center; justify-content: center; position: relative; }
-        .outside-grid-mobile { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-        .outside-row { display: flex; width: 100%; gap: 8px; }
-        .outside-row .cell { flex: 1; height: 44px !important; }
+        .pip-zoom-icon { position: absolute; bottom: 8px; right: 8px; color: #fff; opacity: 0.9; z-index: 50; padding: 4px; background: rgba(0,0,0,0.5); border-radius: 4px; display: flex; cursor: pointer; }
+        .expanded .pip-zoom-icon { top: 12px; right: 12px; bottom: auto; }
+
+        .roulette-table-mobile { display: flex; flex-direction: column; gap: 10px; }
+        .mobile-vertical { display: flex; flex-direction: column; gap: 8px; }
+        
+        /* 4 COLUMNS ON MOBILE */
+        .mobile-grid-4-col { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 6px 0; }
+        
+        .cell { height: 42px !important; font-size: 1.1rem !important; border-radius: 6px; min-width: 0; }
+        .zero { width: 100% !important; height: 38px !important; margin-bottom: 4px; background: #008000; border: 1px solid white; border-radius: 6px; display: flex; align-items: center; justify-content: center; position: relative; }
+        .outside-grid-mobile { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+        .outside-row { display: flex; width: 100%; gap: 6px; }
+        .outside-row .cell { flex: 1; height: 40px !important; }
         .spin-controls-row { display: flex !important; flex-direction: row; align-items: center; justify-content: center; }
-        .mode-btn-mobile { padding: 14px; text-align: center; font-size: 1rem; font-weight: 950; background: rgba(255,255,255,0.05); border-radius: 12px; cursor: pointer; border: 2px solid transparent; }
+        .mode-btn-mobile { padding: 12px; text-align: center; font-size: 0.9rem; font-weight: 950; background: rgba(255,255,255,0.05); border-radius: 10px; cursor: pointer; border: 2px solid transparent; }
     }
 </style>
 
@@ -336,7 +325,6 @@
     private Dictionary<int, int> currentLuckyNumbers = new();
     private bool _wheelExpanded = false;
 
-    // STATS TRACKING
     private List<int> historyNumbers = new();
     private List<NumberStat> hotNumbers = new();
     private List<NumberStat> coldNumbers = new();
@@ -356,16 +344,13 @@
                 } catch { return -1; }
             }).Where(n => n != -1).ToList();
 
-            // Calculate Hot/Cold
             var counts = historyNumbers.GroupBy(n => n).Select(g => new NumberStat { Number = g.Key, Count = g.Count() }).ToList();
             hotNumbers = counts.OrderByDescending(c => c.Count).Take(5).ToList();
             
-            // Add defaults for Hot Numbers if empty
             if (!hotNumbers.Any()) {
                 hotNumbers = new List<int> { 0, 32, 15, 19, 4 }.Select(n => new NumberStat { Number = n, Count = 0 }).ToList();
             }
 
-            // Cold = Numbers not in recent history, or least frequent
             var neverHit = Enumerable.Range(0, 37).Where(n => !historyNumbers.Contains(n)).Select(n => new NumberStat { Number = n, Count = 0 }).ToList();
             coldNumbers = neverHit.Concat(counts.OrderBy(c => c.Count)).Take(5).ToList();
             
@@ -373,8 +358,7 @@
         } catch { }
     }
 
-    // Draggable Logic
-    private double _wheelX = 10; // Safer start for mobile
+    private double _wheelX = 10; 
     private double _wheelY = 80;
     private bool _isDragging = false;
     private double _dragStartX, _dragStartY;
@@ -395,6 +379,7 @@
     private void ToggleWheelSize() {
         if (layoutService.IsMobile && !_isDragging) {
             _wheelExpanded = !_wheelExpanded;
+            _needsReinit = true;
             StateHasChanged();
         }
     }
@@ -403,29 +388,38 @@
     private bool turboMode = false;
     private bool lowGraphics = false;
 
+    private bool _lastIsMobile;
+    private bool _needsReinit = false;
+
     protected override void OnParametersSet() {
         if (!string.IsNullOrEmpty(Mode)) {
             if (Mode.Equals("Extreme", StringComparison.OrdinalIgnoreCase)) selectedMode = "Extreme";
             else if (Mode.Equals("Classic", StringComparison.OrdinalIgnoreCase)) selectedMode = "Classic";
+        }
+        if (_lastIsMobile != layoutService.IsMobile) {
+            _lastIsMobile = layoutService.IsMobile;
+            _needsReinit = true;
         }
     }
 
     private void SetMode(string mode) { if (!isSpinning) { selectedMode = mode; StateHasChanged(); } }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) {
-        if (firstRender) {
-            await Task.Delay(1500); // Wait longer for DOM
-            await JSRuntime.InvokeVoidAsync("roulettePro.init", "roulette-pro-container");
+        if (firstRender || _needsReinit) {
+            _needsReinit = false;
+            await Task.Delay(1500); 
+            string containerId = layoutService.IsMobile ? "roulette-pro-container-mobile" : "roulette-pro-container-desktop";
+            await JSRuntime.InvokeVoidAsync("roulettePro.init", containerId);
         }
     }
 
     protected override async Task OnInitializedAsync() {
         await Audio.Init();
         await LoadInitialData();
+        _lastIsMobile = layoutService.IsMobile;
         
         RealTime.OnGameUpdateReceived += async (data) => {
             try {
-                // Handle different object types from SignalR
                 var json = data.ToString();
                 if (json != null && json.Contains("\"Game\":\"Roulette\"")) {
                     await InvokeAsync(async () => {
