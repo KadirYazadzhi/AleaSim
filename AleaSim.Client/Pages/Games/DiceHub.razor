@@ -107,20 +107,6 @@
 
                 <div class="flex-grow-1"></div>
 
-                <div class="pa-3 rounded-lg border-dashed border-2 mud-border-primary opacity-80 mb-4">
-                    <MudText Typo="Typo.caption" Class="fw-bold d-block mb-1">SESSION STATS</MudText>
-                    <div class="d-flex justify-space-between">
-                        <MudText Typo="Typo.caption" Class="text-xs">WAGERED</MudText>
-                        <MudText Typo="Typo.caption" Class="text-xs fw-bold">$@totalWagered.ToString("F2")</MudText>
-                    </div>
-                    <div class="d-flex justify-space-between">
-                        <MudText Typo="Typo.caption" Class="text-xs">PROFIT</MudText>
-                        <MudText Typo="Typo.caption" Color="@(totalProfit >= 0 ? Color.Success : Color.Error)" Class="text-xs fw-bold">
-                            @(totalProfit >= 0 ? "+" : "")$@totalProfit.ToString("F2")
-                        </MudText>
-                    </div>
-                </div>
-
                 <div class="d-flex justify-space-between align-center mt-2">
                     <MudSwitch @bind-Value="autoBet" Label="AUTO" Color="Color.Secondary" Size="Size.Small" />
                     <MudText Typo="Typo.caption" Class="opacity-50 d-md-none">XP: @(betAmount * 10)</MudText>
