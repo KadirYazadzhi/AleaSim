@@ -21,8 +21,8 @@
             bool isMe = msg.SenderId == CurrentUserId || 
                         (msg.SenderUsername != null && (msg.SenderUsername.Equals("Me", StringComparison.OrdinalIgnoreCase) || msg.SenderUsername.Equals(currentUsername, StringComparison.OrdinalIgnoreCase)));
             
-            <div class='@($"chat-bubble-row mb-6 animate-fade-in {(isMe ? "me-right" : "others-left")}")' 
-                 style='@(isMe ? "flex-direction: row-reverse !important; justify-content: flex-end !important;" : "flex-direction: row !important; justify-content: flex-start !important;")'>
+            <div class='@($"chat-bubble-row mb-6 animate-fade-in {(isMe ? "me-aligned" : "others-aligned")}")' 
+                 style='@(isMe ? "justify-content: flex-end !important;" : "justify-content: flex-start !important;")'>
                 
                 @if (!isMe)
                 {
@@ -34,7 +34,7 @@
                 <div class="bubble-content-wrapper" style='@(isMe ? "align-items: flex-end !important;" : "align-items: flex-start !important;")'>
                     <div class="bubble-payload shadow-md" style='@(isMe ? "background: #7c3aed !important; color: white !important; border-radius: 20px 20px 4px 20px !important;" : "background: rgba(255,255,255,0.9) !important; color: #111 !important; border-radius: 20px 20px 20px 4px !important;")'>
                         @if (msg.IsDeleted) {
-                            <MudText Typo="Typo.body2" Class="opacity-50 font-italic">Message deleted</MudText>
+                            <MudText Typo="Typo.body2" Class="opacity-50 font-italic" Style="color: inherit !important;">Message deleted</MudText>
                         } else {
                             <MudText Typo="Typo.body2" Style="color: inherit !important;">@msg.Message</MudText>
                             @if (msg.IsEdited) {
@@ -59,6 +59,13 @@
                         </div>
                     }
                 </div>
+
+                @if (isMe)
+                {
+                    <MudAvatar Size="Size.Small" Class="bubble-avatar shadow-sm">
+                        <MudImage Src="@(currentAvatarUrl ?? "https://api.dicebear.com/7.x/bottts/svg?seed=" + currentUsername)" />
+                    </MudAvatar>
+                }
             </div>
         }
     </div>
@@ -99,8 +106,8 @@
     .bubble-payload { padding: 10px 16px; position: relative; word-break: break-word; font-size: 0.95rem; }
 
     .msg-actions-static { position: absolute; bottom: 0; opacity: 0.3; transition: opacity 0.2s; }
-    .sent-by-me .msg-actions-static { right: 100%; margin-right: 8px; }
-    .received-from-others .msg-actions-static { left: 100%; margin-left: 8px; }
+    .me-aligned .msg-actions-static { right: 100%; margin-right: 8px; }
+    .others-aligned .msg-actions-static { left: 100%; margin-left: 8px; }
     .chat-bubble-row:hover .msg-actions-static { opacity: 1; }
 
     .input-glass-wrap {
@@ -126,6 +133,7 @@
     private List<ChatMessageDto> messages = new();
     private string newMessage = "";
     private string currentUsername = "";
+    private string? currentAvatarUrl;
     private Guid? editingMessageId;
     private bool isLoading = true;
 

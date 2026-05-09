@@ -53,9 +53,9 @@
                             </div>
                             <div class="conv-actions">
                                 <MudIconButton Icon="@(user.IsPinned ? Icons.Material.Filled.PushPin : Icons.Material.Outlined.PushPin)" 
-                                               Size="Size.Small" OnClick='(e) => TogglePin(user)' Color="Color.Inherit" />
+                                               Size="Size.Small" OnClick='(e) => TogglePin(user)' Class="action-icon-btn" />
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" 
-                                               OnClick='(e) => DeleteConversation(user)' Color="Color.Inherit" />
+                                               OnClick='(e) => DeleteConversation(user)' Class="action-icon-btn" />
                             </div>
                         </div>
                     }
@@ -153,14 +153,6 @@
         backdrop-filter: blur(10px);
     }
 
-    .chat-viewport-v4 { 
-        flex-grow: 1; 
-        overflow: hidden; 
-        display: flex; 
-        flex-direction: column;
-        position: relative;
-    }
-    
     .sidebar-scroll { flex-grow: 1; overflow-y: auto; padding-bottom: 2rem; }
     .mobile-back-btn { display: none; background: none; border: none; color: inherit; cursor: pointer; padding: 8px; }
 
@@ -190,16 +182,17 @@
     }
     .conv-item.active .conv-name, .conv-item.active .conv-preview { color: white !important; }
     
-    /* HARD-CODED ICON COLOR FOR ACTIVE STATE */
-    .conv-item.active .conv-actions .mud-icon-button { color: white !important; }
-    
+    /* HARD-CODED ICON COLOR FIX */
+    .conv-item.active .conv-actions * { color: white !important; }
+    .action-icon-btn { color: inherit !important; }
+
     .conv-actions {
         position: absolute; right: 10px; display: none; gap: 4px;
         background: var(--mud-palette-surface); border-radius: 10px; padding: 2px;
         box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
     .conv-item:hover .conv-actions { display: flex; }
-    .active .conv-actions { background: rgba(255,255,255,0.2); color: white !important; }
+    .active .conv-actions { background: rgba(255,255,255,0.2) !important; }
     
     .pin-indicator { position: absolute; top: -5px; right: -5px; color: var(--mud-palette-warning); font-size: 12px; }
     
