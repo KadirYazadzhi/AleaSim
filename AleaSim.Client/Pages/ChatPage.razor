@@ -205,10 +205,27 @@
     // THE MASTER TOGGLE
     private bool showSidebar = true;
 
+    [Parameter] [SupplyParameterFromQuery] public string? userId { get; set; }
+
     protected override async Task OnInitializedAsync() {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        if (authState.User.IsInRole("Admin")) {
+        bool isAdmin = authState.User.IsInRole("Admin");
+        
+        if (isAdmin) {
             await LoadActiveConversations();
+            
+            if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var targetId)) {
+                var player = activeConversations.FirstOrDefault(p => p.Id == targetId);
+                if (player != null) {
+                    SelectPrivateChat(player.Id, player.Username);
+                } else {
+                    // Try to fetch specific player summary if not in list
+                    try {
+                        var p = await Http.GetFromJsonAsync<UserSummary>($"api/Admin/players/{targetId}/summary");
+                        if (p != null) SelectPrivateChat(p.Id, p.Username);
+                    } catch {}
+                }
+            }
         }
     }
 

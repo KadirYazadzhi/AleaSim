@@ -533,15 +533,11 @@
         if (response.IsSuccessStatusCode) Snackbar.Add("Session killed", Severity.Info);
     }
 
+    [Inject] NavigationManager Navigation { get; set; } = null!;
+
     private async Task OpenChat() {
         if (selectedPlayer == null) return;
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-        var parameters = new DialogParameters { 
-            ["OtherUserId"] = selectedPlayer.Id,
-            ["OtherUserName"] = selectedPlayer.Username,
-            ["OtherUserAvatar"] = selectedPlayer.AvatarUrl
-        };
-        await DialogService.ShowAsync<PrivateChatDialog>("Comms", parameters, options);
+        Navigation.NavigateTo($"/chat?userId={selectedPlayer.Id}");
     }
 
     private async Task InjectBonus() {

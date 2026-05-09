@@ -219,6 +219,13 @@ public class AdminController : ControllerBase {
         return Ok(dossier);
     }
 
+    [HttpGet("players/{id}/summary")]
+    public ActionResult GetPlayerSummary(Guid id) {
+        var user = _repo.GetUser(id);
+        if (user == null) return NotFound();
+        return Ok(new { Id = user.Id, Username = user.Username });
+    }
+
     [HttpPost("players/{id}/bonus")]
     public async Task<IActionResult> InjectBonus(Guid id, [FromBody] InjectBonusDto dto) {
         var adminId = GetCurrentUserId();
