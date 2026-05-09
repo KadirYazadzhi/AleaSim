@@ -77,28 +77,33 @@
             {
                 <MudStack Spacing="4">
                     <!-- Player Header Card -->
-                    <MudPaper Class="pa-md-8 pa-4 rounded-xl profile-hero overflow-hidden" Elevation="4">
-                        <div class="d-flex flex-column flex-sm-row align-center gap-4 gap-md-6 p-relative z-10 text-center text-sm-left">
+                    <MudPaper Class="pa-md-6 pa-4 rounded-xl profile-hero overflow-hidden" Elevation="4">
+                        <div class="d-flex flex-column flex-sm-row align-center gap-6 p-relative z-10">
                             <div class="position-relative">
-                                <MudAvatar Class="profile-avatar-adaptive">
+                                <MudAvatar Class="profile-avatar-adaptive" Style="width: 80px; height: 80px; border: 3px solid rgba(255,255,255,0.1);">
                                     <MudImage Src="@selectedPlayer.AvatarUrl" />
                                 </MudAvatar>
-                                <div class='@($"status-pulse {(selectedPlayer.IsActive ? "active" : "banned")}")'></div>
+                                <div class='@($"status-pulse {(selectedPlayer.IsActive ? "active" : "banned")}")' style="bottom: 4px; right: 4px; width: 18px; height: 18px; border-width: 3px;"></div>
                             </div>
-                            <div class="flex-grow-1">
-                                <div class="d-flex flex-wrap align-center justify-center justify-sm-start gap-2 mb-1">
-                                    <MudText Typo="Typo.h4" Class="fw-black text-white player-name-text">@selectedPlayer.Username</MudText>
-                                    <MudChip T="string" Color="@(selectedPlayer.Role == "Admin" ? Color.Error : Color.Info)" Size="Size.Small" Variant="Variant.Filled" Class="fw-black">@selectedPlayer.Role.ToUpper()</MudChip>
+                            <div class="flex-grow-1 text-center text-sm-left">
+                                <div class="d-flex flex-wrap align-center justify-center justify-sm-start gap-3 mb-2">
+                                    <MudText Typo="Typo.h4" Class="fw-black text-white">@selectedPlayer.Username</MudText>
+                                    <MudChip T="string" Color="@(selectedPlayer.Role == "Admin" ? Color.Error : Color.Info)" Size="Size.Small" Variant="Variant.Filled" Class="fw-black px-3">@selectedPlayer.Role.ToUpper()</MudChip>
                                 </div>
-                                <div class="d-flex flex-wrap justify-center justify-sm-start gap-3 opacity-60 text-white text-xs font-mono">
-                                    <span>ID: @selectedPlayer.Id</span>
+                                <div class="d-flex flex-wrap justify-center justify-sm-start align-center gap-3 opacity-60 text-white text-xs font-mono">
+                                    <div class="d-flex align-center gap-1"><MudIcon Icon="@Icons.Material.Filled.Fingerprint" Size="Size.Small" /> <span>@selectedPlayer.Id.ToString().Substring(0, 8)...</span></div>
                                     <span>•</span>
-                                    <span>IP: @(fullDossier?.KnownIps?.FirstOrDefault() ?? "---")</span>
+                                    <div class="d-flex align-center gap-1"><MudIcon Icon="@Icons.Material.Filled.Public" Size="Size.Small" /> <span>@(fullDossier?.KnownIps?.FirstOrDefault() ?? "0.0.0.0")</span></div>
                                 </div>
                             </div>
-                            <div class="d-flex gap-2">
-                                <MudIconButton Icon="@Icons.Material.Filled.Chat" Color="Color.Surface" OnClick="OpenChat" Variant="Variant.Filled" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Surface" OnClick="() => SelectPlayer(selectedPlayer)" Variant="Variant.Outlined" />
+                            <div class="d-flex gap-3 mt-4 mt-sm-0">
+                                <MudButton Variant="Variant.Filled" Color="Color.Surface" StartIcon="@Icons.Material.Filled.Chat" 
+                                           OnClick="OpenChat" Class="rounded-pill px-6 py-2 fw-black action-btn-hover">
+                                    MESSAGE
+                                </MudButton>
+                                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Surface" 
+                                               OnClick="() => SelectPlayer(selectedPlayer)" Variant="Variant.Outlined" 
+                                               Class="rounded-circle border-2 action-btn-hover" />
                             </div>
                         </div>
                         <MudIcon Icon="@Icons.Material.Filled.ContactPage" Class="hero-bg-icon" />
@@ -369,6 +374,13 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .modern-tabs .mud-tab { min-width: 100px; font-weight: 900; letter-spacing: 1px; font-size: 0.7rem; }
     .bg-light-transparent { background: rgba(255,255,255,0.03); }
+
+    .action-btn-hover { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+    .action-btn-hover:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    
+    .modern-tabs .mud-tab-slider { height: 3px; border-radius: 4px 4px 0 0; }
+    .tactical-label { letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.7rem; font-weight: 800; opacity: 0.5; }
+    .tactical-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
 </style>
 
 @code {
