@@ -32,7 +32,7 @@
     <MudGrid Spacing="2">
         <!-- Control Panel -->
         <MudItem xs="12" md="5" lg="4">
-            <MudPaper Class="glass-panel pa-4 pa-md-6 rounded-xl d-flex flex-column" Style="min-height: 520px; height: 100%;" Elevation="0">
+            <MudPaper Class="glass-panel pa-4 pa-md-6 rounded-xl d-flex flex-column" Style="min-height: 400px; height: 100%;" Elevation="0">
                 <div class="d-flex flex-row flex-md-column gap-2 align-items-center align-items-md-stretch mb-4 mb-md-0">
                     <MudNumericField @bind-Value="betAmount" 
                                      Label='@(LayoutService.IsMobile ? null : "Bet Amount")' 
@@ -116,7 +116,7 @@
 
         <!-- Visual Area -->
         <MudItem xs="12" md="7" lg="8">
-            <MudPaper Class="glass-panel pa-6 pa-md-12 rounded-xl d-flex flex-column align-center justify-center position-relative overflow-hidden" Style="min-height: 520px; height: 100%;" Elevation="0">
+            <MudPaper Class="glass-panel pa-6 pa-md-12 rounded-xl d-flex flex-column align-center justify-center position-relative overflow-hidden" Style="min-height: 400px; height: 100%;" Elevation="0">
                 
                 @if (selectedMode == "Slider") {
                     <!-- Cyber Slider Visual -->
@@ -376,6 +376,12 @@
                 if (result.IsWin) await Audio.PlayWin();
                 else await Audio.PlayClick();
             }
+        } catch (HttpRequestException ex) when (ex.Message.Contains("400")) {
+            // Auto-recover session if it expired/errored
+            var resp = await GameService.StartSession("dice");
+            sessionId = resp.SessionId;
+            await PlayDice();
+            return;
         } catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
             autoBet = false;
