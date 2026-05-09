@@ -32,7 +32,7 @@
     <MudGrid Spacing="2">
         <!-- Control Panel -->
         <MudItem xs="12" md="5" lg="4">
-            <MudPaper Class="glass-panel pa-4 pa-md-6 rounded-xl d-flex flex-column" Style="min-height: 400px; height: 100%;" Elevation="0">
+            <MudPaper Class="glass-panel pa-4 pa-md-6 rounded-xl d-flex flex-column" Style="min-height: 300px; height: 100%;" Elevation="0">
                 <div class="d-flex flex-row flex-md-column gap-2 align-items-center align-items-md-stretch mb-4 mb-md-0">
                     <MudNumericField @bind-Value="betAmount" 
                                      Label='@(LayoutService.IsMobile ? null : "Bet Amount")' 
@@ -44,7 +44,7 @@
                                      Margin='@(LayoutService.IsMobile ? Margin.Dense : Margin.Normal)' />
                     
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" 
-                               OnClick="PlayDice" Disabled="@(isSpinning || betAmount <= 0)"
+                               OnClick="() => PlayDice()" Disabled="@(isSpinning || betAmount <= 0)"
                                Class="d-md-none rounded-lg fw-black flex-grow-1 px-6" 
                                Style="height: 40px; min-width: 100px;">
                         ROLL
@@ -100,7 +100,7 @@
                 }
 
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" 
-                           OnClick="PlayDice" Disabled="@(isSpinning || betAmount <= 0)"
+                           OnClick="() => PlayDice()" Disabled="@(isSpinning || betAmount <= 0)"
                            Class="d-none d-md-block py-4 rounded-xl fw-black shadow-glow pulse-neon">
                     @(isSpinning ? "ROLLING..." : "ROLL DICE")
                 </MudButton>
@@ -116,7 +116,7 @@
 
         <!-- Visual Area -->
         <MudItem xs="12" md="7" lg="8">
-            <MudPaper Class="glass-panel pa-6 pa-md-12 rounded-xl d-flex flex-column align-center justify-center position-relative overflow-hidden" Style="min-height: 400px; height: 100%;" Elevation="0">
+            <MudPaper Class="glass-panel pa-6 pa-md-12 rounded-xl d-flex flex-column align-center justify-center position-relative overflow-hidden" Style="min-height: 300px; height: 100%;" Elevation="0">
                 
                 @if (selectedMode == "Slider") {
                     <!-- Cyber Slider Visual -->
@@ -334,8 +334,8 @@
         }
     }
 
-    private async Task PlayDice() {
-        if (sessionId == null || isSpinning) return;
+    private async Task PlayDice(bool isRetry = false) {
+        if (sessionId == null || (isSpinning && !isRetry)) return;
         isSpinning = true;
         lastMultiHits = 0;
         
@@ -376,12 +376,17 @@
                 if (result.IsWin) await Audio.PlayWin();
                 else await Audio.PlayClick();
             }
-        } catch (HttpRequestException ex) when (ex.Message.Contains("400")) {
+        } catch (Exception ex) when ((ex.Message.Contains("400") || ex.Message.Contains("Session not found")) && !isRetry) {
             // Auto-recover session if it expired/errored
-            var resp = await GameService.StartSession("dice");
-            sessionId = resp.SessionId;
-            await PlayDice();
-            return;
+            try {
+                var resp = await GameService.StartSession("dice");
+                sessionId = resp.SessionId;
+                isSpinning = false; // Reset before retry
+                await PlayDice(true);
+                return;
+            } catch {
+                Snackbar.Add("Session recovery failed. Please refresh.", Severity.Error);
+            }
         } catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
             autoBet = false;
