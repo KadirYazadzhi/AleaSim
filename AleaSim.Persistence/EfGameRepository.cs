@@ -18,6 +18,9 @@ public class EfGameRepository : IGameRepository {
     }
 
     public ITransaction BeginTransaction() {
+        if (_context.Database.CurrentTransaction != null) {
+            return new NullTransaction();
+        }
         return new EfTransactionWrapper(_context.Database.BeginTransaction());
     }
 

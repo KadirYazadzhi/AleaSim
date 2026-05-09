@@ -330,7 +330,8 @@
         if (selectedMultiNumbers.Contains(num)) {
             if (selectedMultiNumbers.Count > 1) selectedMultiNumbers.Remove(num);
         } else {
-            selectedMultiNumbers.Add(num);
+            if (selectedMultiNumbers.Count < 5) selectedMultiNumbers.Add(num);
+            else Snackbar.Add("Maximum 5 numbers can be selected.", Severity.Info);
         }
     }
 

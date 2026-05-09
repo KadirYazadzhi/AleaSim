@@ -175,44 +175,73 @@ public class DiceGameEngine : BaseGameEngine {
     }
 
     private DiceResultDto ResolveMultiDice(string serverSeed, string clientSeed, int nonce, DiceBetDto bet, BrainDirective directive) {
-        var dice = new List<int>();
         var selected = bet.MultiDiceSelected ?? new List<int> { 6 };
         
-        // Simulating 10 dice
-        for (int i = 0; i < 10; i++) {
-            dice.Add(RngService.GetNextInt(serverSeed, clientSeed, nonce + i, 1, 7));
+        if (directive.DecisionType == "Random") {
+            var dice = new List<int>();
+            for (int i = 0; i < 10; i++) dice.Add(RngService.GetNextInt(serverSeed, clientSeed, nonce + i, 1, 7));
+            return CalculateMultiResult(dice, selected);
+        } else if (directive.TargetWinAmount > 0) {
+            // Force a win (at least 3-6 hits for profit)
+            int targetHits = RngService.GetNextInt(serverSeed, clientSeed, nonce, 3, 7);
+            var dice = GenerateDiceWithHits(serverSeed, clientSeed, nonce, selected, targetHits);
+            return CalculateMultiResult(dice, selected);
+        } else {
+            // Force a loss (0-2 hits for visual variety)
+            int targetHits = RngService.GetNextInt(serverSeed, clientSeed, nonce, 0, 3);
+            var dice = GenerateDiceWithHits(serverSeed, clientSeed, nonce, selected, targetHits);
+            return CalculateMultiResult(dice, selected);
+        }
+    }
+
+    private List<int> GenerateDiceWithHits(string serverSeed, string clientSeed, int nonce, List<int> selected, int targetHits) {
+        var dice = new List<int>();
+        var notSelected = Enumerable.Range(1, 6).Where(n => !selected.Contains(n)).ToList();
+
+        // 1. Fill with the required number of hits
+        for (int i = 0; i < targetHits; i++) {
+            int valIdx = RngService.GetNextInt(serverSeed, clientSeed, nonce + i, 0, selected.Count);
+            dice.Add(selected[valIdx]);
         }
 
+        // 2. Fill the rest with non-hits (or random if all are selected, which shouldn't happen with UI limits)
+        for (int i = targetHits; i < 10; i++) {
+            if (notSelected.Any()) {
+                int valIdx = RngService.GetNextInt(serverSeed, clientSeed, nonce + i, 0, notSelected.Count);
+                dice.Add(notSelected[valIdx]);
+            } else {
+                dice.Add(RngService.GetNextInt(serverSeed, clientSeed, nonce + i, 1, 7));
+            }
+        }
+
+        // 3. Robust Shuffle using Fisher-Yates with seeds for provable fairness
+        var result = dice.ToList();
+        for (int i = result.Count - 1; i > 0; i--) {
+            // Use a specific salt for shuffling to ensure it's different from value generation
+            int j = RngService.GetNextInt(serverSeed, clientSeed, nonce + 50 + i, 0, i + 1);
+            (result[i], result[j]) = (result[j], result[i]);
+        }
+        
+        return result;
+    }
+
+    private DiceResultDto CalculateMultiResult(List<int> dice, List<int> selected) {
         int hits = dice.Count(d => selected.Contains(d));
         
-        // Multi-dice balanced math for 10 dice:
-        // User selects target numbers. Hits are counted.
-        // We need frequent wins to keep user engaged.
-        
-        decimal multiplier = hits switch {
-            >= 10 => 500,
-            9 => 100,
-            8 => 50,
-            7 => 20,
-            6 => 10,
-            5 => 5,
-            4 => 2,
-            3 => 1.5m,
-            2 => 1.1m, // Small profit
-            1 => 0.5m, // Half back (keeps them playing)
-            _ => 0
+        decimal riskFactor = selected.Count switch {
+            1 => 5.0m, 2 => 2.5m, 3 => 1.5m, 4 => 1.0m, 5 => 0.8m, 6 => 0.1m, _ => 1.0m
         };
 
-        if (directive.DecisionType != "Random") {
-            // If Brain wants a win/loss, we might adjust hits, 
-            // but for now, we'll let Multi-Dice be purely RNG-heavy 
-            // unless we want to implement complex symbol-swapping.
-        }
+        decimal baseMultiplier = hits switch {
+            >= 10 => 100, 9 => 50, 8 => 20, 7 => 10, 6 => 5, 5 => 3, 4 => 2, 3 => 1.2m, 2 => 1.0m, 1 => 0.5m, _ => 0
+        };
+
+        decimal finalMultiplier = Math.Round(baseMultiplier * riskFactor, 2);
 
         return new DiceResultDto {
             MultiDiceResults = dice,
-            IsWin = multiplier > 0,
-            PayoutMultiplier = multiplier
+            IsWin = finalMultiplier >= 1.0m,
+            PayoutMultiplier = finalMultiplier
         };
     }
 
@@ -222,7 +251,11 @@ public class DiceGameEngine : BaseGameEngine {
             if (roll < 0) roll = 0; if (roll > 100) roll = 100;
             return new DiceResultDto { ResultValue = roll, IsWin = false, PayoutMultiplier = 0 };
         } else {
-            return new DiceResultDto { MultiDiceResults = new List<int> { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, IsWin = false, PayoutMultiplier = 0 };
+            // Use the same smart generation even for forced losses to avoid "all 1s"
+            var selected = bet.MultiDiceSelected ?? new List<int> { 6 };
+            int targetHits = RngService.GetNextInt(serverSeed, clientSeed, nonce, 0, 2); // Force clear loss (0 or 1 hits)
+            var dice = GenerateDiceWithHits(serverSeed, clientSeed, nonce, selected, targetHits);
+            return CalculateMultiResult(dice, selected);
         }
     }
 
