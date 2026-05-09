@@ -110,10 +110,8 @@
                         </MudItem>
                         <MudItem xs="6" sm="3">
                             <MudPaper Class="pa-3 text-center rounded-xl" Elevation="1">
-                                <MudText Typo="Typo.caption" Class="fw-bold opacity-40">RTP</MudText>
-                                <MudText Typo="Typo.body1" Class="fw-black text-info">
-                                    @(fullDossier != null ? fullDossier.ActualRtp.ToString("F1") : (selectedPlayer.TotalWagered > 0 ? (selectedPlayer.TotalWon / selectedPlayer.TotalWagered * 100) : 0).ToString("F1"))%
-                                </MudText>
+                                <MudText Typo="Typo.caption" Class="fw-bold opacity-40">RISK SCORE</MudText>
+                                <MudText Typo="Typo.body1" Class='@($"fw-black {(selectedPlayer.RiskScore > 50 ? "text-error" : "text-info")}")'>@selectedPlayer.RiskScore</MudText>
                             </MudPaper>
                         </MudItem>
                         <MudItem xs="6" sm="3">
@@ -127,6 +125,16 @@
                             </MudPaper>
                         </MudItem>
                     </MudGrid>
+
+                    @if (selectedPlayer.RedFlags?.Any() == true) {
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true" Class="rounded-lg">
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach(var flag in selectedPlayer.RedFlags) {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Surface" Variant="Variant.Text">@flag</MudChip>
+                                }
+                            </div>
+                        </MudAlert>
+                    }
 
                     <!-- Control Panels -->
                     <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-md-6 pa-4" Class="rounded-xl overflow-hidden" Color="Color.Primary">
@@ -149,7 +157,34 @@
                                     <MudText Typo="Typo.caption" Class="fw-black opacity-40">REAL / BONUS</MudText>
                                     <MudText Typo="Typo.body2" Class="fw-bold">@selectedPlayer.Balance.ToString("C2") / @selectedPlayer.BonusBalance.ToString("C2")</MudText>
                                 </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField T="string" Label="Staff Notes" Variant="Variant.Outlined" Lines="3" 
+                                                 @bind-Value="staffNotes" Class="mt-2" />
+                                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="SaveNotes" Class="mt-1">Save Notes</MudButton>
+                                </MudItem>
                             </MudGrid>
+                        </MudTabPanel>
+
+                        <MudTabPanel Text="MOD" Icon="@Icons.Material.Filled.Gavel">
+                            <MudStack Spacing="3">
+                                <div class="d-flex flex-wrap gap-2">
+                                    <MudButton Variant="Variant.Filled" Color="@(selectedPlayer.IsActive ? Color.Error : Color.Success)" 
+                                               OnClick="ToggleAccountStatus" Class="flex-grow-1">
+                                        @(selectedPlayer.IsActive ? "DEACTIVATE / BAN" : "RESTORE ACCOUNT")
+                                    </MudButton>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="KillUserSession" Class="flex-grow-1">KILL SESSION</MudButton>
+                                </div>
+                                <MudDivider />
+                                <MudText Typo="Typo.caption" Class="fw-black opacity-40">RESPONSIBLE GAMBLING</MudText>
+                                <div class="d-flex gap-2 align-center">
+                                    <MudSelect T="int" Label="Cooldown Period" @bind-Value="cooldownMinutes" Variant="Variant.Outlined" Margin="Margin.Dense">
+                                        <MudSelectItem Value="60">1 Hour</MudSelectItem>
+                                        <MudSelectItem Value="1440">24 Hours</MudSelectItem>
+                                        <MudSelectItem Value="10080">7 Days</MudSelectItem>
+                                    </MudSelect>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="ApplyCooldown">ENFORCE</MudButton>
+                                </div>
+                            </MudStack>
                         </MudTabPanel>
 
                         <MudTabPanel Text="FORCE" Icon="@Icons.Material.Filled.Bolt">
@@ -160,28 +195,32 @@
                                 </div>
                                 <div class="d-flex flex-column flex-sm-row gap-2">
                                     <MudButton Variant="Variant.Outlined" Color="Color.Error" FullWidth="true" OnClick='() => ForceSpin(0, "Cool-down", false, true)' Size="Size.Small">FORCE NEAR MISS</MudButton>
-                                    <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick="BanPermanently" Size="Size.Small">BAN PERM</MudButton>
                                 </div>
                             </MudStack>
                         </MudTabPanel>
 
                         <MudTabPanel Text="CASH" Icon="@Icons.Material.Filled.Payments">
-                            <MudNumericField @bind-Value="bonusAmount" Label="Amount" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4 py-2 fw-black" FullWidth="true" OnClick="InjectBonus">INJECT</MudButton>
+                            <div class="d-flex gap-2 mb-4">
+                                <MudNumericField @bind-Value="bonusAmount" Label="Amount" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="fw-black" OnClick="InjectBonus">INJECT</MudButton>
+                            </div>
+                            <MudText Typo="Typo.caption" Class="opacity-50">Note: Injected funds go to Real Balance by default.</MudText>
                         </MudTabPanel>
 
-                        <MudTabPanel Text="HISTORY" Icon="@Icons.Material.Filled.Casino">
+                        <MudTabPanel Text="LOGS" Icon="@Icons.Material.Filled.History">
                             <div class="table-responsive">
-                                <MudTable Items="@fullDossier?.RecentBets" Dense="true" Hover="true" Elevation="0" Height="300px" FixedHeader="true">
+                                <MudTable Items="@fullDossier?.RecentBets" Dense="true" Hover="true" Elevation="0" Height="250px" FixedHeader="true">
                                     <HeaderContent>
                                         <MudTh>GAME</MudTh>
                                         <MudTh>BET</MudTh>
                                         <MudTh>WIN</MudTh>
+                                        <MudTh>DECISION</MudTh>
                                     </HeaderContent>
                                     <RowTemplate>
                                         <MudTd>@context.GameName</MudTd>
                                         <MudTd>@context.BetAmount.ToString("C0")</MudTd>
                                         <MudTd><span class="@(context.WinAmount > 0 ? "text-success fw-bold" : "opacity-60")">@context.WinAmount.ToString("C0")</span></MudTd>
+                                        <MudTd><MudChip T="string" Size="Size.Small" Variant="Variant.Text">@context.DecisionType</MudChip></MudTd>
                                     </RowTemplate>
                                 </MudTable>
                             </div>
@@ -239,6 +278,9 @@
     private decimal bonusAmount = 100;
     private string bonusReason = "VIP Loyalty Bonus";
     private bool isLoadingDossier = false;
+
+    private string staffNotes = "";
+    private int cooldownMinutes = 60;
 
     protected override async Task OnInitializedAsync() {
         try {
@@ -337,11 +379,44 @@
         StateHasChanged();
         try {
             fullDossier = await Http.GetFromJsonAsync<PlayerDossierDto>($"api/Admin/players/{player.Id}");
+            if (fullDossier != null) {
+                staffNotes = fullDossier.AdminNotes;
+                // Sync status if dossier has fresher info
+                selectedPlayer.IsActive = fullDossier.IsActive;
+            }
         } catch (Exception ex) {
             Snackbar.Add($"Error: {ex.Message}", Severity.Error);
         } finally {
             isLoadingDossier = false;
         }
+    }
+
+    private async Task SaveNotes() {
+        if (selectedPlayer == null) return;
+        var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/notes", new UpdateNotesDto { Notes = staffNotes });
+        if (response.IsSuccessStatusCode) Snackbar.Add("Notes saved", Severity.Success);
+    }
+
+    private async Task ToggleAccountStatus() {
+        if (selectedPlayer == null) return;
+        bool newStatus = !selectedPlayer.IsActive;
+        var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/status", new ToggleStatusDto { IsActive = newStatus });
+        if (response.IsSuccessStatusCode) {
+            selectedPlayer.IsActive = newStatus;
+            Snackbar.Add(newStatus ? "Account restored" : "Account deactivated", newStatus ? Severity.Success : Severity.Error);
+        }
+    }
+
+    private async Task ApplyCooldown() {
+        if (selectedPlayer == null) return;
+        var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/cooldown", new ForceCooldownDto { DurationMinutes = cooldownMinutes, Reason = "Responsible Gambling Admin Action" });
+        if (response.IsSuccessStatusCode) Snackbar.Add($"Cooldown enforced for {cooldownMinutes}m", Severity.Warning);
+    }
+
+    private async Task KillUserSession() {
+        if (selectedPlayer == null) return;
+        var response = await Http.PostAsJsonAsync($"api/Admin/players/{selectedPlayer.Id}/kill-session", new { });
+        if (response.IsSuccessStatusCode) Snackbar.Add("Session killed", Severity.Info);
     }
 
     private async Task OpenChat() {

@@ -44,3 +44,7 @@ public class UpdateBalanceDto {
 public class ToggleStatusDto {
     public bool IsActive { get; set; }
 }
+
+public class UpdateNotesDto {
+    public string Notes { get; set; } = string.Empty;
+}

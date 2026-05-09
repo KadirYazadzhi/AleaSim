@@ -78,8 +78,8 @@
 
                 @if (!string.IsNullOrEmpty(gameResult))
                 {
-                    <div class="result-overlay">
-                        <MudText Typo="Typo.h2" Class="fw-black result-text">@gameResult.ToUpper()</MudText>
+                    <div class="result-overlay animate-fade-out">
+                        <MudText Typo="Typo.h2" Class="fw-black result-text shadow-text">@gameResult.ToUpper()</MudText>
                     </div>
                 }
             </MudPaper>
@@ -162,8 +162,25 @@
     .bet-zone.active { background: rgba(255, 235, 59, 0.2); border-color: #ffeb3b; box-shadow: 0 0 15px rgba(255, 235, 59, 0.3); }
     .bet-zone.tie { width: 300px; height: 60px; }
 
-    .result-overlay { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 100; text-align: center; width: 100%; pointer-events: none; }
-    .result-text { text-shadow: 0 0 20px rgba(0,0,0,0.8); animation: resultPop 0.5s cubic-bezier(0.17, 0.89, 0.32, 1.49); color: #ffeb3b; }
+    .result-overlay { 
+        position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%); 
+        z-index: 100; text-align: center; width: 100%; pointer-events: none; 
+    }
+    .result-text { 
+        text-shadow: 0 0 20px rgba(0,0,0,0.9); 
+        color: #ffeb3b;
+    }
+    .animate-fade-out {
+        animation: resultFadeOut 4s forwards;
+    }
+    
+    @@keyframes resultFadeOut {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+        15% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+        25% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        100% { opacity: 0; transform: translate(-50%, -60%) scale(1.2); }
+    }
 
     .history-dot { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 900; color: white; }
     .history-dot.player { background: #2196f3; }
@@ -319,6 +336,12 @@
 
                 await Task.Delay(1000);
                 await RefreshBalance();
+
+                // Auto-clear result after animation
+                _ = Task.Delay(4000).ContinueWith(_ => {
+                    gameResult = "";
+                    InvokeAsync(StateHasChanged);
+                });
             }
         }
         catch (Exception ex) {
