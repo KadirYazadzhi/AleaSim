@@ -92,27 +92,31 @@
     .chat-atomic-wrapper {
         display: flex;
         width: 100%;
-        height: calc(100vh - 64px);
-        background: var(--mud-palette-surface);
+        height: calc(100vh - 100px); /* Taller top margin */
+        background: transparent;
         position: relative;
+        max-width: 1800px;
+        margin: 32px auto 0 auto; /* More space from top */
+        border: none;
     }
 
     .chat-pane-sidebar {
-        width: 360px;
+        width: 380px;
         border-right: 1px solid var(--mud-palette-divider);
         display: flex;
         flex-direction: column;
         flex-shrink: 0;
         z-index: 10;
-        background: var(--mud-palette-surface);
+        background: transparent;
     }
 
     .chat-pane-main {
         flex-grow: 1;
         display: flex;
         flex-direction: column;
-        background: var(--mud-palette-background-grey);
+        background: transparent;
         min-width: 0;
+        box-shadow: none;
     }
 
     .chat-ui-header {
@@ -120,77 +124,61 @@
         display: flex;
         align-items: center;
         border-bottom: 1px solid var(--mud-palette-divider);
-        background: var(--mud-palette-surface);
+        background: transparent;
         flex-shrink: 0;
+        padding: 0 2rem;
     }
 
-    .chat-viewport-v4 { flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; }
-    .sidebar-scroll { flex-grow: 1; overflow-y: auto; }
+    .chat-viewport-v4 { 
+        flex-grow: 1; 
+        overflow: hidden; 
+        display: flex; 
+        flex-direction: column;
+        position: relative;
+    }
+    
+    .sidebar-scroll { flex-grow: 1; overflow-y: auto; padding-bottom: 2rem; }
     .mobile-back-btn { display: none; background: none; border: none; color: inherit; cursor: pointer; padding: 8px; }
 
-    .conv-item { display: flex; align-items: center; gap: 16px; padding: 12px 24px; margin: 4px 12px; border-radius: 12px; cursor: pointer; transition: 0.2s; }
-    .conv-item:hover { background: var(--mud-palette-action-default-hover); }
-    .conv-item.active { background: var(--mud-palette-primary); color: white; }
+    .conv-item { 
+        display: flex; 
+        align-items: center; 
+        gap: 16px; 
+        padding: 14px 20px; 
+        margin: 4px 12px; 
+        border-radius: 16px; 
+        cursor: pointer; 
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+        border: 1px solid transparent;
+    }
+    .conv-item:hover { background: var(--mud-palette-action-default-hover); transform: translateX(4px); }
+    .conv-item.active { 
+        background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%); 
+        color: white; 
+        box-shadow: 0 4px 12px rgba(var(--mud-palette-primary-rgb), 0.3);
+        border-color: rgba(255,255,255,0.1);
+    }
     
-    .conv-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .conv-icon.global { background: rgba(124, 58, 237, 0.1); color: var(--mud-palette-primary); }
-    .conv-icon.support { background: rgba(236, 72, 153, 0.1); color: var(--mud-palette-secondary); }
-    .active .conv-icon { background: rgba(255,255,255,0.2); color: white; }
+    .conv-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: 0.3s; }
+    .conv-icon.global { background: rgba(var(--mud-palette-primary-rgb), 0.1); color: var(--mud-palette-primary); }
+    .conv-icon.support { background: rgba(var(--mud-palette-secondary-rgb), 0.1); color: var(--mud-palette-secondary); }
+    .active .conv-icon { background: rgba(255,255,255,0.2); color: white; transform: scale(0.9); }
     
     .conv-details { display: flex; flex-direction: column; overflow: hidden; }
-    .conv-name { font-weight: 800; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .conv-preview { font-size: 0.75rem; color: var(--mud-palette-text-secondary); opacity: 0.7; }
+    .conv-name { font-weight: 900; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.2px; }
+    .conv-preview { font-size: 0.75rem; color: var(--mud-palette-text-secondary); opacity: 0.7; font-weight: 500; }
     .active .conv-preview { color: white; opacity: 0.8; }
     
-    .head-icon-box { width: 40px; height: 40px; background: var(--mud-palette-action-default-hover); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .dot-online { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 8px #4ade80; }
-    .section-label { font-size: 0.65rem; font-weight: 900; letter-spacing: 2px; color: var(--mud-palette-text-secondary); opacity: 0.6; }
+    .head-icon-box { width: 44px; height: 44px; background: var(--mud-palette-action-default-hover); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .dot-online { width: 10px; height: 10px; border-radius: 50%; background: #4ade80; border: 2px solid var(--mud-palette-surface); }
+    .section-label { font-size: 0.65rem; font-weight: 900; letter-spacing: 2px; color: var(--mud-palette-text-secondary); opacity: 0.5; text-transform: uppercase; }
 
-    /* MOBILE REVOLUTION (INSTAGRAM MODE) */
+    /* MOBILE REVOLUTION */
     @@media (max-width: 960px) {
-        .chat-atomic-wrapper {
-            position: relative;
-            width: 100%;
-            height: calc(100vh - 56px); /* Adjusted for mobile navbar */
-            background: transparent !important;
-            overflow: hidden;
-            margin-top: 8px !important;
-        }
-
-        .chat-pane-sidebar, .chat-pane-main {
-            width: 100% !important;
-            height: 100% !important;
-            position: absolute;
-            top: 0;
-            left: 0;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            background: transparent !important;
-            border-right: none !important;
-        }
-
-        .chat-ui-header { 
-            background: transparent !important;
-            border-bottom: 1px solid var(--mud-palette-divider);
-            height: 60px; 
-        }
-
-        /* State: List View */
-        .state-list .chat-pane-sidebar { transform: translateX(0); }
-        .state-list .chat-pane-main { transform: translateX(100%); }
-
-        /* State: Chat View */
-        .state-chat .chat-pane-sidebar { transform: translateX(-100%); }
-        .state-chat .chat-pane-main { transform: translateX(0); }
-
-        .mobile-back-btn { display: block; }
-        .conv-item { padding: 12px 16px; margin: 4px 8px; background: rgba(var(--mud-palette-surface-rgb), 0.5); }
-        .head-avatar { width: 32px !important; height: 32px !important; }
+        .chat-atomic-wrapper { border: none; height: calc(100vh - 56px); margin-top: 0; }
+        .chat-pane-sidebar, .chat-pane-main { width: 100% !important; border: none !important; }
+        .chat-ui-header { padding: 0 1rem; }
     }
-
-    .text-gradient { background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .fw-black { font-weight: 950; }
-    .custom-scroll::-webkit-scrollbar { width: 4px; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: var(--mud-palette-divider); border-radius: 10px; }
 </style>
 
 @code {
@@ -202,29 +190,25 @@
     private List<UserSummary> activeConversations = new();
     private bool isLoadingPlayers = false;
     
-    // THE MASTER TOGGLE
     private bool showSidebar = true;
 
     [Parameter] [SupplyParameterFromQuery] public string? userId { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        bool isAdmin = authState.User.IsInRole("Admin");
+        await LoadActiveConversations();
         
-        if (isAdmin) {
-            await LoadActiveConversations();
-            
-            if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var targetId)) {
-                var player = activeConversations.FirstOrDefault(p => p.Id == targetId);
-                if (player != null) {
-                    SelectPrivateChat(player.Id, player.Username);
-                } else {
-                    // Try to fetch specific player summary if not in list
-                    try {
-                        var p = await Http.GetFromJsonAsync<UserSummary>($"api/Admin/players/{targetId}/summary");
-                        if (p != null) SelectPrivateChat(p.Id, p.Username);
-                    } catch {}
-                }
+        if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var targetId)) {
+            var player = activeConversations.FirstOrDefault(p => p.Id == targetId);
+            if (player != null) {
+                SelectPrivateChat(player.Id, player.Username);
+            } else {
+                try {
+                    var p = await Http.GetFromJsonAsync<UserSummary>($"api/Admin/players/{targetId}/summary");
+                    if (p != null) {
+                        activeConversations.Insert(0, p);
+                        SelectPrivateChat(p.Id, p.Username);
+                    }
+                } catch {}
             }
         }
     }
@@ -252,8 +236,9 @@
     private async Task LoadActiveConversations() {
         isLoadingPlayers = true;
         try {
-            var players = await Http.GetFromJsonAsync<List<UserSummary>>("api/Admin/players/search/ "); 
-            if (players != null) activeConversations = players.Where(p => p.Id != adminGuid).ToList();
+            // Fetch people this user has active DMs with
+            var interlocutors = await Http.GetFromJsonAsync<List<UserSummary>>("api/Chat/conversations"); 
+            if (interlocutors != null) activeConversations = interlocutors.Where(p => p.Id != Guid.Empty).ToList();
         } catch { }
         finally { isLoadingPlayers = false; }
     }

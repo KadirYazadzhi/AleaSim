@@ -22,7 +22,9 @@ public class RealTimeClient : IAsyncDisposable {
     public event Action<string, object>? OnLeaderboardUpdated;
     public event Action<object>? OnGameUpdateReceived;
     public event Action<string, string, DateTime, string>? OnChatMessageReceived;
-    public event Action<string, string, DateTime, string, Guid>? OnPrivateMessageReceived;
+    public event Action<string, string, DateTime, string, Guid, Guid>? OnPrivateMessageReceived;
+    public event Action<Guid>? OnMessageDeleted;
+    public event Action<Guid, string>? OnMessageEdited;
     public event Action<UserProgressionDto>? OnProgressionUpdated;
     public event Action<AdminRoundEvent>? OnAdminEventReceived;
     public event Action<AuditLogDto>? OnAuditLogReceived;
@@ -54,8 +56,16 @@ public class RealTimeClient : IAsyncDisposable {
             OnChatMessageReceived?.Invoke(user, msg, time, avatar);
         });
 
-        _hubConnection.On<string, string, DateTime, string, Guid>("ReceivePrivateMessage", (user, msg, time, avatar, senderId) => {
-            OnPrivateMessageReceived?.Invoke(user, msg, time, avatar, senderId);
+        _hubConnection.On<string, string, DateTime, string, Guid, Guid>("ReceivePrivateMessage", (user, msg, time, avatar, senderId, messageId) => {
+            OnPrivateMessageReceived?.Invoke(user, msg, time, avatar, senderId, messageId);
+        });
+
+        _hubConnection.On<Guid>("MessageDeleted", (msgId) => {
+            OnMessageDeleted?.Invoke(msgId);
+        });
+
+        _hubConnection.On<Guid, string>("MessageEdited", (msgId, newText) => {
+            OnMessageEdited?.Invoke(msgId, newText);
         });
 
         _hubConnection.On<UserProgressionDto>("ReceiveProgressionUpdate", (dto) => {
@@ -112,6 +122,18 @@ public class RealTimeClient : IAsyncDisposable {
     public async Task SendPrivateMessage(Guid receiverId, string message) {
         if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected) {
             await _hubConnection.SendAsync("SendPrivateMessage", receiverId, message);
+        }
+    }
+
+    public async Task DeleteChatMessage(Guid messageId) {
+        if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected) {
+            await _hubConnection.SendAsync("DeleteMessage", messageId);
+        }
+    }
+
+    public async Task EditChatMessage(Guid messageId, string newText) {
+        if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected) {
+            await _hubConnection.SendAsync("EditMessage", messageId, newText);
         }
     }
 

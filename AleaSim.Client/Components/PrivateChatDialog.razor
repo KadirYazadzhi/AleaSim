@@ -68,10 +68,11 @@
         } catch { }
     }
 
-    private void HandlePrivateMessage(string user, string msg, DateTime time, string avatar, Guid senderId) {
+    private void HandlePrivateMessage(string user, string msg, DateTime time, string avatar, Guid senderId, Guid messageId) {
         // Only add if it belongs to this conversation
         if (senderId == OtherUserId || senderId == currentUserId) {
             messages.Add(new ChatMessageDto {
+                Id = messageId,
                 SenderUsername = user,
                 Message = msg,
                 Timestamp = time,

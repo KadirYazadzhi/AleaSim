@@ -37,7 +37,7 @@ public class ConsoleRealTimeService : IRealTimeService {
         return Task.CompletedTask;
     }
 
-    public Task NotifyPrivateMessage(Guid senderId, Guid receiverId, string senderUsername, string message, string avatarUrl) {
+    public Task NotifyPrivateMessage(Guid senderId, Guid receiverId, string senderUsername, string message, string avatarUrl, Guid messageId) {
         Console.ForegroundColor = ConsoleColor.Blue;
         Console.WriteLine($"\n[PRIVATE MESSAGE] {senderUsername}: {message}");
         Console.ResetColor();

@@ -103,7 +103,60 @@ public class GameHub : Hub {
         _repo.SaveChatMessage(chatMsg);
 
         // Send via RealTimeService
-        await _realTimeService.NotifyPrivateMessage(senderId, receiverId, sender.Username, cleanMessage, avatarUrl);
+        await _realTimeService.NotifyPrivateMessage(senderId, receiverId, sender.Username, cleanMessage, avatarUrl, chatMsg.Id);
+    }
+
+    [Authorize]
+    public async Task DeleteMessage(Guid messageId) {
+        var userIdString = Context.UserIdentifier ?? Guid.Empty.ToString();
+        var userId = Guid.Parse(userIdString);
+        var user = _repo.GetUser(userId);
+        if (user == null) return;
+
+        var message = _repo.GetChatMessage(messageId);
+        if (message == null || message.IsDeleted) return;
+
+        bool isAdmin = user.Role == AleaSim.Domain.Enums.Role.Admin;
+        if (message.SenderId != userId && !isAdmin) return; // Only sender or admin can delete
+
+        message.IsDeleted = true;
+        message.Message = "[Message Deleted]";
+        _repo.UpdateChatMessage(message);
+
+        // Broadcast deletion
+        if (message.Type == ChatMessageType.Global) {
+            await Clients.All.SendAsync("MessageDeleted", messageId);
+        } else if (message.ReceiverId.HasValue) {
+            // Send to both sender and receiver
+            await Clients.Users(message.SenderId.ToString(), message.ReceiverId.Value.ToString()).SendAsync("MessageDeleted", messageId);
+        }
+    }
+
+    [Authorize]
+    public async Task EditMessage(Guid messageId, string newText) {
+        var userIdString = Context.UserIdentifier ?? Guid.Empty.ToString();
+        var userId = Guid.Parse(userIdString);
+        
+        string cleanMessage = Sanitize(newText);
+        if (string.IsNullOrWhiteSpace(cleanMessage)) return;
+
+        var message = _repo.GetChatMessage(messageId);
+        if (message == null || message.IsDeleted) return;
+
+        if (message.SenderId != userId) return; // Only sender can edit
+
+        // 5 minute edit window
+        if ((DateTime.UtcNow - message.Timestamp).TotalMinutes > 5) return;
+
+        message.Message = cleanMessage;
+        message.IsEdited = true;
+        _repo.UpdateChatMessage(message);
+
+        if (message.Type == ChatMessageType.Global) {
+            await Clients.All.SendAsync("MessageEdited", messageId, cleanMessage);
+        } else if (message.ReceiverId.HasValue) {
+            await Clients.Users(message.SenderId.ToString(), message.ReceiverId.Value.ToString()).SendAsync("MessageEdited", messageId, cleanMessage);
+        }
     }
 
     private string Sanitize(string input) {

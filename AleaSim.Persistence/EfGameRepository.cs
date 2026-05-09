@@ -1002,23 +1002,69 @@ public class EfGameRepository : IGameRepository {
         _context.SaveChanges();
     }
 
+    public ChatMessage? GetChatMessage(Guid messageId) {
+        return _context.ChatMessages.Find(messageId);
+    }
+
+    public void UpdateChatMessage(ChatMessage message) {
+        _context.ChatMessages.Update(message);
+        _context.SaveChanges();
+    }
+
+    public void MarkPrivateMessagesAsRead(Guid senderId, Guid receiverId) {
+        var unread = _context.ChatMessages
+            .Where(m => m.SenderId == senderId && m.ReceiverId == receiverId && m.Type == ChatMessageType.Private && !m.IsRead)
+            .ToList();
+            
+        if (unread.Any()) {
+            foreach(var msg in unread) msg.IsRead = true;
+            _context.SaveChanges();
+        }
+    }
+
     public IEnumerable<ChatMessage> GetGlobalChatMessages(int count) {
         return _context.ChatMessages
             .Where(m => m.Type == ChatMessageType.Global)
             .OrderByDescending(m => m.Timestamp)
             .Take(count)
-            .Reverse() // Oldest first for the UI
-            .ToList();
+            .ToList()
+            .OrderBy(m => m.Timestamp); // Re-order in memory
     }
 
     public IEnumerable<ChatMessage> GetPrivateChatHistory(Guid userId1, Guid userId2, int count) {
-        return _context.ChatMessages
-            .Where(m => m.Type == ChatMessageType.Private &&
-                       ((m.SenderId == userId1 && m.ReceiverId == userId2) ||
+        // Query both directions separately to ensure simple SQL translation
+        var msgs = _context.ChatMessages
+            .Where(m => m.Type == ChatMessageType.Private && 
+                       ((m.SenderId == userId1 && m.ReceiverId == userId2) || 
                         (m.SenderId == userId2 && m.ReceiverId == userId1)))
             .OrderByDescending(m => m.Timestamp)
             .Take(count)
-            .Reverse()
+            .ToList();
+            
+        return msgs.OrderBy(m => m.Timestamp);
+    }
+
+    public IEnumerable<(Guid Id, string Username)> GetRecentPrivateInterlocutors(Guid userId) {
+        // Separate queries to avoid Union/Distinct translation issues
+        var sentToIds = _context.ChatMessages
+            .Where(m => m.SenderId == userId && m.Type == ChatMessageType.Private && m.ReceiverId != null)
+            .Select(m => m.ReceiverId!.Value)
+            .Distinct()
+            .ToList();
+
+        var receivedFromIds = _context.ChatMessages
+            .Where(m => m.ReceiverId == userId && m.Type == ChatMessageType.Private)
+            .Select(m => m.SenderId)
+            .Distinct()
+            .ToList();
+
+        var allIds = sentToIds.Concat(receivedFromIds).Distinct().ToList();
+
+        return _context.Users
+            .Where(u => allIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.Username })
+            .ToList()
+            .Select(u => (u.Id, u.Username))
             .ToList();
     }
 

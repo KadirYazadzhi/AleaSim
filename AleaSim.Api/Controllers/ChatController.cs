@@ -38,4 +38,30 @@ public class ChatController : ControllerBase {
 
         return Ok(_repo.GetPrivateChatHistory(userId, otherUserId, count));
     }
+
+    [HttpPost("private/{otherUserId}/read")]
+    public IActionResult MarkAsRead(Guid otherUserId) {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId)) return Unauthorized();
+
+        // Mark messages SENT BY otherUser TO userId as read
+        _repo.MarkPrivateMessagesAsRead(otherUserId, userId);
+        return Ok();
+    }
+
+    [HttpGet("conversations")]
+    public IActionResult GetActiveConversations() {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId)) {
+            return Unauthorized();
+        }
+
+        var user = _repo.GetUser(userId);
+        if (user == null) return NotFound();
+
+        // Fetch users who have private messages with this user
+        var interlocutors = _repo.GetRecentPrivateInterlocutors(userId);
+        
+        return Ok(interlocutors.Select(i => new { Id = i.Id, Username = i.Username }));
+    }
 }

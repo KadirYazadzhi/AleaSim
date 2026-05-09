@@ -19,4 +19,9 @@ public class ChatMessage {
     public string Message { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public ChatMessageType Type { get; set; } = ChatMessageType.Global;
+
+    // Advanced Features
+    public bool IsRead { get; set; } = false;
+    public bool IsDeleted { get; set; } = false;
+    public bool IsEdited { get; set; } = false;
 }

@@ -10,4 +10,7 @@ public class ChatMessageDto {
     public string Message { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public bool IsPrivate { get; set; }
+    public bool IsRead { get; set; }
+    public bool IsDeleted { get; set; }
+    public bool IsEdited { get; set; }
 }

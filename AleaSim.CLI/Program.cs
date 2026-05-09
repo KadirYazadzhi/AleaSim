@@ -326,7 +326,7 @@ class Program {
                 repo.SaveChatMessage(pChatMsg);
                 
                 var realTime = scope.ServiceProvider.GetRequiredService<IRealTimeService>();
-                await realTime.NotifyPrivateMessage(me.Id, target.Id, me.Username, pMsg, me.AvatarUrl ?? "");
+                await realTime.NotifyPrivateMessage(me.Id, target.Id, me.Username, pMsg, me.AvatarUrl ?? "", pChatMsg.Id);
                 Console.WriteLine($"[PRIVATE to {target.Username}] You: {pMsg}");
                 break;
 

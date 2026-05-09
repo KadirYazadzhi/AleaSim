@@ -43,10 +43,10 @@ public class SignalRRealTimeService : IRealTimeService {
         await _hubContext.Clients.User(userId.ToString()).SendAsync("ReceiveProgressionUpdate", progression);
     }
 
-    public async Task NotifyPrivateMessage(Guid senderId, Guid receiverId, string senderUsername, string message, string avatarUrl) {
+    public async Task NotifyPrivateMessage(Guid senderId, Guid receiverId, string senderUsername, string message, string avatarUrl, Guid messageId) {
         var time = DateTime.UtcNow;
-        await _hubContext.Clients.User(receiverId.ToString()).SendAsync("ReceivePrivateMessage", senderUsername, message, time, avatarUrl, senderId);
-        await _hubContext.Clients.User(senderId.ToString()).SendAsync("ReceivePrivateMessage", senderUsername, message, time, avatarUrl, senderId);
+        await _hubContext.Clients.User(receiverId.ToString()).SendAsync("ReceivePrivateMessage", senderUsername, message, time, avatarUrl, senderId, messageId);
+        await _hubContext.Clients.User(senderId.ToString()).SendAsync("ReceivePrivateMessage", senderUsername, message, time, avatarUrl, senderId, messageId);
     }
 
     public async Task NotifyBigWin(string username, string gameName, decimal amount, decimal multiplier) {
