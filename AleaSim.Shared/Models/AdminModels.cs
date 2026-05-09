@@ -112,14 +112,23 @@ public class PlayerDossierDto {
     public DateTime CreatedAt { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public string AdminNotes { get; set; } = string.Empty;
+    
+    // Financials
     public decimal TotalWagered { get; set; }
     public decimal TotalWon { get; set; }
+    public decimal TotalDeposited { get; set; }
+    public decimal TotalWithdrawn { get; set; }
     public decimal NetProfit => TotalWon - TotalWagered;
     public double ActualRtp => TotalWagered > 0 ? (double)(TotalWon / TotalWagered) * 100 : 0;
+    public decimal AverageBet => BetCount > 0 ? TotalWagered / BetCount : 0;
+    public int BetCount { get; set; }
     
+    // Security & Behavior
     public List<string> KnownIps { get; set; } = new();
+    public List<string> UsedDevices { get; set; } = new();
     public List<AuditLogDto> BehaviorLogs { get; set; } = new();
     public List<GameRoundSummaryDto> RecentBets { get; set; } = new();
+    public List<TransactionDto> RecentTransactions { get; set; } = new();
 }
 
 public class GameRoundSummaryDto {
