@@ -17,7 +17,7 @@
         }
         @foreach (var msg in messages)
         {
-            bool isMe = msg.SenderId == currentUserId;
+            bool isMe = msg.SenderId.Equals(currentUserId);
             <div class='@($"chat-bubble-row mb-4 animate-fade-in {(isMe ? "me" : "others")}")'>
                 @if (!isMe)
                 {

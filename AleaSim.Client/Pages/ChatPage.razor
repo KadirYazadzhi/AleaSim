@@ -92,22 +92,23 @@
     .chat-atomic-wrapper {
         display: flex;
         width: 100%;
-        height: calc(100vh - 100px); /* Taller top margin */
+        height: calc(100vh - 64px);
         background: transparent;
         position: relative;
-        max-width: 1800px;
-        margin: 32px auto 0 auto; /* More space from top */
+        max-width: 100%;
+        margin: 0;
         border: none;
     }
 
     .chat-pane-sidebar {
-        width: 380px;
+        width: 340px;
         border-right: 1px solid var(--mud-palette-divider);
         display: flex;
         flex-direction: column;
         flex-shrink: 0;
         z-index: 10;
-        background: transparent;
+        background: rgba(var(--mud-palette-surface-rgb), 0.5);
+        backdrop-filter: blur(10px);
     }
 
     .chat-pane-main {
@@ -120,11 +121,11 @@
     }
 
     .chat-ui-header {
-        height: 80px;
+        height: 70px;
         display: flex;
         align-items: center;
         border-bottom: 1px solid var(--mud-palette-divider);
-        background: transparent;
+        background: rgba(var(--mud-palette-surface-rgb), 0.2);
         flex-shrink: 0;
         padding: 0 2rem;
     }
