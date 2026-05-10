@@ -25,13 +25,43 @@ public class GameHub : Hub {
         var userIdString = Context.UserIdentifier ?? Guid.Empty.ToString();
         var userId = Guid.Parse(userIdString);
         
-        // Rate Limiting: 2 seconds between messages
-        if (await _redisCache.IncrementRateLimitAsync($"ratelimit:chat:{userId}", TimeSpan.FromSeconds(2), 1)) {
+        // 1. Check if Chat is Enabled
+        if (_repo.GetGlobalSetting("Community_ChatEnabled") == "false") {
+            return;
+        }
+
+        // 2. Check Min Level Requirement
+        if (int.TryParse(_repo.GetGlobalSetting("Community_MinLevelChat"), out var minLevel)) {
+             var progression = _repo.GetPlayerProfile(userId)?.Progression;
+             if (progression != null && progression.CurrentLevel < minLevel) {
+                 return; // Silently drop
+             }
+        }
+
+        // 3. Rate Limiting / Slow Mode
+        int slowMode = 2;
+        if (int.TryParse(_repo.GetGlobalSetting("Community_ChatSlowMode"), out var smVal)) {
+            slowMode = Math.Max(1, smVal);
+        }
+
+        if (await _redisCache.IncrementRateLimitAsync($"ratelimit:chat:{userId}", TimeSpan.FromSeconds(slowMode), 1)) {
              return; // Silent drop for spam
         }
 
+        // 4. Content Filtering (Prohibited Words)
         string cleanMessage = Sanitize(message);
         if (string.IsNullOrWhiteSpace(cleanMessage)) return;
+
+        var prohibitedStr = _repo.GetGlobalSetting("Community_ProhibitedWords");
+        if (!string.IsNullOrEmpty(prohibitedStr)) {
+            var words = prohibitedStr.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (var word in words) {
+                if (cleanMessage.Contains(word, StringComparison.OrdinalIgnoreCase)) {
+                    cleanMessage = new string('*', cleanMessage.Length); // Censor
+                    break;
+                }
+            }
+        }
 
         var user = _repo.GetUser(userId);
         string avatarUrl = string.IsNullOrEmpty(user?.AvatarUrl) 

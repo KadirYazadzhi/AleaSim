@@ -32,7 +32,12 @@ public class LevelService : ILevelService {
         var prog = GetProgression(userId, repo);
         var profile = repo.GetPlayerProfile(userId);
         
-        decimal multiplier = 1.0m + ((profile?.XpBoostLevel ?? 0) * 0.10m);
+        decimal globalMultiplier = 1.0m;
+        if (decimal.TryParse(repo.GetGlobalSetting("Economy_XpMultiplier"), out var gVal)) {
+            globalMultiplier = gVal;
+        }
+
+        decimal multiplier = (1.0m + ((profile?.XpBoostLevel ?? 0) * 0.10m)) * globalMultiplier;
         decimal xpGained = betAmount * XP_PER_CURRENCY_UNIT * multiplier;
         
         prog.CurrentXP += xpGained;

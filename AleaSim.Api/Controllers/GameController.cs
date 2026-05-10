@@ -154,9 +154,17 @@ public class GameController : BaseApiController {
         try {
             var userId = GetUserIdOrThrow();
 
+            // 1. Check Global Bet Limits
+            if (decimal.TryParse(_repo.GetGlobalSetting("Risk_MinBet"), out var minBet) && request.Amount < minBet) {
+                return BadRequest($"Bet below minimum limit of {minBet:C}");
+            }
+            if (decimal.TryParse(_repo.GetGlobalSetting("Risk_MaxBet"), out var maxBet) && request.Amount > maxBet) {
+                return BadRequest($"Bet exceeds maximum limit of {maxBet:C}");
+            }
+
             // BOT PROTECTION: Rate Limiting (Max 5 bets per second)
             string rateLimitKey = $"ratelimit:bet:{userId}";
-            bool isLimited = await _redisCache.IncrementRateLimitAsync(rateLimitKey, TimeSpan.FromSeconds(1));
+            bool isLimited = await _redisCache.IncrementRateLimitAsync(rateLimitKey, TimeSpan.FromSeconds(1), 5);
             if (isLimited) return StatusCode(429, "Too many requests. Slow down, partner!");
 
             var round = await _gameDirector.PlayRound(gameType, userId, sessionId, request.Amount, request.BetData ?? new { });
@@ -440,7 +448,15 @@ public class GameController : BaseApiController {
         
         var seasonCount = _context.TournamentWinners.Select(w => w.Month).Distinct().Count() + 1;
 
+        var platformName = _repo.GetGlobalSetting("Content_PlatformName") ?? "AleaSim";
+        bool chatEnabled = _repo.GetGlobalSetting("Community_ChatEnabled") != "false";
+        int.TryParse(_repo.GetGlobalSetting("Community_MinLevelChat"), out var minLevel);
+        if (minLevel == 0) minLevel = 1;
+
         var stats = new PlatformStatsDto {
+            PlatformName = platformName,
+            ChatEnabled = chatEnabled,
+            ChatMinLevel = minLevel,
             ActivePlayers = activeCount, 
             TotalRegisteredPlayers = _repo.GetTotalUserCount(),
             AverageRtp = 96.5, 

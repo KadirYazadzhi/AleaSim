@@ -342,20 +342,24 @@ public class AuthController : ControllerBase {
              return BadRequest("Username already exists.");
          }
 
+         decimal welcomeBonus = 100m;
+         if (decimal.TryParse(_repository.GetGlobalSetting("Economy_WelcomeBonus"), out var bonusVal)) {
+             welcomeBonus = bonusVal;
+         }
+
          var userId = Guid.NewGuid();
          var user = new User {
              Id = userId,
              Username = request.Username,
              Email = request.Email,
-             PasswordHash = _passwordHasher.HashPassword(request.Password), 
+             PasswordHash = _passwordHasher.HashPassword(request.Password),
              Role = Role.User,
-             Balance = 5000m,
+             Balance = welcomeBonus,
              AvatarUrl = $"https://api.dicebear.com/7.x/bottts/svg?seed={request.Username}",
              CreatedAt = DateTime.UtcNow,
              IsActive = true,
-             ReferralCode = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper() 
+             ReferralCode = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()
          };
-
          if (!string.IsNullOrEmpty(request.ReferralCode)) {
              // PERFORMANCE: Use optimized repository methods instead of loading all users (Issue 45)
              var referrer = _repository.GetUserByReferralCode(request.ReferralCode) 

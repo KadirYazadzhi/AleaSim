@@ -123,6 +123,9 @@ public class DiceResultDto {
 }
 
 public class PlatformStatsDto {
+    public string PlatformName { get; set; } = "AleaSim";
+    public bool ChatEnabled { get; set; } = true;
+    public int ChatMinLevel { get; set; } = 1;
     public decimal WeeklyJackpot { get; set; }
     public decimal TournamentPrizePool { get; set; }
     public DateTime TournamentEndsAt { get; set; }

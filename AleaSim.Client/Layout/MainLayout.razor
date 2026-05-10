@@ -31,7 +31,7 @@
         
         <div class="d-flex align-center cursor-pointer" @onclick='@(() => Navigation.NavigateTo("/"))'>
             <MudIcon Icon="@Icons.Material.Filled.Casino" Size="Size.Large" Color="Color.Primary" Class="mr-2 spin-hover d-none d-sm-block" />
-            <MudText Typo="Typo.h5" Class="text-gradient font-black tracking-wide">ALEASIM</MudText>
+            <MudText Typo="Typo.h5" Class="text-gradient font-black tracking-wide">@PlatformStats.Stats.PlatformName.ToUpper()</MudText>
         </div>
         
         <MudSpacer />
@@ -191,10 +191,10 @@
                     <MudItem xs="12" md="4" Class="mb-8 mb-md-0">
                         <div class="d-flex align-center mb-4">
                             <MudIcon Icon="@Icons.Material.Filled.Casino" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
-                            <MudText Typo="Typo.h5" Style="font-weight: 900; letter-spacing: 1px;">ALEASIM</MudText>
+                            <MudText Typo="Typo.h5" Style="font-weight: 900; letter-spacing: 1px;">@PlatformStats.Stats.PlatformName.ToUpper()</MudText>
                         </div>
                         <MudText Typo="Typo.body2" Class="mb-6 opacity-70" Style="max-width: 350px; line-height: 1.6;">
-                            The next generation of decentralized gaming. Experience provably fair odds, instant payouts, and AI-driven entertainment.
+                            The next generation of decentralized gaming on @PlatformStats.Stats.PlatformName. Experience provably fair odds, instant payouts, and AI-driven entertainment.
                         </MudText>
                         <div class="d-flex gap-2">
                              <MudIconButton Icon="@Icons.Custom.Brands.Twitter" Color="Color.Inherit" Variant="Variant.Outlined" Class="rounded-circle social-icon" />

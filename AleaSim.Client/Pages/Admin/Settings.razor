@@ -15,18 +15,18 @@
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-md-8 mt-4 mb-16 animate-fade-in">
     <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-8 gap-4">
         <div>
-            <MudText Typo="Typo.h3" Class="fw-black mb-1 settings-title text-gradient">CONTROL CENTER</MudText>
-            <MudText Typo="Typo.subtitle1" Class="opacity-60 d-none d-sm-block">Architect the platform's economy and risk.</MudText>
+            <MudText Typo="Typo.h3" Class="fw-black mb-1 settings-title text-gradient">COMMAND CENTER</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-60 d-none d-sm-block">Architect the platform's core parameters and user experience.</MudText>
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadAll" StartIcon="@Icons.Material.Filled.Refresh" Size="Size.Small" Class="flex-grow-1">Sync</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAllChanges" StartIcon="@Icons.Material.Filled.Save" Size="Size.Small" Class="flex-grow-1">Deploy</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAllChanges" StartIcon="@Icons.Material.Filled.Save" Size="Size.Small" Class="flex-grow-1">Deploy Changes</MudButton>
         </div>
     </div>
 
     <MudTabs Elevation="4" Rounded="true" Color="Color.Primary" ApplyEffectsToContainer="true" PanelClass="pa-md-8 pa-4 custom-settings-tabs" Class="rounded-xl overflow-hidden shadow-2xl">
         
-        <!-- 1. RISK & GAME ENGINE -->
+        <!-- 1. RISK & MECHANICS -->
         <MudTabPanel Text="RISK" Icon="@Icons.Material.Filled.SettingsInputComponent">
             <MudGrid Spacing="4">
                 <MudItem xs="12" md="8">
@@ -34,18 +34,27 @@
                         <MudText Typo="Typo.h6" Class="fw-black mb-6">Mathematical Core</MudText>
                         <MudGrid Spacing="4">
                             <MudItem xs="12">
-                                <MudText Typo="Typo.subtitle2" Class="fw-bold mb-1">Global Target RTP</MudText>
+                                <MudText Typo="Typo.subtitle2" Class="fw-bold mb-1">Global Target RTP (%)</MudText>
                                 <div class="d-flex align-center gap-4 pa-4 bg-grey-darken-4 rounded-lg">
                                     <MudSlider T="decimal" @bind-Value="_targetRtp" Min="80" Max="105" Step="0.1m" Color="Color.Primary" />
                                     <MudText Typo="Typo.h5" Class="fw-black text-primary" Style="min-width: 70px;">@_targetRtp.ToString("F1")%</MudText>
                                 </div>
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudSelect T="string" @bind-Value="_volatilityMode" Label="Volatility" Variant="Variant.Outlined">
-                                    <MudSelectItem Value="@("Low")">Low</MudSelectItem>
-                                    <MudSelectItem Value="@("Medium")">Medium</MudSelectItem>
-                                    <MudSelectItem Value="@("High")">High</MudSelectItem>
+                                <MudSelect T="string" @bind-Value="_volatilityMode" Label="Volatility Profile" Variant="Variant.Outlined">
+                                    <MudSelectItem Value="@("Low")">Low (Frequent small wins)</MudSelectItem>
+                                    <MudSelectItem Value="@("Medium")">Medium (Balanced)</MudSelectItem>
+                                    <MudSelectItem Value="@("High")">High (Huge wins, high risk)</MudSelectItem>
                                 </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudSwitch @bind-Value="_shadowMode" Label="Global Shadow Mode (Simulation only)" Color="Color.Secondary" T="bool" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField @bind-Value="_minBet" Label="Minimum Bet ($)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField @bind-Value="_maxBet" Label="Maximum Bet ($)" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
                         </MudGrid>
                     </div>
@@ -53,52 +62,118 @@
 
                 <MudItem xs="12" md="4">
                     <div class="settings-group-card h-100 border-error-subtle">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-4 text-error">Kill-Switch</MudText>
+                        <MudText Typo="Typo.h6" Class="fw-black mb-4 text-error">System Override</MudText>
                         <div class='@($"emergency-box {(_emergencyStop ? "active" : "")}")'>
                             <MudSwitch @bind-Value="_emergencyStop" Color="Color.Error" UncheckedColor="Color.Success" Size="Size.Large" T="bool" />
-                            <MudText Typo="Typo.h5" Class="fw-black mt-2">@(_emergencyStop ? "HALTED" : "ONLINE")</MudText>
+                            <MudText Typo="Typo.h5" Class="fw-black mt-2">@(_emergencyStop ? "EMERGENCY HALT" : "SYSTEM ONLINE")</MudText>
                         </div>
+                        <MudText Typo="Typo.caption" Class="mt-4 d-block opacity-60">Instantly pauses all game engines and prevents new bets.</MudText>
                     </div>
                 </MudItem>
             </MudGrid>
         </MudTabPanel>
 
-        <!-- 2. ECONOMY -->
+        <!-- 2. ECONOMY & PROMOTIONS -->
         <MudTabPanel Text="ECON" Icon="@Icons.Material.Filled.AccountBalance">
             <MudGrid Spacing="4">
                 <MudItem xs="12" md="6">
                     <div class="settings-group-card">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-4">Relief (Faucet)</MudText>
+                        <MudText Typo="Typo.h6" Class="fw-black mb-4">Relief System (Faucet)</MudText>
                         <MudStack Spacing="3">
-                            <MudNumericField @bind-Value="_faucetAmount" Label="Amount ($)" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            <MudNumericField @bind-Value="_faucetThreshold" Label="Threshold ($)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudNumericField @bind-Value="_faucetAmount" Label="Grant Amount ($)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudNumericField @bind-Value="_faucetThreshold" Label="Trigger Threshold ($)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudText Typo="Typo.caption" Class="opacity-60">Allows users to claim funds when below threshold.</MudText>
                         </MudStack>
                     </div>
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <div class="settings-group-card">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-4">Cashback</MudText>
-                        <MudNumericField @bind-Value="_baseCashback" Label="Base (%)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudText Typo="Typo.h6" Class="fw-black mb-4">Loyalty & Growth</MudText>
+                        <MudStack Spacing="3">
+                            <MudNumericField @bind-Value="_baseCashback" Label="Base Cashback (%)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudNumericField @bind-Value="_welcomeBonus" Label="Welcome Bonus ($)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudNumericField @bind-Value="_xpMultiplier" Label="Global XP Multiplier" Variant="Variant.Outlined" Margin="Margin.Dense" Step="0.1m" />
+                        </MudStack>
+                    </div>
+                </MudItem>
+                <MudItem xs="12">
+                    <div class="settings-group-card">
+                        <MudText Typo="Typo.h6" Class="fw-black mb-4">Tournament Prize Pool</MudText>
+                        <MudNumericField @bind-Value="_tournamentPrizePool" Label="Monthly Prize Pool ($)" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
                     </div>
                 </MudItem>
             </MudGrid>
         </MudTabPanel>
 
-        <!-- 3. JACKPOTS -->
+        <!-- 3. COMMUNITY & CHAT -->
+        <MudTabPanel Text="SOCIAL" Icon="@Icons.Material.Filled.Chat">
+            <MudGrid Spacing="4">
+                <MudItem xs="12" md="6">
+                    <div class="settings-group-card">
+                        <MudText Typo="Typo.h6" Class="fw-black mb-4">Chat Governance</MudText>
+                        <MudStack Spacing="3">
+                            <MudSwitch @bind-Value="_chatEnabled" Label="Enable Public Chat" Color="Color.Primary" T="bool" />
+                            <MudNumericField @bind-Value="_minLevelChat" Label="Min Level to Chat" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudNumericField @bind-Value="_chatSlowMode" Label="Slow Mode (Seconds)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudStack>
+                    </div>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <div class="settings-group-card">
+                        <MudText Typo="Typo.h6" Class="fw-black mb-4">Content Filter</MudText>
+                        <MudTextField @bind-Value="_prohibitedWords" Label="Prohibited Words (Comma separated)" Variant="Variant.Outlined" Lines="4" Placeholder="badword1, badword2..." />
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <!-- 4. CONTENT & BRANDING -->
+        <MudTabPanel Text="CONTENT" Icon="@Icons.Material.Filled.Article">
+            <MudGrid Spacing="4">
+                <MudItem xs="12" md="4">
+                    <div class="settings-group-card">
+                        <MudText Typo="Typo.h6" Class="fw-black mb-4">General</MudText>
+                        <MudTextField @bind-Value="_platformName" Label="Platform Name" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </div>
+                </MudItem>
+                <MudItem xs="12" md="8">
+                    <div class="settings-group-card">
+                        <MudTabs Elevation="0" Rounded="true" PanelClass="pt-4">
+                            <MudTabPanel Text="Help">
+                                <MudTextField @bind-Value="_contentHelp" Label="Help Center Markdown" Variant="Variant.Outlined" Lines="10" />
+                            </MudTabPanel>
+                            <MudTabPanel Text="Terms">
+                                <MudTextField @bind-Value="_contentTerms" Label="Terms of Service Markdown" Variant="Variant.Outlined" Lines="10" />
+                            </MudTabPanel>
+                            <MudTabPanel Text="Privacy">
+                                <MudTextField @bind-Value="_contentPrivacy" Label="Privacy Policy Markdown" Variant="Variant.Outlined" Lines="10" />
+                            </MudTabPanel>
+                        </MudTabs>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <!-- 5. JACKPOTS -->
         <MudTabPanel Text="POTS" Icon="@Icons.Material.Filled.Diamond">
             <div class="settings-group-card">
+                <MudText Typo="Typo.h6" Class="fw-black mb-4">Active Progressive Jackpots</MudText>
                 <div class="table-responsive">
                     <MudTable Items="@_jackpots" Hover="true" Dense="true" Elevation="0" Class="bg-transparent">
                         <HeaderContent>
                             <MudTh>TIER</MudTh>
                             <MudTh>VALUE</MudTh>
+                            <MudTh>TARGET DROP</MudTh>
                             <MudTh>ACTION</MudTh>
                         </HeaderContent>
                         <RowTemplate>
-                            <MudTd>@context.Tier.ToUpper()</MudTd>
-                            <MudTd>@context.CurrentValue.ToString("C2")</MudTd>
                             <MudTd>
-                                <MudIconButton Icon="@Icons.Material.Filled.FlashOn" Color="Color.Error" Size="Size.Small" OnClick="() => ForceJackpotDrop(context.Id)" />
+                                <MudChip Size="Size.Small" Color="@(context.Tier.ToLower() == "mega" ? Color.Error : Color.Primary)" Class="fw-bold">@context.Tier.ToUpper()</MudChip>
+                            </MudTd>
+                            <MudTd Class="fw-black text-primary">@context.CurrentValue.ToString("C2")</MudTd>
+                            <MudTd>@context.MustDropAt.ToString("C0")</MudTd>
+                            <MudTd>
+                                <MudIconButton Icon="@Icons.Material.Filled.FlashOn" Color="Color.Error" Size="Size.Small" OnClick="() => ForceJackpotDrop(context.Id)" Title="Force immediate drop" />
                             </MudTd>
                         </RowTemplate>
                     </MudTable>
@@ -106,26 +181,30 @@
             </div>
         </MudTabPanel>
 
-        <!-- 4. SYSTEM -->
+        <!-- 6. SYSTEM MAINTENANCE -->
         <MudTabPanel Text="SYS" Icon="@Icons.Material.Filled.Dns">
             <MudGrid Spacing="4">
                 <MudItem xs="12" md="6">
                     <div class="settings-group-card">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-6 text-center">Integrity</MudText>
+                        <MudText Typo="Typo.h6" Class="fw-black mb-6 text-center">Data Integrity</MudText>
                         <div class="d-flex flex-column align-center py-4">
                             <div class='@($"integrity-shield {(_integrityResult?.IsValid == true ? "secure" : "warning")}")'>
                                 <MudIcon Icon="@(_integrityResult?.IsValid == true ? Icons.Material.Filled.GppGood : Icons.Material.Filled.GppMaybe)" Style="font-size: 3rem;" />
                             </div>
+                            <MudText Typo="Typo.body2" Class="mt-4 text-center opacity-60">@(_integrityResult?.Message ?? "Ready for scan")</MudText>
                         </div>
-                        <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Class="py-3 rounded-lg fw-black" OnClick="RunIntegrityCheck" Disabled="_verifyingIntegrity">SCAN</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Class="py-3 rounded-lg fw-black" OnClick="RunIntegrityCheck" Disabled="_verifyingIntegrity">EXECUTE SCAN</MudButton>
                     </div>
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <div class="settings-group-card h-100">
-                        <MudText Typo="Typo.h6" Class="fw-black mb-4">Maint</MudText>
+                        <MudText Typo="Typo.h6" Class="fw-black mb-4">Quick Operations</MudText>
                         <MudStack Spacing="2">
-                            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CleaningServices" FullWidth="true" OnClick="OnClearCache" Size="Size.Small">Purge Cache</MudButton>
-                            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.RestartAlt" FullWidth="true" OnClick="OnRestartRng" Size="Size.Small">Reseed RNG</MudButton>
+                            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CleaningServices" FullWidth="true" OnClick="OnClearCache" Size="Size.Small">Purge Memory Cache</MudButton>
+                            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.RestartAlt" FullWidth="true" OnClick="OnRestartRng" Size="Size.Small">Synchronize RNG Service</MudButton>
+                            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Backup" FullWidth="true" OnClick="OnTriggerBackup" Size="Size.Small">Manual Database Backup</MudButton>
+                            <MudDivider Class="my-2" />
+                            <MudSwitch @bind-Value="_perfLogging" Label="Detailed Performance Logging" Color="Color.Warning" T="bool" />
                         </MudStack>
                     </div>
                 </MudItem>
@@ -147,7 +226,7 @@
     .text-gradient { background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
     .custom-settings-tabs { background: var(--mud-palette-surface); }
-    .settings-group-card { padding: 32px; border-radius: 24px; background: var(--mud-palette-background-grey); border: 1px solid var(--mud-palette-divider); }
+    .settings-group-card { padding: 32px; border-radius: 24px; background: var(--mud-palette-background-grey); border: 1px solid var(--mud-palette-divider); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
     
     .bg-grey-darken-4 { background: rgba(0,0,0,0.2); }
     .border-error-subtle { border-color: rgba(var(--mud-palette-error-rgb), 0.3); }
@@ -166,9 +245,29 @@
     private decimal _targetRtp = 95.0m;
     private string _volatilityMode = "Medium";
     private bool _emergencyStop = false;
+    private bool _shadowMode = false;
+    private decimal _minBet = 0.10m;
+    private decimal _maxBet = 1000.0m;
+
     private decimal _faucetAmount = 100.0m;
     private decimal _faucetThreshold = 10.0m;
     private decimal _baseCashback = 10.0m;
+    private decimal _welcomeBonus = 50.0m;
+    private decimal _xpMultiplier = 1.0m;
+    private decimal _tournamentPrizePool = 25000.0m;
+
+    private bool _chatEnabled = true;
+    private int _minLevelChat = 1;
+    private int _chatSlowMode = 0;
+    private string _prohibitedWords = "";
+
+    private string _platformName = "AleaSim";
+    private string _contentHelp = "";
+    private string _contentTerms = "";
+    private string _contentPrivacy = "";
+
+    private bool _perfLogging = false;
+
     private bool _verifyingIntegrity = false;
     private IntegrityResponse? _integrityResult;
     private List<GlobalSettingDto> _globalSettings = new();
@@ -211,23 +310,83 @@
     private async Task LoadGlobalSettings() {
         try {
             _globalSettings = await Http.GetFromJsonAsync<List<GlobalSettingDto>>("api/Admin/settings/global") ?? new();
+            
+            _targetRtp = GetDecimalSetting("GlobalTargetRtp", 95.0m);
+            _volatilityMode = GetStringSetting("VolatilityMode", "Medium");
+            _emergencyStop = GetBoolSetting("EmergencyStop", false);
+            _shadowMode = GetBoolSetting("GlobalShadowMode", false);
+            _minBet = GetDecimalSetting("Risk_MinBet", 0.10m);
+            _maxBet = GetDecimalSetting("Risk_MaxBet", 1000.0m);
+
             _faucetAmount = GetDecimalSetting("Economy_FaucetAmount", 100);
             _faucetThreshold = GetDecimalSetting("Economy_FaucetThreshold", 10);
             _baseCashback = GetDecimalSetting("Economy_CashbackPercent", 10);
+            _welcomeBonus = GetDecimalSetting("Economy_WelcomeBonus", 50);
+            _xpMultiplier = GetDecimalSetting("Economy_XpMultiplier", 1.0m);
+            _tournamentPrizePool = GetDecimalSetting("TournamentPrizePool", 25000);
+
+            _chatEnabled = GetBoolSetting("Community_ChatEnabled", true);
+            _minLevelChat = GetIntSetting("Community_MinLevelChat", 1);
+            _chatSlowMode = GetIntSetting("Community_ChatSlowMode", 0);
+            _prohibitedWords = GetStringSetting("Community_ProhibitedWords", "");
+
+            _platformName = GetStringSetting("Content_PlatformName", "AleaSim");
+            _contentHelp = GetStringSetting("Content_Help", "");
+            _contentTerms = GetStringSetting("Content_Terms", "");
+            _contentPrivacy = GetStringSetting("Content_Privacy", "");
+
+            _perfLogging = GetBoolSetting("System_PerfLogging", false);
+
         } catch {}
     }
 
     private async Task SaveAllChanges() {
-        await SaveSetting("Economy_FaucetAmount", _faucetAmount.ToString());
-        await SaveSetting("Economy_FaucetThreshold", _faucetThreshold.ToString());
-        await SaveSetting("Economy_CashbackPercent", _baseCashback.ToString());
-        await AdminService.UpdateRtp(_targetRtp);
-        await AdminService.UpdateVolatility(_volatilityMode);
-        await AdminService.ToggleEmergencyStop(_emergencyStop);
-        Snackbar.Add("Deployed!", Severity.Success);
+        try {
+            var tasks = new List<Task>();
+            tasks.Add(SaveSetting("GlobalTargetRtp", _targetRtp.ToString()));
+            tasks.Add(SaveSetting("VolatilityMode", _volatilityMode));
+            tasks.Add(SaveSetting("EmergencyStop", _emergencyStop.ToString().ToLower()));
+            tasks.Add(SaveSetting("GlobalShadowMode", _shadowMode.ToString().ToLower()));
+            tasks.Add(SaveSetting("Risk_MinBet", _minBet.ToString()));
+            tasks.Add(SaveSetting("Risk_MaxBet", _maxBet.ToString()));
+
+            tasks.Add(SaveSetting("Economy_FaucetAmount", _faucetAmount.ToString()));
+            tasks.Add(SaveSetting("Economy_FaucetThreshold", _faucetThreshold.ToString()));
+            tasks.Add(SaveSetting("Economy_CashbackPercent", _baseCashback.ToString()));
+            tasks.Add(SaveSetting("Economy_WelcomeBonus", _welcomeBonus.ToString()));
+            tasks.Add(SaveSetting("Economy_XpMultiplier", _xpMultiplier.ToString()));
+            tasks.Add(SaveSetting("TournamentPrizePool", _tournamentPrizePool.ToString()));
+
+            tasks.Add(SaveSetting("Community_ChatEnabled", _chatEnabled.ToString().ToLower()));
+            tasks.Add(SaveSetting("Community_MinLevelChat", _minLevelChat.ToString()));
+            tasks.Add(SaveSetting("Community_ChatSlowMode", _chatSlowMode.ToString()));
+            tasks.Add(SaveSetting("Community_ProhibitedWords", _prohibitedWords));
+
+            tasks.Add(SaveSetting("Content_PlatformName", _platformName));
+            tasks.Add(SaveSetting("Content_Help", _contentHelp));
+            tasks.Add(SaveSetting("Content_Terms", _contentTerms));
+            tasks.Add(SaveSetting("Content_Privacy", _contentPrivacy));
+
+            tasks.Add(SaveSetting("System_PerfLogging", _perfLogging.ToString().ToLower()));
+
+            await Task.WhenAll(tasks);
+            
+            // Sync specific services that might be caching these
+            await AdminService.UpdateRtp(_targetRtp);
+            await AdminService.UpdateVolatility(_volatilityMode);
+            await AdminService.ToggleEmergencyStop(_emergencyStop);
+
+            Snackbar.Add("Configuration Deployed Successfully!", Severity.Success);
+        } catch (Exception ex) {
+            Snackbar.Add($"Deployment failed: {ex.Message}", Severity.Error);
+        }
     }
 
     private decimal GetDecimalSetting(string key, decimal def) => decimal.TryParse(_globalSettings.FirstOrDefault(s => s.Key == key)?.Value, out var v) ? v : def;
+    private string GetStringSetting(string key, string def) => _globalSettings.FirstOrDefault(s => s.Key == key)?.Value ?? def;
+    private bool GetBoolSetting(string key, bool def) => bool.TryParse(_globalSettings.FirstOrDefault(s => s.Key == key)?.Value, out var v) ? v : def;
+    private int GetIntSetting(string key, int def) => int.TryParse(_globalSettings.FirstOrDefault(s => s.Key == key)?.Value, out var v) ? v : def;
+
     private async Task SaveSetting(string key, string value) { await Http.PostAsJsonAsync("api/Admin/settings/update", new { Key = key, Value = value }); }
 
     private async Task LoadCurrentPlatformStats() {
@@ -244,8 +403,9 @@
         _verifyingIntegrity = false;
     }
 
-    private async Task OnClearCache() { await AdminService.TriggerAction("ClearCache"); Snackbar.Add("Cache Cleared", Severity.Success); }
-    private async Task OnRestartRng() { await AdminService.TriggerAction("RestartRng"); Snackbar.Add("RNG Restarted", Severity.Warning); }
+    private async Task OnClearCache() { await AdminService.TriggerAction("ClearCache"); Snackbar.Add("Memory Cache Purged", Severity.Success); }
+    private async Task OnRestartRng() { await AdminService.TriggerAction("RestartRng"); Snackbar.Add("RNG Service Synchronized", Severity.Warning); }
+    private async Task OnTriggerBackup() { await AdminService.TriggerAction("BackupDb"); Snackbar.Add("Manual Backup Initialized", Severity.Info); }
 
     public void Dispose() { RealTime.OnJackpotUpdated -= HandleJackpotUpdate; }
     public class GlobalSettingDto { public string Key { get; set; } = ""; public string Value { get; set; } = ""; }
