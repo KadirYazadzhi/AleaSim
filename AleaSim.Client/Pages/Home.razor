@@ -69,6 +69,38 @@
                         <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Class="banner-icon-bg" />
                     </div>
 
+                    @if (specialTournaments?.Any() == true)
+                    {
+                        <div class="mb-10 animate-fade-in">
+                            <div class="d-flex align-center gap-2 mb-4">
+                                <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" />
+                                <MudText Typo="Typo.h5" Class="fw-black uppercase">Special Events</MudText>
+                            </div>
+                            <div class="special-events-scroll d-flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+                                @foreach (var t in specialTournaments)
+                                {
+                                    <div class="special-event-card glass-panel pa-6 rounded-xl relative overflow-hidden flex-shrink-0" style="width: 320px;">
+                                        <div class="d-flex justify-space-between align-start mb-3">
+                                            <MudText Typo="Typo.subtitle1" Class="fw-black text-truncate" Style="max-width: 180px;">@t.Name.ToUpper()</MudText>
+                                            <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text" Class="fw-bold">LIVE</MudChip>
+                                        </div>
+                                        <MudText Typo="Typo.caption" Class="opacity-60 d-block mb-3" Style="height: 32px; overflow: hidden;">@t.Description</MudText>
+                                        
+                                        <div class="d-flex justify-space-between align-end">
+                                            <div>
+                                                <MudText Typo="Typo.caption" Class="fw-bold opacity-40 uppercase">Prize Pool</MudText>
+                                                <MudText Typo="Typo.h5" Class="fw-black text-success">@t.PrizePool.ToString("C0")</MudText>
+                                            </div>
+                                            <MudButton Href='@($"/leaderboard?tournamentId={t.Id}")' Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="fw-bold">DETAILS</MudButton>
+                                        </div>
+                                        
+                                        <div class="card-progress-glow"></div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
                     <!-- Mobile Jackpots (visible only on mobile/tablet) -->
                     <div class="d-block d-lg-none mb-10 animate-fade-in" style="animation-delay: 0.1s;">
                         <MultiJackpotWidget SimpleMode="true" />
@@ -927,6 +959,7 @@
     private string _searchTerm = "";
     private MudTextField<string>? searchField;
     private decimal pendingCashback = 0;
+    private List<TournamentDto> specialTournaments = new();
 
     public string SearchTerm {
         get => _searchTerm;
@@ -957,6 +990,10 @@
         LayoutService.OnMajorUpdate += StateHasChanged;
         PlatformStats.StartPolling();
         PlatformStats.OnStatsUpdated += StateHasChanged;
+
+        try {
+            specialTournaments = await Http.GetFromJsonAsync<List<TournamentDto>>("api/Game/tournaments") ?? new();
+        } catch { }
         
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true) {

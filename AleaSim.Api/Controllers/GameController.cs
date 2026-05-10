@@ -384,6 +384,22 @@ public class GameController : BaseApiController {
     }
 
     [AllowAnonymous]
+    [HttpGet("tournaments")]
+    public IActionResult GetActiveTournaments() {
+        var tournaments = _repo.GetAllTournaments().Where(t => t.IsActive && t.EndDate > DateTime.UtcNow);
+        return Ok(tournaments.Select(t => new TournamentDto {
+            Id = t.Id,
+            Name = t.Name,
+            Description = t.Description,
+            StartDate = t.StartDate,
+            EndDate = t.EndDate,
+            PrizePool = t.PrizePool,
+            IsActive = t.IsActive,
+            IncludedGames = JsonSerializer.Deserialize<List<string>>(t.GameTypesJson) ?? new()
+        }));
+    }
+
+    [AllowAnonymous]
     [HttpGet("platform-stats")]
     public async Task<IActionResult> GetPlatformStats() {
         var now = DateTime.UtcNow;
