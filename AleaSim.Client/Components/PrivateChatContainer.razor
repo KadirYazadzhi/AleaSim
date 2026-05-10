@@ -3,6 +3,7 @@
 @inject RealTimeClient RealTime
 @inject HttpClient Http
 @inject AuthenticationStateProvider AuthStateProvider
+@inject LayoutService LayoutService
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -18,12 +19,13 @@
         
         @foreach (var msg in messages)
         {
-            bool isMe = msg.SenderId == effectiveUserId || msg.SenderUsername == "Me" || msg.SenderUsername == effectiveUsername;
+            bool isMe = IsMessageMine(msg);
             
             <div class='@($"bubble-row-outer {(isMe ? "me" : "others")}")'>
                 <div class="avatar-col">
                     <MudAvatar Size="Size.Small" Class="bubble-avatar shadow-sm">
-                        <MudImage Src="@(isMe ? (CurrentAvatarUrl ?? "https://api.dicebear.com/7.x/bottts/svg?seed=" + effectiveUserId) : msg.SenderAvatarUrl)" />
+                        @* Priority: LayoutService -> Fallback generated -> Server Provided (others) *@
+                        <MudImage Src="@(isMe ? (LayoutService.AvatarUrl ?? GetDefaultAvatar(effectiveUsername)) : msg.SenderAvatarUrl)" />
                     </MudAvatar>
                 </div>
                 
@@ -40,7 +42,7 @@
                             }
                             
                             <div class="bubble-meta">
-                                <span>@msg.Timestamp.ToString("HH:mm")</span>
+                                <span>@msg.Timestamp.ToLocalTime().ToString("HH:mm")</span>
                                 @if (isMe) {
                                     <MudIcon Icon="@(msg.IsRead ? Icons.Material.Filled.DoneAll : Icons.Material.Filled.Check)" Size="Size.Small" Class="read-indicator" Style='@($"color: {(msg.IsRead ? "#00ffcc" : "rgba(255,255,255,0.4)")} !important;")' />
                                 }
@@ -216,19 +218,39 @@
 
     protected override async Task OnInitializedAsync() {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        effectiveUsername = authState.User.Identity?.Name ?? "";
-        effectiveUserId = CurrentUserId != Guid.Empty ? CurrentUserId : 
-            (Guid.TryParse(authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var id) ? id : Guid.Empty);
+        var user = authState.User;
+        
+        effectiveUsername = user.Identity?.Name ?? "";
+        var idClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier) ?? user.FindFirst("sub");
+        if (idClaim != null && Guid.TryParse(idClaim.Value, out var parsedId)) {
+            effectiveUserId = parsedId;
+        }
         
         RealTime.OnPrivateMessageReceived += HandlePrivateMessage;
         RealTime.OnMessageDeleted += HandleMessageDeleted;
         RealTime.OnMessageEdited += HandleMessageEdited;
+        
+        LayoutService.OnAvatarChanged += HandleAvatarChanged;
+
         await LoadHistory();
+    }
+
+    private void HandleAvatarChanged(string newUrl) {
+        InvokeAsync(StateHasChanged);
     }
 
     protected override async Task OnParametersSetAsync() {
         await LoadHistory();
     }
+
+    private bool IsMessageMine(ChatMessageDto msg) {
+        if (effectiveUserId != Guid.Empty && msg.SenderId != Guid.Empty && msg.SenderId == effectiveUserId) return true;
+        if (!string.IsNullOrEmpty(effectiveUsername) && !string.IsNullOrEmpty(msg.SenderUsername) && 
+            string.Equals(msg.SenderUsername, effectiveUsername, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    private string GetDefaultAvatar(string username) => $"https://api.dicebear.com/7.x/bottts/svg?seed={username}";
 
     private async Task LoadHistory() {
         try {
@@ -238,20 +260,22 @@
                 _ = ScrollToBottom();
             }
         } catch { }
-        finally { isLoading = false; }
+        finally { isLoading = false; StateHasChanged(); }
     }
 
     private void HandlePrivateMessage(string user, string msg, DateTime time, string avatar, Guid senderId, Guid messageId) {
         if (senderId == OtherUserId || senderId == effectiveUserId) {
-            // Check for optimistic duplicate
-            var opt = messages.FirstOrDefault(m => m.Id == messageId || ((m.SenderId == effectiveUserId || m.SenderUsername == "Me") && m.Message == msg && Math.Abs((m.Timestamp - time).TotalSeconds) < 5));
-            if (opt != null) {
-                opt.Id = messageId;
-                opt.SenderUsername = user;
-                opt.SenderAvatarUrl = avatar;
-                opt.Timestamp = time;
-                opt.SenderId = senderId;
-                InvokeAsync(StateHasChanged);
+            // Robust matching for optimistic messages
+            var existing = messages.FirstOrDefault(m => m.Id == messageId || 
+                (IsMessageMine(new ChatMessageDto { SenderUsername = user, SenderId = senderId }) && 
+                 (m.Message == msg || Math.Abs((m.Timestamp - time).TotalSeconds) < 20)));
+                 
+            if (existing != null) {
+                existing.Id = messageId;
+                existing.Timestamp = time;
+                existing.SenderAvatarUrl = avatar;
+                if (existing.Message != msg) existing.Message = msg;
+                StateHasChanged();
                 return;
             }
 
@@ -292,6 +316,7 @@
     private void StartEdit(ChatMessageDto msg) {
         editingMessageId = msg.Id;
         newMessage = msg.Message;
+        StateHasChanged();
     }
 
     private void CancelEdit() {
@@ -311,17 +336,27 @@
         if (editingMessageId != null) {
             var id = editingMessageId.Value;
             editingMessageId = null;
+            
+            // 1. Optimistic Edit Update
+            var m = messages.FirstOrDefault(x => x.Id == id);
+            if (m != null) {
+                m.Message = msgText;
+                m.IsEdited = true;
+            }
+            StateHasChanged();
+
+            // 2. Server Update
             await RealTime.EditChatMessage(id, msgText);
         } else {
-            // Optimistic update
+            // Optimistic Send
             var tempId = Guid.NewGuid();
             messages.Add(new ChatMessageDto {
                 Id = tempId,
                 SenderId = effectiveUserId,
-                SenderUsername = "Me",
+                SenderUsername = effectiveUsername,
                 Message = msgText,
                 Timestamp = DateTime.UtcNow,
-                SenderAvatarUrl = ""
+                SenderAvatarUrl = LayoutService.AvatarUrl ?? GetDefaultAvatar(effectiveUsername)
             });
             StateHasChanged();
             await ScrollToBottom();
@@ -336,7 +371,7 @@
     }
 
     private async Task ScrollToBottom() {
-        await Task.Delay(150);
+        await Task.Delay(200);
         await JS.InvokeVoidAsync("aleaChat.scrollToBottom", "private-page-chat-box");
     }
 
@@ -344,5 +379,6 @@
         RealTime.OnPrivateMessageReceived -= HandlePrivateMessage;
         RealTime.OnMessageDeleted -= HandleMessageDeleted;
         RealTime.OnMessageEdited -= HandleMessageEdited;
+        LayoutService.OnAvatarChanged -= HandleAvatarChanged;
     }
 }

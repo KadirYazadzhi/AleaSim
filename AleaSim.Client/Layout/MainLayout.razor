@@ -743,8 +743,14 @@
     private async Task LoadProfile() {
         try { 
             userProfile = await AuthService.GetMe(); 
-            if (userProfile != null && !string.IsNullOrEmpty(userProfile.PreferencesJson)) {
-                LayoutService.SetSkinFromProfile(userProfile.PreferencesJson);
+            if (userProfile != null) {
+                if (!string.IsNullOrEmpty(userProfile.PreferencesJson)) {
+                    LayoutService.SetSkinFromProfile(userProfile.PreferencesJson);
+                }
+                // Sync initial avatar to global service
+                if (!string.IsNullOrEmpty(userProfile.AvatarUrl)) {
+                    LayoutService.NotifyAvatarChanged(userProfile.AvatarUrl);
+                }
             }
             StateHasChanged();
         } catch { }

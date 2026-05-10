@@ -103,9 +103,9 @@
 
         <div class="chat-viewport-v4">
             @if (activeChatType == "Global") {
-                <ChatWidget CurrentUserId="@currentUserId" CurrentUsername="@currentUsername" CurrentAvatarUrl="@currentAvatarUrl" />
+                <ChatWidget CurrentUserId="@currentUserId" CurrentUsername="@currentUsername" CurrentAvatarUrl="@(LayoutService.AvatarUrl ?? currentAvatarUrl)" />
             } else if (activeChatType == "Private" && selectedUserId != null) {
-                <PrivateChatContainer OtherUserId="@selectedUserId.Value" OtherUserName="@selectedUserName" CurrentUserId="@currentUserId" CurrentAvatarUrl="@currentAvatarUrl" />
+                <PrivateChatContainer OtherUserId="@selectedUserId.Value" OtherUserName="@selectedUserName" CurrentUserId="@currentUserId" CurrentAvatarUrl="@(LayoutService.AvatarUrl ?? currentAvatarUrl)" />
             }
         </div>
     </main>
@@ -119,7 +119,7 @@
         background: transparent;
         position: relative;
         max-width: 100%;
-        margin-top: 32px;
+        margin-top: 12px;
         border: none;
     }
 

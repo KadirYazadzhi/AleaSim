@@ -16,6 +16,7 @@ public class ChatController : ControllerBase {
         _repo = repo;
     }
 
+    [AllowAnonymous]
     [HttpGet("global")]
     public IActionResult GetGlobalHistory([FromQuery] int count = 50) {
         var history = _repo.GetGlobalChatMessages(count);

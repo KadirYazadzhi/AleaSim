@@ -70,7 +70,7 @@ public class RefreshTokenHandler : DelegatingHandler {
                 authProvider?.NotifyUserLogout();
                 
                 // Do NOT use forceLoad: true here as it causes infinite reload loops if initialization logic fails
-                if (!Navigation.Uri.Contains("/login")) {
+                if (!_navigationManager.Uri.Contains("/login")) {
                     _navigationManager.NavigateTo("login?reason=expired");
                 }
             }
