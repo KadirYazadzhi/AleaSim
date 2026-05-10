@@ -27,40 +27,43 @@
         <MudText Typo="Typo.h5" Class="fw-black mb-4 uppercase opacity-70">Ongoing Season Stats</MudText>
         <MudGrid Class="mb-10">
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-6 rounded-xl border-l-4 border-solid border-primary bg-glass" Elevation="4">
+                <MudPaper Class="pa-6 rounded-xl border-l-4 border-solid border-primary bg-glass h-100 d-flex flex-column" Elevation="4">
                     <MudText Typo="Typo.caption" Class="fw-bold opacity-50 uppercase">Active Participants</MudText>
-                    <div class="d-flex align-center justify-space-between mt-1">
+                    <div class="d-flex align-center justify-space-between mt-1 flex-grow-1">
                         <MudText Typo="Typo.h4" Class="fw-black">@currentStats.TotalParticipants.ToString("N0")</MudText>
                         <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" Size="Size.Large" />
                     </div>
+                    <div class="mt-2" style="height: 14px;"></div> @* Spacer for alignment *@
                 </MudPaper>
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-6 rounded-xl border-l-4 border-solid border-success bg-glass" Elevation="4">
+                <MudPaper Class="pa-6 rounded-xl border-l-4 border-solid border-success bg-glass h-100 d-flex flex-column" Elevation="4">
                     <MudText Typo="Typo.caption" Class="fw-bold opacity-50 uppercase">Live Prize Pool</MudText>
-                    <div class="d-flex align-center justify-space-between mt-1">
+                    <div class="d-flex align-center justify-space-between mt-1 flex-grow-1">
                         <MudText Typo="Typo.h4" Class="fw-black text-success">@currentStats.CurrentPrizePool.ToString("C2")</MudText>
                         <MudIcon Icon="@Icons.Material.Filled.MonetizationOn" Color="Color.Success" Size="Size.Large" />
                     </div>
-                    <MudText Typo="Typo.caption" Class="opacity-40">Started at @currentStats.StartingPrizePool.ToString("C0")</MudText>
+                    <MudText Typo="Typo.caption" Class="opacity-40 mt-2">Started at @currentStats.StartingPrizePool.ToString("C0")</MudText>
                 </MudPaper>
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-6 rounded-xl border-l-4 border-solid border-warning bg-glass" Elevation="4">
+                <MudPaper Class="pa-6 rounded-xl border-l-4 border-solid border-warning bg-glass h-100 d-flex flex-column" Elevation="4">
                     <MudText Typo="Typo.caption" Class="fw-bold opacity-50 uppercase">Total Rounds</MudText>
-                    <div class="d-flex align-center justify-space-between mt-1">
+                    <div class="d-flex align-center justify-space-between mt-1 flex-grow-1">
                         <MudText Typo="Typo.h4" Class="fw-black">@currentStats.TotalRounds.ToString("N0")</MudText>
                         <MudIcon Icon="@Icons.Material.Filled.Games" Color="Color.Warning" Size="Size.Large" />
                     </div>
+                    <div class="mt-2" style="height: 14px;"></div> @* Spacer for alignment *@
                 </MudPaper>
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-6 rounded-xl border-l-4 border-solid border-error bg-glass" Elevation="4">
+                <MudPaper Class="pa-6 rounded-xl border-l-4 border-solid border-error bg-glass h-100 d-flex flex-column" Elevation="4">
                     <MudText Typo="Typo.caption" Class="fw-bold opacity-50 uppercase">Time Remaining</MudText>
-                    <div class="d-flex align-center justify-space-between mt-1">
+                    <div class="d-flex align-center justify-space-between mt-1 flex-grow-1">
                         <MudText Typo="Typo.h4" Class="fw-black text-error">@GetTimeRemaining()</MudText>
                         <MudIcon Icon="@Icons.Material.Filled.Timer" Color="Color.Error" Size="Size.Large" />
                     </div>
+                    <div class="mt-2" style="height: 14px;"></div> @* Spacer for alignment *@
                 </MudPaper>
             </MudItem>
         </MudGrid>

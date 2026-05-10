@@ -9,7 +9,7 @@ namespace AleaSim.Domain.Services;
 
 public class RouletteGameEngine : BaseGameEngine {
     public class RouletteState { public int Nonce { get; set; } }
-    private Guid GameId = Guid.Parse("00000000-0000-0000-0000-000000000002");
+    private Guid GameId = Guid.Parse("22222222-2222-2222-2222-222222222222");
 
     public RouletteGameEngine(IRngService rng, IVaultService vault, IBrainService brain, IPromotionService promo, IJackpotService jackpot, IRealTimeService realTime, IServiceScopeFactory scope, ILockService lockService)
         : base(rng, vault, brain, promo, jackpot, realTime, scope, lockService) {

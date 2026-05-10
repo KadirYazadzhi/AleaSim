@@ -29,14 +29,30 @@
             <div class="stats-card pa-md-8 pa-4 rounded-xl h-100 relative overflow-hidden">
                 <MudText Typo="Typo.h5" Class="fw-bold mb-6">New Simulation</MudText>
                 
-                <MudSelect T="string" @bind-Value="_request.GameType" Label="Game Engine" Variant="Variant.Outlined" Class="mb-4 glass-input" Disabled="@SimState.IsSimulationRunning">
+                <MudSelect T="string" @bind-Value="GameType" Label="Game Engine" Variant="Variant.Outlined" Class="mb-4 glass-input" Disabled="@SimState.IsSimulationRunning">
                     <MudSelectItem Value="@("Slot")">Clover Chase</MudSelectItem>
                     <MudSelectItem Value="@("FruitBlast")">Fruit Blast</MudSelectItem>
                     <MudSelectItem Value="@("Roulette")">Roulette</MudSelectItem>
                     <MudSelectItem Value="@("Blackjack")">Blackjack</MudSelectItem>
                     <MudSelectItem Value="@("Baccarat")">Baccarat</MudSelectItem>
                     <MudSelectItem Value="@("Dice_Slider")">Dice (Slider)</MudSelectItem>
+                    <MudSelectItem Value="@("Dice_Multi")">Dice (Multi)</MudSelectItem>
                 </MudSelect>
+
+                @if (_request.GameType == "Roulette")
+                {
+                    <MudSelect T="string" @bind-Value="_request.GameMode" Label="Roulette Mode" Variant="Variant.Outlined" Class="mb-4 glass-input" Disabled="@SimState.IsSimulationRunning">
+                        <MudSelectItem Value="@("Classic")">Classic (36x)</MudSelectItem>
+                        <MudSelectItem Value="@("Extreme")">Extreme (Multipliers)</MudSelectItem>
+                    </MudSelect>
+                }
+                else if (_request.GameType?.StartsWith("Dice") == true)
+                {
+                    <MudSelect T="string" @bind-Value="_request.GameMode" Label="Dice Strategy" Variant="Variant.Outlined" Class="mb-4 glass-input" Disabled="@SimState.IsSimulationRunning">
+                        <MudSelectItem Value="@("Slider")">Slider (50/50)</MudSelectItem>
+                        <MudSelectItem Value="@("Multi")">Multi (Single Number)</MudSelectItem>
+                    </MudSelect>
+                }
 
                 <div class="d-flex gap-2 mb-4">
                     <MudNumericField T="decimal" @bind-Value="_request.BetAmount" Label="Bet" Variant="Variant.Outlined" Min="0.1m" Max="1000" Step="1" Format="C2" Class="flex-grow-1" Disabled="@SimState.IsSimulationRunning" Margin="Margin.Dense" />
@@ -216,6 +232,21 @@
 
 @code {
     private SimulationRequest _request = new() { GameType = "Slot", BetAmount = 1.0m, Iterations = 1000 };
+    
+    private string GameType {
+        get => _request.GameType;
+        set {
+            if (_request.GameType != value) {
+                _request.GameType = value;
+                // Set default modes
+                if (value == "Roulette") _request.GameMode = "Classic";
+                else if (value == "Dice_Slider") _request.GameMode = "Slider";
+                else if (value == "Dice_Multi") _request.GameMode = "Multi";
+                else _request.GameMode = null;
+            }
+        }
+    }
+
     private SimulationReport? _lastReport;
     private List<SimHistoryItem> _historyItems = new();
 

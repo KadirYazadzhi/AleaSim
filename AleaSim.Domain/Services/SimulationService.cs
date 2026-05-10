@@ -90,15 +90,17 @@ public class SimulationService : ISimulationService {
                 } else if (effectiveGameType == "baccarat") {
                     betData = JsonSerializer.Serialize(new { Type = "Player" });
                 } else if (effectiveGameType == "dice" || effectiveGameType == "dice_slider") {
+                    var mode = request.GameMode ?? "Slider";
                     betData = JsonSerializer.Serialize(new { 
                         Type = "Slider", 
                         TargetValue = 50.50m, 
                         Condition = "Over",
-                        Mode = "Slider"
+                        Mode = mode
                     });
                 } else if (effectiveGameType == "dice_multi") {
+                    var mode = request.GameMode ?? "Multi";
                     betData = JsonSerializer.Serialize(new { 
-                        Mode = "Multi",
+                        Mode = mode,
                         MultiDiceSelected = new List<int> { 6 } 
                     });
                 }
