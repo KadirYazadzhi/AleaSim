@@ -234,6 +234,7 @@ public class AuthController : ControllerBase {
             var luckFactor = personalRtp / 0.96;
 
             return Ok(new UserDto {
+                Id = user.Id,
                 Username = user.Username,
                 Balance = user.Balance,
                 BonusBalance = user.BonusBalance,
@@ -311,11 +312,14 @@ public class AuthController : ControllerBase {
             return BadRequest($"Avatar must be from allowed domains: {string.Join(", ", allowedDomains)}");
         }
 
-        // Check file extension
-        var allowedExtensions = new[] { ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg" };
+        // Check file extension (more lenient for Dicebear)
+        var allowedExtensions = new[] { ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", "/svg" };
         var path = uri.AbsolutePath.ToLowerInvariant();
-        if (!allowedExtensions.Any(ext => path.EndsWith(ext) || path.Contains(ext + "?"))) {
-            return BadRequest("Invalid image file type.");
+        if (!allowedExtensions.Any(ext => path.EndsWith(ext) || path.Contains(ext + "?") || path.Contains(ext + "/"))) {
+            // Special case for dicebear paths like /7.x/bottts/svg
+            if (!uri.Host.Contains("dicebear.com") || !path.Contains("svg")) {
+                return BadRequest("Invalid image file type or missing extension.");
+            }
         }
 
         var user = _repository.GetUser(userId);

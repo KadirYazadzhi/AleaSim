@@ -27,26 +27,23 @@ public class RefreshTokenHandler : DelegatingHandler {
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
 
-        // Skip adding authorization header for login/register/refresh endpoints
         var absPath = request.RequestUri?.AbsolutePath ?? "";
         bool isAuthEndpoint = absPath.Contains("api/Auth/login") || 
                              absPath.Contains("api/Auth/register") || 
                              absPath.Contains("api/Auth/refresh") ||
                              absPath.Contains("api/Auth/logout");
 
-        if (!isAuthEndpoint) {
-            var token = await _localStorage.GetItemAsync<string>("authToken");
-            if (!string.IsNullOrEmpty(token)) {
-                request.Headers.Authorization = new AuthenticationHeaderValue("bearer", token);
-            }
+        var token = await _localStorage.GetItemAsync<string>("authToken");
+        if (!isAuthEndpoint && !string.IsNullOrEmpty(token)) {
+            request.Headers.Authorization = new AuthenticationHeaderValue("bearer", token);
         }
 
         var response = await base.SendAsync(request, cancellationToken);
 
-        if (response.StatusCode == HttpStatusCode.Unauthorized && !isAuthEndpoint) {
+        // ONLY attempt refresh if we HAD a token and got 401
+        if (response.StatusCode == HttpStatusCode.Unauthorized && !isAuthEndpoint && !string.IsNullOrEmpty(token)) {
             string newToken = string.Empty;
 
-            // Wait for existing refresh task or start a new one
             Task<string>? localRefreshTask = null;
             lock (_refreshLock) {
                 if (_refreshTask == null) {
@@ -59,22 +56,23 @@ public class RefreshTokenHandler : DelegatingHandler {
                 newToken = await localRefreshTask;
             } finally {
                 lock (_refreshLock) {
-                    // Only clear if we are the ones who finished it (or just let it stay for a moment)
-                    // In single-threaded Blazor, this is safer.
                     _refreshTask = null;
                 }
             }
 
             if (!string.IsNullOrEmpty(newToken)) {
-                // Retry original request with new token
                 request.Headers.Authorization = new AuthenticationHeaderValue("bearer", newToken);
                 response = await base.SendAsync(request, cancellationToken);
             } else {
-                // Refresh failed, navigate to login and clear state
+                // Refresh failed, clear state and go to login
                 await _localStorage.RemoveItemAsync("authToken");
                 var authProvider = _services.GetRequiredService<AuthenticationStateProvider>() as CustomAuthStateProvider;
                 authProvider?.NotifyUserLogout();
-                _navigationManager.NavigateTo("login?reason=expired", forceLoad: true);
+                
+                // Do NOT use forceLoad: true here as it causes infinite reload loops if initialization logic fails
+                if (!Navigation.Uri.Contains("/login")) {
+                    _navigationManager.NavigateTo("login?reason=expired");
+                }
             }
         }
 

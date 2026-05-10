@@ -6,140 +6,219 @@
 @inject IJSRuntime JS
 @implements IDisposable
 
-<div class="chat-main-container d-flex flex-column h-100">
-    <div class="chat-messages-viewport flex-grow-1 custom-scroll pa-4" id="private-page-chat-box">
+<div class="emergency-chat-root">
+    <div class="emergency-chat-viewport custom-scroll" id="private-page-chat-box">
         @if (!messages.Any() && !isLoading)
         {
-            <div class="d-flex flex-column align-center justify-center h-100 opacity-30 py-12">
-                <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" Style="font-size: 3rem;" class="mb-2" />
-                <MudText Typo="Typo.body2">No private messages yet.</MudText>
+            <div class="no-messages-placeholder">
+                <MudIcon Icon="@Icons.Material.Filled.Chat" Style="font-size: 4rem;" />
+                <MudText Typo="Typo.h6">NO TRANSMISSIONS</MudText>
             </div>
         }
+        
         @foreach (var msg in messages)
         {
-            // MEGA-FAILSAFE ME IDENTIFICATION
-            bool isMe = msg.SenderId == CurrentUserId || 
-                        (msg.SenderUsername != null && (msg.SenderUsername.Equals("Me", StringComparison.OrdinalIgnoreCase) || msg.SenderUsername.Equals(currentUsername, StringComparison.OrdinalIgnoreCase)));
+            bool isMe = msg.SenderId == effectiveUserId || msg.SenderUsername == "Me" || msg.SenderUsername == effectiveUsername;
             
-            <div class='@($"chat-bubble-row mb-6 animate-fade-in {(isMe ? "me-aligned" : "others-aligned")}")' 
-                 style='@(isMe ? "justify-content: flex-end !important;" : "justify-content: flex-start !important;")'>
-                
-                @if (!isMe)
-                {
+            <div class='@($"bubble-row-outer {(isMe ? "me" : "others")}")'>
+                <div class="avatar-col">
                     <MudAvatar Size="Size.Small" Class="bubble-avatar shadow-sm">
-                        <MudImage Src="@msg.SenderAvatarUrl" />
+                        <MudImage Src="@(isMe ? (CurrentAvatarUrl ?? "https://api.dicebear.com/7.x/bottts/svg?seed=" + effectiveUserId) : msg.SenderAvatarUrl)" />
                     </MudAvatar>
-                }
-                
-                <div class="bubble-content-wrapper" style='@(isMe ? "align-items: flex-end !important;" : "align-items: flex-start !important;")'>
-                    <div class="bubble-payload shadow-md" style='@(isMe ? "background: #7c3aed !important; color: white !important; border-radius: 20px 20px 4px 20px !important;" : "background: rgba(255,255,255,0.9) !important; color: #111 !important; border-radius: 20px 20px 20px 4px !important;")'>
-                        @if (msg.IsDeleted) {
-                            <MudText Typo="Typo.body2" Class="opacity-50 font-italic" Style="color: inherit !important;">Message deleted</MudText>
-                        } else {
-                            <MudText Typo="Typo.body2" Style="color: inherit !important;">@msg.Message</MudText>
-                            @if (msg.IsEdited) {
-                                <MudText Typo="Typo.caption" Class="opacity-50 font-italic d-block mt-1 text-right" Style="font-size: 0.55rem; color: inherit !important;">(edited)</MudText>
-                            }
-                        }
-                        
-                        <div class="d-flex align-center justify-end gap-1 mt-1">
-                            <MudText Typo="Typo.caption" Class="bubble-time" Style="color: inherit !important; opacity: 0.7;">@msg.Timestamp.ToString("HH:mm")</MudText>
-                            @if (isMe) {
-                                <MudIcon Icon="@(msg.IsRead ? Icons.Material.Filled.DoneAll : Icons.Material.Filled.Check)" Size="Size.Small" Style='@($"color: {(msg.IsRead ? "#00ffcc" : "rgba(255,255,255,0.5)")} !important;")' />
-                            }
-                        </div>
-                    </div>
-                    
-                    @if (isMe && !msg.IsDeleted && (DateTime.UtcNow - msg.Timestamp).TotalMinutes <= 15) {
-                        <div class="msg-actions-static">
-                            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" Class="ma-0">
-                                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="() => StartEdit(msg)">Edit</MudMenuItem>
-                                <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="() => DeleteMsg(msg.Id)" IconColor="Color.Error">Delete</MudMenuItem>
-                            </MudMenu>
-                        </div>
-                    }
                 </div>
-
-                @if (isMe)
-                {
-                    <MudAvatar Size="Size.Small" Class="bubble-avatar shadow-sm">
-                        <MudImage Src="@(currentAvatarUrl ?? "https://api.dicebear.com/7.x/bottts/svg?seed=" + currentUsername)" />
-                    </MudAvatar>
-                }
+                
+                <div class="content-col">
+                    <div class="bubble-payload-wrap">
+                        <div class="bubble-payload">
+                            @if (msg.IsDeleted) {
+                                <MudText Typo="Typo.body2" Style="font-style: italic; opacity: 0.6;">[Purged Message]</MudText>
+                            } else {
+                                <MudText Typo="Typo.body2">@msg.Message</MudText>
+                                @if (msg.IsEdited) {
+                                    <span class="edited-flag">(edited)</span>
+                                }
+                            }
+                            
+                            <div class="bubble-meta">
+                                <span>@msg.Timestamp.ToString("HH:mm")</span>
+                                @if (isMe) {
+                                    <MudIcon Icon="@(msg.IsRead ? Icons.Material.Filled.DoneAll : Icons.Material.Filled.Check)" Size="Size.Small" Class="read-indicator" Style='@($"color: {(msg.IsRead ? "#00ffcc" : "rgba(255,255,255,0.4)")} !important;")' />
+                                }
+                            </div>
+                        </div>
+                        
+                        @if (isMe && !msg.IsDeleted) {
+                            <div class="msg-actions">
+                                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" AnchorOrigin="Origin.BottomRight">
+                                    <MudMenuItem OnClick="() => StartEdit(msg)" Icon="@Icons.Material.Filled.Edit">Edit</MudMenuItem>
+                                    <MudMenuItem OnClick="() => DeleteMsg(msg.Id)" Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error">Delete</MudMenuItem>
+                                </MudMenu>
+                            </div>
+                        }
+                    </div>
+                </div>
             </div>
         }
     </div>
 
-    <div class="chat-footer-input pa-4">
-        <div class="input-glass-wrap d-flex align-center gap-2 pa-1">
+    <div class="emergency-chat-footer">
+        <div class="emergency-input-wrap">
             <MudTextField @bind-Value="newMessage" 
-                         Placeholder='@(editingMessageId == null ? $"Message {OtherUserName}..." : "Edit message...")' 
+                         Placeholder="@(editingMessageId != null ? "Updating transmission..." : "Enter command...")" 
                          Variant="Variant.Text" 
                          Underline="false"
                          OnKeyDown="HandleKeyDown"
                          Immediate="true"
-                         Class="chat-input-field flex-grow-1 px-4" />
+                         Class="flex-grow-1 px-4 chat-input" />
                          
             @if (editingMessageId != null) {
-                <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Error" Size="Size.Medium" OnClick="CancelEdit" />
+                <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Error" Size="Size.Small" OnClick="CancelEdit" />
             }
             
             <MudIconButton Icon="@(editingMessageId == null ? Icons.Material.Filled.Send : Icons.Material.Filled.Check)" 
                           Color="Color.Primary" 
-                          Size="Size.Medium" 
                           OnClick="SendMessage"
                           Disabled="@string.IsNullOrWhiteSpace(newMessage)"
-                          Class="send-fab shadow-lg" />
+                          Class="send-btn" />
         </div>
     </div>
 </div>
 
 <style>
-    .chat-main-container { background: transparent; }
-    .chat-messages-viewport { overflow-y: auto; overflow-x: hidden; }
-    
-    .chat-bubble-row { display: flex; width: 100%; position: relative; margin-bottom: 24px; align-items: flex-end; }
-    
-    .bubble-avatar { border: 2px solid var(--mud-palette-surface); flex-shrink: 0; margin: 0 8px; }
-    .bubble-content-wrapper { display: flex; flex-direction: column; max-width: 75%; position: relative; }
-    
-    .bubble-payload { padding: 10px 16px; position: relative; word-break: break-word; font-size: 0.95rem; }
+    .emergency-chat-root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        width: 100%;
+        background: transparent;
+        overflow: hidden;
+    }
 
-    .msg-actions-static { position: absolute; bottom: 0; opacity: 0.3; transition: opacity 0.2s; }
-    .me-aligned .msg-actions-static { right: 100%; margin-right: 8px; }
-    .others-aligned .msg-actions-static { left: 100%; margin-left: 8px; }
-    .chat-bubble-row:hover .msg-actions-static { opacity: 1; }
+    .emergency-chat-viewport {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+    }
 
-    .input-glass-wrap {
-        background: rgba(var(--mud-palette-surface-rgb), 0.5);
-        border: 1px solid var(--mud-palette-divider);
-        border-radius: 30px;
-        transition: all 0.3s ease;
-        backdrop-filter: blur(15px);
+    .no-messages-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        opacity: 0.1;
+    }
+
+    .bubble-row-outer { 
+        display: flex; 
+        align-items: flex-end; 
+        gap: 12px; 
+        margin-bottom: 24px; 
+        width: 100%; 
     }
     
-    .send-fab { background: var(--mud-palette-primary) !important; color: white !important; width: 44px; height: 44px; }
-    .custom-scroll::-webkit-scrollbar { width: 6px; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: var(--mud-palette-divider); border-radius: 10px; }
-    .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .bubble-row-outer.me { flex-direction: row-reverse; }
+    
+    .avatar-col { flex-shrink: 0; }
+    .bubble-avatar { border: 2px solid rgba(255,255,255,0.1); }
+    .me .bubble-avatar { border-color: #7c3aed; }
+
+    .content-col { 
+        display: flex; 
+        flex-direction: column; 
+        max-width: 80%; 
+    }
+    .me .content-col { align-items: flex-end; }
+    .others .content-col { align-items: flex-start; }
+
+    .bubble-payload-wrap { display: flex; align-items: center; gap: 4px; }
+    .me .bubble-payload-wrap { flex-direction: row-reverse; }
+
+    .bubble-payload {
+        padding: 12px 16px;
+        position: relative;
+        word-break: break-word;
+        font-size: 0.95rem;
+    }
+
+    .others .bubble-payload {
+        background: #f1f5f9;
+        color: #1e293b;
+        border-radius: 20px 20px 20px 2px;
+    }
+    
+    .me .bubble-payload {
+        background: #7c3aed;
+        color: white;
+        border-radius: 20px 20px 2px 20px;
+    }
+
+    .bubble-meta { 
+        display: flex; 
+        align-items: center; 
+        justify-content: flex-end; 
+        gap: 4px; 
+        margin-top: 4px; 
+        font-size: 0.65rem; 
+        opacity: 0.7; 
+    }
+    
+    .edited-flag { font-size: 0.6rem; opacity: 0.5; margin-left: 4px; }
+    .read-indicator { font-size: 1rem !important; }
+
+    .msg-actions { opacity: 0; transition: opacity 0.2s; }
+    .bubble-row-outer:hover .msg-actions { opacity: 1; }
+
+    .emergency-chat-footer {
+        padding: 20px;
+        flex-shrink: 0;
+    }
+
+    .emergency-input-wrap {
+        display: flex;
+        align-items: center;
+        background: rgba(30, 41, 59, 0.7);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 100px;
+        backdrop-filter: blur(20px);
+        padding: 4px;
+    }
+    
+    .chat-input { color: white !important; }
+
+    .send-btn {
+        background: #7c3aed !important;
+        color: white !important;
+        margin: 4px;
+        border-radius: 50% !important;
+        width: 42px;
+        height: 42px;
+    }
+
+    .custom-scroll::-webkit-scrollbar { width: 4px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 </style>
 
 @code {
     [Parameter] public Guid OtherUserId { get; set; }
     [Parameter] public string OtherUserName { get; set; } = "";
     [Parameter] public Guid CurrentUserId { get; set; }
+    [Parameter] public string? CurrentAvatarUrl { get; set; }
 
     private List<ChatMessageDto> messages = new();
     private string newMessage = "";
-    private string currentUsername = "";
-    private string? currentAvatarUrl;
+    private string effectiveUsername = "";
+    private Guid effectiveUserId;
     private Guid? editingMessageId;
     private bool isLoading = true;
 
     protected override async Task OnInitializedAsync() {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        currentUsername = authState.User.Identity?.Name ?? "";
+        effectiveUsername = authState.User.Identity?.Name ?? "";
+        effectiveUserId = CurrentUserId != Guid.Empty ? CurrentUserId : 
+            (Guid.TryParse(authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var id) ? id : Guid.Empty);
         
         RealTime.OnPrivateMessageReceived += HandlePrivateMessage;
         RealTime.OnMessageDeleted += HandleMessageDeleted;
@@ -158,15 +237,14 @@
                 messages = history;
                 _ = ScrollToBottom();
             }
-            await Http.PostAsync($"api/Chat/private/{OtherUserId}/read", null);
         } catch { }
         finally { isLoading = false; }
     }
 
     private void HandlePrivateMessage(string user, string msg, DateTime time, string avatar, Guid senderId, Guid messageId) {
-        if (senderId == OtherUserId || senderId == CurrentUserId) {
+        if (senderId == OtherUserId || senderId == effectiveUserId) {
             // Check for optimistic duplicate
-            var opt = messages.FirstOrDefault(m => (m.SenderId == CurrentUserId) && m.Message == msg && Math.Abs((m.Timestamp - time).TotalSeconds) < 5);
+            var opt = messages.FirstOrDefault(m => m.Id == messageId || ((m.SenderId == effectiveUserId || m.SenderUsername == "Me") && m.Message == msg && Math.Abs((m.Timestamp - time).TotalSeconds) < 5));
             if (opt != null) {
                 opt.Id = messageId;
                 opt.SenderUsername = user;
@@ -187,8 +265,6 @@
                 IsRead = senderId == OtherUserId
             });
             
-            if (senderId == OtherUserId) _ = Http.PostAsync($"api/Chat/private/{OtherUserId}/read", null);
-            
             InvokeAsync(async () => {
                 StateHasChanged();
                 await ScrollToBottom();
@@ -200,7 +276,6 @@
         var m = messages.FirstOrDefault(x => x.Id == msgId);
         if (m != null) {
             m.IsDeleted = true;
-            m.Message = "[Message Deleted]";
             InvokeAsync(StateHasChanged);
         }
     }
@@ -239,15 +314,15 @@
             await RealTime.EditChatMessage(id, msgText);
         } else {
             // Optimistic update
-            var temp = new ChatMessageDto {
-                Id = Guid.NewGuid(),
-                SenderId = CurrentUserId,
-                SenderUsername = currentUsername,
+            var tempId = Guid.NewGuid();
+            messages.Add(new ChatMessageDto {
+                Id = tempId,
+                SenderId = effectiveUserId,
+                SenderUsername = "Me",
                 Message = msgText,
                 Timestamp = DateTime.UtcNow,
                 SenderAvatarUrl = ""
-            };
-            messages.Add(temp);
+            });
             StateHasChanged();
             await ScrollToBottom();
             
@@ -257,10 +332,11 @@
 
     private void HandleKeyDown(KeyboardEventArgs e) {
         if (e.Key == "Enter") _ = SendMessage();
+        if (e.Key == "Escape" && editingMessageId != null) CancelEdit();
     }
 
     private async Task ScrollToBottom() {
-        await Task.Delay(100);
+        await Task.Delay(150);
         await JS.InvokeVoidAsync("aleaChat.scrollToBottom", "private-page-chat-box");
     }
 

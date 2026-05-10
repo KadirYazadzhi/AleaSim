@@ -51,7 +51,7 @@ public class GameHub : Hub {
         _repo.SaveChatMessage(chatMsg);
 
         // Broadcast to everyone with avatar
-        await Clients.All.SendAsync("ReceiveChatMessage", username, cleanMessage, chatMsg.Timestamp, avatarUrl);
+        await Clients.All.SendAsync("ReceiveChatMessage", username, cleanMessage, chatMsg.Timestamp, avatarUrl, chatMsg.Id);
 
         // Audit log for moderation
         _auditService.LogEvent("CHAT_MESSAGE", cleanMessage, userIdString, cleanMessage);

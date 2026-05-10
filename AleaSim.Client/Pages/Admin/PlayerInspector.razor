@@ -103,11 +103,16 @@
                                 </MudButton>
                                 <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Surface" 
                                                OnClick="() => SelectPlayer(selectedPlayer)" Variant="Variant.Outlined" 
-                                               Class="rounded-circle border-2 action-btn-hover" />
+                                               Disabled="@isLoadingDossier"
+                                               Class='@($"rounded-circle border-2 action-btn-hover {(isLoadingDossier ? "spin-anim" : "")}")' />
                             </div>
                         </div>
                         <MudIcon Icon="@Icons.Material.Filled.ContactPage" Class="hero-bg-icon" />
                     </MudPaper>
+
+                    @if (isLoadingDossier) {
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-2 rounded-pill" />
+                    }
 
                     @if (selectedPlayer.RedFlags?.Any() == true) {
                         <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true" Class="rounded-lg pulse-border">
@@ -535,7 +540,7 @@
 
     [Inject] NavigationManager Navigation { get; set; } = null!;
 
-    private async Task OpenChat() {
+    private void OpenChat() {
         if (selectedPlayer == null) return;
         Navigation.NavigateTo($"/chat?userId={selectedPlayer.Id}");
     }

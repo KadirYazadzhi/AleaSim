@@ -9,6 +9,7 @@ public class UserProfileResponse : UserDto {
 }
 
 public class UserDto {
+    public Guid Id { get; set; }
     public string Username { get; set; } = "";
     public decimal Balance { get; set; }
     public decimal BonusBalance { get; set; }

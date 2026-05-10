@@ -1,4 +1,5 @@
 using AleaSim.Domain.Interfaces;
+using AleaSim.Shared.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -17,7 +18,19 @@ public class ChatController : ControllerBase {
 
     [HttpGet("global")]
     public IActionResult GetGlobalHistory([FromQuery] int count = 50) {
-        return Ok(_repo.GetGlobalChatMessages(count));
+        var history = _repo.GetGlobalChatMessages(count);
+        return Ok(history.Select(m => new ChatMessageDto {
+            Id = m.Id,
+            SenderId = m.SenderId,
+            SenderUsername = m.SenderUsername,
+            SenderAvatarUrl = m.SenderAvatarUrl,
+            Message = m.Message,
+            Timestamp = m.Timestamp,
+            IsPrivate = false,
+            IsRead = m.IsRead,
+            IsDeleted = m.IsDeleted,
+            IsEdited = m.IsEdited
+        }));
     }
 
     [HttpGet("private/{otherUserId}")]
@@ -36,7 +49,19 @@ public class ChatController : ControllerBase {
         bool isAdmin = user.Role == AleaSim.Domain.Enums.Role.Admin || otherUser.Role == AleaSim.Domain.Enums.Role.Admin;
         if (!isAdmin) return Forbid("At least one party must be an admin for private chat.");
 
-        return Ok(_repo.GetPrivateChatHistory(userId, otherUserId, count));
+        var history = _repo.GetPrivateChatHistory(userId, otherUserId, count);
+        return Ok(history.Select(m => new ChatMessageDto {
+            Id = m.Id,
+            SenderId = m.SenderId,
+            SenderUsername = m.SenderUsername,
+            SenderAvatarUrl = m.SenderAvatarUrl,
+            Message = m.Message,
+            Timestamp = m.Timestamp,
+            IsPrivate = true,
+            IsRead = m.IsRead,
+            IsDeleted = m.IsDeleted,
+            IsEdited = m.IsEdited
+        }));
     }
 
     [HttpPost("private/{otherUserId}/read")]
@@ -62,6 +87,6 @@ public class ChatController : ControllerBase {
         // Fetch users who have private messages with this user
         var interlocutors = _repo.GetRecentPrivateInterlocutors(userId);
         
-        return Ok(interlocutors.Select(i => new { Id = i.Id, Username = i.Username }));
+        return Ok(interlocutors.Select(i => new { Id = i.Id, Username = i.Username, AvatarUrl = i.AvatarUrl }));
     }
 }

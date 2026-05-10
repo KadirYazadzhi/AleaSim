@@ -9,6 +9,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
 @inject LayoutService LayoutService
+@inject IAuthService AuthService
 
 <div class='@($"chat-atomic-wrapper {(showSidebar ? "state-list" : "state-chat")}")'>
     <!-- LEFT PANE: CONVERSATION DIRECTORY -->
@@ -41,7 +42,7 @@
                              @onclick='() => SelectPrivateChat(user.Id, user.Username)'>
                             <div class="position-relative">
                                 <MudAvatar Size="Size.Small" Class="shadow-sm">
-                                    <MudImage Src='@($"https://api.dicebear.com/7.x/bottts/svg?seed={user.Username}")'/>
+                                    <MudImage Src='@(!string.IsNullOrEmpty(user.AvatarUrl) ? user.AvatarUrl : $"https://api.dicebear.com/7.x/bottts/svg?seed={user.Username}")'/>
                                 </MudAvatar>
                                 @if (user.IsPinned) {
                                     <MudIcon Icon="@Icons.Material.Filled.PushPin" Size="Size.Small" Class="pin-indicator" />
@@ -102,9 +103,9 @@
 
         <div class="chat-viewport-v4">
             @if (activeChatType == "Global") {
-                <ChatWidget CurrentUserId="@currentUserId" CurrentUsername="@currentUsername" />
+                <ChatWidget CurrentUserId="@currentUserId" CurrentUsername="@currentUsername" CurrentAvatarUrl="@currentAvatarUrl" />
             } else if (activeChatType == "Private" && selectedUserId != null) {
-                <PrivateChatContainer OtherUserId="@selectedUserId.Value" OtherUserName="@selectedUserName" CurrentUserId="@currentUserId" />
+                <PrivateChatContainer OtherUserId="@selectedUserId.Value" OtherUserName="@selectedUserName" CurrentUserId="@currentUserId" CurrentAvatarUrl="@currentAvatarUrl" />
             }
         </div>
     </main>
@@ -210,6 +211,14 @@
     .dot-online { width: 10px; height: 10px; border-radius: 50%; background: #00ff88; border: 2px solid var(--mud-palette-surface); box-shadow: 0 0 10px rgba(0,255,136,0.5); }
     .section-label { font-size: 0.7rem; font-weight: 900; letter-spacing: 2px; color: var(--mud-palette-text-secondary); opacity: 0.4; text-transform: uppercase; }
 
+    .chat-viewport-v4 {
+        flex-grow: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+
     @@media (max-width: 960px) {
         .chat-atomic-wrapper { border: none; height: calc(100vh - 56px); margin-top: 0; }
         .chat-pane-sidebar, .chat-pane-main { width: 100% !important; border: none !important; }
@@ -227,6 +236,7 @@
     private bool isLoadingPlayers = false;
     private Guid currentUserId;
     private string currentUsername = "";
+    private string? currentAvatarUrl;
     
     private bool showSidebar = true;
 
@@ -236,19 +246,22 @@
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         
-        // Robust ID check
         var idClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? user.FindFirst("sub");
         if (idClaim != null && Guid.TryParse(idClaim.Value, out var parsedId)) currentUserId = parsedId;
         currentUsername = user.Identity?.Name ?? "";
 
+        // Use global LayoutService avatar to skip extra GetMe() call
+        currentAvatarUrl = LayoutService.AvatarUrl;
+
         await LoadActiveConversations();
         
-        if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var targetId)) {
+        if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var targetId) && targetId != Guid.Empty) {
             var player = activeConversations.FirstOrDefault(p => p.Id == targetId);
             if (player != null) {
                 SelectPrivateChat(player.Id, player.Username);
             } else {
                 try {
+                    // This is an admin endpoint, only admins can trigger this via query param
                     var p = await Http.GetFromJsonAsync<UserSummary>($"api/Admin/players/{targetId}/summary");
                     if (p != null) {
                         activeConversations.Insert(0, p);
@@ -285,7 +298,7 @@
             var interlocutors = await Http.GetFromJsonAsync<List<UserSummary>>("api/Chat/conversations"); 
             if (interlocutors != null) activeConversations = interlocutors.Where(p => p.Id != Guid.Empty).ToList();
         } catch { }
-        finally { isLoadingPlayers = false; }
+        finally { isLoadingPlayers = false; StateHasChanged(); }
     }
 
     private void TogglePin(UserSummary user) {
@@ -306,6 +319,7 @@
     public class UserSummary {
         public Guid Id { get; set; }
         public string Username { get; set; } = "";
+        public string? AvatarUrl { get; set; }
         public bool IsPinned { get; set; }
         public DateTime LastMessageAt { get; set; } = DateTime.UtcNow;
     }

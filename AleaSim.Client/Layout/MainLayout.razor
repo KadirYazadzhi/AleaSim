@@ -176,7 +176,7 @@
     </MudDrawer>
 
     <MudDrawer @bind-Open="_chatOpen" Anchor="Anchor.End" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Persistent" Class="chat-drawer">
-        <ChatRoom />
+        <ChatWidget />
     </MudDrawer>
 
     <MudMainContent Class="pt-16 d-flex flex-column" Style="min-height: 100vh">
@@ -392,6 +392,19 @@
         inset: 0;
     }
 
+    .chat-drawer {
+        background-color: var(--mud-palette-surface) !important;
+        border-left: 1px solid var(--mud-palette-divider);
+        height: 100vh !important;
+    }
+
+    .chat-drawer .mud-drawer-content {
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+
     .level-icon-center {
         z-index: 2;
         background: var(--mud-palette-background-grey);
@@ -542,22 +555,35 @@
         await EnsureSignalRConnected();
     }
 
+    private bool _isHandlingAuthStateChange = false;
     private async void OnAuthenticationStateChanged(Task<AuthenticationState> task) {
+        if (_isHandlingAuthStateChange) return;
+        _isHandlingAuthStateChange = true;
+        
         await InvokeAsync(async () => {
-            await CheckAuthenticationState();
-            await EnsureSignalRConnected();
-            StateHasChanged();
+            try {
+                var state = await task;
+                if (state.User.Identity?.IsAuthenticated == true) {
+                    await LoadProfile();
+                    await EnsureSignalRConnected();
+                } else {
+                    userProfile = null;
+                    // Optionally disconnect SignalR here if needed
+                }
+                StateHasChanged();
+            } finally {
+                _isHandlingAuthStateChange = false;
+            }
         });
     }
 
     private async Task EnsureSignalRConnected() {
         try {
-            if (!RealTime.IsConnected) {
+            if (!RealTime.IsConnected && RealTime.State == Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Disconnected) {
                 var token = await LocalStorage.GetItemAsync<string>("authToken");
-                // Token can be null for public users, StartAsync should handle it
                 await RealTime.StartAsync(token ?? "");
                 
-                // Always subscribe to these
+                // Always unsubscribe then subscribe to avoid duplicates
                 RealTime.OnBigWinReceived -= HandleBigWin;
                 RealTime.OnBigWinReceived += HandleBigWin;
                 RealTime.OnGameUpdateReceived -= HandleGameUpdate;
@@ -572,22 +598,29 @@
         }
     }
 
+    private bool _isCheckingAuth = false;
     private async Task CheckAuthenticationState() {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        if (authState.User.Identity?.IsAuthenticated == true) {
-            await LoadProfile();
-            // If we are authenticated but profile failed to load (e.g. broken token)
-            // we should have been logged out by AuthService.GetMe().
-            // If not, we force a check here.
-            if (userProfile == null) {
-                var token = await LocalStorage.GetItemAsync<string>("authToken");
-                if (!string.IsNullOrEmpty(token)) {
-                    await AuthService.Logout();
-                    Navigation.NavigateTo("/login?reason=error", forceLoad: true);
+        if (_isCheckingAuth) return;
+        _isCheckingAuth = true;
+        try {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true) {
+                await LoadProfile();
+                if (userProfile == null) {
+                    // Check if we actually HAVE a token before declaring failure
+                    var token = await LocalStorage.GetItemAsync<string>("authToken");
+                    if (!string.IsNullOrEmpty(token)) {
+                        // Profile failed to load despite being "authenticated" (stale/broken token)
+                        // Don't call Logout() here as it triggers state change event -> loop
+                        await LocalStorage.RemoveItemAsync("authToken");
+                        Navigation.NavigateTo("/login?reason=session_error");
+                    }
                 }
+            } else {
+                userProfile = null;
             }
-        } else {
-            userProfile = null;
+        } finally {
+            _isCheckingAuth = false;
         }
     }
 

@@ -223,7 +223,7 @@ public class AdminController : ControllerBase {
     public ActionResult GetPlayerSummary(Guid id) {
         var user = _repo.GetUser(id);
         if (user == null) return NotFound();
-        return Ok(new { Id = user.Id, Username = user.Username });
+        return Ok(new { Id = user.Id, Username = user.Username, AvatarUrl = user.AvatarUrl });
     }
 
     [HttpPost("players/{id}/bonus")]

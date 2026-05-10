@@ -16,6 +16,7 @@ public class LayoutService
 
     public bool IsDarkMode { get; private set; } = true;
     public string CurrentSkin { get; private set; } = "Default";
+    public string? AvatarUrl { get; private set; }
     public bool IsDrawerOpen { get; set; } = true;
     public bool IsBalanceUpdateSuppressed { get; private set; }
     public bool IsMobile { get; private set; }
@@ -226,7 +227,10 @@ public class LayoutService
     }
 
     public void NotifyMajorUpdate() => OnMajorUpdate?.Invoke();
-    public void NotifyAvatarChanged(string url) => OnAvatarChanged?.Invoke(url);
+    public void NotifyAvatarChanged(string url) {
+        AvatarUrl = url;
+        OnAvatarChanged?.Invoke(url);
+    }
     public void SetBalanceUpdateSuppression(bool suppressed)
     {
         IsBalanceUpdateSuppressed = suppressed;

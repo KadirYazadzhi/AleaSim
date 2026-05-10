@@ -99,23 +99,9 @@ public class AuthService : IAuthService {
     public async Task<UserDto?> GetMe() {
         try {
             var response = await _httpClient.GetAsync("api/Auth/me");
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || 
-                response.StatusCode == System.Net.HttpStatusCode.Forbidden) {
-                await Logout();
-                return null;
-            }
             if (response.IsSuccessStatusCode) {
-                var user = await response.Content.ReadFromJsonAsync<UserDto>();
-                if (user == null) {
-                    await Logout();
-                }
-                return user;
+                return await response.Content.ReadFromJsonAsync<UserDto>();
             }
-            
-            // If we get here with a non-success but also non-401/403, 
-            // it might be a transient server error (500). 
-            // We don't logout immediately to avoid kicking users on temporary server glitches,
-            // but we return null so the UI can handle it.
             return null;
         } catch {
             return null;

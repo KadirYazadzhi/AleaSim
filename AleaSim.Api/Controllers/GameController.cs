@@ -204,6 +204,7 @@ public class GameController : BaseApiController {
         }
     }
 
+    [AllowAnonymous]
     [HttpGet("leaderboard/{name}")]
     public async Task<IActionResult> GetLeaderboard(string name) {
         if (name.ToLower() == "tournament") {
@@ -212,6 +213,7 @@ public class GameController : BaseApiController {
         return Ok(_leaderboardService.GetLeaderboard(name));
     }
 
+    [AllowAnonymous]
     [HttpGet("leaderboard/history")]
     public IActionResult GetTournamentHistory() {
         var history = _repo.GetTournamentHistory(6); // Last 6 months

@@ -21,7 +21,7 @@ public class RealTimeClient : IAsyncDisposable {
     public event Action<BigWinEventArgs>? OnBigWinReceived;
     public event Action<string, object>? OnLeaderboardUpdated;
     public event Action<object>? OnGameUpdateReceived;
-    public event Action<string, string, DateTime, string>? OnChatMessageReceived;
+    public event Action<string, string, DateTime, string, Guid>? OnChatMessageReceived;
     public event Action<string, string, DateTime, string, Guid, Guid>? OnPrivateMessageReceived;
     public event Action<Guid>? OnMessageDeleted;
     public event Action<Guid, string>? OnMessageEdited;
@@ -52,8 +52,8 @@ public class RealTimeClient : IAsyncDisposable {
             OnBalanceUpdated?.Invoke(dto.Balance, dto.BonusBalance);
         });
 
-        _hubConnection.On<string, string, DateTime, string>("ReceiveChatMessage", (user, msg, time, avatar) => {
-            OnChatMessageReceived?.Invoke(user, msg, time, avatar);
+        _hubConnection.On<string, string, DateTime, string, Guid>("ReceiveChatMessage", (user, msg, time, avatar, id) => {
+            OnChatMessageReceived?.Invoke(user, msg, time, avatar, id);
         });
 
         _hubConnection.On<string, string, DateTime, string, Guid, Guid>("ReceivePrivateMessage", (user, msg, time, avatar, senderId, messageId) => {

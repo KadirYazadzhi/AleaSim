@@ -1044,7 +1044,7 @@ public class EfGameRepository : IGameRepository {
         return msgs.OrderBy(m => m.Timestamp);
     }
 
-    public IEnumerable<(Guid Id, string Username)> GetRecentPrivateInterlocutors(Guid userId) {
+    public IEnumerable<(Guid Id, string Username, string AvatarUrl)> GetRecentPrivateInterlocutors(Guid userId) {
         // Separate queries to avoid Union/Distinct translation issues
         var sentToIds = _context.ChatMessages
             .Where(m => m.SenderId == userId && m.Type == ChatMessageType.Private && m.ReceiverId != null)
@@ -1062,9 +1062,9 @@ public class EfGameRepository : IGameRepository {
 
         return _context.Users
             .Where(u => allIds.Contains(u.Id))
-            .Select(u => new { u.Id, u.Username })
+            .Select(u => new { u.Id, u.Username, u.AvatarUrl })
             .ToList()
-            .Select(u => (u.Id, u.Username))
+            .Select(u => (u.Id, u.Username, u.AvatarUrl))
             .ToList();
     }
 

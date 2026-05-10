@@ -183,7 +183,7 @@ public interface IGameRepository {
     void MarkPrivateMessagesAsRead(Guid senderId, Guid receiverId);
     IEnumerable<ChatMessage> GetGlobalChatMessages(int count);
     IEnumerable<ChatMessage> GetPrivateChatHistory(Guid userId1, Guid userId2, int count);
-    IEnumerable<(Guid Id, string Username)> GetRecentPrivateInterlocutors(Guid userId);
+    IEnumerable<(Guid Id, string Username, string AvatarUrl)> GetRecentPrivateInterlocutors(Guid userId);
     
     // Infrastructure
     AleaSim.Domain.Services.IRedisCacheService GetRedisCache();
