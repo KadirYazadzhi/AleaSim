@@ -153,7 +153,11 @@ public class PromotionService : IPromotionService {
         var now = DateTime.UtcNow;
         if (user.LastStreakClaim.HasValue && (now - user.LastStreakClaim.Value).TotalHours < 24) {
             var remaining = 24 - (now - user.LastStreakClaim.Value).TotalHours;
-            throw new Exception($"Daily reward is on cooldown. Try again in {Math.Ceiling(remaining)} hours.");
+            return new { 
+                Streak = user.CurrentStreak, 
+                Amount = 0m, 
+                Message = $"Daily reward is on cooldown. Try again in {Math.Ceiling(remaining)} hours." 
+            };
         }
 
         // Calculate Streak: Must be within 48 hours to continue, else reset
