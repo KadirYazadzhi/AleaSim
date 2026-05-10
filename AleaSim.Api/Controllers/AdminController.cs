@@ -309,14 +309,21 @@ public class AdminController : ControllerBase {
 
     [HttpPost("tournaments")]
     public IActionResult CreateTournament([FromBody] TournamentDto dto) {
+        var start = DateTime.SpecifyKind(dto.StartDate.Date, DateTimeKind.Utc);
+        var end = DateTime.SpecifyKind(dto.EndDate.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
+        
+        // Force IsActive to true if we are currently within the date range
+        bool active = dto.IsActive && DateTime.UtcNow >= start && DateTime.UtcNow <= end;
+        if (DateTime.UtcNow < start && dto.IsActive) active = true; // Future tournaments can be 'Active' (meaning enabled)
+
         var tournament = new Tournament {
             Id = Guid.NewGuid(),
             Name = dto.Name,
             Description = dto.Description,
-            StartDate = dto.StartDate,
-            EndDate = dto.EndDate,
+            StartDate = start,
+            EndDate = end,
             PrizePool = dto.PrizePool,
-            IsActive = dto.IsActive,
+            IsActive = active,
             GameTypesJson = JsonSerializer.Serialize(dto.IncludedGames)
         };
         _repo.CreateTournament(tournament);
@@ -328,12 +335,17 @@ public class AdminController : ControllerBase {
         var t = _repo.GetAllTournaments().FirstOrDefault(x => x.Id == id);
         if (t == null) return NotFound();
 
+        var start = DateTime.SpecifyKind(dto.StartDate.Date, DateTimeKind.Utc);
+        var end = DateTime.SpecifyKind(dto.EndDate.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
+        
+        bool active = dto.IsActive && DateTime.UtcNow <= end;
+
         t.Name = dto.Name;
         t.Description = dto.Description;
-        t.StartDate = dto.StartDate;
-        t.EndDate = dto.EndDate;
+        t.StartDate = start;
+        t.EndDate = end;
         t.PrizePool = dto.PrizePool;
-        t.IsActive = dto.IsActive;
+        t.IsActive = active;
         t.GameTypesJson = JsonSerializer.Serialize(dto.IncludedGames);
 
         _repo.UpdateTournament(t);

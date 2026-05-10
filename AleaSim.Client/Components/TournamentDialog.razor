@@ -86,8 +86,8 @@
     }
 
     private void Submit() {
-        Tournament.StartDate = startDate ?? DateTime.UtcNow;
-        Tournament.EndDate = endDate ?? DateTime.UtcNow.AddMonths(1);
+        Tournament.StartDate = startDate?.Date ?? DateTime.Today;
+        Tournament.EndDate = endDate?.Date.AddDays(1).AddSeconds(-1) ?? DateTime.Today.AddMonths(1).AddDays(1).AddSeconds(-1);
         MudDialog.Close(DialogResult.Ok(Tournament));
     }
 

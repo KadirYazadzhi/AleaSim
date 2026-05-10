@@ -87,11 +87,17 @@
                                 <div class="d-flex justify-space-between align-start mb-4">
                                     <div>
                                         <MudText Typo="Typo.h6" Class="fw-black">@t.Name</MudText>
-                                        <MudText Typo="Typo.caption" Class="opacity-60 d-block">@t.StartDate.ToShortDateString() - @t.EndDate.ToShortDateString()</MudText>
+                                        <MudText Typo="Typo.caption" Class="opacity-60 d-block">@t.StartDate.ToLocalTime().ToShortDateString() - @t.EndDate.ToLocalTime().ToShortDateString()</MudText>
                                     </div>
-                                    <MudChip T="string" Color="@(t.IsActive ? Color.Success : Color.Default)" Size="Size.Small" Variant="Variant.Text" Class="fw-bold">@(t.IsActive ? "LIVE" : "ENDED")</MudChip>
+                                    @{
+                                        var now = DateTime.UtcNow;
+                                        var status = !t.IsActive ? "DISABLED" : (now < t.StartDate ? "UPCOMING" : (now > t.EndDate ? "ENDED" : "LIVE"));
+                                        var color = status switch { "LIVE" => Color.Success, "UPCOMING" => Color.Info, "DISABLED" => Color.Error, _ => Color.Default };
+                                    }
+                                    <MudChip T="string" Color="@color" Size="Size.Small" Variant="Variant.Text" Class="fw-bold">@status</MudChip>
                                 </div>
-                                <MudText Typo="Typo.body2" Class="mb-6 opacity-80" Style="height: 40px; overflow: hidden;">@t.Description</MudText>
+                                <MudText Typo="Typo.body2" Class="mb-2 opacity-80" Style="height: 40px; overflow: hidden;">@t.Description</MudText>
+                                <MudText Typo="Typo.caption" Class="d-block mb-4 opacity-40">System UTC: @DateTime.UtcNow.ToString("HH:mm") | Ends: @t.EndDate.ToString("MM/dd HH:mm")</MudText>
                                 <div class="d-flex justify-space-between align-center">
                                     <div>
                                         <MudText Typo="Typo.caption" Class="fw-bold opacity-40 uppercase">Prize Pool</MudText>
