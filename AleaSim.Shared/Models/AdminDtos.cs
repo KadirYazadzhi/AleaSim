@@ -45,6 +45,17 @@ public class ToggleStatusDto {
     public bool IsActive { get; set; }
 }
 
+public class TournamentStatsDto {
+    public int TotalParticipants { get; set; }
+    public decimal TotalWagered { get; set; }
+    public decimal TotalPayout { get; set; }
+    public int TotalRounds { get; set; }
+    public decimal StartingPrizePool { get; set; }
+    public decimal CurrentPrizePool { get; set; }
+    public DateTime EndDate { get; set; }
+    public int ActiveSessions { get; set; }
+}
+
 public class UpdateNotesDto {
     public string Notes { get; set; } = string.Empty;
 }

@@ -161,6 +161,7 @@ public interface IGameRepository {
 
     // Tournaments
     IEnumerable<Tournament> GetAllTournaments();
+    TournamentStatsDto GetTournamentStats(DateTime date);
     void CreateTournament(Tournament tournament);
     void UpdateTournament(Tournament tournament);
     void DeleteTournament(Guid id);

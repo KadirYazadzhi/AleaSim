@@ -67,12 +67,14 @@ public class EfGameRepository : IGameRepository {
     }
 
     public void UpdateSession(GameSession session) {
+        session.LastActivityAt = DateTime.UtcNow;
         _context.GameSessions.Update(session);
         _context.SaveChanges();
         _ = _redisCache.SetAsync($"session:{session.Id}", session, TimeSpan.FromHours(2));
     }
 
     public async Task UpdateSessionAsync(GameSession session) {
+        session.LastActivityAt = DateTime.UtcNow;
         _context.GameSessions.Update(session);
         await _context.SaveChangesAsync();
         await _redisCache.SetAsync($"session:{session.Id}", session, TimeSpan.FromHours(2));
@@ -986,6 +988,32 @@ public class EfGameRepository : IGameRepository {
             _context.Tournaments.Remove(t);
             _context.SaveChanges();
         }
+    }
+
+    public TournamentStatsDto GetTournamentStats(DateTime date) {
+        var targetDate = new DateTime(date.Year, date.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var entries = _context.TournamentEntries
+            .Where(t => t.TournamentDate == targetDate)
+            .ToList();
+
+        decimal startingPool = 25000m;
+        if (decimal.TryParse(GetGlobalSetting("TournamentPrizePool"), out var dbVal)) {
+            startingPool = dbVal;
+        }
+
+        var jackpot = _context.Jackpots.FirstOrDefault(j => j.Tier == JackpotTier.Tournament);
+        decimal currentPool = jackpot?.CurrentValue ?? startingPool;
+
+        return new TournamentStatsDto {
+            TotalParticipants = entries.Count,
+            TotalWagered = entries.Sum(e => e.TotalWagered),
+            TotalPayout = entries.Sum(e => e.TotalPayout),
+            TotalRounds = entries.Sum(e => e.RoundCount),
+            StartingPrizePool = startingPool,
+            CurrentPrizePool = currentPool,
+            EndDate = targetDate.AddMonths(1).AddSeconds(-1),
+            ActiveSessions = _context.GameSessions.Count(s => s.IsActive && s.LastActivityAt > DateTime.UtcNow.AddMinutes(-5))
+        };
     }
 
     public IEnumerable<SystemError> GetRecentErrors(int count) {

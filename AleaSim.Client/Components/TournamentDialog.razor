@@ -1,0 +1,95 @@
+@using AleaSim.Shared.Models
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6" Class="fw-black">
+            @(Tournament.Id == Guid.Empty ? "🚀 CREATE NEW TOURNAMENT" : "📝 EDIT TOURNAMENT")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @bind-IsValid="@_success">
+            <MudGrid Spacing="2">
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Tournament Name" @bind-Value="Tournament.Name" 
+                                 Required="true" RequiredError="Name is mandatory" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Description" @bind-Value="Tournament.Description" 
+                                 Lines="2" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Start Date" @bind-Date="startDate" Required="true" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="End Date" @bind-Date="endDate" Required="true" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal" Label="Initial Prize Pool ($)" @bind-Value="Tournament.PrizePool" 
+                                    Format="N2" Min="0" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" Label="Active" @bind-Value="Tournament.IsActive" Color="Color.Success" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2 opacity-60">INCLUDED GAMES</MudText>
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var game in availableGames) {
+                            <MudChip T="string" Variant="@(Tournament.IncludedGames.Contains(game) ? Variant.Filled : Variant.Outlined)" 
+                                     Color="@(Tournament.IncludedGames.Contains(game) ? Color.Primary : Color.Default)"
+                                     OnClick="() => ToggleGame(game)">
+                                @game
+                            </MudChip>
+                        }
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success)">
+            @(Tournament.Id == Guid.Empty ? "LAUNCH EVENT" : "SAVE CHANGES")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .fw-black { font-weight: 900; }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public TournamentDto Tournament { get; set; } = new();
+
+    private DateTime? startDate;
+    private DateTime? endDate;
+    private bool _success;
+
+    private readonly List<string> availableGames = new() { "Slot", "Roulette", "Blackjack", "Baccarat", "Dice", "FruitBlast" };
+
+    protected override void OnInitialized() {
+        startDate = Tournament.StartDate == default ? DateTime.Today : Tournament.StartDate;
+        endDate = Tournament.EndDate == default ? DateTime.Today.AddMonths(1) : Tournament.EndDate;
+        
+        if (Tournament.IncludedGames == null || !Tournament.IncludedGames.Any()) {
+            Tournament.IncludedGames = new List<string> { "Slot", "FruitBlast" };
+        }
+    }
+
+    private void ToggleGame(string game) {
+        if (Tournament.IncludedGames.Contains(game)) {
+            Tournament.IncludedGames.Remove(game);
+        } else {
+            Tournament.IncludedGames.Add(game);
+        }
+    }
+
+    private void Submit() {
+        Tournament.StartDate = startDate ?? DateTime.UtcNow;
+        Tournament.EndDate = endDate ?? DateTime.UtcNow.AddMonths(1);
+        MudDialog.Close(DialogResult.Ok(Tournament));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

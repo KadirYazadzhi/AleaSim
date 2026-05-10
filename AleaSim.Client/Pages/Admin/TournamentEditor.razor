@@ -1,25 +1,137 @@
 @page "/admin/tournaments"
 @using AleaSim.Shared.Models
 @using System.Text.Json
+@using AleaSim.Client.Components
 @layout AleaSim.Client.Layout.AdminLayout
 @attribute [Authorize(Roles = "Admin")]
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-md-8 mt-4 pb-16 animate-fade-in">
+    <!-- Header -->
     <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-8 gap-4">
         <div>
             <MudText Typo="Typo.h3" Class="fw-black text-gradient tournament-title">TOURNAMENT HQ</MudText>
-            <MudText Typo="Typo.subtitle1" Class="opacity-60 d-none d-sm-block">Design, schedule and fund community competitions.</MudText>
+            <MudText Typo="Typo.subtitle1" Class="opacity-60">Manage season pools, track participation and schedule events.</MudText>
         </div>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog" Class="fw-black py-3 px-6 rounded-lg create-btn-mobile">CREATE</MudButton>
+        <div class="d-flex gap-2">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadData" Class="rounded-lg">REFRESH</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog" Class="fw-black py-3 px-6 rounded-lg create-btn-mobile">NEW EVENT</MudButton>
+        </div>
     </div>
 
-<style>
-    @@media (max-width: 600px) {
-        .tournament-title { font-size: 1.75rem !important; }
-        .create-btn-mobile { width: 100% !important; }
+    @if (currentStats != null)
+    {
+        <!-- Current Season Real-time Stats -->
+        <MudText Typo="Typo.h5" Class="fw-black mb-4 uppercase opacity-70">Ongoing Season Stats</MudText>
+        <MudGrid Class="mb-10">
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-6 rounded-xl border-l-4 border-solid border-primary bg-glass" Elevation="4">
+                    <MudText Typo="Typo.caption" Class="fw-bold opacity-50 uppercase">Active Participants</MudText>
+                    <div class="d-flex align-center justify-space-between mt-1">
+                        <MudText Typo="Typo.h4" Class="fw-black">@currentStats.TotalParticipants.ToString("N0")</MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" Size="Size.Large" />
+                    </div>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-6 rounded-xl border-l-4 border-solid border-success bg-glass" Elevation="4">
+                    <MudText Typo="Typo.caption" Class="fw-bold opacity-50 uppercase">Live Prize Pool</MudText>
+                    <div class="d-flex align-center justify-space-between mt-1">
+                        <MudText Typo="Typo.h4" Class="fw-black text-success">@currentStats.CurrentPrizePool.ToString("C2")</MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.MonetizationOn" Color="Color.Success" Size="Size.Large" />
+                    </div>
+                    <MudText Typo="Typo.caption" Class="opacity-40">Started at @currentStats.StartingPrizePool.ToString("C0")</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-6 rounded-xl border-l-4 border-solid border-warning bg-glass" Elevation="4">
+                    <MudText Typo="Typo.caption" Class="fw-bold opacity-50 uppercase">Total Rounds</MudText>
+                    <div class="d-flex align-center justify-space-between mt-1">
+                        <MudText Typo="Typo.h4" Class="fw-black">@currentStats.TotalRounds.ToString("N0")</MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.Games" Color="Color.Warning" Size="Size.Large" />
+                    </div>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-6 rounded-xl border-l-4 border-solid border-error bg-glass" Elevation="4">
+                    <MudText Typo="Typo.caption" Class="fw-bold opacity-50 uppercase">Time Remaining</MudText>
+                    <div class="d-flex align-center justify-space-between mt-1">
+                        <MudText Typo="Typo.h4" Class="fw-black text-error">@GetTimeRemaining()</MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.Timer" Color="Color.Error" Size="Size.Large" />
+                    </div>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
     }
+
+    <!-- Event Management -->
+    <MudText Typo="Typo.h5" Class="fw-black mb-4 uppercase opacity-70">Scheduled Events & Settings</MudText>
+    <MudTabs Elevation="4" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Class="rounded-xl overflow-hidden">
+        <MudTabPanel Text="Active Events" Icon="@Icons.Material.Filled.EventAvailable">
+            <MudGrid>
+                @if (tournaments == null) {
+                    <MudItem xs="12" Class="text-center pa-12"><MudProgressCircular Indeterminate="true" Color="Color.Primary" /></MudItem>
+                } else if (!tournaments.Any()) {
+                    <MudItem xs="12">
+                        <div class="d-flex flex-column align-center justify-center py-12 opacity-20 border-dashed rounded-xl" style="border: 2px dashed var(--mud-palette-divider);">
+                            <MudIcon Icon="@Icons.Material.Filled.History" Style="font-size: 5rem;" />
+                            <MudText Typo="Typo.h6">No events scheduled</MudText>
+                        </div>
+                    </MudItem>
+                } else {
+                    @foreach (var t in tournaments) {
+                        <MudItem xs="12" md="6">
+                            <MudPaper Class="pa-6 rounded-xl relative border border-solid border-divider" Elevation="0">
+                                <div class="d-flex justify-space-between align-start mb-4">
+                                    <div>
+                                        <MudText Typo="Typo.h6" Class="fw-black">@t.Name</MudText>
+                                        <MudText Typo="Typo.caption" Class="opacity-60 d-block">@t.StartDate.ToShortDateString() - @t.EndDate.ToShortDateString()</MudText>
+                                    </div>
+                                    <MudChip T="string" Color="@(t.IsActive ? Color.Success : Color.Default)" Size="Size.Small" Variant="Variant.Text" Class="fw-bold">@(t.IsActive ? "LIVE" : "ENDED")</MudChip>
+                                </div>
+                                <MudText Typo="Typo.body2" Class="mb-6 opacity-80" Style="height: 40px; overflow: hidden;">@t.Description</MudText>
+                                <div class="d-flex justify-space-between align-center">
+                                    <div>
+                                        <MudText Typo="Typo.caption" Class="fw-bold opacity-40 uppercase">Prize Pool</MudText>
+                                        <MudText Typo="Typo.h5" Class="fw-black text-primary">@t.PrizePool.ToString("C0")</MudText>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Inherit" OnClick="() => EditTournament(t)" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => DeleteTournament(t)" />
+                                    </div>
+                                </div>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                }
+            </MudGrid>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Season Configuration" Icon="@Icons.Material.Filled.Settings">
+            <MudPaper Class="pa-6 rounded-xl border border-solid border-divider" Elevation="0">
+                <MudText Typo="Typo.h6" Class="fw-black mb-4">Base Season Settings</MudText>
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="basePrizePool" Label="Monthly Starting Pool ($)" Variant="Variant.Outlined" Format="N2" />
+                        <MudText Typo="Typo.caption" Class="mt-1 d-block opacity-60">This value will be applied automatically to the new season when the current one ends.</MudText>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="payoutAnnouncement" Label="Winners Announcement Template" Variant="Variant.Outlined" Lines="3" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSeasonSettings" Class="mt-4 fw-bold px-8">SAVE GLOBAL CONFIG</MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudTabPanel>
+    </MudTabs>
+</MudContainer>
+
+<style>
+    .bg-glass { background: rgba(var(--mud-palette-surface-rgb), 0.5) !important; backdrop-filter: blur(10px); }
+    .fw-black { font-weight: 900; }
     .text-gradient {
         background: linear-gradient(to right, var(--mud-palette-primary), var(--mud-palette-secondary));
         -webkit-background-clip: text;
@@ -29,60 +141,102 @@
     @@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 
-    <MudGrid>
-        @if (tournaments == null) {
-            <MudItem xs="12" Class="text-center pa-12"><MudProgressCircular Indeterminate="true" Color="Color.Primary" /></MudItem>
-        } else if (!tournaments.Any()) {
-            <MudItem xs="12">
-                <div class="d-flex flex-column align-center justify-center py-16 opacity-20 border-dashed rounded-xl px-4 text-center" style="border: 3px dashed var(--mud-palette-divider);">
-                    <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Style="font-size: 8rem;" Class="mb-4" />
-                    <MudText Typo="Typo.h5" Class="fw-black uppercase" Align="Align.Center">The Arena is Empty</MudText>
-                    <MudText Align="Align.Center">Click "CREATE TOURNAMENT" to launch your first community competition.</MudText>
-                </div>
-            </MudItem>
-        } else {
-            @foreach (var t in tournaments) {
-                <MudItem xs="12" md="6" lg="4">
-                    <MudPaper Class="pa-6 rounded-xl relative overflow-hidden" Elevation="4">
-                        <div class="d-flex justify-space-between align-start mb-4">
-                            <div>
-                                <MudText Typo="Typo.h6" Class="fw-black">@t.Name</MudText>
-                                <MudText Typo="Typo.caption" Class="opacity-60 d-block">@t.StartDate.ToShortDateString() - @t.EndDate.ToShortDateString()</MudText>
-                            </div>
-                            <MudChip T="string" Color="@(t.IsActive ? Color.Success : Color.Default)" Size="Size.Small">@(t.IsActive ? "ACTIVE" : "ENDED")</MudChip>
-                        </div>
-                        <MudText Typo="Typo.body2" Class="mb-6 opacity-80" Style="height: 40px; overflow: hidden;">@t.Description</MudText>
-                        <div class="d-flex justify-space-between align-center">
-                            <div>
-                                <MudText Typo="Typo.caption" Class="fw-bold opacity-40 uppercase">Prize Pool</MudText>
-                                <MudText Typo="Typo.h5" Class="fw-black text-success">@t.PrizePool.ToString("C0")</MudText>
-                            </div>
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" OnClick="() => EditTournament(t)" />
-                        </div>
-                    </MudPaper>
-                </MudItem>
-            }
-        }
-    </MudGrid>
-</MudContainer>
-
 @code {
     private List<TournamentDto>? tournaments;
+    private TournamentStatsDto? currentStats;
+    private decimal basePrizePool = 25000;
+    private string payoutAnnouncement = "🏆 SEASON FINISHED! Congratulations to our winners.";
 
     protected override async Task OnInitializedAsync() {
-        await LoadTournaments();
+        await LoadData();
+        await LoadGlobalConfig();
     }
 
-    private async Task LoadTournaments() {
-        tournaments = await Http.GetFromJsonAsync<List<TournamentDto>>("api/Admin/tournaments");
+    private async Task LoadData() {
+        try {
+            tournaments = await Http.GetFromJsonAsync<List<TournamentDto>>("api/Admin/tournaments");
+            currentStats = await Http.GetFromJsonAsync<TournamentStatsDto>("api/Admin/tournaments/stats");
+        } catch (Exception ex) {
+            Snackbar.Add("Error loading tournament data: " + ex.Message, Severity.Error);
+        }
     }
 
-    private void OpenCreateDialog() {
-        // Implementation for dialog
-        Snackbar.Add("Feature available in next build.", Severity.Info);
+    private async Task LoadGlobalConfig() {
+        try {
+            var settings = await Http.GetFromJsonAsync<List<GlobalSettingRecord>>("api/Admin/settings/global");
+            if (settings != null) {
+                var pool = settings.FirstOrDefault(s => s.Key == "TournamentPrizePool");
+                if (pool != null && decimal.TryParse(pool.Value, out var val)) basePrizePool = val;
+            }
+        } catch {}
     }
 
-    private void EditTournament(TournamentDto t) {
-        // Implementation for editing
+    private string GetTimeRemaining() {
+        if (currentStats == null) return "--";
+        var diff = currentStats.EndDate - DateTime.UtcNow;
+        if (diff.TotalDays >= 1) return $"{(int)diff.TotalDays} Days";
+        return $"{diff.Hours}h {diff.Minutes}m";
     }
+
+    private async Task SaveSeasonSettings() {
+        var response = await Http.PostAsJsonAsync("api/Admin/settings/update", new { 
+            Key = "TournamentPrizePool", 
+            Value = basePrizePool.ToString("F2"),
+            Description = "Starting pool for each new season"
+        });
+
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Season configuration saved!", Severity.Success);
+            await Http.PostAsJsonAsync("api/Admin/broadcast", new { 
+                Message = $"📢 Tournament HQ: Season starting pool updated to {basePrizePool:C2}!",
+                Target = "All"
+            });
+        }
+    }
+
+    private async Task OpenCreateDialog() {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var parameters = new DialogParameters { ["Tournament"] = new TournamentDto() };
+        
+        var dialog = await DialogService.ShowAsync<TournamentDialog>("Launch New Tournament", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is TournamentDto newT) {
+            var response = await Http.PostAsJsonAsync("api/Admin/tournaments", newT);
+            if (response.IsSuccessStatusCode) {
+                Snackbar.Add("Tournament launched successfully!", Severity.Success);
+                await LoadData();
+            } else {
+                Snackbar.Add("Failed to create tournament.", Severity.Error);
+            }
+        }
+    }
+
+    private async Task EditTournament(TournamentDto t) {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var parameters = new DialogParameters { ["Tournament"] = t };
+        
+        var dialog = await DialogService.ShowAsync<TournamentDialog>("Update Tournament", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is TournamentDto updatedT) {
+            var response = await Http.PutAsJsonAsync($"api/Admin/tournaments/{t.Id}", updatedT);
+            if (response.IsSuccessStatusCode) {
+                Snackbar.Add("Tournament updated.", Severity.Success);
+                await LoadData();
+            } else {
+                Snackbar.Add("Update failed.", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteTournament(TournamentDto t) {
+        var response = await Http.DeleteAsync($"api/Admin/tournaments/{t.Id}");
+        if (response.IsSuccessStatusCode) {
+            Snackbar.Add("Event removed.", Severity.Info);
+            await LoadData();
+        }
+    }
+
+    private record GlobalSettingRecord(string Key, string Value);
 }

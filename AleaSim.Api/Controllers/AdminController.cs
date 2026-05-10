@@ -302,6 +302,11 @@ public class AdminController : ControllerBase {
         return Ok(result);
     }
 
+    [HttpGet("tournaments/stats")]
+    public IActionResult GetCurrentTournamentStats() {
+        return Ok(_repo.GetTournamentStats(DateTime.UtcNow));
+    }
+
     [HttpPost("tournaments")]
     public IActionResult CreateTournament([FromBody] TournamentDto dto) {
         var tournament = new Tournament {
@@ -486,6 +491,16 @@ public class AdminController : ControllerBase {
         await _adminService.ForceJackpotDrop(adminId, id);
         return Ok(new { Message = "Jackpot force drop triggered." });
     }
+
+    [HttpPost("broadcast")]
+    public async Task<IActionResult> BroadcastMessage([FromBody] BroadcastRequest request) {
+        var admin = _repo.GetUser(GetCurrentUserId());
+        var senderName = admin?.Username ?? "System Admin";
+        await _realTime.BroadcastMessage(senderName, request.Message);
+        return Ok(new { Message = "Message broadcasted." });
+    }
+
+    public record BroadcastRequest(string Message, string? Target);
 
     private Guid GetCurrentUserId() {
         var idClaim = User.FindFirst(ClaimTypes.NameIdentifier); // Assuming NameIdentifier holds the GUID

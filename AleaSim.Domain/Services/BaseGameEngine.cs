@@ -129,6 +129,7 @@ public abstract class BaseGameEngine : IGame {
                 ServerSeedHash = serverSeedHash,
                 ClientSeed = clientSeed ?? Guid.NewGuid().ToString("N").Substring(0, 8),
                 StartedAt = DateTime.UtcNow,
+                LastActivityAt = DateTime.UtcNow,
                 IsActive = true
             };
             return Task.FromResult(repo.CreateSession(session));
