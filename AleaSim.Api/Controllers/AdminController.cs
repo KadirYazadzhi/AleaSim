@@ -309,21 +309,14 @@ public class AdminController : ControllerBase {
 
     [HttpPost("tournaments")]
     public IActionResult CreateTournament([FromBody] TournamentDto dto) {
-        var start = DateTime.SpecifyKind(dto.StartDate.Date, DateTimeKind.Utc);
-        var end = DateTime.SpecifyKind(dto.EndDate.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
-        
-        // Force IsActive to true if we are currently within the date range
-        bool active = dto.IsActive && DateTime.UtcNow >= start && DateTime.UtcNow <= end;
-        if (DateTime.UtcNow < start && dto.IsActive) active = true; // Future tournaments can be 'Active' (meaning enabled)
-
         var tournament = new Tournament {
             Id = Guid.NewGuid(),
             Name = dto.Name,
             Description = dto.Description,
-            StartDate = start,
-            EndDate = end,
+            StartDate = DateTime.SpecifyKind(dto.StartDate.Date, DateTimeKind.Utc),
+            EndDate = DateTime.SpecifyKind(dto.EndDate.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc),
             PrizePool = dto.PrizePool,
-            IsActive = active,
+            IsActive = dto.IsActive,
             GameTypesJson = JsonSerializer.Serialize(dto.IncludedGames)
         };
         _repo.CreateTournament(tournament);
@@ -335,17 +328,12 @@ public class AdminController : ControllerBase {
         var t = _repo.GetAllTournaments().FirstOrDefault(x => x.Id == id);
         if (t == null) return NotFound();
 
-        var start = DateTime.SpecifyKind(dto.StartDate.Date, DateTimeKind.Utc);
-        var end = DateTime.SpecifyKind(dto.EndDate.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
-        
-        bool active = dto.IsActive && DateTime.UtcNow <= end;
-
         t.Name = dto.Name;
         t.Description = dto.Description;
-        t.StartDate = start;
-        t.EndDate = end;
+        t.StartDate = DateTime.SpecifyKind(dto.StartDate.Date, DateTimeKind.Utc);
+        t.EndDate = DateTime.SpecifyKind(dto.EndDate.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
         t.PrizePool = dto.PrizePool;
-        t.IsActive = active;
+        t.IsActive = dto.IsActive;
         t.GameTypesJson = JsonSerializer.Serialize(dto.IncludedGames);
 
         _repo.UpdateTournament(t);

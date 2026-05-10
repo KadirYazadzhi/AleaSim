@@ -72,6 +72,9 @@
         startDate = Tournament.StartDate == default ? DateTime.Today : Tournament.StartDate;
         endDate = Tournament.EndDate == default ? DateTime.Today.AddMonths(1) : Tournament.EndDate;
         
+        // Default new tournaments to Active
+        if (Tournament.Id == Guid.Empty) Tournament.IsActive = true;
+
         if (Tournament.IncludedGames == null || !Tournament.IncludedGames.Any()) {
             Tournament.IncludedGames = new List<string> { "Slot", "FruitBlast" };
         }
