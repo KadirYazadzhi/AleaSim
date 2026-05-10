@@ -35,8 +35,7 @@
                     <MudSelectItem Value="@("Roulette")">Roulette</MudSelectItem>
                     <MudSelectItem Value="@("Blackjack")">Blackjack</MudSelectItem>
                     <MudSelectItem Value="@("Baccarat")">Baccarat</MudSelectItem>
-                    <MudSelectItem Value="@("Dice_Slider")">Dice (Slider)</MudSelectItem>
-                    <MudSelectItem Value="@("Dice_Multi")">Dice (Multi)</MudSelectItem>
+                    <MudSelectItem Value="@("Dice")">Dice</MudSelectItem>
                 </MudSelect>
 
                 @if (_request.GameType == "Roulette")
@@ -46,7 +45,7 @@
                         <MudSelectItem Value="@("Extreme")">Extreme (Multipliers)</MudSelectItem>
                     </MudSelect>
                 }
-                else if (_request.GameType?.StartsWith("Dice") == true)
+                else if (_request.GameType == "Dice")
                 {
                     <MudSelect T="string" @bind-Value="_request.GameMode" Label="Dice Strategy" Variant="Variant.Outlined" Class="mb-4 glass-input" Disabled="@SimState.IsSimulationRunning">
                         <MudSelectItem Value="@("Slider")">Slider (50/50)</MudSelectItem>
@@ -240,8 +239,7 @@
                 _request.GameType = value;
                 // Set default modes
                 if (value == "Roulette") _request.GameMode = "Classic";
-                else if (value == "Dice_Slider") _request.GameMode = "Slider";
-                else if (value == "Dice_Multi") _request.GameMode = "Multi";
+                else if (value == "Dice") _request.GameMode = "Slider";
                 else _request.GameMode = null;
             }
         }
