@@ -168,12 +168,14 @@
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd>
-                                <MudChip Size="Size.Small" Color="@(context.Tier.ToLower() == "mega" ? Color.Error : Color.Primary)" Class="fw-bold">@context.Tier.ToUpper()</MudChip>
-                            </MudTd>
+                                <MudChip T="string" Size="Size.Small" Color="@(context.Tier.ToLower() == "mega" ? Color.Error : Color.Primary)" Class="fw-bold">@context.Tier.ToUpper()</MudChip>
+                            </RowTd>
                             <MudTd Class="fw-black text-primary">@context.CurrentValue.ToString("C2")</MudTd>
-                            <MudTd>@context.MustDropAt.ToString("C0")</MudTd>
+                            <MudTd>@(context.MustDropAt?.ToString("C0") ?? "Unlimited")</MudTd>
                             <MudTd>
-                                <MudIconButton Icon="@Icons.Material.Filled.FlashOn" Color="Color.Error" Size="Size.Small" OnClick="() => ForceJackpotDrop(context.Id)" Title="Force immediate drop" />
+                                <MudTooltip Text="Force immediate drop">
+                                    <MudIconButton Icon="@Icons.Material.Filled.FlashOn" Color="Color.Error" Size="Size.Small" OnClick="() => ForceJackpotDrop(context.Id)" />
+                                </MudTooltip>
                             </MudTd>
                         </RowTemplate>
                     </MudTable>

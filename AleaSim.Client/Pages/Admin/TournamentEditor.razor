@@ -210,7 +210,7 @@
         var dialog = await DialogService.ShowAsync<TournamentDialog>("Launch New Tournament", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is TournamentDto newT) {
+        if (result != null && !result.Canceled && result.Data is TournamentDto newT) {
             var response = await Http.PostAsJsonAsync("api/Admin/tournaments", newT);
             if (response.IsSuccessStatusCode) {
                 Snackbar.Add("Tournament launched successfully!", Severity.Success);
@@ -228,7 +228,7 @@
         var dialog = await DialogService.ShowAsync<TournamentDialog>("Update Tournament", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is TournamentDto updatedT) {
+        if (result != null && !result.Canceled && result.Data is TournamentDto updatedT) {
             var response = await Http.PutAsJsonAsync($"api/Admin/tournaments/{t.Id}", updatedT);
             if (response.IsSuccessStatusCode) {
                 Snackbar.Add("Tournament updated.", Severity.Success);
