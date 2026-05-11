@@ -373,8 +373,8 @@
     private string GetJackpotInfo(string tier) => tier.ToLower() switch {
         "mega" => "Seeds: $10,000 | Contrib: 0.05% | Prob: 1:1,000,000 | Uncapped",
         "major" => "Seeds: $1,000 | Contrib: 0.20% | Prob: 1:50,000 | Cap: $50,000",
-        "minor" => "Seeds: $100 | Contrib: 0.15% | Prob: 1:5,000 | Cap: $5,000",
-        "mini" => "Seeds: $10 | Contrib: 0.10% | Prob: 1:500 | Cap: $250",
+        "minor" => "Fixed: 5000x Denom | Hard-cap: 3 per bonus | Clover Chase specific.",
+        "mini" => "Fixed: 1000x Denom | High probability | Clover Chase specific.",
         "tournament" => "Base Pool: $25,000 | Grows via rollover and bets. Paid monthly based on ROI.",
         "grand" => "Seeds: $10,000 | Prob: 1:20,000 | High-tier progressive pool.",
         _ => "Progressive platform jackpot pool."
