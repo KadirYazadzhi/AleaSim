@@ -44,8 +44,13 @@
                                     <MudText Typo="Typo.subtitle2" Class="text-warning fw-bold tracking-wide ma-0" Style="line-height: 0.875rem !important;">SEASON @PlatformStats.Stats.CurrentSeason</MudText>
                                 </div>
                                 
-                                <MudText Typo="Typo.h4" Class='@($"{(LayoutService.IsDarkMode ? "text-white text-shadow-lg" : "mud-text-primary")} fw-black mb-1 d-block d-md-none")'>GRAND TOURNAMENT</MudText>
-                                <MudText Typo="Typo.h3" Class='@($"{(LayoutService.IsDarkMode ? "text-white text-shadow-lg" : "mud-text-primary")} fw-black mb-2 d-none d-md-block")'>GRAND TOURNAMENT</MudText>
+                                <div class="d-flex align-center justify-center justify-md-start gap-3 mb-2">
+                                    <MudText Typo="Typo.h3" Class='@($"{(LayoutService.IsDarkMode ? "text-white text-shadow-lg" : "mud-text-primary")} fw-black ma-0 d-none d-md-block")'>GRAND TOURNAMENT</MudText>
+                                    <MudText Typo="Typo.h4" Class='@($"{(LayoutService.IsDarkMode ? "text-white text-shadow-lg" : "mud-text-primary")} fw-black ma-0 d-block d-md-none")'>GRAND TOURNAMENT</MudText>
+                                    <MudTooltip Text="A fair competition based on ROI (Return on Investment) ranking. Every player has a fair chance regardless of bet size. Prize Distribution: 1st (40%), 2nd (25%), 3rd (15%), 4th-10th (shared 20%). Base Pool: $25,000 + Monthly Rollover.">
+                                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="text-white opacity-50 cursor-help" />
+                                    </MudTooltip>
+                                </div>
                                 
                                 <MudText Typo="Typo.h5" Color="Color.Success" Class="fw-black mb-4 d-block d-md-none">@PlatformStats.Stats.TournamentPrizePool.ToString("C2") <span class="text-xs fw-normal opacity-70">Prize Pool</span></MudText>
                                 <MudText Typo="Typo.h4" Color="Color.Success" Class="fw-black mb-4 d-none d-md-block">@PlatformStats.Stats.TournamentPrizePool.ToString("C2") <span class="text-sm fw-normal opacity-70">Prize Pool</span></MudText>
@@ -319,7 +324,7 @@
                             <div style="position: relative; z-index: 2;">
                                 <div class="d-flex align-center gap-1 mb-1">
                                     <MudText Typo="Typo.subtitle2" Class="text-white opacity-80 ma-0" Style="line-height: 0.875rem !important; display: inline-block; vertical-align: middle;">Weekly Benefit</MudText>
-                                    <MudTooltip Text="Get back 10% of your net losses every single week! No strings attached, claim it instantly.">
+                                    <MudTooltip Text="Get back 10% of your net losses every single week! 1x wagering requirement applies before conversion to real balance.">
                                         <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
                                     </MudTooltip>
                                 </div>
@@ -437,6 +442,9 @@
                         <div class="d-flex align-center">
                             <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="mr-2" />
                             <MudText Typo="Typo.body2" Class="fw-bold" Color="Color.Primary">Provably Fair</MudText>
+                            <MudTooltip Text="Uses HMAC-SHA256 cryptography. You can verify every round's outcome using the server seed hash and your own client seed in the Fairness tab.">
+                                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
+                            </MudTooltip>
                         </div>
                         <div class="d-flex align-center">
                             <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="mr-2" />
@@ -445,6 +453,9 @@
                         <div class="d-flex align-center">
                             <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="mr-2" />
                             <MudText Typo="Typo.body2" Class="fw-bold" Color="Color.Primary">Dynamic RTP</MudText>
+                            <MudTooltip Text="Our AI engine adapts to your playstyle. Fast play increases win magnitude, while slow play triggers frequent smaller hits (Popcorn Mode) to keep you in the flow.">
+                                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
+                            </MudTooltip>
                         </div>
                     </div>
                 </div>
