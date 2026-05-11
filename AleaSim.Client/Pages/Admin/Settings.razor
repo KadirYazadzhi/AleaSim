@@ -48,7 +48,12 @@
                                 </MudSelect>
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudSwitch @bind-Value="_shadowMode" Label="Global Shadow Mode (Simulation only)" Color="Color.Secondary" T="bool" />
+                                <div class="d-flex align-center gap-2">
+                                    <MudSwitch @bind-Value="_shadowMode" Label="Global Shadow Mode (Simulation only)" Color="Color.Secondary" T="bool" />
+                                    <MudTooltip Text="When enabled, the platform operates on pure RNG, disabling all behavioral intervention (The Brain) for all users. Ideal for math certification.">
+                                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="opacity: 0.5; cursor: help;" />
+                                    </MudTooltip>
+                                </div>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudNumericField @bind-Value="_minBet" Label="Minimum Bet ($)" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -177,7 +182,9 @@
                             <MudTd DataLabel="Tier">
                                 <div class="d-flex align-center gap-2">
                                     <div class='@($"tier-dot {jackpot.Tier.ToLower()}")'></div>
-                                    <MudText Typo="Typo.body1" Class="fw-black">@jackpot.Tier.ToUpper()</MudText>
+                                    <MudTooltip Text="@GetJackpotInfo(jackpot.Tier)">
+                                        <MudText Typo="Typo.body1" Class="fw-black cursor-help">@jackpot.Tier.ToUpper()</MudText>
+                                    </MudTooltip>
                                 </div>
                             </MudTd>
                             <MudTd DataLabel="Value">
@@ -362,6 +369,16 @@
             Snackbar.Add("Failed to trigger jackpot drop.", Severity.Error);
         }
     }
+
+    private string GetJackpotInfo(string tier) => tier.ToLower() switch {
+        "mega" => "Seeds: $10,000 | Contrib: 0.05% | Prob: 1:1,000,000 | Uncapped",
+        "major" => "Seeds: $1,000 | Contrib: 0.20% | Prob: 1:50,000 | Cap: $50,000",
+        "minor" => "Seeds: $100 | Contrib: 0.15% | Prob: 1:5,000 | Cap: $5,000",
+        "mini" => "Seeds: $10 | Contrib: 0.10% | Prob: 1:500 | Cap: $250",
+        "tournament" => "Base Pool: $25,000 | Grows via rollover and bets. Paid monthly based on ROI.",
+        "grand" => "Seeds: $10,000 | Prob: 1:20,000 | High-tier progressive pool.",
+        _ => "Progressive platform jackpot pool."
+    };
 
     private async Task LoadGlobalSettings() {
         try {
