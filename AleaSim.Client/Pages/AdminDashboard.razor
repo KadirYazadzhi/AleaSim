@@ -63,7 +63,12 @@
                     <MudIcon Icon="@Icons.Material.Filled.Percent" Color="Color.Warning" Size="Size.Medium" />
                 </div>
                 <MudText Typo="Typo.h4" Class="fw-black mb-1 stat-value" Color="Color.Warning">@stats.CurrentRtp.ToString("F1")%</MudText>
-                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">Avg. RTP</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">
+                    Avg. RTP
+                    <MudTooltip Text="Real-time Return to Player. Calculated as (Total Won / Total Wagered) * 100. Target is set in System Settings.">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="opacity: 0.5; cursor: help; font-size: 0.7rem; margin-left: 2px;" />
+                    </MudTooltip>
+                </MudText>
             </div>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
@@ -73,7 +78,12 @@
                     <MudSwitch T="bool" Value="@_emergencyStop" ValueChanged="ToggleStopValue" Color="Color.Error" UncheckedColor="Color.Success" Class="ml-auto" Size="Size.Small" />
                 </div>
                 <MudText Typo="Typo.h5" Class="fw-black mb-1 stat-value" Color="@(_emergencyStop ? Color.Error : Color.Success)">@(_emergencyStop ? "STOPPED" : "ACTIVE")</MudText>
-                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">System Status</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary text-uppercase fw-bold">
+                    System Status
+                    <MudTooltip Text="Master switch status. If STOPPED, all game engines are paused and bets are blocked.">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="opacity: 0.5; cursor: help; font-size: 0.7rem; margin-left: 2px;" />
+                    </MudTooltip>
+                </MudText>
             </div>
         </MudItem>
     </MudGrid>

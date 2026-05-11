@@ -34,14 +34,25 @@
                         <MudText Typo="Typo.h6" Class="fw-black mb-6">Mathematical Core</MudText>
                         <MudGrid Spacing="4">
                             <MudItem xs="12">
-                                <MudText Typo="Typo.subtitle2" Class="fw-bold mb-1">Global Target RTP (%)</MudText>
+                                <MudText Typo="Typo.subtitle2" Class="fw-bold mb-1">
+                                    Global Target RTP (%)
+                                    <MudTooltip Text="The mathematical anchor of the system. All game engines attempt to gravitate toward this percentage over a long-term rolling window.">
+                                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="opacity: 0.5; cursor: help; font-size: 0.7rem; margin-left: 4px;" />
+                                    </MudTooltip>
+                                </MudText>
                                 <div class="d-flex align-center gap-4 pa-4 bg-grey-darken-4 rounded-lg">
                                     <MudSlider T="decimal" @bind-Value="_targetRtp" Min="80" Max="105" Step="0.1m" Color="Color.Primary" />
                                     <MudText Typo="Typo.h5" Class="fw-black text-primary" Style="min-width: 70px;">@_targetRtp.ToString("F1")%</MudText>
                                 </div>
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudSelect T="string" @bind-Value="_volatilityMode" Label="Volatility Profile" Variant="Variant.Outlined">
+                                <MudText Typo="Typo.subtitle2" Class="fw-bold mb-1">
+                                    Volatility Profile
+                                    <MudTooltip Text="Controls the win curve. Low: frequent small hits. High: rare but massive payouts.">
+                                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="opacity: 0.5; cursor: help; font-size: 0.7rem; margin-left: 4px;" />
+                                    </MudTooltip>
+                                </MudText>
+                                <MudSelect T="string" @bind-Value="_volatilityMode" Variant="Variant.Outlined" Margin="Margin.Dense">
                                     <MudSelectItem Value="@("Low")">Low (Frequent small wins)</MudSelectItem>
                                     <MudSelectItem Value="@("Medium")">Medium (Balanced)</MudSelectItem>
                                     <MudSelectItem Value="@("High")">High (Huge wins, high risk)</MudSelectItem>
