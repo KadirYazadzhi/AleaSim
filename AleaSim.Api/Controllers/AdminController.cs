@@ -488,8 +488,8 @@ public class AdminController : ControllerBase {
     [HttpPost("jackpots/{id}/force-drop")]
     public async Task<IActionResult> ForceJackpotDrop(Guid id) {
         var adminId = GetCurrentUserId();
-        await _adminService.ForceJackpotDrop(adminId, id);
-        return Ok(new { Message = "Jackpot force drop triggered." });
+        var winner = await _adminService.ForceJackpotDrop(adminId, id);
+        return Ok(new { Message = "Jackpot force drop triggered.", WinnerUsername = winner });
     }
 
     [HttpPost("broadcast")]

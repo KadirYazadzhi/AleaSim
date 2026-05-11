@@ -448,7 +448,9 @@ public class GameController : BaseApiController {
         
         var seasonCount = _context.TournamentWinners.Select(w => w.Month).Distinct().Count() + 1;
 
-        var platformName = _repo.GetGlobalSetting("Content_PlatformName") ?? "AleaSim";
+        var platformName = _repo.GetGlobalSetting("Content_PlatformName");
+        if (string.IsNullOrWhiteSpace(platformName)) platformName = "AleaSim";
+        
         bool chatEnabled = _repo.GetGlobalSetting("Community_ChatEnabled") != "false";
         int.TryParse(_repo.GetGlobalSetting("Community_MinLevelChat"), out var minLevel);
         if (minLevel == 0) minLevel = 1;

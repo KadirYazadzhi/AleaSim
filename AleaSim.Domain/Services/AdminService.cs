@@ -260,9 +260,9 @@ public class AdminService : IAdminService {
         }
     }
 
-    public async Task ForceJackpotDrop(Guid adminId, Guid jackpotId) {
+    public async Task<string?> ForceJackpotDrop(Guid adminId, Guid jackpotId) {
         _auditService.LogEvent("ADMIN_JACKPOT_FORCE", $"Admin {adminId} triggered force drop for {jackpotId}", adminId.ToString(), jackpotId.ToString());
-        await _jackpotService.ForceDrop(jackpotId, _repository);
+        return await _jackpotService.ForceDrop(jackpotId, _repository);
     }
 
     private async Task RunBackupAsync() {

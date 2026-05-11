@@ -9,7 +9,8 @@ public enum TransactionType {
     Bet,
     Win,
     Bonus,
-    Faucet
+    Faucet,
+    Jackpot
 }
 
 public class Transaction {

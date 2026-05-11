@@ -152,25 +152,54 @@ public class JackpotService : IJackpotService {
         return jackpot.CurrentValue;
     }
 
-    public async Task ForceDrop(Guid jackpotId, IGameRepository repo) {
+    public async Task<string?> ForceDrop(Guid jackpotId, IGameRepository repo) {
         var db = _redis.GetDatabase();
         var jackpot = repo.GetJackpots().FirstOrDefault(j => j.Id == jackpotId);
-        if (jackpot == null) return;
+        if (jackpot == null) return null;
 
         using var lockHandle = await _lockService.AcquireLockAsync($"jackpot_claim_{jackpot.Id}", TimeSpan.FromSeconds(5));
-        
+
         string redisKey = $"jackpot:{jackpot.Id}";
         var redisVal = await db.StringGetAsync(redisKey);
         decimal win = redisVal.HasValue ? (decimal)(double)redisVal : jackpot.CurrentValue;
-        
+
         decimal resetValue = GetResetValue(jackpot.Tier);
-        
+
         await db.StringSetAsync(redisKey, (double)resetValue);
         jackpot.CurrentValue = resetValue;
         jackpot.LastUpdated = DateTime.UtcNow;
         repo.UpdateJackpot(jackpot);
 
         await _realTimeService.NotifyJackpotUpdate(jackpot);
-        await _realTimeService.BroadcastMessage("System", $"🏆 A massive Jackpot Event has occurred! The {jackpot.Name} has been claimed by a lucky participant!");
-    }
-}
+
+        // Pick a winner
+        string? winnerName = null;
+        var onlineUsers = repo.GetActiveProfiles(TimeSpan.FromMinutes(10)).ToList();
+        if (onlineUsers.Any()) {
+            var random = new Random();
+            var luckyProfile = onlineUsers[random.Next(onlineUsers.Count)];
+            var winner = repo.GetUser(luckyProfile.UserId);
+            if (winner != null) {
+                winnerName = winner.Username;
+                winner.Balance += win;
+                repo.UpdateUser(winner);
+
+                repo.SaveTransaction(new Transaction {
+                    Id = Guid.NewGuid(),
+                    UserId = winner.Id,
+                    Amount = win,
+                    Type = TransactionType.Jackpot,
+                    Description = $"Manual Force Drop: {jackpot.Name}",
+                    Timestamp = DateTime.UtcNow,
+                    ResultingBalance = winner.Balance
+                });
+
+                await _realTimeService.NotifyBalanceUpdate(winner.Id, winner.Balance, winner.BonusBalance);
+                await _realTimeService.BroadcastMessage("System", $"🏆 BOOM! The {jackpot.Name} has been FORCE DROPPED and claimed by {winner.Username}! Congratulations!");
+            }
+        } else {
+            await _realTimeService.BroadcastMessage("System", $"🏆 The {jackpot.Name} has been reset by administration. No active participants found to claim the prize.");
+        }
+
+        return winnerName;
+    }}

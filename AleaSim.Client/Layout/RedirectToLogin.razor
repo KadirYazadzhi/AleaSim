@@ -1,10 +1,18 @@
 @using AleaSim.Client.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navigation
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthStateProvider
+
 @code {
     protected override async Task OnInitializedAsync() {
         // Clear broken token to prevent infinite loops
         await LocalStorage.RemoveItemAsync("authToken");
+        
+        // Notify the UI that we are now unauthenticated
+        if (AuthStateProvider is CustomAuthStateProvider customAuthStateProvider) {
+            customAuthStateProvider.NotifyUserLogout();
+        }
         
         var returnUrl = Navigation.ToBaseRelativePath(Navigation.Uri);
         if (string.IsNullOrWhiteSpace(returnUrl) || returnUrl.Contains("login")) {

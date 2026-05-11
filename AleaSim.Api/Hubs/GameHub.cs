@@ -32,7 +32,7 @@ public class GameHub : Hub {
 
         // 2. Check Min Level Requirement
         if (int.TryParse(_repo.GetGlobalSetting("Community_MinLevelChat"), out var minLevel)) {
-             var progression = _repo.GetPlayerProfile(userId)?.Progression;
+             var progression = _repo.GetUserProgression(userId);
              if (progression != null && progression.CurrentLevel < minLevel) {
                  return; // Silently drop
              }

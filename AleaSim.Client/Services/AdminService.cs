@@ -22,6 +22,7 @@ public interface IAdminService
     Task<List<AuditLogDto>> GetSimulationHistory();
     Task<List<SupportMessageDto>> GetSupportMessages(int count = 50);
     Task MarkSupportMessageRead(Guid messageId);
+    Task<string?> ForceJackpotDrop(Guid id);
 }
 
 public class AdminService : IAdminService
@@ -109,6 +110,20 @@ public class AdminService : IAdminService
             return await response.Content.ReadFromJsonAsync<SimulationReport>();
         }
         return null;
+    }
+
+    public async Task<string?> ForceJackpotDrop(Guid id) {
+        var response = await _http.PostAsync($"api/Admin/jackpots/{id}/force-drop", null);
+        if (response.IsSuccessStatusCode) {
+            var result = await response.Content.ReadFromJsonAsync<ForceDropResult>();
+            return result?.WinnerUsername;
+        }
+        return null;
+    }
+
+    private class ForceDropResult {
+        public string Message { get; set; } = "";
+        public string? WinnerUsername { get; set; }
     }
 }
 

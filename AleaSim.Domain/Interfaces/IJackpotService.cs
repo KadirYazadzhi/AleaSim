@@ -9,5 +9,5 @@ public interface IJackpotService {
     Jackpot GetLocalJackpot(Guid gameId, IGameRepository repo);
     decimal GetTierValue(JackpotTier tier, IGameRepository repo); // Added
     Task<decimal> ClaimJackpot(JackpotTier tier, IGameRepository repo);
-    Task ForceDrop(Guid jackpotId, IGameRepository repo);
+    Task<string?> ForceDrop(Guid jackpotId, IGameRepository repo);
 }

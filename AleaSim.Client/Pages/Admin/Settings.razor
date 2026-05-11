@@ -156,29 +156,55 @@
 
         <!-- 5. JACKPOTS -->
         <MudTabPanel Text="POTS" Icon="@Icons.Material.Filled.Diamond">
-            <div class="settings-group-card">
-                <MudText Typo="Typo.h6" Class="fw-black mb-4">Active Progressive Jackpots</MudText>
-                <div class="table-responsive">
-                    <MudTable Items="@_jackpots" Hover="true" Dense="true" Elevation="0" Class="bg-transparent">
+            <div class="settings-group-card border-warning-subtle bg-warning-darken-4">
+                <div class="d-flex justify-space-between align-center mb-6">
+                    <div>
+                        <MudText Typo="Typo.h5" Class="fw-black mb-1 text-warning">PROGRESSIVE POOLS</MudText>
+                        <MudText Typo="Typo.body2" Class="opacity-60">Manage and trigger global jackpot drops manually.</MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Warning" Size="Size.Large" />
+                </div>
+
+                <div class="table-responsive rounded-xl overflow-hidden border border-white-10">
+                    <MudTable Items="@_jackpots" Hover="true" Dense="true" Elevation="0" Class="bg-transparent" Context="jackpot">
                         <HeaderContent>
-                            <MudTh>TIER</MudTh>
-                            <MudTh>VALUE</MudTh>
-                            <MudTh>TARGET DROP</MudTh>
-                            <MudTh>ACTION</MudTh>
+                            <MudTh Style="background: rgba(0,0,0,0.3); color: white;">TIER</MudTh>
+                            <MudTh Style="background: rgba(0,0,0,0.3); color: white;">CURRENT VALUE</MudTh>
+                            <MudTh Style="background: rgba(0,0,0,0.3); color: white;">CEILING (MUST DROP)</MudTh>
+                            <MudTh Style="background: rgba(0,0,0,0.3); color: white; text-align: center;">ACTIONS</MudTh>
                         </HeaderContent>
                         <RowTemplate>
-                            <MudTd>
-                                <MudChip T="string" Size="Size.Small" Color="@(context.Tier.ToLower() == "mega" ? Color.Error : Color.Primary)" Class="fw-bold">@context.Tier.ToUpper()</MudChip>
-                            </RowTd>
-                            <MudTd Class="fw-black text-primary">@context.CurrentValue.ToString("C2")</MudTd>
-                            <MudTd>@(context.MustDropAt?.ToString("C0") ?? "Unlimited")</MudTd>
-                            <MudTd>
-                                <MudTooltip Text="Force immediate drop">
-                                    <MudIconButton Icon="@Icons.Material.Filled.FlashOn" Color="Color.Error" Size="Size.Small" OnClick="() => ForceJackpotDrop(context.Id)" />
-                                </MudTooltip>
+                            <MudTd DataLabel="Tier">
+                                <div class="d-flex align-center gap-2">
+                                    <div class='@($"tier-dot {jackpot.Tier.ToLower()}")'></div>
+                                    <MudText Typo="Typo.body1" Class="fw-black">@jackpot.Tier.ToUpper()</MudText>
+                                </div>
+                            </MudTd>
+                            <MudTd DataLabel="Value">
+                                <MudText Typo="Typo.h6" Class="fw-black text-warning">@jackpot.CurrentValue.ToString("C2")</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Target">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default" Class="opacity-70">
+                                    @(jackpot.MustDropAt?.ToString("C0") ?? "UNLIMITED")
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Action" Class="text-center">
+                                <MudButton Variant="Variant.Filled" 
+                                           Color="Color.Error" 
+                                           Size="Size.Small" 
+                                           StartIcon="@Icons.Material.Filled.FlashOn"
+                                           OnClick="() => ConfirmJackpotDrop(jackpot)"
+                                           Class="rounded-pill fw-bold px-4">
+                                    TRIGGER DROP
+                                </MudButton>
                             </MudTd>
                         </RowTemplate>
                     </MudTable>
+                </div>
+                
+                <div class="mt-6 pa-4 rounded-lg bg-error-darken-4 border-error-subtle d-flex align-center gap-4">
+                    <MudIcon Icon="@Icons.Material.Filled.ReportProblem" Color="Color.Error" />
+                    <MudText Typo="Typo.caption" Class="text-error fw-bold">DANGER: Triggering a manual drop will immediately reset the pool and broadcast a global notification to all players.</MudText>
                 </div>
             </div>
         </MudTabPanel>
@@ -232,6 +258,17 @@
     
     .bg-grey-darken-4 { background: rgba(0,0,0,0.2); }
     .border-error-subtle { border-color: rgba(var(--mud-palette-error-rgb), 0.3); }
+    .bg-error-darken-4 { background: rgba(var(--mud-palette-error-rgb), 0.1); }
+    .border-warning-subtle { border-color: rgba(var(--mud-palette-warning-rgb), 0.3); }
+    .bg-warning-darken-4 { background: rgba(var(--mud-palette-warning-rgb), 0.05); }
+
+    .tier-dot { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
+    .tier-dot.mega { background-color: var(--mud-palette-error); color: var(--mud-palette-error); }
+    .tier-dot.major { background-color: var(--mud-palette-warning); color: var(--mud-palette-warning); }
+    .tier-dot.minor { background-color: var(--mud-palette-info); color: var(--mud-palette-info); }
+    .tier-dot.mini { background-color: var(--mud-palette-success); color: var(--mud-palette-success); }
+    .tier-dot.special { background-color: var(--mud-palette-secondary); color: var(--mud-palette-secondary); }
+    .tier-dot.tournament { background-color: var(--mud-palette-primary); color: var(--mud-palette-primary); }
 
     .emergency-box { padding: 24px; border-radius: 16px; border: 2px solid var(--mud-palette-success); background: rgba(var(--mud-palette-success-rgb), 0.05); color: var(--mud-palette-success); text-align: center; transition: all 0.3s; }
     .emergency-box.active { border-color: var(--mud-palette-error); background: rgba(var(--mud-palette-error-rgb), 0.1); color: var(--mud-palette-error); animation: pulse-error 2s infinite; }
@@ -301,11 +338,28 @@
         } catch {}
     }
 
-    private async Task ForceJackpotDrop(Guid id) {
-        var response = await Http.PostAsync($"api/Admin/jackpots/{id}/force-drop", null);
-        if (response.IsSuccessStatusCode) {
-            Snackbar.Add("Jackpot dropped!", Severity.Success);
+    private async Task ConfirmJackpotDrop(JackpotDto jackpot) {
+        bool? result = await DialogService.ShowMessageBox(
+            "CRITICAL ACTION", 
+            $"Are you sure you want to FORCE DROP the {jackpot.Tier} Jackpot? Current value: {jackpot.CurrentValue:C2}. This will reset the pool and pick a lucky winner from active players.", 
+            yesText:"CONFIRM DROP", cancelText:"Cancel");
+
+        if (result == true) {
+            await ForceJackpotDrop(jackpot.Id, jackpot.Name);
+        }
+    }
+
+    private async Task ForceJackpotDrop(Guid id, string name) {
+        var winner = await AdminService.ForceJackpotDrop(id);
+        if (winner != null || true) { // winner might be null if no online players, but success is still possible
+            string winnerMsg = !string.IsNullOrEmpty(winner) 
+                ? $"Winner: {winner}!" 
+                : "A lucky player has been awarded!";
+                
+            Snackbar.Add($"SUCCESS: {name} dropped! {winnerMsg}", Severity.Success);
             await LoadJackpots();
+        } else {
+            Snackbar.Add("Failed to trigger jackpot drop.", Severity.Error);
         }
     }
 

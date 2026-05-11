@@ -3,6 +3,7 @@
 @inject NavigationManager Navigation
 @inject IAuthService AuthService
 @inject LayoutService LayoutService
+@inject PlatformStatsService PlatformStats
 
 <MudThemeProvider Theme="@LayoutService.CurrentTheme" IsDarkMode="@LayoutService.IsDarkMode" />
 <MudDialogProvider />
@@ -15,7 +16,10 @@
         
         <div class="d-flex align-center cursor-pointer" @onclick='@(() => Navigation.NavigateTo("/dashboard"))'>
             <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Medium" Color="Color.Error" Class="mr-2" />
-            <MudText Typo="Typo.h6" Class="text-gradient font-black tracking-wide admin-title-text">ALEASIM <span class="mud-text-secondary text-xs font-normal d-none d-sm-inline">BACKOFFICE</span></MudText>
+            <MudText Typo="Typo.h6" Class="text-gradient font-black tracking-wide admin-title-text">
+                @(string.IsNullOrWhiteSpace(PlatformStats.Stats.PlatformName) ? "ALEASIM" : PlatformStats.Stats.PlatformName.ToUpper()) 
+                <span class="mud-text-secondary text-xs font-normal d-none d-sm-inline">BACKOFFICE</span>
+            </MudText>
         </div>
         
         <MudSpacer />

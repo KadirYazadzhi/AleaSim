@@ -82,17 +82,17 @@ public class FinancialReconciliationService : BackgroundService {
         try {
             // 1. Verify User Balances
             _logger.LogInformation("Step 1: Verifying user balances...");
-            var userDiscrepancies = await VerifyUserBalances(repo);
+            var userDiscrepancies = VerifyUserBalances(repo);
             discrepancies.AddRange(userDiscrepancies);
 
             // 2. Verify Pool Balances
             _logger.LogInformation("Step 2: Verifying game pool balances...");
-            var poolDiscrepancies = await VerifyPoolBalances(repo);
+            var poolDiscrepancies = VerifyPoolBalances(repo);
             discrepancies.AddRange(poolDiscrepancies);
 
             // 3. Verify Total System Balance
             _logger.LogInformation("Step 3: Verifying total system balance...");
-            var systemDiscrepancies = await VerifySystemBalance(repo);
+            var systemDiscrepancies = VerifySystemBalance(repo);
             discrepancies.AddRange(systemDiscrepancies);
 
             var duration = DateTime.UtcNow - startTime;
@@ -133,7 +133,7 @@ public class FinancialReconciliationService : BackgroundService {
         _logger.LogInformation("=== RECONCILIATION COMPLETE ===");
     }
 
-    private async Task<List<string>> VerifyUserBalances(IGameRepository repo) {
+    private List<string> VerifyUserBalances(IGameRepository repo) {
         var discrepancies = new List<string>();
         
         // Get all users with non-zero balance
@@ -166,7 +166,7 @@ public class FinancialReconciliationService : BackgroundService {
         return discrepancies;
     }
 
-    private async Task<List<string>> VerifyPoolBalances(IGameRepository repo) {
+    private List<string> VerifyPoolBalances(IGameRepository repo) {
         var discrepancies = new List<string>();
         
         // Get common games by type
@@ -200,7 +200,7 @@ public class FinancialReconciliationService : BackgroundService {
         return discrepancies;
     }
 
-    private async Task<List<string>> VerifySystemBalance(IGameRepository repo) {
+    private List<string> VerifySystemBalance(IGameRepository repo) {
         var discrepancies = new List<string>();
 
         try {

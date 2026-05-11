@@ -31,7 +31,7 @@
         
         <div class="d-flex align-center cursor-pointer" @onclick='@(() => Navigation.NavigateTo("/"))'>
             <MudIcon Icon="@Icons.Material.Filled.Casino" Size="Size.Large" Color="Color.Primary" Class="mr-2 spin-hover d-none d-sm-block" />
-            <MudText Typo="Typo.h5" Class="text-gradient font-black tracking-wide">@PlatformStats.Stats.PlatformName.ToUpper()</MudText>
+            <MudText Typo="Typo.h5" Class="text-gradient font-black tracking-wide">@(string.IsNullOrWhiteSpace(PlatformStats.Stats.PlatformName) ? "ALEASIM" : PlatformStats.Stats.PlatformName.ToUpper())</MudText>
         </div>
         
         <MudSpacer />
@@ -720,6 +720,10 @@
     private void HandleGameUpdate(object data) {
         var json = data.ToString();
         if (json != null) {
+            if (json.Contains("FORCE_LOGOUT")) {
+                _ = Logout(); // Async fire and forget
+                return;
+            }
             if (json.Contains("AchievementUnlocked")) NotifService.Add("Achievement!", "You unlocked a new badge!", "Success");
             else if (json.Contains("LevelUp")) NotifService.Add("Level Up!", "Congratulations on your new rank!", "Info");
             else if (json.Contains("QuestCompleted")) {
