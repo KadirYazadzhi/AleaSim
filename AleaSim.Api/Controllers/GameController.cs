@@ -415,22 +415,26 @@ public class GameController : BaseApiController {
         
         var redis = HttpContext.RequestServices.GetRequiredService<AleaSim.Domain.Services.IRedisCacheService>();
         
-        // 1. Live Tournament Pool from Redis or DB
-        string cacheKey = "tournament:prize_pool";
-        decimal tournamentPool = await redis.GetAsync<decimal?>(cacheKey) ?? 0m;
+        // 1. Live Tournament Pool (Check Jackpot Tier first, then Setting)
+        var jackpots = _repo.GetJackpots();
+        var tournamentJackpot = jackpots.FirstOrDefault(j => j.Tier == AleaSim.Domain.Entities.JackpotTier.Tournament);
         
-        if (tournamentPool == 0) {
+        decimal tournamentPool = 0m;
+        if (tournamentJackpot != null) {
+            var redisVal = await redis.GetAsync<double?>($"jackpot:{tournamentJackpot.Id}");
+            tournamentPool = redisVal.HasValue ? (decimal)redisVal.Value : tournamentJackpot.CurrentValue;
+        }
+
+        if (tournamentPool <= 0) {
             if (decimal.TryParse(_repo.GetGlobalSetting("TournamentPrizePool"), out var dbVal)) {
                 tournamentPool = dbVal;
             } else {
                 tournamentPool = 25000m;
             }
-            await redis.SetAsync(cacheKey, tournamentPool, TimeSpan.FromHours(2));
         }
 
         var activeCount = _repo.GetActivePlayerCount(10);
         
-        var jackpots = _repo.GetJackpots();
         var mega = jackpots.FirstOrDefault(j => j.Tier == AleaSim.Domain.Entities.JackpotTier.Mega);
         
         decimal weeklyJackpot = 0;
