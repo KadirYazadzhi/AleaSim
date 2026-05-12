@@ -7,297 +7,132 @@
 ![Provably Fair](https://img.shields.io/badge/RNG-HMAC--SHA256%20%2B%20Crypto-orange?style=flat-square)
 ![k3s](https://img.shields.io/badge/Hosted%20on-k3s%20Cluster-326CE5?style=flat-square&logo=kubernetes)
 ![SignalR](https://img.shields.io/badge/Real--Time-SignalR-512BD4?style=flat-square)
-![MySQL](https://img.shields.io/badge/Database-MySQL%2FMariaDB-4479A1?style=flat-square&logo=mysql)
-![EF Core](https://img.shields.io/badge/ORM-EF%20Core%208-512BD4?style=flat-square)
-![Playwright](https://img.shields.io/badge/E2E-Playwright-green?style=flat-square)
+![MySQL](https://img.shields.io/badge/Database-MySQL-4479A1?style=flat-square&logo=mysql)
 
-**AleaSim** is an enterprise-grade, high-concurrency gambling platform. Built on the **Trinity Architecture**, it moves beyond simple randomness into a world of **mathematical determinism**, **cryptographic fairness**, and **behavioral AI**.
+**AleaSim** is more than just a casino—it is a high-fidelity **financial and behavioral simulation ecosystem**. Built on the **Trinity Architecture**, it provides a blueprint for next-generation gambling platforms where security, mathematical transparency, and real-time engagement intersect.
 
-> [!IMPORTANT]
-> This is a **high-fidelity simulation and engineering demonstration**. It does not handle real currency and is intended for architectural research and educational purposes only.
+![Simulation Center](Images/Admin/admin-simulation-center.png)
 
 ---
 
-## 📌 Table of Contents
-- [Project Overview](#-project-overview)
-- [Visual Experience (Real Screens)](#-visual-experience-real-screens)
-- [Diagrams & Schematics](#-diagrams--schematics)
-- [Core Engineering Pillars](#-core-engineering-pillars)
-- [Behavioral AI & Retention Mechanics](#-behavioral-ai--retention-mechanics)
-- [Game Catalog](#-game-catalog)
-- [Economy & Wallet System](#-economy--wallet-system)
-- [Observability & Operations](#-observability--operations)
-- [Power Tools & Administration](#-power-tools--administration)
-- [Technical Stack](#-technical-stack)
-- [Testing & Validation Suite](#-testing--validation-suite)
-- [Installation & Setup](#-installation--setup)
-- [Project Evolution (Changelog)](#-project-evolution-changelog)
-- [Roadmap](#-roadmap)
-- [Contributing](#-contributing)
-- [License](#-license)
+## 🎯 Project Vision & Core Goal
+The primary objective of AleaSim is to solve the **"Trust & Scalability Gap"** in modern iGaming. Traditional platforms often struggle with transparent fairness and real-time performance under high load. 
+
+![Lobby Home](Images/lobby.png)
+
+**AleaSim addresses this by:**
+1.  **Eliminating the "Black Box":** Providing a cryptographically verifiable (Provably Fair) trail for every single outcome.
+2.  **Guaranteed Solvency:** Implementing the **Vault Layer** to ensure that the platform can never authorize a payout it cannot afford.
+3.  **Behavioral Retention:** Using AI (The Brain) to create a "Flow State" that feels rewarding to the player while maintaining strict operator RTP targets.
 
 ---
 
-## 🧭 Project Overview
-AleaSim models a complete casino ecosystem with strict financial guarantees, deterministic outcomes, and a live social layer. It is designed to simulate **real-world operational constraints** such as concurrency spikes, wallet integrity, anti-fraud mechanisms, and regulatory-grade auditing.
+## 🏛️ The Trinity Architecture: Deep Dive
 
-**Key goals:**
-- Deliver a **provably fair** and cryptographically verifiable game system.
-- Enforce **financial integrity** with atomic settlements and anti-double spend protection.
-- Use **behavioral AI** to modulate volatility, RTP, and retention signals.
-- Support **real-time social experiences** with scalable infrastructure.
+### 🏦 1. The Vault (The Financial Sentinel)
+The Vault acts as an immutable ledger and a real-time gatekeeper.
+- **Idempotency Engine:** Every win claim is tied to a unique `ClaimId`. Even if a network error occurs and a request is retried, the Vault ensures the payout happens exactly once.
+- **Anti-Fraud Guard:** Monitors for "High-Velocity Betting" and "Pattern Anomalies" at the API level, freezing suspicious transactions before they settle in the main ledger.
+- **Liquidity Awareness:** The Vault doesn't just store balance; it knows the total pool of the casino. If a jackpot is triggered, it performs an instant verification to ensure the pool has not been drained by a concurrent win.
 
----
+![Wallet and Economy](Images/User/wallet.png)
 
-## 🖼️ Visual Experience (Real Screens)
-> Screenshots are grouped by audience. Replace the placeholders with real captures from the system.
+### 🧠 2. The Brain (Psychological Engineering)
+The Brain is the "Director" of the player's journey.
+- **Weighted RNG Influence:** Instead of flat probabilities, the Brain uses **dynamic weights**. If a player is on a 10-spin loss streak, the weights for "Small Wins" increase temporarily to maintain engagement (The Retention Hook).
+- **Flow State Mapping:** By tracking the speed of clicks and bet size changes, the Brain identifies if a player is "In the Zone." It then adjusts the game's visual pacing and bonus frequency to maximize the duration of this state.
 
-### 👥 Player Experience (All Users)
+![Live Event Monitor](Images/Admin/admin-live-monitor.png)
 
-#### 🏠 Lobby (Home)
-The main lobby used for game selection and navigation.
-![Lobby Screenshot](docs/images/lobby-home.png)
-
-#### 👤 Profile
-Player profile, settings, and personalization.
-![Profile Screenshot](docs/images/profile.png)
-
-#### 💰 Wallet
-Balances, bonuses, and funds management.
-![Wallet Screenshot](docs/images/wallet.png)
-
-#### 🧾 Bet History
-Bet history and outcomes.
-![Bet History Screenshot](docs/images/bet-history.png)
-
-#### 🏆 Leaderboard
-Rankings and top players.
-![Leaderboard Screenshot](docs/images/leaderboard.png)
-
-#### 🎰 Slot #1 (CloverChase)
-5x4 slot with bonus mechanics.
-![CloverChase Screenshot](docs/images/cloverchase-gameplay.png)
-
-#### 🎰 Slot #2 (Fruit Blast Reactor)
-Cascading slot with blast mechanics.
-![Fruit Blast Screenshot](docs/images/fruit-blast.png)
-
-#### 🎡 Roulette Royale
-Classic European roulette mode.
-![Roulette Royale Screenshot](docs/images/roulette-royale.png)
-
-#### 🎡 Extreme Roulette
-Advanced roulette mode with extra multipliers.
-![Extreme Roulette Screenshot](docs/images/roulette-extreme.png)
-
-#### 🎲 Dice Game #1 (Neon Dice)
-Dice game: Neon Dice mode.
-![Neon Dice Screenshot](docs/images/dice-neon.png)
-
-#### 🎲 Dice Game #2 (Crazy Dice)
-Dice game: Crazy Dice mode.
-![Crazy Dice Screenshot](docs/images/dice-crazy.png)
-
-#### 🂡 Baccarat
-Baccarat table and gameplay UI.
-![Baccarat Screenshot](docs/images/baccarat.png)
-
-#### ♠️ Blackjack
-Multi-hand blackjack with insurance.
-![Blackjack Screenshot](docs/images/blackjack-gameplay.png)
-
-### 🛡️ Admin Experience (Admin Only)
-> Add real captures from the admin panel. If you don't have all of them yet, start with the most important screens.
-
-#### 🛡️ Admin Overview
-Admin overview with KPIs and system status.
-![Admin Overview Screenshot](docs/images/admin-overview.png)
-
-#### 📺 Live Monitor
-Live monitoring of bets, wins, and events.
-![Admin Live Monitor Screenshot](docs/images/admin-live-monitor.png)
-
-#### 👥 Player Manager
-User management, balances, and roles.
-![Admin Player Manager Screenshot](docs/images/admin-players.png)
-
-#### 🧾 Audit Logs
-System and financial audit logs.
-![Admin Audit Logs Screenshot](docs/images/admin-audit.png)
-
-#### ⚠️ System Errors
-Error monitoring and incidents.
-![Admin System Errors Screenshot](docs/images/admin-errors.png)
-
-#### ⚙️ Platform Settings
-Global platform configuration.
-![Admin Settings Screenshot](docs/images/admin-settings.png)
+### ⚙️ 3. The Engines (Stateless Math Executors)
+Our engines are purely mathematical. They don't store player state; they receive a **Request Packet** and return a **Result Proof**.
+- **Reconstruction Logic:** If a player refreshes their browser mid-respin, the Engine uses the data stored in the Redis cache to reconstruct the exact grid, ensuring the player sees no interruption in their experience.
 
 ---
 
-## 🧭 Diagrams & Schematics
-Add diagrams that reflect the real architecture and can be generated from the project.
+## 🗄️ Persistence Layer: Database & State
+AleaSim uses a hybrid persistence strategy to achieve both durability and extreme performance.
 
-### 🏛️ Trinity Architecture (Vault / Brain / Engines)
-![Trinity Architecture Diagram](docs/images/diagram-trinity-architecture.png)
+### 💿 MySQL (The Immutable Ledger)
+- **Transactional History:** Stores every `Bet`, `Win`, and `Transaction` with high precision.
+- **Audit Ledger:** A specialized table that tracks every administrative change (e.g., changing a game's RTP or adjusting a player's balance).
+- **Player Profiles:** Stores XP, Levels, and Quest progress.
 
-### 🔁 Bet Lifecycle / Event Flow
-![Bet Lifecycle Diagram](docs/images/diagram-bet-lifecycle.png)
+![Detailed Bet History](Images/User/bet-history.png)
 
-### 🗄️ Database Schema (Core Tables)
-![Database Schema Diagram](docs/images/diagram-database-schema.png)
-
-### ☁️ Deployment & Infrastructure
-![Deployment Diagram](docs/images/diagram-deployment.png)
-
----
-
-## 🏗️ Core Engineering Pillars
-
-### 1. 🏛️ The Trinity Architecture
-The system is decoupled into three independent, typed layers communicating via strict contracts:
-- **The Vault (Financial Guard):** The single source of truth. Handles `Bonus` vs `Real` wallet deductions, enforces daily loss limits, and guarantees atomic settlement.
-- **The Brain (AI Behavioral Engine):** Analyzes `BehaviourProfile` (loss streaks, spin speed, pRTP delta) to issue directives. It manages "Flow State" and "Retention Hooks."
-- **The Engines (Stateless Executors):** Reverse-engineers game outcomes. Instead of rolling dice, they mathematically construct the exact deck or reel grid required to hit the Brain's target within fairness constraints.
-
-### 2. 🛡️ Industrial Security (Anti-Double Spend)
-- **Distributed Locking (Redlock):** Every transaction is wrapped in a Redis lock (`wallet_{userId}`). Prevents "Double Spend" attacks even with 1,000s of requests across multiple server nodes.
-- **API Rate Limiting:** Built-in DDoS protection using ASP.NET Core `RateLimiter` (100 req/10s globally; 10 req/5s for financial operations).
-- **Atomic Persistence:** All financial state changes occur within scoped SQL transactions to ensure 100% data integrity.
-
-### 3. ⚡ Infrastructure Resilience (Write-Ahead Log)
-Designed to survive crashes without losing a single cent of player winnings:
-- **Financial WAL:** Critical events (`JACKPOT_WIN`, `WITHDRAWAL`) bypass background buffers and are written **synchronously** to the database (Write-Ahead Logging).
-- **Immutable Audit Chain:** Every system event is cryptographically hashed and linked to the previous one, creating a tamper-proof ledger.
-
-### 4. 🎰 Certified Randomness (Hybrid RNG)
-- **Provably Fair:** Uses `HMAC-SHA256` where outcomes are derived from ServerSeed + ClientSeed + Nonce.
-- **Certified Fallback:** When seeds are absent, it uses hardware-backed **Cryptographic Randomness** (`RandomNumberGenerator`) to meet industrial certification standards.
+### ⚡ Redis (The Real-Time Pulse)
+- **Active Sessions:** Stores the current state of every active game round (e.g., which symbols are sticky on a slot).
+- **Distributed Locking:** Uses **Redlock** to manage global concurrency for Jackpots and Wallets.
+- **SignalR Backplane:** Ensures that real-time notifications (like a "Big Win") are synced across all server nodes in a cluster.
 
 ---
 
-## 🧠 Behavioral AI & Retention Mechanics
-AleaSim models a dynamic player experience system that adapts in real time:
-- **Behavior Profiles:** Tracks loss streaks, betting velocity, session duration, and RTP deviation.
-- **RTP Modulation:** The Brain sends target parameters to Engines to stabilize RTP over time without breaking fairness rules.
-- **Retention Hooks:** Offers quests, streak bonuses, and milestone rewards when churn signals are detected.
-- **Flow State:** Keeps player engagement steady by smoothing volatility and timing bonus triggers.
+## 📊 Level of Completeness (Feature Matrix)
+
+| Feature Category | Status | Details |
+| :--- | :--- | :--- |
+| **Financial (Vault)** | ✅ 100% | Atomic transactions, bonus/real balance, anti-double spend. |
+| **AI (The Brain)** | 🟠 85% | Dynamic Directives and Retention Hooks active; shadow-mode tuning in progress. |
+| **Slot Engine** | ✅ 100% | 5x4 Reels, Sticky Respins, Bonus Reveal, Jackpots. |
+| **Reactor Engine** | ✅ 100% | Cascading wins, 4-level Juice Meter, Vitamin Overload. |
+| **Real-Time Layer** | ✅ 95% | SignalR integration, Global Jackpots, Live Chat with mobile flow. |
+| **Admin Panel** | 🔵 70% | Core management active; visual analytics & risk sense AI pending. |
+| **Crypto Support** | ⏳ Planned | Native BTC/ETH on-chain monitoring. |
 
 ---
 
-## 🎮 Game Catalog
-A modular game system allows new engines to be added without touching core financial or AI logic.
-
-**Current portfolio:**
-- **CloverChase Slot** – 5x4 reel engine with layered bonus logic.
-- **Fruit Blast Reactor** – cluster pays, cascade system, and blast mechanics.
-- **Roulette Royale** – European wheel with live dynamic multipliers.
-- **Tactical Blackjack** – multi-hand rules, insurance, and deterministic dealer logic.
-
-**Planned expansions:**
-- **Baccarat Arena**
-- **Craps 3D Table**
-- **Mini-games hub (instant games / tap-to-win)**
+## 🛡️ Scalability & Concurrency Specifics
+AleaSim is designed to scale horizontally across a **k3s (Kubernetes)** cluster.
+- **Stateless API:** Since all critical state is in Redis/MySQL, any server node can handle any request at any time.
+- **Throttling & Backpressure:** The system uses **Channel-based background workers** for non-critical tasks (like writing logs), ensuring the main game loop never waits for I/O.
+- **Database Sharding Ready:** The schema is designed with `UserId` and `GameId` as primary partitions, allowing for easy database sharding as the player base grows.
 
 ---
 
-## 💰 Economy & Wallet System
-The economy is fully isolated and deterministic:
-- **Dual Wallet Model:** Separate `Real` and `Bonus` balances with strict deduction priorities.
-- **Loss Limits & Protection:** Daily and session-based limits enforced at the Vault layer.
-- **Reward Systems:** RPG XP, level bonuses, and quest rewards are processed through the same financial guardrails.
+## 🎮 Game Mechanics: The Logic Behind the Fun
+
+### 🍀 Clover Chase (Slot)
+- **Logic:** Uses a "Weighted Strip" approach. The strips are dynamically modified when a **Clover** lands to increase the weight of Wilds during the respin phase.
+- **Mathematical Stabilizer:** The "Paid Respin" ensures that while the player wins often, the casino maintains a healthy edge through the spin cost.
+
+![Clover Chase Gameplay](Images/Games/clover-chase.png)
+
+### ☢️ Fruit Blast (Reactor)
+- **Logic:** Uses a **Recursive Avalanche Algorithm**. Each win triggers a new "Drop" event that is calculated server-side and pushed to the client.
+- **The Juice Pot:** This is a local jackpot specific to the game instance, creating a "Must-Win" FOMO effect as the meter approaches 200 points.
+
+![Fruit Blast Reactor](Images/Games/fruir-blast.png)
 
 ---
 
-## 🔭 Observability & Operations
-Operational transparency is a core design goal:
-- **Live Admin Stream:** Every bet, win, and state transition pushed to monitoring panels in real time.
-- **Audit Trail:** Immutable chain for all financial events.
-- **Telemetry Hooks:** Latency, error, and RTP drift metrics (prepared for export to dashboards).
+## 🛡️ Administrative Command Center
+The administration suite provides full transparency and control over the platform's economics and player base.
+
+### 📊 Global Dashboard
+![Admin Dashboard](Images/Admin/admin-dashboard.png)
+
+### 👥 Player & User Management
+![Player Manager](Images/Admin/admin-player-manager.png)
+
+### ⚙️ Platform Configuration
+![Platform Settings](Images/Admin/admin-settings.png)
 
 ---
 
-## 🛠️ Power Tools & Administration
+## 👤 User Experience & Personalization
+Players have access to a rich set of tools to manage their experience, from detailed profiles to real-time social interaction.
 
-### 💻 CLI Administrator
-A high-performance terminal tool for engineers to perform dry-runs and verify math at scale.
-```bash
-# Verify Slot RTP over 1,000,000 spins using all CPU cores
-./AleaSim.CLI admin rtp-verify slot 1000000
-
-# View global platform stats
-./AleaSim.CLI admin stats
-
-# View live progressive jackpots
-./AleaSim.CLI jackpots
-```
-
-### 🛰️ Real-Time Social Layer
-Driven by an optimized **SignalR** implementation, the social layer supports:
-- **Instagram-style Chat:** State-based mobile navigation (List -> Active Chat) with seamless panel sliding.
-- **Global Event Hub:** Real-time "Big Win" notifications and jackpot tickers pushed instantly to all connected clients.
-- **Notification HQ:** A dedicated page for players to track their win history, bonus credits, and system alerts.
+### 👤 Profile & Achievements
+![Player Profile](Images/User/profile.png)
 
 ---
 
-## 🚀 Technical Stack
-
-| Category | Technology |
-| :--- | :--- |
-| **Backend** | .NET 8 Web API, SignalR, Entity Framework Core |
-| **Frontend** | Blazor WebAssembly (WASM), MudBlazor UI, PixiJS (Game Rendering) |
-| **Infrastructure** | k3s (Kubernetes), Redis (Caching & Locking), MySQL (Persistence) |
-| **Security** | JWT (HttpOnly Cookies), BCrypt, Redis Redlock, RateLimiting |
-| **Testing** | xUnit, Moq, Microsoft Playwright (E2E), Coverlet |
+## 🧭 Future Evolution & Roadmap
+1.  **RiskSense AI:** Implementation of a neural network to detect bot-like betting behavior.
+2.  **Tournament 2.0:** Real-time competitive leaderboards with prize pools that grow based on participation.
+3.  **Content SDK:** A set of tools for 3rd party developers to build and plug in their own Game Engines.
+4.  **Full Observability:** Exporting all system metrics to Prometheus/Grafana for industrial-grade monitoring.
 
 ---
 
-## 🔬 Testing & Validation Suite
-AleaSim maintains a **100% success rate** across its testing pyramid:
-- **Concurrency Stress Tests:** Proves that Redis locks prevent balance corruption during simultaneous attacks.
-- **E2E Automation:** Playwright scripts simulate Registration, Login, and Real-time game flows in a headless browser.
-- **Math Validation:** Multi-threaded CLI verifier simulates 10M+ iterations to confirm RTP models.
-
----
-
-## 🚀 Installation & Setup
-
-1. **Database:** `dotnet ef database update --project AleaSim.Persistence --startup-project AleaSim.Api`
-2. **E2E Setup:** `cd AleaSim.E2ETests && playwright install`
-3. **Run:**
-   ```bash
-   dotnet run --project AleaSim.Api
-   dotnet run --project AleaSim.Client
-   ```
-
----
-
-## 📈 Project Evolution (Changelog)
-- **v1.0 (The Genesis):** Core Trinity Architecture and Slot Engine implementation.
-- **v2.0 (RPG Update):** Introduction of Quests, Levels, and the Global Chat.
-- **v3.0 (The Industrial Update):** **Current Version.** Added WAL resilience, Distributed Locking, Cryptographic RNG, full Mobile responsiveness, and Playwright E2E automation.
-
----
-
-## 🧭 Roadmap
-- **Economy Balancer:** smarter long-session retention tuning.
-- **Risk Analyzer:** automated anomaly detection for suspicious win patterns.
-- **Content SDK:** game templates to spin up new engines faster.
-- **Observability Dashboards:** deployable Grafana/Prometheus stack.
-
----
-
-## 🤝 Contributing
-Contributions are welcome. Suggested focus areas:
-- Additional games and bonus modes
-- Performance profiling & infrastructure tuning
-- UX polish and mobile micro-interactions
-
----
-
-## 📜 License
-This project is provided for **educational and research purposes**. See repository license for details.
-
----
-
-*© 2026 AleaSim Entertainment — Built for the next generation of safe, fair, and scalable entertainment software.*
+*© 2026 AleaSim Entertainment. Architected for extreme performance, security, and mathematical integrity.*

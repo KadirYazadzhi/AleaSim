@@ -221,8 +221,25 @@
 
     @@media (max-width: 960px) {
         .chat-atomic-wrapper { border: none; height: calc(100vh - 56px); margin-top: 0; }
+        
+        /* Master-Detail Flow for Mobile */
+        .state-list .chat-pane-main { display: none; }
+        .state-chat .chat-pane-sidebar { display: none; }
+        
         .chat-pane-sidebar, .chat-pane-main { width: 100% !important; border: none !important; }
         .chat-ui-header { padding: 0 1rem; }
+        
+        .mobile-back-btn { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(var(--mud-palette-primary-rgb), 0.1);
+            color: var(--mud-palette-primary);
+            margin-right: 8px;
+        }
     }
 </style>
 
