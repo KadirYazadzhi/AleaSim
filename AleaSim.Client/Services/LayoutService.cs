@@ -25,6 +25,7 @@ public class LayoutService
 
     public event Action? OnMajorUpdate;
     public event Action<string>? OnAvatarChanged;
+    public event Action<AleaSim.Shared.Models.UserDto>? OnProfileChanged;
     public event Action<bool>? OnBalanceUpdateSuppressionChanged;
     public event Action<decimal>? OnOptimisticDeduction;
     public event Action<decimal>? OnOptimisticAdd;
@@ -231,6 +232,7 @@ public class LayoutService
         AvatarUrl = url;
         OnAvatarChanged?.Invoke(url);
     }
+    public void NotifyProfileChanged(AleaSim.Shared.Models.UserDto profile) => OnProfileChanged?.Invoke(profile);
     public void SetBalanceUpdateSuppression(bool suppressed)
     {
         IsBalanceUpdateSuppressed = suppressed;

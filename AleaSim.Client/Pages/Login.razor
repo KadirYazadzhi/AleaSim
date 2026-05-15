@@ -130,6 +130,13 @@
         }
     }
 
+    protected override async Task OnParametersSetAsync() {
+        if (Reason == "session_error" || Reason == "expired") {
+            // Ensure UI is cleared if we got here via error
+            await AuthService.Logout();
+        }
+    }
+
     private async Task HandleEnter(KeyboardEventArgs e) {
         if (e.Key == "Enter") {
             if (!_show2FA && success) await OnLogin();

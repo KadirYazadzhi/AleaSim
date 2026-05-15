@@ -48,7 +48,7 @@
                                     <MudText Typo="Typo.h3" Class='@($"{(LayoutService.IsDarkMode ? "text-white text-shadow-lg" : "mud-text-primary")} fw-black ma-0 d-none d-md-block")'>GRAND TOURNAMENT</MudText>
                                     <MudText Typo="Typo.h4" Class='@($"{(LayoutService.IsDarkMode ? "text-white text-shadow-lg" : "mud-text-primary")} fw-black ma-0 d-block d-md-none")'>GRAND TOURNAMENT</MudText>
                                     <MudTooltip Text="A fair competition based on ROI (Return on Investment) ranking. Every player has a fair chance regardless of bet size. Prize Distribution: 1st (40%), 2nd (25%), 3rd (15%), 4th-10th (shared 20%). Base Pool: $25,000 + Monthly Rollover.">
-                                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="text-white opacity-50 cursor-help" />
+                                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="info-icon-tweak" />
                                     </MudTooltip>
                                 </div>
                                 
@@ -617,13 +617,16 @@
     .text-success { color: var(--mud-palette-success); }
     
     .info-icon-tweak {
-        font-size: 0.875rem !important; /* subtitle2 is 0.875rem */
-        opacity: 0.6;
+        font-size: 0.7rem !important; 
+        opacity: 0.5;
         cursor: help;
-        display: inline-block !important;
+        display: inline-flex !important;
+        align-self: center;
         vertical-align: middle;
-        color: white;
-        margin-left: 2px;
+        color: inherit !important;
+        margin-left: 4px;
+        position: relative;
+        top: -1px; /* Optical adjustment for vertical centering */
     }
     
     .text-shadow-lg { text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
@@ -983,15 +986,20 @@
     private List<GameItem> allGames = new() {
         new GameItem("Clover Chase", "AleaSim Originals", "Slots", "images/games-cover/clover-chase.webp", "/game/cloverchase", "HOT", 98.5),
         new GameItem("Fruit Blast", "AleaSim Originals", "Slots", "images/games-cover/fruit-blast.webp", "/game/fruitblast", "NEW", 96.8),
-        new GameItem("Roulette Royale", "Table Games", "Table", "images/games-cover/roulette.webp", "/game/roulette", "", 97.3),
-        new GameItem("Blackjack", "Card Games", "Table", "images/games-cover/blackjack.webp", "/game/blackjack", "NEW", 99.2),
-        new GameItem("Neon Dice", "AleaSim Originals", "Slots", "images/games-cover/neon-dice.webp", "/game/dice?mode=slider", "NEW", 99.0),
-        new GameItem("Crazy Dice", "AleaSim Originals", "Slots", "images/games-cover/crazy-dice.webp", "/game/dice?mode=multi", "", 96.5),
+        new GameItem("Roulette Royale", "AleaSim Originals", "Table", "images/games-cover/roulette.webp", "/game/roulette?mode=classic", "", 97.3),
+        new GameItem("Blackjack", "AleaSim Originals", "Table", "images/games-cover/blackjack.webp", "/game/blackjack", "NEW", 99.2),
+        new GameItem("Neon Dice", "AleaSim Originals", "Originals", "images/games-cover/neon-dice.webp", "/game/dice?mode=slider", "NEW", 99.0),
+        new GameItem("Crazy Dice", "AleaSim Originals", "Originals", "images/games-cover/crazy-dice.webp", "/game/dice?mode=multi", "", 96.5),
         new GameItem("Baccarat", "AleaSim Originals", "Table", "images/games-cover/baccarat.webp", "/game/baccarat", "HOT", 98.9)
     };
 
     private IEnumerable<GameItem> FilteredGames => allGames
-        .Where(g => (selectedCategory == "Lobby" || g.Category == selectedCategory))
+        .Where(g => selectedCategory == "Lobby" || 
+                   g.Category == selectedCategory || 
+                   (selectedCategory == "Originals" && g.Provider == "AleaSim Originals") ||
+                   (selectedCategory == "Slots" && g.Category == "Slots") ||
+                   (selectedCategory == "Table" && g.Category == "Table") ||
+                   (selectedCategory == "Live" && (g.Title == "Blackjack" || g.Title == "Baccarat")))
         .Where(g => string.IsNullOrWhiteSpace(SearchTerm) || g.Title.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) || g.Provider.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()

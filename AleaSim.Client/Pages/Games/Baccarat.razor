@@ -251,8 +251,11 @@
 
     private async Task RefreshBalance() {
         try {
-            var user = await Http.GetFromJsonAsync<UserProfileResponse>("api/Auth/me");
-            if (user != null) balance = user.TotalBalance;
+            var user = await AuthService.GetMe();
+            if (user != null) {
+                balance = user.TotalBalance;
+                LayoutService.NotifyProfileChanged(user);
+            }
             StateHasChanged();
         } catch { }
     }

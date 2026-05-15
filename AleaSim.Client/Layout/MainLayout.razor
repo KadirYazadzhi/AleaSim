@@ -542,6 +542,7 @@
         GameService.OnFlowStateChanged += HandleFlowStateChange; 
         LayoutService.OnMajorUpdate += StateHasChanged;
         LayoutService.OnAvatarChanged += HandleAvatarChanged; 
+        LayoutService.OnProfileChanged += HandleProfileChanged;
         LayoutService.OnBalanceUpdateSuppressionChanged += HandleSuppressionChanged;
         LayoutService.OnOptimisticDeduction += HandleOptimisticDeduction;
         LayoutService.OnOptimisticAdd += HandleOptimisticAdd;
@@ -568,7 +569,10 @@
                     await EnsureSignalRConnected();
                 } else {
                     userProfile = null;
-                    // Optionally disconnect SignalR here if needed
+                    // Disconnect SignalR on logout
+                    if (RealTime.IsConnected) {
+                        await RealTime.StopAsync();
+                    }
                 }
                 StateHasChanged();
             } finally {
@@ -630,6 +634,7 @@
         GameService.OnFlowStateChanged -= HandleFlowStateChange;
         LayoutService.OnMajorUpdate -= StateHasChanged;
         LayoutService.OnAvatarChanged -= HandleAvatarChanged; 
+        LayoutService.OnProfileChanged -= HandleProfileChanged;
         LayoutService.OnBalanceUpdateSuppressionChanged -= HandleSuppressionChanged;
         LayoutService.OnOptimisticDeduction -= HandleOptimisticDeduction;
         LayoutService.OnOptimisticAdd -= HandleOptimisticAdd;
@@ -645,6 +650,11 @@
             userProfile.AvatarUrl = newUrl;
             InvokeAsync(StateHasChanged);
         }
+    }
+
+    private void HandleProfileChanged(UserDto profile) {
+        userProfile = profile;
+        InvokeAsync(StateHasChanged);
     }
 
     private void HandleOptimisticDeduction(decimal amount) {

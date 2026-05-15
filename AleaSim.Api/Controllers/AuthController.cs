@@ -342,7 +342,7 @@ public class AuthController : ControllerBase {
              return BadRequest("Username already exists.");
          }
 
-         decimal welcomeBonus = 100m;
+         decimal welcomeBonus = 5000m;
          if (decimal.TryParse(_repository.GetGlobalSetting("Economy_WelcomeBonus"), out var bonusVal)) {
              welcomeBonus = bonusVal;
          }

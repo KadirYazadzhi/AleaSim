@@ -399,7 +399,10 @@
                 var start = DateTime.Now;
                 while (isSpinning && (DateTime.Now - start).TotalMilliseconds < timeout) await Task.Delay(50);
                 var profile = await AuthService.GetMe();
-                if (profile != null) balance = profile.TotalBalance;
+                if (profile != null) {
+                    balance = profile.TotalBalance;
+                    LayoutService.NotifyProfileChanged(profile);
+                }
                 if (lastWin > 0.01m) await Audio.PlayWin();
                 StateHasChanged();
                 if (gameState.IsGambleActive && isAutoSpinning) await CollectWin(); 
@@ -420,7 +423,10 @@
         var result = await dialog.Result;
         if (result != null) {
             var profile = await AuthService.GetMe();
-            if (profile != null) balance = profile.TotalBalance;
+            if (profile != null) {
+                balance = profile.TotalBalance;
+                LayoutService.NotifyProfileChanged(profile);
+            }
             gameState.IsGambleActive = false; 
         }
         StateHasChanged();
@@ -431,7 +437,10 @@
         await GameService.PerformAction("slot", sessionId, "collect", "{}");
         gameState.IsGambleActive = false;
         var profile = await AuthService.GetMe();
-        if (profile != null) balance = profile.TotalBalance;
+        if (profile != null) {
+            balance = profile.TotalBalance;
+            LayoutService.NotifyProfileChanged(profile);
+        }
         StateHasChanged();
     }
 

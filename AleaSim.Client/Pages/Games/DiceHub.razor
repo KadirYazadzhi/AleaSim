@@ -9,6 +9,7 @@
 @inject ISnackbar Snackbar
 @inject AudioService Audio
 @inject LayoutService LayoutService
+@inject IAuthService AuthService
 @implements IAsyncDisposable
 
 <PageTitle>Neon Dice | AleaSim</PageTitle>
@@ -287,6 +288,7 @@
 @code {
     private string selectedMode = "Slider";
     private decimal betAmount = 1.00m;
+    private decimal balance = 0;
     
     [Parameter]
     [SupplyParameterFromQuery]
@@ -324,6 +326,15 @@
     protected override async Task OnInitializedAsync() {
         var resp = await GameService.StartSession("dice");
         sessionId = resp.SessionId;
+        await RefreshBalance();
+    }
+
+    private async Task RefreshBalance() {
+        var profile = await AuthService.GetMe();
+        if (profile != null) {
+            balance = profile.TotalBalance;
+            LayoutService.NotifyProfileChanged(profile);
+        }
     }
 
     private void ToggleMultiNumber(int num) {
@@ -337,8 +348,19 @@
 
     private async Task PlayDice(bool isRetry = false) {
         if (sessionId == null || (isSpinning && !isRetry)) return;
+        
+        if (betAmount > balance) {
+            Snackbar.Add("Insufficient balance!", Severity.Warning);
+            autoBet = false;
+            return;
+        }
+
         isSpinning = true;
         lastMultiHits = 0;
+        
+        balance -= betAmount;
+        LayoutService.DeductOptimisticBalance(betAmount);
+        StateHasChanged();
         
         var betData = new DiceBetDto {
             Mode = selectedMode,
@@ -377,6 +399,7 @@
                 if (result.IsWin) await Audio.PlayWin();
                 else await Audio.PlayClick();
             }
+            await RefreshBalance();
         } catch (Exception ex) when ((ex.Message.Contains("400") || ex.Message.Contains("Session not found")) && !isRetry) {
             // Auto-recover session if it expired/errored
             try {
@@ -391,6 +414,7 @@
         } catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
             autoBet = false;
+            await RefreshBalance();
         } finally {
             isSpinning = false;
             StateHasChanged();

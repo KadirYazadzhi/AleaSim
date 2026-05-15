@@ -32,6 +32,11 @@ public class ExceptionHandlingMiddleware {
 
     private async Task LogErrorToDb(HttpContext context, Exception ex) {
         try {
+            // Check if exception is related to missing tables during startup
+            if (ex.Message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase)) {
+                return; // Silently skip DB logging for schema errors to avoid infinite loops/spam
+            }
+
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
             

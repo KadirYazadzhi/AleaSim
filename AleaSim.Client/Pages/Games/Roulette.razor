@@ -491,7 +491,10 @@
                 await Audio.PlayWin();
             }
             var user = await AuthService.GetMe();
-            if (user != null) balance = user.TotalBalance;
+            if (user != null) {
+                balance = user.TotalBalance;
+                layoutService.NotifyProfileChanged(user);
+            }
             currentBets.Clear();
             await RefreshStats();
         } catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }

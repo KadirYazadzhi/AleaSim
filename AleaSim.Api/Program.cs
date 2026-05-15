@@ -228,21 +228,35 @@ app.MapHub<AleaSim.Api.Hubs.GameHub>("/gamehub"); // Added
 // Initialize Database & Seed Data
 using (var scope = app.Services.CreateScope()) {
     var db = scope.ServiceProvider.GetRequiredService<AleaSimDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     
-    try {
-        db.Database.Migrate(); // Apply all migrations
-    } catch (Exception ex) {
-        Console.WriteLine("Migration failed. If the DB is new, try 'dotnet ef database update'. Error: " + ex.Message);
-        // Fallback for emergency only
-        db.Database.EnsureCreated(); 
+    // RETRY LOGIC: Database might still be starting in K8s/Docker
+    bool isDbReady = false;
+    int retryCount = 0;
+    while (!isDbReady && retryCount < 10) {
+        try {
+            logger.LogInformation("Attempting to apply migrations (Try {Count}/10)...", retryCount + 1);
+            db.Database.Migrate(); 
+            isDbReady = true;
+            logger.LogInformation("Database migrations applied successfully.");
+        } catch (Exception ex) {
+            retryCount++;
+            logger.LogWarning("Database migration attempt {Count} failed. Database might be booting. Error: {Message}", retryCount, ex.Message);
+            if (retryCount >= 10) {
+                logger.LogCritical(ex, "FATAL: Could not apply database migrations after 10 attempts. System cannot start.");
+                throw;
+            }
+            Thread.Sleep(5000); // Wait 5 seconds before retry
+        }
     }
 
     // Seed Games if missing
     List<AleaSim.Domain.Entities.Game> existingGames = new();
     try {
         existingGames = db.Games.ToList();
-    } catch {
-        Console.WriteLine("Could not read Games table. Schema might be out of sync.");
+    } catch (Exception ex) {
+        logger.LogCritical(ex, "Could not read Games table even after successful migration. Schema is corrupted.");
+        throw;
     }
 
     void UpdateGame(string type, string name, decimal minBet, decimal maxBet, decimal rtp, Guid? fixedId = null) {

@@ -18,6 +18,11 @@ public class AuditWriterBackgroundService : BackgroundService {
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
+        _logger.LogInformation("Audit Writer Background Service initializing...");
+        
+        // Wait for DB migrations in Program.cs
+        await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+        
         _logger.LogInformation("Audit Writer Background Service started.");
 
         var batch = new List<AuditEvent>();

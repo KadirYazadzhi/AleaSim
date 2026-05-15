@@ -149,15 +149,70 @@ erDiagram
 
 ---
 
-### 🎲 3.3 Table & Original Games
+## 🎲 3.3 Table & Original Games: Mathematical Specs
 
-| 🎡 Roulette Royale | ♠️ Multi-Hand Blackjack |
-| :---: | :---: |
-| ![Roulette](Images/Games/roulette.png) | ![Blackjack](Images/Games/blackjack.png) |
+### 🎡 3.3.1 Roulette Royale (Hybrid Physics Engine)
 
-| 🎲 Neon Dice | 🎲 Crazy Dice |
-| :---: | :---: |
-| ![Neon Dice](Images/Games/neon-dice.png) | ![Crazy Dice](Images/Games/crazy-dice.png) |
+![Roulette](Images/Games/roulette.png)
+*Figure 9: Roulette Royale—procedural ball physics meeting deterministic outcomes.*
+
+* **Sector-Weighted Spin Algorithm:** The system utilizes a "Sector-Weighted" mechanism where the Brain remaps the raw HMAC-SHA256 output (37 or 38 pockets) to adjust probability toward target RTP while maintaining a maximum weight deviation of ±1.5x per pocket.
+* **Mathematical Edge Profiles:**
+* **European Variant:** Single-zero layout with a fixed house edge of **2.70%** across all bet types.
+* **American Variant:** Double-zero (0, 00) layout with a house edge of **5.26%**, except for the Five Number Bet which carries a **7.89%** edge.
+
+
+* **La Partage Rule:** When enabled, even-money bets return 50% of the wager if the ball lands on 0, effectively halving the house edge to **1.35%**.
+
+---
+
+### ♠️ 3.3.2 Multi-Hand Blackjack (The 6-Deck Standard)
+
+![Blackjack](Images/Games/blackjack.png)
+*Figure 10: Multi-Hand Blackjack—simultaneous processing of up to four hands.*
+
+* **Shoe Composition Biasing:** The Brain manages RTP through "Probability-Weighted Shoe Shuffles," selecting from pre-validated 6-deck compositions (312 cards) that remain within a ±0.3% variance of the declared **0.50% house edge**.
+* **High-Yield Side Bets:**
+* **Perfect Pairs:** Pays up to **25:1** for identical rank and suit matches.
+* **21+3 (Poker Bonus):** Evaluates the player's first two cards and the dealer's up-card; a Suited Three of a Kind awards a **100:1** payout.
+
+
+* **Dealer Logic:** Strictly deterministic; the dealer **hits on Soft 17** (A+6) and stands on all totals of 18 through 21.
+
+---
+
+### 🃏 3.3.3 Baccarat (High-Roller Punto Banco)
+
+![Neon Dice](Images/Games/baccarat.png)
+*Figure 11: Baccarat—the 8-deck shoe.*
+
+* **Deterministic Drawing Rules:** Uses fixed "Third Card Logic." If the Player's total is 0–5, they draw; the Banker's action is then dictated by a fixed matrix based on the Banker's total and the Player's 3rd card.
+* **Commission & RTP:**
+* **Banker Bet:** **~1.06% house edge** after the standard 5% commission on winnings is deducted.
+* **Player Bet:** **~1.24% house edge** with no commission.
+* **Tie Bet:** Standard **8:1 payout** resulting in a high 14.4% house edge, though a 9:1 variant (4.8% edge) can be enabled via configuration.
+
+---
+
+### 🎲 3.3.4 Neon Dice (High-Frequency DiceHub)
+
+![Neon Dice](Images/Games/neon-dice.png)
+*Figure 12: Neon Dice—the low-risk manual and auto-bet interface.*
+
+* **Precision Range Mechanic:** Each roll produces a result between **0.00 and 99.99** with 10,000 possible outcomes.
+* **Mathematical Efficiency:** Fixed house edge of **1.00%** applied uniformly across all target ranges.
+* **Low-Risk Profile:** Optimized for "grinding" with a **98.00% maximum win probability** and automated safety limits (Martingale sequences auto-halt if they exceed 20x the base bet).
+
+---
+
+### 🎲 3.3.5 Crazy Dice (Extreme Volatility Mode)
+
+![Crazy Dice](Images/Games/crazy-dice.png)
+*Figure 13: Crazy Dice—extreme risk targeting the 9900x multiplier.*
+
+* **Extreme Multiplier Cap:** Allows for a **9900x maximum multiplier**, corresponding to a win probability of **0.01%** (Roll Over 99.98 or Roll Under 0.01).
+* **RTP Throttling:** During "Cooling Phases," the Brain biases results toward the loss side of the target, temporarily reducing the effective win probability by up to 15% to return session RTP to the 1% target window within 500 rolls.
+* **Auditability:** Every extreme win is logged with the original **HMAC-SHA256 server seed** and nonce for full transparency via the `/api/verify/dice/` endpoint.
 
 ---
 

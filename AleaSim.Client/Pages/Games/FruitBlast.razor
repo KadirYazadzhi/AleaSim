@@ -551,12 +551,12 @@
                         balance += lastWin; LayoutService.AddOptimisticBalance(lastWin); showWinDisplay = true;
                         if (lastWin >= betAmount * 10) Snackbar.Add($"NUCLEAR WIN: {lastWin:C2}!", Severity.Success);
                         await Audio.PlayWin(); StateHasChanged();
-                        var profile = await AuthService.GetMe(); if (profile != null) { balance = profile.TotalBalance; LayoutService.NotifyMajorUpdate(); }
+                        var profile = await AuthService.GetMe(); if (profile != null) { balance = profile.TotalBalance; LayoutService.NotifyProfileChanged(profile); }
                         int winDelay = animationSpeed switch { 3 => 600, 2 => 1200, _ => 3000 };
                         if (lastWin > betAmount * 50 && animationSpeed < 3) winDelay += 1000;
                         await Task.Delay(winDelay); showWinDisplay = false;
                     }
-                    var profileAfter = await AuthService.GetMe(); if (profileAfter != null) { balance = profileAfter.TotalBalance; lifetimeExplosions = profileAfter.FruitBlastLifetimeExplosions; LayoutService.NotifyMajorUpdate(); }
+                    var profileAfter = await AuthService.GetMe(); if (profileAfter != null) { balance = profileAfter.TotalBalance; lifetimeExplosions = profileAfter.FruitBlastLifetimeExplosions; LayoutService.NotifyProfileChanged(profileAfter); }
                 }
             } catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); isAutoSpinning = false; }
             finally { isSpinning = false; isMeltdownActive = false; LayoutService.SetBalanceUpdateSuppression(false); StateHasChanged(); }

@@ -254,7 +254,10 @@
             if (!isRoundOver) {
                 LayoutService.SetBalanceUpdateSuppression(false);
                 var user = await AuthService.GetMe();
-                if (user != null) balance = user.TotalBalance;
+                if (user != null) {
+                    balance = user.TotalBalance;
+                    LayoutService.NotifyProfileChanged(user);
+                }
             }
         } catch (Exception ex) {
             Snackbar.Add(ex.Message, Severity.Error);
@@ -309,7 +312,10 @@
             await Task.Delay(turboMode ? 200 : 1000);
             
             var user = await AuthService.GetMe();
-            if (user != null) balance = user.TotalBalance;
+            if (user != null) {
+                balance = user.TotalBalance;
+                LayoutService.NotifyProfileChanged(user);
+            }
             LayoutService.SetBalanceUpdateSuppression(false);
         }
         StateHasChanged();

@@ -24,6 +24,11 @@ public class SentinelBackgroundService : BackgroundService {
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
+        _logger.LogInformation("Sentinel Security Monitor initializing...");
+        
+        // Wait 10 seconds for DB migrations to finish in Program.cs
+        await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+        
         _logger.LogInformation("Sentinel Security Monitor started.");
 
         while (!stoppingToken.IsCancellationRequested) {
